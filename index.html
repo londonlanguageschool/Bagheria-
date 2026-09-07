@@ -12,7 +12,7 @@
     content="London Language School a Bagheria. Corsi di inglese coinvolgenti per bambini, ragazzi e adulti. We make English fun!"
   >
 
-  <style>
+  <style> 
     :root {
       --navy: #062f67;
       --navy-2: #0a4c8f;
@@ -605,7 +605,127 @@
       display: flex;
       justify-content: center;
     }
+/* SCHOOLS */
 
+.schools-section {
+  background: #f8fbfe;
+}
+
+.schools-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.school-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 25px 20px;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.school-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow);
+}
+
+.school-icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: var(--blue-soft);
+  font-size: 1.4rem;
+  margin-bottom: 17px;
+}
+
+.school-card:nth-child(2) .school-icon {
+  background: #fff5c7;
+}
+
+.school-card:nth-child(3) .school-icon {
+  background: #e5f7ff;
+}
+
+.school-card:nth-child(4) .school-icon {
+  background: #ffe8e8;
+}
+
+.school-card:nth-child(5) .school-icon {
+  background: #edf4ff;
+}
+
+.school-card h3 {
+  color: var(--navy);
+  font-size: 1.15rem;
+  line-height: 1.2;
+  margin-bottom: 9px;
+}
+
+.school-card p {
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+.schools-cta {
+  background:
+    radial-gradient(circle at 90% 20%, rgba(72, 189, 242, 0.28), transparent 25%),
+    linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
+  color: white;
+  border-radius: 28px;
+  padding: 34px 38px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 35px;
+  align-items: center;
+  box-shadow: var(--shadow);
+}
+
+.schools-kicker {
+  display: inline-block;
+  color: #9fe3ff;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 7px;
+}
+
+.schools-cta h3 {
+  font-size: 1.65rem;
+  line-height: 1.15;
+  margin-bottom: 8px;
+}
+
+.schools-cta p {
+  color: #dceaf6;
+  max-width: 700px;
+}
+
+@media (max-width: 1050px) {
+  .schools-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .schools-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .schools-cta {
+    grid-template-columns: 1fr;
+    padding: 28px;
+  }
+
+  .schools-cta .button {
+    width: 100%;
+  }
+}
     /* STUDY ABROAD */
 
     .study-abroad {
@@ -1205,7 +1325,7 @@
 
       <nav id="nav">
         <a href="#home">Home</a>
-        <a href="#courses">Corsi</a>
+        <a href="#courses">Corsi</a> <a href="#schools">Scuole</a>
         <a href="#about">Chi siamo</a>
         <a href="#gallery">Galleria</a>
         <a href="#contact">Contatti</a>
@@ -1423,7 +1543,92 @@
 
       </div>
     </section>
+<!-- SCHOOLS -->
+<section class="schools-section" id="schools">
+  <div class="container">
 
+    <div class="section-heading">
+      <small>Per le scuole</small>
+      <h2>Collaboriamo con le scuole del territorio.</h2>
+      <p>
+        Percorsi di inglese progettati su misura per studenti, docenti
+        e istituti scolastici, in base agli obiettivi e alle esigenze
+        della scuola.
+      </p>
+    </div>
+
+    <div class="schools-grid">
+
+      <article class="school-card">
+        <div class="school-icon">💬</div>
+        <h3>General English</h3>
+        <p>
+          Percorsi pratici e comunicativi per sviluppare sicurezza,
+          comprensione e uso reale della lingua inglese.
+        </p>
+      </article>
+
+      <article class="school-card">
+        <div class="school-icon">🎓</div>
+        <h3>Preparazione esami</h3>
+        <p>
+          Preparazione Cambridge English e percorsi mirati per aiutare
+          gli studenti a raggiungere obiettivi linguistici concreti.
+        </p>
+      </article>
+
+      <article class="school-card">
+        <div class="school-icon">🌍</div>
+        <h3>CLIL</h3>
+        <p>
+          Attività e moduli in inglese collegati a discipline come
+          scienze, geografia, educazione fisica e altre materie.
+        </p>
+      </article>
+
+      <article class="school-card">
+        <div class="school-icon">👩‍🏫</div>
+        <h3>Formazione docenti</h3>
+        <p>
+          Percorsi linguistici e metodologici per insegnanti,
+          incluso supporto per attività CLIL e aggiornamento.
+        </p>
+      </article>
+
+      <article class="school-card">
+        <div class="school-icon">🏃</div>
+        <h3>English Through Sport</h3>
+        <p>
+          Progetti che uniscono inglese e attività motoria per
+          motivare, coinvolgere e far comunicare gli studenti.
+        </p>
+      </article>
+
+    </div>
+
+    <div class="schools-cta">
+      <div>
+        <span class="schools-kicker">Un partner locale per la vostra scuola</span>
+        <h3>State progettando un’attività in inglese?</h3>
+        <p>
+          Contattateci per ricevere maggiori informazioni o per
+          organizzare un incontro e valutare insieme il percorso
+          più adatto al vostro istituto.
+        </p>
+      </div>
+
+      <a
+        class="button button-red"
+        href="https://wa.me/393791533754?text=Buongiorno%20London%20Language%20School%2C%20vorremmo%20ricevere%20informazioni%20sui%20percorsi%20per%20le%20scuole."
+        target="_blank"
+        rel="noopener"
+      >
+        Richiedi informazioni
+      </a>
+    </div>
+
+  </div>
+</section>
     <!-- STUDY ABROAD -->
     <section class="study-abroad" id="study-abroad">
       <div class="container study-abroad-grid">
