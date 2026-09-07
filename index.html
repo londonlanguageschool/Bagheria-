@@ -1,28 +1,38 @@
-<!DOCTYPE html>
+from pathlib import Path
+
+src = Path("/mnt/data/Pasted text.txt").read_text(encoding="utf-8")
+
+# Build a complete refreshed index.html from scratch, preserving the user's known asset names/links.
+html = r'''<!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
- <title>London Language School Bagheria | Corsi di Inglese</title>
-
-<meta
-  name="description"
-  content="London Language School a Bagheria. Corsi di inglese coinvolgenti per bambini, ragazzi e adulti. We make English fun!"
->
+  <title>London Language School Bagheria | Corsi di Inglese</title>
+  <meta
+    name="description"
+    content="London Language School a Bagheria. Corsi di inglese coinvolgenti per bambini, ragazzi e adulti. We make English fun!"
+  >
 
   <style>
     :root {
       --navy: #062f67;
-      --navy-dark: #031d42;
-      --red: #e53222;
-      --red-dark: #bd2417;
+      --navy-2: #0a4c8f;
+      --blue: #48bdf2;
+      --blue-soft: #eaf7ff;
+      --red: #ef2f2f;
+      --red-dark: #cf2222;
+      --yellow: #ffd84d;
+      --cream: #f8fafc;
       --white: #ffffff;
-      --cream: #f7f8fb;
       --text: #172033;
-      --muted: #637083;
+      --muted: #64748b;
       --green: #25d366;
-      --shadow: 0 14px 35px rgba(2, 29, 66, 0.12);
+      --line: #e6edf5;
+      --shadow: 0 18px 50px rgba(6, 47, 103, 0.12);
+      --shadow-soft: 0 10px 30px rgba(6, 47, 103, 0.08);
+      --radius: 24px;
     }
 
     * {
@@ -36,25 +46,31 @@
     }
 
     body {
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
       color: var(--text);
       background: var(--white);
       line-height: 1.6;
     }
 
     a {
-      text-decoration: none;
       color: inherit;
+      text-decoration: none;
     }
 
     img {
-      max-width: 100%;
       display: block;
+      max-width: 100%;
     }
 
     .container {
-      width: min(1120px, 90%);
-      margin: auto;
+      width: min(1180px, 92%);
+      margin: 0 auto;
+    }
+
+    section {
+      padding: 88px 0;
+      scroll-margin-top: 84px;
     }
 
     /* HEADER */
@@ -63,102 +79,116 @@
       position: sticky;
       top: 0;
       z-index: 1000;
-      background: rgba(255,255,255,0.96);
-      border-bottom: 1px solid #e8edf5;
-      backdrop-filter: blur(12px);
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(230, 237, 245, 0.9);
     }
 
     .navbar {
-      min-height: 76px;
+      min-height: 82px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 25px;
+      gap: 24px;
     }
 
     .brand {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 12px;
-      color: var(--navy);
-      font-weight: 800;
-      font-size: 1.05rem;
+      min-width: 220px;
     }
 
     .brand img {
-      width: 60px;
-      height: 60px;
+      width: 58px;
+      height: 58px;
       object-fit: contain;
+    }
+
+    .brand span {
+      color: var(--navy);
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      font-size: 1.02rem;
     }
 
     nav {
       display: flex;
       align-items: center;
-      gap: 26px;
+      gap: 22px;
     }
 
-    nav a {
-      font-weight: 700;
+    nav > a:not(.nav-cta) {
+      color: var(--navy);
+      font-weight: 750;
       font-size: 0.95rem;
-      transition: 0.2s;
+      position: relative;
+      padding: 8px 0;
     }
 
-    nav a:hover {
-      color: var(--red);
+    nav > a:not(.nav-cta)::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: 2px;
+      width: 0;
+      height: 2px;
+      background: var(--red);
+      transition: width 0.2s ease;
+    }
+
+    nav > a:not(.nav-cta):hover::after {
+      width: 100%;
+    }
+
+    .language-switcher {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 999px;
+    }
+
+    .lang-btn {
+      border: 0;
+      background: transparent;
+      color: var(--navy);
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .lang-btn.active {
+      background: var(--navy);
+      color: white;
+      box-shadow: 0 3px 10px rgba(6, 47, 103, 0.2);
     }
 
     .nav-cta {
       background: var(--red);
       color: white;
-      padding: 11px 17px;
-      border-radius: 30px;
+      padding: 12px 18px;
+      border-radius: 999px;
+      font-weight: 900;
+      white-space: nowrap;
+      box-shadow: 0 8px 20px rgba(239, 47, 47, 0.18);
     }
 
     .nav-cta:hover {
-      color: white;
       background: var(--red-dark);
+      transform: translateY(-1px);
     }
-/* LANGUAGE SWITCHER */
 
-.language-switcher {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: #f1f3f5;
-  padding: 4px;
-  border-radius: 30px;
-  margin-left: 6px;
-}
-
-.lang-btn {
-  border: 0;
-  background: transparent;
-  color: var(--navy);
-  padding: 7px 10px;
-  border-radius: 22px;
-  font-size: 0.78rem;
-  font-weight: 800;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.lang-btn:hover {
-  background: #ffffff;
-}
-
-.lang-btn.active {
-  background: var(--navy);
-  color: white;
-  box-shadow: 0 2px 7px rgba(2, 29, 66, 0.22);
-}
     .menu-button {
       display: none;
       border: 0;
       background: transparent;
-      font-size: 1.8rem;
-      cursor: pointer;
       color: var(--navy);
+      font-size: 1.9rem;
+      cursor: pointer;
     }
 
     /* HERO */
@@ -167,135 +197,134 @@
       position: relative;
       overflow: hidden;
       background:
-        radial-gradient(circle at 80% 20%, rgba(229,50,34,0.22), transparent 30%),
-        linear-gradient(135deg, #031b3f 0%, #06336f 100%);
-      color: white;
-      padding: 92px 0;
-      scroll-margin-top: 76px;
+        radial-gradient(circle at 8% 14%, rgba(72, 189, 242, 0.24), transparent 30%),
+        radial-gradient(circle at 86% 18%, rgba(72, 189, 242, 0.22), transparent 28%),
+        linear-gradient(135deg, #ffffff 0%, #f7fbff 55%, #edf8ff 100%);
+      padding: 72px 0 42px;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      width: 340px;
+      height: 340px;
+      background: var(--blue);
+      opacity: 0.12;
+      border-radius: 50%;
+      left: -140px;
+      bottom: -190px;
     }
 
     .hero::after {
       content: "";
       position: absolute;
-      width: 340px;
-      height: 340px;
-      border: 45px solid rgba(255,255,255,0.05);
+      width: 220px;
+      height: 220px;
+      border: 34px solid rgba(239, 47, 47, 0.06);
       border-radius: 50%;
-      right: -80px;
-      bottom: -170px;
+      right: -90px;
+      top: 80px;
     }
 
     .hero-grid {
       position: relative;
       z-index: 2;
       display: grid;
-      grid-template-columns: 1.25fr 0.75fr;
+      grid-template-columns: 0.92fr 1.08fr;
       align-items: center;
-      gap: 60px;
+      gap: 42px;
     }
 
     .eyebrow {
-      display: inline-block;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.18);
-      padding: 7px 13px;
-      border-radius: 30px;
-      font-size: 0.85rem;
-      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--navy);
+      font-size: 0.78rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
       margin-bottom: 18px;
     }
 
+    .eyebrow::before {
+      content: "";
+      width: 28px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--red);
+    }
+
     .hero h1 {
-      font-size: clamp(2.5rem, 6vw, 5rem);
-      line-height: 1;
-      letter-spacing: -2px;
+      color: var(--navy);
+      font-size: clamp(3.2rem, 6vw, 5.8rem);
+      line-height: 0.94;
+      letter-spacing: -0.055em;
       margin-bottom: 22px;
+      max-width: 620px;
     }
 
     .hero h1 span {
-      color: #ff5948;
+      color: var(--red);
     }
 
-    .hero p {
-      font-size: 1.18rem;
-      max-width: 670px;
-      color: #e6edf7;
-      margin-bottom: 28px;
+    .hero-copy {
+      max-width: 640px;
+      font-size: 1.12rem;
+      color: #425066;
+      margin-bottom: 26px;
+    }
+
+    .hero-copy strong {
+      color: var(--navy);
     }
 
     .tagline {
       font-style: italic;
-      font-weight: 800;
-      color: white;
+      font-weight: 900;
+      color: var(--navy);
     }
 
-    .google-proof {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin: 18px 0 22px;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  font-size: 0.95rem;
-  color: #ffffff;
-  backdrop-filter: blur(6px);
-}
-
-.google-stars {
-  color: #fbbc04;
-  letter-spacing: 1px;
-  font-size: 1rem;
-}
-
-.google-proof strong {
-  font-weight: 700;
-}
-
-.google-proof:hover {
-  background: rgba(255, 255, 255, 0.16);
-  transform: translateY(-1px);
-}
-
-    .cambridge-badge {
-  margin: 16px 0 18px;
-}
-
-.cambridge-badge img {
-  display: block;
-  width: 320px;
-  max-width: 100%;
-  height: auto;
-  background: white;
-  padding: 10px 14px;
-  border-radius: 8px;
-}
-  .hero-buttons {
+    .hero-buttons {
       display: flex;
       flex-wrap: wrap;
       gap: 14px;
+      margin-bottom: 24px;
     }
 
     .button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      gap: 8px;
       padding: 14px 22px;
-      border-radius: 8px;
-      font-weight: 800;
-      transition: 0.2s;
+      border-radius: 999px;
+      font-weight: 900;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
     }
 
     .button-red {
       background: var(--red);
       color: white;
+      box-shadow: 0 12px 24px rgba(239, 47, 47, 0.18);
     }
 
     .button-red:hover {
       background: var(--red-dark);
-      transform: translateY(-2px);
+    }
+
+    .button-outline {
+      background: white;
+      color: var(--navy);
+      border: 1px solid #bfd3e7;
+    }
+
+    .button-outline:hover {
+      box-shadow: var(--shadow-soft);
     }
 
     .button-white {
@@ -303,146 +332,389 @@
       color: var(--navy);
     }
 
-    .button-white:hover {
-      transform: translateY(-2px);
+    .hero-proof {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: stretch;
     }
 
-    .hero-logo {
-      background: white;
-      border-radius: 28px;
-      padding: 30px;
-      box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+    .proof-chip {
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid #dfeaf4;
+      border-radius: 18px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-height: 62px;
+      box-shadow: var(--shadow-soft);
     }
 
-    .hero-logo img {
-      width: 100%;
-      max-height: 420px;
+    .proof-stars {
+      color: #fbbc04;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    .proof-chip strong {
+      color: var(--navy);
+      display: block;
+      font-size: 0.95rem;
+    }
+
+    .proof-chip span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .cambridge-mini img {
+      width: 150px;
+      max-height: 56px;
       object-fit: contain;
     }
 
-    /* SECTIONS */
-
-    section {
-      padding: 85px 0;
+    .hero-visual {
+      position: relative;
+      min-height: 570px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
     }
+
+    .hero-visual::before {
+      content: "";
+      position: absolute;
+      inset: 42px 18px 14px 54px;
+      border-radius: 44% 56% 48% 52% / 38% 35% 65% 62%;
+      background:
+        linear-gradient(145deg, rgba(72, 189, 242, 0.9), rgba(6, 47, 103, 0.92));
+      transform: rotate(-2deg);
+      box-shadow: 0 28px 70px rgba(6, 47, 103, 0.18);
+    }
+
+    .hero-photo {
+      position: relative;
+      z-index: 2;
+      width: min(100%, 620px);
+      height: 530px;
+      object-fit: cover;
+      object-position: center;
+      border-radius: 36px 36px 90px 36px;
+      box-shadow: 0 26px 70px rgba(6, 47, 103, 0.18);
+      border: 8px solid rgba(255, 255, 255, 0.9);
+    }
+
+    .hero-note {
+      position: absolute;
+      z-index: 3;
+      right: -6px;
+      top: 52px;
+      background: var(--yellow);
+      color: var(--navy);
+      padding: 16px 18px;
+      border-radius: 16px;
+      font-weight: 900;
+      line-height: 1.2;
+      transform: rotate(3deg);
+      box-shadow: 0 14px 30px rgba(6, 47, 103, 0.14);
+    }
+
+    .hero-note::after {
+      content: "";
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 9px;
+      height: 4px;
+      background: var(--red);
+      border-radius: 999px;
+    }
+
+    .hero-tag {
+      position: absolute;
+      z-index: 3;
+      left: 18px;
+      bottom: 22px;
+      background: rgba(6, 47, 103, 0.92);
+      color: white;
+      padding: 13px 17px;
+      border-radius: 16px;
+      font-weight: 900;
+      box-shadow: 0 10px 24px rgba(6, 47, 103, 0.18);
+    }
+
+    /* SHARED SECTION HEADING */
 
     .section-heading {
       text-align: center;
-      max-width: 720px;
-      margin: 0 auto 45px;
+      max-width: 760px;
+      margin: 0 auto 44px;
     }
 
     .section-heading small {
       color: var(--red);
-      font-weight: 800;
+      font-weight: 900;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 0.12em;
+      font-size: 0.78rem;
     }
 
     .section-heading h2 {
       margin-top: 8px;
       color: var(--navy);
-      font-size: clamp(2rem, 4vw, 3rem);
-      line-height: 1.15;
+      font-size: clamp(2.2rem, 4vw, 3.4rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
     }
 
     .section-heading p {
       color: var(--muted);
       margin-top: 14px;
+      font-size: 1.03rem;
     }
 
-    /* COURSES */
+    /* BENEFITS */
 
-    .courses {
-      background: var(--cream);
+    .benefits {
+      background: white;
     }
 
     .cards {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
+      gap: 22px;
     }
 
     .card {
       background: white;
-      padding: 30px;
-      border-radius: 18px;
-      box-shadow: var(--shadow);
-      border-top: 5px solid var(--navy);
-      transition: 0.25s;
+      padding: 28px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+      transition: transform 0.22s ease, box-shadow 0.22s ease;
     }
 
     .card:hover {
       transform: translateY(-5px);
-      border-top-color: var(--red);
+      box-shadow: var(--shadow);
     }
 
     .card-icon {
-      width: 52px;
-      height: 52px;
-      background: #edf3fb;
-      color: var(--navy);
+      width: 54px;
+      height: 54px;
       display: grid;
       place-items: center;
-      border-radius: 14px;
-      font-size: 1.5rem;
-      margin-bottom: 20px;
+      border-radius: 16px;
+      margin-bottom: 18px;
+      font-size: 1.45rem;
+      background: var(--blue-soft);
+      color: var(--navy);
+    }
+
+    .benefits .card:nth-child(2) .card-icon {
+      background: #fff8cf;
+    }
+
+    .benefits .card:nth-child(3) .card-icon {
+      background: #ffe8e8;
     }
 
     .card h3 {
       color: var(--navy);
-      margin-bottom: 10px;
-      font-size: 1.3rem;
+      font-size: 1.25rem;
+      margin-bottom: 9px;
     }
 
     .card p {
       color: var(--muted);
     }
 
+    /* COURSES */
+
+    .courses {
+      background: #f8fbfe;
+    }
+
+    .courses .card {
+      min-height: 260px;
+    }
+
+    .courses .card:nth-child(1) {
+      border-top: 5px solid var(--yellow);
+    }
+
+    .courses .card:nth-child(2) {
+      border-top: 5px solid var(--blue);
+    }
+
+    .courses .card:nth-child(3) {
+      border-top: 5px solid var(--red);
+    }
+
+    /* FLEXIBLE PAYMENTS */
+
+    .flexible-payments {
+      background: white;
+    }
+
+    .payments-box {
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 90% 20%, rgba(255, 216, 77, 0.5), transparent 24%),
+        linear-gradient(135deg, #eef8ff 0%, #ffffff 100%);
+      border: 1px solid #dcecf7;
+      border-radius: 30px;
+      padding: 42px;
+      display: grid;
+      grid-template-columns: 1.35fr 0.65fr;
+      gap: 34px;
+      align-items: center;
+      box-shadow: var(--shadow);
+    }
+
+    .payments-kicker {
+      display: inline-flex;
+      background: var(--yellow);
+      color: var(--navy);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-weight: 900;
+      font-size: 0.82rem;
+      margin-bottom: 14px;
+    }
+
+    .payments-content h3 {
+      color: var(--navy);
+      font-size: clamp(1.8rem, 3vw, 2.4rem);
+      line-height: 1.08;
+      margin-bottom: 12px;
+    }
+
+    .payments-content p {
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    .payment-points {
+      display: grid;
+      gap: 10px;
+      color: var(--navy);
+      font-weight: 800;
+    }
+
+    .payments-action {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* STUDY ABROAD */
+
+    .study-abroad {
+      background:
+        radial-gradient(circle at 88% 18%, rgba(72, 189, 242, 0.28), transparent 28%),
+        linear-gradient(135deg, #062f67 0%, #0a4c8f 100%);
+      color: white;
+    }
+
+    .study-abroad-grid {
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 42px;
+      align-items: center;
+    }
+
+    .study-abroad small {
+      color: #aee8ff;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.78rem;
+    }
+
+    .study-abroad h2 {
+      font-size: clamp(2.2rem, 4vw, 3.5rem);
+      line-height: 1.06;
+      letter-spacing: -0.04em;
+      margin: 10px 0 18px;
+    }
+
+    .study-abroad p {
+      color: #e8f3fb;
+      margin-bottom: 18px;
+      max-width: 720px;
+    }
+
+    .study-points {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .study-point {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 15px 16px;
+      border-radius: 16px;
+      font-weight: 800;
+    }
+
+    .study-abroad-card {
+      background: white;
+      color: var(--navy);
+      padding: 34px;
+      border-radius: 28px;
+      box-shadow: 0 26px 60px rgba(0, 0, 0, 0.18);
+    }
+
+    .study-abroad-card h3 {
+      font-size: 1.6rem;
+      margin-bottom: 10px;
+    }
+
+    .study-abroad-card p {
+      color: var(--muted);
+    }
+
     /* ABOUT */
 
-    .about-section {
-  background: #ffffff;
-}
+    #about {
+      background: white;
+    }
 
-.about-header {
-  text-align: center;
-  max-width: 760px;
-  margin: 0 auto 55px;
-}
-
-.about-header small {
-  color: var(--red);
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.about-header h2 {
-  margin-top: 8px;
-  color: var(--navy);
-  font-size: clamp(2.2rem, 4vw, 3.4rem);
-  line-height: 1.1;
-}
-
-.about-header p {
-  color: var(--muted);
-  margin-top: 14px;
-  font-size: 1.05rem;
-}  .about-grid {
+    .about-gallery {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 55px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 30px 0 42px;
+    }
+
+    .about-gallery img {
+      width: 100%;
+      height: 290px;
+      object-fit: cover;
+      border-radius: 24px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      gap: 42px;
       align-items: start;
     }
 
     .about-box {
-      background: var(--navy);
+      background:
+        radial-gradient(circle at 88% 20%, rgba(72, 189, 242, 0.25), transparent 26%),
+        var(--navy);
       color: white;
-      padding: 42px;
-      border-radius: 24px;
-      position: relative;
-      overflow: hidden;
+      padding: 38px;
+      border-radius: 28px;
+      position: sticky;
+      top: 110px;
     }
 
     .about-box h3 {
@@ -451,13 +723,13 @@
     }
 
     .about-box strong {
-      color: #ff6556;
+      color: #aee8ff;
     }
 
     .about-text h2 {
       color: var(--navy);
-      font-size: 2.6rem;
-      line-height: 1.1;
+      font-size: clamp(2rem, 3vw, 2.7rem);
+      line-height: 1.08;
       margin-bottom: 18px;
     }
 
@@ -467,27 +739,34 @@
     }
 
     .ticks {
-      margin-top: 23px;
+      margin-top: 22px;
       display: grid;
       gap: 12px;
     }
 
     .tick {
-      font-weight: 700;
+      font-weight: 800;
       color: var(--navy);
     }
 
     .tick::before {
       content: "✓";
-      color: var(--red);
+      display: inline-grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: var(--blue-soft);
+      color: var(--navy);
+      font-size: 0.82rem;
       font-weight: 900;
-      margin-right: 9px;
     }
 
     /* GALLERY */
 
     .gallery {
-      background: var(--cream);
+      background: #f8fbfe;
     }
 
     .gallery-grid {
@@ -496,277 +775,119 @@
       gap: 16px;
     }
 
+    .gallery-video,
     .gallery-item {
-      min-height: 230px;
-      border-radius: 18px;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .gallery-video {
+      background: white;
+    }
+
+    .gallery-video iframe {
+      display: block;
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      max-height: 480px;
+      border: 0;
+      background: #000;
+    }
+
+    .video-caption {
+      padding: 16px 18px;
+      color: var(--navy);
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .gallery-item {
+      min-height: 280px;
       display: flex;
       align-items: flex-end;
       padding: 22px;
       color: white;
-      font-size: 1.3rem;
-      font-weight: 800;
-      overflow: hidden;
-      background:
-        linear-gradient(to top, rgba(2,29,66,0.86), rgba(6,47,103,0.25)),
-        linear-gradient(135deg, #154f91, #e53222);
-    }
-.gallery-video {
-  background: white;
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: var(--shadow);
-}
-
-.gallery-video iframe {
-  display: block;
-  width: 100%;
-  aspect-ratio: 9 / 16;
-  max-height: 480px;
-  border: 0;
-  background: #000;
-}
-
-.video-caption {
-  padding: 16px 18px;
-  color: var(--navy);
-  font-weight: 800;
-  text-align: center;
-}
-    .gallery-note {
-      text-align: center;
-      margin-top: 25px;
-      color: var(--muted);
-    }
-
-
-    /* FLEXIBLE PAYMENTS */
-
-.flexible-payments {
-  background: #ffffff;
-}
-
-.payments-box {
-  background: linear-gradient(135deg, #f7f8fb 0%, #edf3fb 100%);
-  border: 1px solid #e1e8f2;
-  border-radius: 24px;
-  padding: 40px;
-  display: grid;
-  grid-template-columns: 1.4fr 0.6fr;
-  gap: 35px;
-  align-items: center;
-  box-shadow: var(--shadow);
-}
-
-.payments-content h3 {
-  color: var(--navy);
-  font-size: 1.8rem;
-  margin-bottom: 12px;
-}
-
-.payments-content p {
-  color: var(--muted);
-  margin-bottom: 20px;
-}
-
-.payment-points {
-  display: grid;
-  gap: 10px;
-  color: var(--navy);
-  font-weight: 700;
-}
-
-.payments-action {
-  display: flex;
-  justify-content: center;
-}
-
-@media (max-width: 860px) {
-  .payments-box {
-    grid-template-columns: 1fr;
-  }
-
-  .payments-action {
-    justify-content: flex-start;
-  }
-}  /* STUDY ABROAD */
-
-    .study-abroad {
-      background:
-        radial-gradient(circle at 85% 20%, rgba(229,50,34,0.18), transparent 28%),
-        linear-gradient(135deg, #031d42 0%, #06336f 100%);
-      color: white;
-    }
-
-    .study-abroad-grid {
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 42px;
-      align-items: center;
-    }
-
-    .study-abroad small {
-      color: #ff6556;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .study-abroad h2 {
-      font-size: clamp(2.1rem, 4vw, 3.3rem);
-      line-height: 1.08;
-      margin: 10px 0 18px;
-    }
-
-    .study-abroad p {
-      color: #e6edf7;
-      margin-bottom: 18px;
-      max-width: 720px;
-    }
-
-    .study-points {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 24px;
-    }
-
-    .study-point {
-      background: rgba(255,255,255,0.09);
-      border: 1px solid rgba(255,255,255,0.16);
-      padding: 15px 16px;
-      border-radius: 14px;
-      font-weight: 700;
-    }
-
-    .study-abroad-card {
-      background: white;
-      color: var(--navy);
-      padding: 30px;
-      border-radius: 24px;
-      box-shadow: 0 25px 60px rgba(0,0,0,0.22);
-    }
-
-    .study-abroad-card h3 {
-      font-size: 1.55rem;
-      margin-bottom: 10px;
-    }
-
-    .study-abroad-card p {
-      color: var(--muted);
-    }
-
-    .study-abroad-card .button {
-      margin-top: 8px;
+      font-size: 1.25rem;
+      font-weight: 900;
+      background-size: cover !important;
+      background-position: center !important;
     }
 
     /* REVIEWS */
 
     .reviews {
-      background: #ffffff;
+      background: white;
     }
 
     .reviews-panel {
       display: grid;
       grid-template-columns: 0.8fr 1.2fr;
-      gap: 28px;
-      align-items: stretch;
+      gap: 24px;
     }
 
     .reviews-score {
-      background: var(--navy);
+      background:
+        radial-gradient(circle at 82% 18%, rgba(72, 189, 242, 0.24), transparent 28%),
+        var(--navy);
       color: white;
       padding: 34px;
-      border-radius: 22px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
+      border-radius: 26px;
     }
 
-    .reviews-score .big-score {
-      font-size: 3.8rem;
-      font-weight: 900;
+    .big-score {
+      font-size: 4rem;
+      font-weight: 950;
       line-height: 1;
     }
 
-    .reviews-score .stars {
+    .reviews-score .stars,
+    .review-stars {
       color: #fbbc04;
       letter-spacing: 2px;
-      font-size: 1.35rem;
+      font-size: 1.3rem;
       margin: 10px 0;
     }
 
     .reviews-score p {
       color: #dce7f4;
       margin-bottom: 18px;
-    } .review-stars {
-  color: #fbbc04;
-  letter-spacing: 2px;
-  font-size: 1.3rem;
-  margin-bottom: 14px;
-}
-
-.review-quote {
-  color: var(--navy) !important;
-  font-size: 1.18rem;
-  line-height: 1.65;
-  font-style: italic;
-  font-weight: 600;
-  margin-bottom: 16px !important;
-}
-
-.review-author {
-  color: var(--muted) !important;
-  font-size: 0.95rem;
-  font-weight: 700;
-  margin-bottom: 18px !important;
-}
-
-.review-link {
-  color: var(--red);
-  font-weight: 800;
-}
-
-.review-link:hover {
-  text-decoration: underline;
-}
+    }
 
     .reviews-message {
-      background: var(--cream);
-      border-radius: 22px;
+      background: #f8fbfe;
+      border: 1px solid #e5eef6;
+      border-radius: 26px;
       padding: 34px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
     }
 
-    .reviews-message h3 {
+    .review-quote {
       color: var(--navy);
-      font-size: 1.7rem;
-      margin-bottom: 12px;
+      font-size: 1.18rem;
+      line-height: 1.7;
+      font-style: italic;
+      font-weight: 700;
+      margin-bottom: 16px;
     }
 
-    .reviews-message p {
+    .review-author {
       color: var(--muted);
+      font-weight: 800;
       margin-bottom: 18px;
     }
 
-    @media (max-width: 860px) {
-      .study-abroad-grid,
-      .reviews-panel {
-        grid-template-columns: 1fr;
-      }
-
-      .study-points {
-        grid-template-columns: 1fr;
-      }
+    .review-link {
+      color: var(--red);
+      font-weight: 900;
     }
-
 
     /* CTA */
 
     .cta {
-      padding: 65px 0;
-      background: var(--red);
+      padding: 64px 0;
+      background:
+        radial-gradient(circle at 10% 20%, rgba(255,255,255,0.15), transparent 20%),
+        linear-gradient(135deg, #ef2f2f 0%, #d92222 100%);
       color: white;
     }
 
@@ -774,130 +895,119 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 35px;
+      gap: 30px;
     }
 
     .cta h2 {
-      font-size: clamp(2rem, 4vw, 3.2rem);
-      line-height: 1.1;
+      font-size: clamp(2rem, 4vw, 3.1rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
       margin-bottom: 8px;
     }
 
     /* CONTACT */
 
+    #contact {
+      background: white;
+    }
+
     .contact-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 35px;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 28px;
+    }
+
+    .contact-card,
+    .social-box {
+      border-radius: 26px;
+      padding: 34px;
     }
 
     .contact-card {
       background: var(--navy);
       color: white;
-      padding: 36px;
-      border-radius: 20px;
     }
 
-    .contact-card h3 {
+    .contact-card h3,
+    .social-box h3 {
       font-size: 1.6rem;
-      margin-bottom: 22px;
+      margin-bottom: 18px;
     }
 
     .contact-row {
-      margin-bottom: 19px;
+      margin-bottom: 18px;
     }
 
     .contact-row strong {
       display: block;
-      color: #ff6556;
-      margin-bottom: 3px;
-    }
-
-    .contact-row a:hover {
-      text-decoration: underline;
+      color: #8fdfff;
+      margin-bottom: 4px;
     }
 
     .social-box {
-      background: var(--cream);
-      padding: 36px;
-      border-radius: 20px;
+      background: #f8fbfe;
+      border: 1px solid #e5eef6;
     }
 
     .social-box h3 {
       color: var(--navy);
-      font-size: 1.6rem;
-      margin-bottom: 15px;
     }
 
     .social-box p {
       color: var(--muted);
-      margin-bottom: 22px;
+      margin-bottom: 20px;
     }
 
     .social-links {
       display: grid;
-      gap: 12px;
+      gap: 11px;
     }
 
-   .social-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 15px 20px;
-  border-radius: 12px;
-  font-weight: 800;
-  color: white;
-  border: none;
-  text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
+    .social-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 11px;
+      padding: 14px 18px;
+      border-radius: 14px;
+      font-weight: 900;
+      color: white;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
 
-.social-link svg {
-  width: 26px;
-  height: 26px;
-  fill: currentColor;
-  flex-shrink: 0;
-}
+    .social-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+    }
 
-.social-link:hover {
-  color: white;
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.20);
-}
+    .social-link svg {
+      width: 25px;
+      height: 25px;
+      fill: currentColor;
+    }
 
-/* Instagram */
-.social-link.instagram {
-  background: linear-gradient(
-    45deg,
-    #feda75 0%,
-    #fa7e1e 25%,
-    #d62976 50%,
-    #962fbf 75%,
-    #4f5bd5 100%
-  );
-}
+    .instagram {
+      background: linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5);
+    }
 
-/* Facebook */
-.social-link.facebook {
-  background: #1877f2;
-}
+    .facebook {
+      background: #1877f2;
+    }
 
-/* WhatsApp */
-.social-link.whatsapp-link {
-  background: #25d366;
-}
+    .whatsapp-link {
+      background: #25d366;
+    }
 
-/* Email */
-.social-link.email-link {
-  background: #062f67;
-}
+    .email-link {
+      background: var(--navy);
+    }
+
     /* FLOATING WHATSAPP */
 
     .whatsapp {
       position: fixed;
-      bottom: 22px;
       right: 22px;
+      bottom: 22px;
       width: 60px;
       height: 60px;
       border-radius: 50%;
@@ -905,38 +1015,42 @@
       color: white;
       display: grid;
       place-items: center;
-      font-size: 1.7rem;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.22);
+      font-size: 1.55rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       z-index: 999;
-      transition: 0.2s;
+      transition: transform 0.2s ease;
     }
 
     .whatsapp:hover {
-      transform: scale(1.08);
+      transform: scale(1.06);
     }
 
     /* FOOTER */
 
     footer {
       background: #02162f;
-      color: #ccd6e4;
-      padding: 35px 0;
+      color: #cbd5e1;
+      padding: 34px 0;
     }
 
     .footer-inner {
       display: flex;
-      justify-content: space-between;
-      gap: 25px;
       align-items: center;
+      justify-content: space-between;
+      gap: 24px;
     }
 
     footer strong {
       color: white;
     }
 
+    footer a:hover {
+      color: white;
+    }
+
     /* MOBILE */
 
-    @media (max-width: 860px) {
+    @media (max-width: 980px) {
       .menu-button {
         display: block;
       }
@@ -945,12 +1059,12 @@
         position: absolute;
         left: 0;
         right: 0;
-        top: 76px;
+        top: 82px;
         background: white;
         padding: 20px 5%;
         flex-direction: column;
         align-items: stretch;
-        border-bottom: 1px solid #ddd;
+        border-bottom: 1px solid var(--line);
         display: none;
       }
 
@@ -958,23 +1072,38 @@
         display: flex;
       }
 
+      .brand {
+        min-width: auto;
+      }
+
       .hero-grid,
       .about-grid,
-      .contact-grid {
+      .study-abroad-grid,
+      .reviews-panel,
+      .contact-grid,
+      .payments-box {
         grid-template-columns: 1fr;
       }
 
-      .hero {
-        padding: 65px 0;
+      .hero-visual {
+        min-height: 500px;
       }
 
-      .hero-logo {
-        max-width: 440px;
+      .about-box {
+        position: static;
       }
 
       .cards,
       .gallery-grid {
         grid-template-columns: 1fr;
+      }
+
+      .study-points {
+        grid-template-columns: 1fr;
+      }
+
+      .payments-action {
+        justify-content: flex-start;
       }
 
       .cta-inner,
@@ -983,33 +1112,84 @@
         align-items: flex-start;
       }
     }
-   /* Chi siamo photo gallery */
-.about-gallery {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-  margin: 30px 0 40px;
-}
 
-.about-gallery img {
-  width: 100%;
-  height: 280px;
-  object-fit: cover;
-  border-radius: 18px;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
-  display: block;
-}
+    @media (max-width: 680px) {
+      section {
+        padding: 68px 0;
+      }
 
-/* Mobile */
-@media (max-width: 768px) {
-  .about-gallery {
-    grid-template-columns: 1fr;
-  }
+      .navbar {
+        min-height: 74px;
+      }
 
-  .about-gallery img {
-    height: 260px;
-  }
- </style>
+      nav {
+        top: 74px;
+      }
+
+      .brand span {
+        display: none;
+      }
+
+      .brand img {
+        width: 54px;
+        height: 54px;
+      }
+
+      .hero {
+        padding: 54px 0 28px;
+      }
+
+      .hero h1 {
+        font-size: clamp(3rem, 15vw, 4.5rem);
+      }
+
+      .hero-visual {
+        min-height: 420px;
+      }
+
+      .hero-photo {
+        height: 400px;
+        border-radius: 28px 28px 64px 28px;
+      }
+
+      .hero-note {
+        right: 2px;
+        top: 30px;
+        font-size: 0.9rem;
+      }
+
+      .hero-tag {
+        left: 8px;
+        bottom: 12px;
+        font-size: 0.88rem;
+      }
+
+      .hero-buttons .button {
+        width: 100%;
+      }
+
+      .hero-proof {
+        display: grid;
+      }
+
+      .about-gallery {
+        grid-template-columns: 1fr;
+      }
+
+      .about-gallery img {
+        height: 260px;
+      }
+
+      .payments-box,
+      .study-abroad-card,
+      .contact-card,
+      .social-box,
+      .reviews-score,
+      .reviews-message {
+        padding: 26px;
+      }
+    }
+  </style>
 </head>
 
 <body>
@@ -1028,226 +1208,224 @@
 
       <nav id="nav">
         <a href="#home">Home</a>
-        <a href="#courses">Courses</a>
-        <a href="#about">About Us</a>
-        <a href="#gallery">Gallery</a>
-        <a href="#contact">Contact</a>
+        <a href="#courses">Corsi</a>
+        <a href="#about">Chi siamo</a>
+        <a href="#gallery">Galleria</a>
+        <a href="#contact">Contatti</a>
 
-<div class="language-switcher">
-  <button type="button" class="lang-btn active" data-lang="it">🇮🇹 IT</button>
-<button type="button" class="lang-btn" data-lang="en">🇬🇧 EN</button>
-</div>
-  
+        <div class="language-switcher">
+          <button type="button" class="lang-btn active" data-lang="it">IT</button>
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        </div>
+
         <a
           class="nav-cta"
-          href="https://wa.me/393791533754?text=Hello%20London%20Language%20School%2C%20I%27d%20like%20some%20information%20about%20your%20English%20courses."
+          href="https://wa.me/393791533754?text=Ciao%20London%20Language%20School%2C%20vorrei%20informazioni%20sui%20vostri%20corsi."
           target="_blank"
+          rel="noopener"
         >
-          WhatsApp Us
+          Scrivici su WhatsApp
         </a>
       </nav>
-
     </div>
   </header>
 
-
   <main>
 
-    <!-- HOME -->
+    <!-- HERO -->
     <section class="hero" id="home">
       <div class="container hero-grid">
 
         <div>
           <div class="eyebrow">Corsi di inglese a Bagheria</div>
 
-<h1>
-  Impara l’inglese. <span>Usalo davvero.</span>
-</h1>
+          <h1>
+            L’inglese prende <span>vita.</span>
+          </h1>
 
-<p>
-  Lezioni dinamiche per bambini, ragazzi e adulti,
-  pensate per sviluppare sicurezza, speaking e comunicazione reale.
-  <span class="tagline">English comes alive.</span>
-</p>
-<a class="google-proof"
-   href="https://www.google.com/maps/search/?api=1&query=London+Language+School+Via+Bernardo+Mattarella+167%2F1+Bagheria"
-   target="_blank" rel="noopener"
-   aria-label="Leggi le recensioni di London Language School su Google">
-  <span class="google-stars">★★★★★</span>
-  <strong>5.0 su Google</strong>
-  <span>· 40 recensioni · Leggi le recensioni →</span>
-</a>
-          <div class="cambridge-badge">
- <img src="WhatsApp Image 2026-09-01 at 17.37.33.jpeg" alt="Cambridge English Preparation Centre">
-</div>
+          <p class="hero-copy">
+            Corsi coinvolgenti per bambini, ragazzi e adulti.
+            <strong>Impara. Parla. Cresci.</strong>
+            <span class="tagline">We make English fun!</span>
+          </p>
+
           <div class="hero-buttons">
-   
-
             <a
               class="button button-red"
-          href="https://calendly.com/londonlanguageschoolbagheria/30min"
+              href="https://calendly.com/londonlanguageschoolbagheria/30min"
               target="_blank"
+              rel="noopener"
             >
-              Book a Trial Lesson
+              Prenota una prova
             </a>
 
-            <a class="button button-white" href="#courses">
-              Discover Our Courses
+            <a class="button button-outline" href="#courses">
+              Scopri i corsi
+            </a>
+          </div>
+
+          <div class="hero-proof">
+            <a
+              class="proof-chip"
+              href="https://www.google.com/maps/search/?api=1&query=London+Language+School+Via+Bernardo+Mattarella+167%2F1+Bagheria"
+              target="_blank"
+              rel="noopener"
+            >
+              <div>
+                <div class="proof-stars">★★★★★</div>
+                <strong>5.0 su Google</strong>
+                <span>40 recensioni</span>
+              </div>
             </a>
 
+            <div class="proof-chip cambridge-mini">
+              <img
+                src="WhatsApp Image 2026-09-01 at 17.37.33.jpeg"
+                alt="Cambridge English Preparation Centre"
+              >
+            </div>
           </div>
         </div>
 
-        <div class="hero-logo">
-          <img src="logo.png" alt="London Language School Bagheria">
+        <div class="hero-visual">
+          <img
+            class="hero-photo"
+            src="WhatsApp Image 2026-08-27 at 09.31.33.jpeg"
+            alt="Studenti alla London Language School Bagheria"
+          >
+          <div class="hero-note">Real English.<br>Real confidence.</div>
+          <div class="hero-tag">English comes alive.</div>
         </div>
 
       </div>
     </section>
 
-
- 
     <!-- BENEFITS -->
-<section class="benefits">
-  <div class="container">
-
-    <div class="section-heading">
-      <small>Non solo lezioni di inglese</small>
-      <h2>Imparare l’inglese deve fare la differenza.</h2>
-      <p>
-        Il nostro obiettivo non è solo studiare l’inglese,
-        ma aiutare ogni studente a usarlo con sicurezza nella vita reale.
-      </p>
-    </div>
-
-    <div class="cards">
-
-      <article class="card">
-        <div class="card-icon">💬</div>
-        <h3>Parla con più sicurezza</h3>
-        <p>
-          Più conversazione e comunicazione reale per superare
-          la paura di parlare inglese.
-        </p>
-      </article>
-
-      <article class="card">
-        <div class="card-icon">🚀</div>
-        <h3>Fai progressi reali</h3>
-        <p>
-          Un percorso coinvolgente che aiuta a trasformare
-          quello che impari in qualcosa che sai davvero usare.
-        </p>
-      </article>
-
-      <article class="card">
-        <div class="card-icon">❤️</div>
-        <h3>Impara con piacere</h3>
-        <p>
-          Lezioni dinamiche e coinvolgenti per rendere
-          l’inglese qualcosa da vivere, non solo da studiare.
-        </p>
-      </article>
-
-    </div>
-  </div>
-</section>
-  <!-- COURSES -->
-    <section class="courses" id="courses">
-
+    <section class="benefits">
       <div class="container">
 
         <div class="section-heading">
-          <small>Our Courses</small>
-          <h2>English for every stage</h2>
+          <small>Non solo lezioni di inglese</small>
+          <h2>Imparare l’inglese deve fare la differenza.</h2>
           <p>
-            Learn English in a welcoming environment designed to help students
-            communicate with confidence and enjoy the learning process.
+            Il nostro obiettivo non è solo studiare l’inglese,
+            ma aiutare ogni studente a usarlo con sicurezza nella vita reale.
           </p>
         </div>
 
         <div class="cards">
+          <article class="card">
+            <div class="card-icon">💬</div>
+            <h3>Parla con più sicurezza</h3>
+            <p>
+              Più conversazione e comunicazione reale per superare
+              la paura di parlare inglese.
+            </p>
+          </article>
 
           <article class="card">
+            <div class="card-icon">🚀</div>
+            <h3>Fai progressi reali</h3>
+            <p>
+              Un percorso coinvolgente che aiuta a trasformare
+              quello che impari in qualcosa che sai davvero usare.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon">❤️</div>
+            <h3>Impara con piacere</h3>
+            <p>
+              Lezioni dinamiche e coinvolgenti per rendere
+              l’inglese qualcosa da vivere, non solo da studiare.
+            </p>
+          </article>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- COURSES -->
+    <section class="courses" id="courses">
+      <div class="container">
+
+        <div class="section-heading">
+          <small>I nostri corsi</small>
+          <h2>Inglese per ogni età.</h2>
+          <p>
+            Percorsi pensati per aiutare bambini, ragazzi e adulti a comunicare
+            con sicurezza e a usare davvero l’inglese.
+          </p>
+        </div>
+
+        <div class="cards">
+          <article class="card">
             <div class="card-icon">★</div>
-           <h3>Inglese per bambini</h3>
-<p>
-  Imparare l’inglese attraverso giochi, movimento e comunicazione reale.
-  Lezioni coinvolgenti che aiutano i bambini a parlare con sicurezza
-  e ad amare l’inglese fin dall’inizio.
-</p>
+            <h3>Bambini</h3>
+            <p>
+              Inglese attraverso giochi, movimento e comunicazione reale.
+              Lezioni coinvolgenti per imparare con naturalezza e sicurezza.
+            </p>
           </article>
 
           <article class="card">
             <div class="card-icon">🎓</div>
-         <h3>Inglese per ragazzi</h3>
-<p>
-  Più sicurezza nel parlare, migliori risultati a scuola e inglese utile nella vita reale.
-  Un percorso pratico che aiuta i ragazzi a comunicare con naturalezza e senza paura di sbagliare.
-</p>
+            <h3>Ragazzi</h3>
+            <p>
+              Più sicurezza nel parlare, supporto per la scuola e inglese utile
+              nella vita reale, con un approccio pratico e comunicativo.
+            </p>
           </article>
 
           <article class="card">
             <div class="card-icon">💬</div>
-            <h3>Adults</h3>
+            <h3>Adulti</h3>
             <p>
-              Supportive English courses focused on communication, confidence
-              and useful language for everyday life, travel and work.
+              Corsi pratici per comunicazione, lavoro, viaggi e vita quotidiana,
+              con particolare attenzione alla sicurezza nel parlare.
             </p>
           </article>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FLEXIBLE PAYMENTS -->
+    <section class="flexible-payments" id="payments">
+      <div class="container">
+
+        <div class="payments-box">
+
+          <div class="payments-content">
+            <span class="payments-kicker">Pagamenti flessibili</span>
+            <h3>Più semplice iniziare. Più facile organizzarsi.</h3>
+            <p>
+              Per i nostri corsi di inglese a Bagheria sono disponibili
+              soluzioni di pagamento flessibili, anche in comode rate.
+            </p>
+
+            <div class="payment-points">
+              <div>✓ Pagamenti distribuiti nel tempo</div>
+              <div>✓ Soluzioni disponibili per diversi corsi</div>
+              <div>✓ Informazioni chiare prima dell’iscrizione</div>
+            </div>
+          </div>
+
+          <div class="payments-action">
+            <a
+              class="button button-red"
+              href="https://wa.me/393791533754?text=Ciao%20London%20Language%20School%2C%20vorrei%20informazioni%20sui%20pagamenti%20flessibili%20per%20i%20vostri%20corsi."
+              target="_blank"
+              rel="noopener"
+            >
+              Chiedi informazioni
+            </a>
+          </div>
 
         </div>
 
       </div>
-    </section> <!-- FLEXIBLE PAYMENTS -->
-<section class="flexible-payments" id="payments">
-  <div class="container">
-
-    <div class="section-heading">
-      <small>Pagamenti flessibili</small>
-      <h2>Più semplice iniziare. Più facile organizzarsi.</h2>
-      <p>
-        Per i nostri corsi di inglese a Bagheria sono disponibili
-        soluzioni di pagamento flessibili, anche in comode rate,
-        per rendere il percorso più semplice da gestire per studenti
-        e famiglie.
-      </p>
-    </div>
-
-    <div class="payments-box">
-
-      <div class="payments-content">
-        <h3>Investi nell’inglese senza dover pagare tutto subito.</h3>
-
-        <p>
-          Parla con noi e scopri le opzioni di pagamento disponibili
-          per il corso che ti interessa.
-        </p>
-
-        <div class="payment-points">
-          <div>✓ Pagamenti distribuiti nel tempo</div>
-          <div>✓ Soluzioni disponibili per diversi corsi</div>
-          <div>✓ Informazioni chiare prima dell’iscrizione</div>
-        </div>
-      </div>
-
-      <div class="payments-action">
-        <a
-          class="button button-red"
-          href="https://wa.me/393791533754?text=Ciao%20London%20Language%20School%2C%20vorrei%20informazioni%20sui%20pagamenti%20flessibili%20per%20i%20vostri%20corsi."
-          target="_blank"
-          rel="noopener"
-        >
-          Chiedi informazioni
-        </a>
-      </div>
-
-    </div>
-
-  </div>
-</section>
-
-
+    </section>
 
     <!-- STUDY ABROAD -->
     <section class="study-abroad" id="study-abroad">
@@ -1256,6 +1434,7 @@
         <div>
           <small>English beyond the classroom</small>
           <h2 class="study-abroad-title">Vivi l’inglese nel Regno Unito.</h2>
+
           <p class="study-abroad-text">
             Grazie alla nostra collaborazione con ELAC Study Vacations,
             possiamo offrire opportunità di soggiorno studio nel Regno Unito:
@@ -1264,10 +1443,10 @@
           </p>
 
           <div class="study-points">
-            <div class="study-point study-point-1">🇬🇧 Esperienza nel Regno Unito</div>
-            <div class="study-point study-point-2">💬 Inglese in situazioni reali</div>
-            <div class="study-point study-point-3">🌍 Ambiente internazionale</div>
-            <div class="study-point study-point-4">🎓 ELAC accreditata British Council</div>
+            <div class="study-point">🇬🇧 Esperienza nel Regno Unito</div>
+            <div class="study-point">💬 Inglese in situazioni reali</div>
+            <div class="study-point">🌍 Ambiente internazionale</div>
+            <div class="study-point">🎓 ELAC accreditata British Council</div>
           </div>
         </div>
 
@@ -1278,9 +1457,12 @@
             nuove persone, nuovi luoghi e tante occasioni per comunicare.
           </p>
 
-          <a class="button button-red study-card-button"
-             href="https://elac.co.uk/"
-             target="_blank" rel="noopener">
+          <a
+            class="button button-red study-card-button"
+            href="https://elac.co.uk/"
+            target="_blank"
+            rel="noopener"
+          >
             Scopri ELAC Study Vacations
           </a>
         </div>
@@ -1288,180 +1470,159 @@
       </div>
     </section>
 
-
-   <!-- ABOUT -->
-<section id="about">
-
-  <div class="container">
-
-    <div class="section-heading">
-      <small>London Language School</small>
-      <h2>Chi siamo</h2>
-      <p>
-        Un approccio moderno, efficace e coinvolgente
-        all'apprendimento dell'inglese.
-      </p>
-    </div>
-<div class="about-gallery">
-  <img src="WhatsApp Image 2026-08-27 at 09.27.39.jpeg"
-       alt="London Language School Bagheria">
-
-  <img src="WhatsApp Image 2026-08-27 at 09.31.33.jpeg"
-       alt="Attività di inglese alla London Language School">
-
-  <img src="WhatsApp Image 2026-08-27 at 09.31.33 (1).jpeg"
-       alt="Studenti della London Language School Bagheria">
-</div>
-    <div class="about-grid">
-
-      <div class="about-box">
-
-        <h3>Imparare, usare, ricordare.</h3>
-
-        <p>
-          Crediamo che l'inglese si impari davvero quando gli studenti
-          <strong>lo usano, lo ascoltano e lo incontrano più volte</strong>
-          in contesti diversi.
-        </p>
-
-        <br>
-
-        <p>
-          Per questo creiamo lezioni dinamiche in cui comunicazione,
-          ripetizione, tecnologia e divertimento lavorano insieme.
-        </p>
-
-      </div>
-
-      <div class="about-text">
-
-        <h2>Il nostro metodo</h2>
-
-        <p>
-          Il nostro metodo dà particolare importanza alla
-          <strong>ripetizione e al consolidamento di parole,
-          espressioni e strutture linguistiche chiave</strong>.
-          Attraverso attività diverse, gli studenti ritrovano e
-          riutilizzano la lingua appresa fino a renderla sempre più
-          familiare, naturale e facile da usare.
-        </p>
-
-        <p>
-          Utilizziamo <strong>video, audio, immagini, giochi,
-          storie, conversazione e contenuti multimediali</strong>
-          per presentare e ripassare l'inglese in modi diversi,
-          mantenendo alta l'attenzione e rafforzando ciò che è
-          stato imparato.
-        </p>
-
-        <p>
-          Le nostre lezioni si basano su metodologie didattiche
-          consolidate, tra cui <strong>approccio comunicativo,
-          retrieval practice, spaced repetition, scaffolding,
-          modelling e apprendimento attivo</strong>.
-         Con il nostro metodo non ti limiti a studiare l'inglese:
-impari a parlarlo, capirlo e usarlo davvero.
-        </p>
-
-        <p>
-          Stiamo inoltre introducendo gradualmente
-          <strong>strumenti di Intelligenza Artificiale a supporto
-          dell'apprendimento</strong>. Utilizzata in modo consapevole
-          e all'interno di un percorso guidato dall'insegnante,
-          l'AI può offrire nuove opportunità di esercitazione,
-          ripasso, creatività e interazione.
-        </p>
-
-        <p>
-          Per noi la tecnologia deve
-          <strong>supportare il lavoro dell'insegnante,
-          non sostituirlo</strong>. Al centro della lezione rimangono
-          la relazione con gli studenti, l'esperienza del docente
-          e una didattica efficace.
-        </p>
-
-        <div class="ticks">
-          <div class="tick">Comunicazione reale in inglese</div>
-          <div class="tick">Ripetizione e consolidamento</div>
-          
-       <div class="tick">Preparazione agli esami Cambridge English</div>
-          
-          <div class="tick">Lezioni divertenti e coinvolgenti</div>
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
-
-</section>
-
-
-    <!-- GALLERY -->
-    <section class="gallery" id="gallery">
-
+    <!-- ABOUT -->
+    <section id="about">
       <div class="container">
 
         <div class="section-heading">
-          <small>Life at London</small>
-          <h2>Learning should be memorable.</h2>
+          <small>London Language School</small>
+          <h2>Chi siamo</h2>
           <p>
-            A little look at lessons, activities and special moments from
-            London Language School.
+            Un approccio moderno, efficace e coinvolgente
+            all’apprendimento dell’inglese.
+          </p>
+        </div>
+
+        <div class="about-gallery">
+          <img
+            src="WhatsApp Image 2026-08-27 at 09.27.39.jpeg"
+            alt="London Language School Bagheria"
+          >
+          <img
+            src="WhatsApp Image 2026-08-27 at 09.31.33.jpeg"
+            alt="Attività di inglese alla London Language School"
+          >
+          <img
+            src="WhatsApp Image 2026-08-27 at 09.31.33 (1).jpeg"
+            alt="Studenti della London Language School Bagheria"
+          >
+        </div>
+
+        <div class="about-grid">
+
+          <div class="about-box">
+            <h3>Imparare, usare, ricordare.</h3>
+
+            <p>
+              Crediamo che l’inglese si impari davvero quando gli studenti
+              <strong>lo usano, lo ascoltano e lo incontrano più volte</strong>
+              in contesti diversi.
+            </p>
+
+            <br>
+
+            <p>
+              Per questo creiamo lezioni dinamiche in cui comunicazione,
+              ripetizione, tecnologia e divertimento lavorano insieme.
+            </p>
+          </div>
+
+          <div class="about-text">
+            <h2>Il nostro metodo</h2>
+
+            <p>
+              Il nostro metodo dà particolare importanza alla
+              <strong>ripetizione e al consolidamento di parole,
+              espressioni e strutture linguistiche chiave</strong>.
+              Attraverso attività diverse, gli studenti ritrovano e riutilizzano
+              la lingua appresa fino a renderla sempre più familiare e naturale.
+            </p>
+
+            <p>
+              Utilizziamo <strong>video, audio, immagini, giochi, storie,
+              conversazione e contenuti multimediali</strong> per presentare e
+              ripassare l’inglese in modi diversi, mantenendo alta l’attenzione.
+            </p>
+
+            <p>
+              Le nostre lezioni si basano su metodologie consolidate, tra cui
+              <strong>approccio comunicativo, retrieval practice, spaced repetition,
+              scaffolding, modelling e apprendimento attivo</strong>.
+            </p>
+
+            <p>
+              Stiamo inoltre introducendo gradualmente
+              <strong>strumenti di Intelligenza Artificiale a supporto
+              dell’apprendimento</strong>, sempre all’interno di un percorso
+              guidato dall’insegnante.
+            </p>
+
+            <p>
+              Per noi la tecnologia deve
+              <strong>supportare il lavoro dell’insegnante, non sostituirlo</strong>.
+              Al centro della lezione rimangono la relazione con gli studenti,
+              l’esperienza del docente e una didattica efficace.
+            </p>
+
+            <div class="ticks">
+              <div class="tick">Comunicazione reale in inglese</div>
+              <div class="tick">Ripetizione e consolidamento</div>
+              <div class="tick">Preparazione agli esami Cambridge English</div>
+              <div class="tick">Lezioni divertenti e coinvolgenti</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- GALLERY -->
+    <section class="gallery" id="gallery">
+      <div class="container">
+
+        <div class="section-heading">
+          <small>La vita alla London</small>
+          <h2>Imparare deve lasciare il segno.</h2>
+          <p>
+            Uno sguardo alle lezioni, alle attività e ai momenti speciali
+            della London Language School.
           </p>
         </div>
 
         <div class="gallery-grid">
 
           <div class="gallery-video">
-  <iframe
-    src="https://www.youtube.com/embed/vXC_BOFhgFk"
-    title="Kids Having Fun in Lesson - London Language School"
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-    allowfullscreen>
-  </iframe>
+            <iframe
+              src="https://www.youtube.com/embed/vXC_BOFhgFk"
+              title="Kids Having Fun in Lesson - London Language School"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+            ></iframe>
+            <div class="video-caption">Bambini che si divertono durante la lezione 🎉</div>
+          </div>
 
-  <div class="video-caption">
-    Kids Having Fun in Lesson 🎉
-  </div>
-</div>
+          <div
+            class="gallery-item"
+            style="background-image:
+              linear-gradient(to top, rgba(2,29,66,0.84), rgba(2,29,66,0.10)),
+              url('WhatsApp Image 2026-08-27 at 09.27.39.jpeg');"
+          >
+            <span>Le nostre lezioni</span>
+          </div>
 
-         <div class="gallery-item"
-     style="background-image:
-     linear-gradient(to top, rgba(2,29,66,0.82), rgba(2,29,66,0.08)),
-     url('WhatsApp Image 2026-08-27 at 09.27.39.jpeg');
-     background-size: cover;
-     background-position: center;">
-  <span>Le nostre lezioni</span>
-</div>
+          <div
+            class="gallery-item"
+            style="background-image:
+              linear-gradient(to top, rgba(2,29,66,0.84), rgba(2,29,66,0.10)),
+              url('WhatsApp Image 2026-08-27 at 09.31.33.jpeg');"
+          >
+            <span>Attività coinvolgenti</span>
+          </div>
 
-<div class="gallery-item"
-     style="background-image:
-     linear-gradient(to top, rgba(2,29,66,0.82), rgba(2,29,66,0.08)),
-     url('WhatsApp Image 2026-08-27 at 09.31.33.jpeg');
-     background-size: cover;
-     background-position: center;">
-  <span>Attività coinvolgenti</span>
-</div>
-
-<div class="gallery-item"
-     style="background-image:
-     linear-gradient(to top, rgba(2,29,66,0.82), rgba(2,29,66,0.08)),
-     url('WhatsApp Image 2026-08-27 at 09.31.33 (1).jpeg');
-     background-size: cover;
-     background-position: center;">
-  <span>Imparare insieme</span>
-</div>
+          <div
+            class="gallery-item"
+            style="background-image:
+              linear-gradient(to top, rgba(2,29,66,0.84), rgba(2,29,66,0.10)),
+              url('WhatsApp Image 2026-08-27 at 09.31.33 (1).jpeg');"
+          >
+            <span>Imparare insieme</span>
+          </div>
 
         </div>
 
-        
-
       </div>
     </section>
-
-
 
     <!-- REVIEWS -->
     <section class="reviews" id="reviews">
@@ -1476,90 +1637,93 @@ impari a parlarlo, capirlo e usarlo davvero.
         </div>
 
         <div class="reviews-panel">
+
           <div class="reviews-score">
             <div class="big-score">5.0</div>
             <div class="stars">★★★★★</div>
             <p class="reviews-score-text">40 recensioni su Google</p>
 
-            <a class="button button-red reviews-button"
-               href="https://www.google.com/maps/search/?api=1&query=London+Language+School+Via+Bernardo+Mattarella+167%2F1+Bagheria"
-               target="_blank" rel="noopener">
+            <a
+              class="button button-red reviews-button"
+              href="https://www.google.com/maps/search/?api=1&query=London+Language+School+Via+Bernardo+Mattarella+167%2F1+Bagheria"
+              target="_blank"
+              rel="noopener"
+            >
               Leggi tutte le recensioni
             </a>
           </div>
 
-         <div class="reviews-message">
-  <div class="review-stars">★★★★★</div>
+          <div class="reviews-message">
+            <div class="review-stars">★★★★★</div>
 
- <p class="review-quote">
-  “La migliore scuola di sempre! Gli insegnanti sono molto competenti ed è perfetta se vuoi imparare l’inglese, ma allo stesso tempo divertirti 💞✨”
-</p>
+            <p class="review-quote">
+              “La migliore scuola di sempre! Gli insegnanti sono molto competenti
+              ed è perfetta se vuoi imparare l’inglese, ma allo stesso tempo divertirti 💞✨”
+            </p>
 
-<p class="review-author">
-  — Mariantonietta Lo Bue Trisciuzzi, recensione Google
-</p>
+            <p class="review-author">
+              — Mariantonietta Lo Bue Trisciuzzi, recensione Google
+            </p>
 
-  <a
-    class="review-link"
-    href="https://www.google.com/maps/search/?api=1&query=London+Language+School+Via+Bernardo+Mattarella+167%2F1+Bagheria"
-    target="_blank"
-    rel="noopener"
-  >
-    Leggi tutte le recensioni →
-  </a>
-</div>
+            <a
+              class="review-link"
+              href="https://www.google.com/maps/search/?api=1&query=London+Language+School+Via+Bernardo+Mattarella+167%2F1+Bagheria"
+              target="_blank"
+              rel="noopener"
+            >
+              Leggi tutte le recensioni →
+            </a>
+          </div>
+
         </div>
 
       </div>
     </section>
 
-
     <!-- CTA -->
     <section class="cta">
-
       <div class="container cta-inner">
 
         <div>
-          <h2>Ready to start speaking English?</h2>
-          <p>Contact London Language School and discover the right course for you.</p>
+          <h2>Pronto a parlare inglese davvero?</h2>
+          <p>Contattaci e scopri il corso più adatto a te.</p>
         </div>
 
         <a
           class="button button-white"
-          href="https://wa.me/393791533754?text=Hello%20London%20Language%20School%2C%20I%27d%20like%20more%20information%20about%20your%20courses."
+          href="https://wa.me/393791533754?text=Ciao%20London%20Language%20School%2C%20vorrei%20informazioni%20sui%20vostri%20corsi."
           target="_blank"
+          rel="noopener"
         >
-          Message us on WhatsApp
+          Scrivici su WhatsApp
         </a>
 
       </div>
     </section>
 
-
     <!-- CONTACT -->
     <section id="contact">
-
       <div class="container">
 
         <div class="section-heading">
-          <small>Contact Us</small>
-          <h2>Come and say hello.</h2>
+          <small>Contattaci</small>
+          <h2>Vieni a trovarci.</h2>
           <p>
-            Contact us for information about courses, enrolment and trial lessons.
+            Contattaci per informazioni sui corsi, iscrizioni e lezioni di prova.
           </p>
         </div>
 
         <div class="contact-grid">
 
           <div class="contact-card">
-
             <h3>London Language School</h3>
 
             <div class="contact-row">
-              <strong>Address</strong>
+              <strong>Indirizzo</strong>
               <a
                 href="https://www.google.com/maps/search/?api=1&query=Via+Bernardo+Mattarella+167+Bagheria"
                 target="_blank"
+                rel="noopener"
               >
                 Via Bernardo Mattarella, 167/1 Piano<br>
                 90011 Bagheria PA
@@ -1567,10 +1731,8 @@ impari a parlarlo, capirlo e usarlo davvero.
             </div>
 
             <div class="contact-row">
-              <strong>Phone / WhatsApp</strong>
-              <a href="tel:+393791533754">
-                +39 379 153 3754
-              </a>
+              <strong>Telefono / WhatsApp</strong>
+              <a href="tel:+393791533754">+39 379 153 3754</a>
             </div>
 
             <div class="contact-row">
@@ -1579,58 +1741,64 @@ impari a parlarlo, capirlo e usarlo davvero.
                 londonlanguageschoolbagheria@gmail.com
               </a>
             </div>
-
           </div>
 
-
           <div class="social-box">
-
-            <h3>Follow the school</h3>
-
+            <h3>Seguici</h3>
             <p>
-              Follow London Language School online for news, activities,
-              events and updates.
+              Segui London Language School online per novità, attività,
+              eventi e aggiornamenti.
             </p>
 
-           <div class="social-links">
+            <div class="social-links">
 
-  <a class="social-link instagram"
-     href="https://www.instagram.com/londonlanguageschoolbagheria/"
-     target="_blank" rel="noopener">
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7zm5 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm5.5-3.5a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"/>
-    </svg>
-    <span>Instagram</span>
-  </a>
+              <a
+                class="social-link instagram"
+                href="https://www.instagram.com/londonlanguageschoolbagheria/"
+                target="_blank"
+                rel="noopener"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7zm5 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm5.5-3.5a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"/>
+                </svg>
+                <span>Instagram</span>
+              </a>
 
-  <a class="social-link facebook"
-     href="https://www.facebook.com/profile.php?id=61591857424469"
-     target="_blank" rel="noopener">
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M14 8h3V4h-3c-3.3 0-5 2-5 5v2H6v4h3v7h4v-7h3.2l.8-4H13V9c0-.7.3-1 1-1z"/>
-    </svg>
-    <span>Facebook</span>
-  </a>
+              <a
+                class="social-link facebook"
+                href="https://www.facebook.com/profile.php?id=61591857424469"
+                target="_blank"
+                rel="noopener"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M14 8h3V4h-3c-3.3 0-5 2-5 5v2H6v4h3v7h4v-7h3.2l.8-4H13V9c0-.7.3-1 1-1z"/>
+                </svg>
+                <span>Facebook</span>
+              </a>
 
-  <a class="social-link whatsapp-link"
-     href="https://wa.me/393791533754"
-     target="_blank" rel="noopener">
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 2a9.8 9.8 0 0 0-8.4 14.9L2 22l5.3-1.5A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3.1.9.9-3-.2-.3A8 8 0 1 1 12 20z"/>
-    </svg>
-    <span>WhatsApp</span>
-  </a>
+              <a
+                class="social-link whatsapp-link"
+                href="https://wa.me/393791533754"
+                target="_blank"
+                rel="noopener"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2a9.8 9.8 0 0 0-8.4 14.9L2 22l5.3-1.5A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3.1.9.9-3-.2-.3A8 8 0 1 1 12 20z"/>
+                </svg>
+                <span>WhatsApp</span>
+              </a>
 
-  <a class="social-link email-link"
-     href="mailto:londonlanguageschoolbagheria@gmail.com">
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M3 5h18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm9 7L3.5 7h17L12 12zm0 2.3L3 9v8h18V9l-9 5.3z"/>
-    </svg>
-    <span>Email</span>
-  </a>
+              <a
+                class="social-link email-link"
+                href="mailto:londonlanguageschoolbagheria@gmail.com"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 5h18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm9 7L3.5 7h17L12 12zm0 2.3L3 9v8h18V9l-9 5.3z"/>
+                </svg>
+                <span>Email</span>
+              </a>
 
-</div>
-
+            </div>
           </div>
 
         </div>
@@ -1640,419 +1808,327 @@ impari a parlarlo, capirlo e usarlo davvero.
 
   </main>
 
-
   <!-- FLOATING WHATSAPP -->
   <a
     class="whatsapp"
-    href="https://wa.me/393791533754?text=Hello%20London%20Language%20School!"
+    href="https://wa.me/393791533754?text=Ciao%20London%20Language%20School!"
     target="_blank"
-    aria-label="Contact London Language School on WhatsApp"
-    title="WhatsApp us"
+    rel="noopener"
+    aria-label="Contatta London Language School su WhatsApp"
+    title="WhatsApp"
   >
     ☎
   </a>
 
-
   <!-- FOOTER -->
   <footer>
-
     <div class="container footer-inner">
-<p>
-    <strong>London Language School</strong><br>
-    Via Bernardo Mattarella, 167/1 Piano<br>
-    90011 Bagheria (PA), Italy<br>
-   P. IVA: IT07339590825 <!-- legal footer updated -->
-</p> 
-    <a href="privacy.html">Privacy</a> ·
-    <a href="cookies.html">Cookies</a>
-</p>
 
       <p>
+        <strong>London Language School</strong><br>
+        Via Bernardo Mattarella, 167/1 Piano<br>
+        90011 Bagheria (PA), Italia<br>
+        P. IVA: IT07339590825
+      </p>
+
+      <p>
+        <a href="privacy.html">Privacy</a> ·
+        <a href="cookies.html">Cookies</a>
+      </p>
+
+      <p>
+        © <span id="year"></span> London Language School<br>
         We make English fun! 🇬🇧
       </p>
 
-     <p>
-  © <span id="year"></span> London Language School<br>
-  P. IVA: IT07339590825
-</p>
-
     </div>
-
   </footer>
 
-
   <script>
-  function toggleMenu() {
-    document.getElementById("nav").classList.toggle("open");
-  }
-
-  document.querySelectorAll("#nav a").forEach(link => {
-    link.addEventListener("click", () => {
-      document.getElementById("nav").classList.remove("open");
-    });
-  });
-
-  const translations = {
-    it: {
-      nav: ["Home", "Corsi", "Chi Siamo", "Galleria", "Contatti"],
-      whatsappNav: "Scrivici su WhatsApp",
-
-      eyebrow: "Corsi di inglese a Bagheria",
-      heroTitle: 'L’inglese prende <span>vita.</span>',
-      heroText:
-        'Corsi di inglese coinvolgenti e accoglienti per bambini, ragazzi e adulti alla London Language School di Bagheria. <span class="tagline">We make English fun!</span>',
-      trial: "Prenota una lezione di prova",
-      discover: "Scopri i nostri corsi",
-
-      coursesSmall: "I nostri corsi",
-      coursesTitle: "Inglese per ogni età",
-      coursesText:
-        "Impara l’inglese in un ambiente accogliente, pensato per aiutare gli studenti a comunicare con sicurezza e a divertirsi mentre imparano.",
-
-      childrenTitle: "Bambini",
-      childrenText:
-        "Lezioni di inglese divertenti e dinamiche che aiutano i bambini a imparare in modo naturale attraverso comunicazione, giochi e attività coinvolgenti.",
-
-      teensTitle: "Ragazzi",
-      teensText:
-        "Inglese pratico per sviluppare sicurezza, rafforzare le competenze scolastiche e utilizzare la lingua in situazioni reali.",
-
-      adultsTitle: "Adulti",
-      adultsText:
-        "Corsi di inglese orientati alla comunicazione, alla sicurezza e all’uso pratico della lingua nella vita quotidiana, nei viaggi e nel lavoro.",
-
-      aboutBoxTitle: "Molto più della grammatica.",
-      aboutBoxText1:
-        'Vogliamo che gli studenti <strong>usino l’inglese</strong>, si divertano e acquistino sicurezza nel parlare.',
-      aboutBoxText2:
-        "Alla London Language School, le lezioni sono pensate per essere coinvolgenti, positive e memorabili.",
-
-     aboutTitle: "Chi siamo",
-      aboutText1:
-  "London Language School è una scuola di inglese a Bagheria nata da un’idea semplice: si impara meglio quando ci si sente a proprio agio, coinvolti e motivati.",
-
-aboutText2:
-  "Che si tratti dei primi passi in inglese o dello sviluppo di competenze comunicative più avanzate, il nostro obiettivo è rendere ogni lezione utile e piacevole.",
-      
-
-      ticks: [
-      "Comunicazione reale in inglese",
-"Ripetizione e consolidamento",
-"Preparazione agli esami Cambridge English",
-"Lezioni divertenti e coinvolgenti"
-      ],
-
-      gallerySmall: "La vita alla London",
-      galleryTitle: "Imparare deve lasciare il segno.",
-      galleryText:
-        "Uno sguardo alle lezioni, alle attività e ai momenti speciali della London Language School.",
-      videoCaption: "Bambini che si divertono durante la lezione 🎉",
-      galleryItems: [
-       "Le nostre lezioni",
-"Attività coinvolgenti",
-"Imparare insieme"
-      ],
-
-
-     ctaTitle: "Pronto a parlare inglese davvero?",
-      ctaText:
-        "Contatta London Language School e scopri il corso più adatto a te.",
-      ctaButton: "Scrivici su WhatsApp",
-
-      contactSmall: "Contattaci",
-      contactTitle: "Vieni a trovarci.",
-      contactText:
-        "Contattaci per informazioni sui corsi, iscrizioni e lezioni di prova.",
-
-      address: "Indirizzo",
-      phone: "Telefono / WhatsApp",
-      email: "Email",
-
-      socialTitle: "Seguici",
-      socialText:
-        "Segui London Language School online per novità, attività, eventi e aggiornamenti.",
-
-    footerLocation: "Via Bernardo Mattarella, 167/1 Piano<br>90011 Bagheria (PA), Italia<br>P. IVA: IT07339590825",
-
-      studyAbroadTitle: "Vivi l’inglese nel Regno Unito.",
-      studyAbroadText:
-        "Grazie alla nostra collaborazione con ELAC Study Vacations, possiamo offrire opportunità di soggiorno studio nel Regno Unito: lezioni di inglese, attività, escursioni e un ambiente internazionale per usare la lingua anche fuori dall’aula.",
-      studyPoints: [
-        "🇬🇧 Esperienza nel Regno Unito",
-        "💬 Inglese in situazioni reali",
-        "🌍 Ambiente internazionale",
-        "🎓 ELAC accreditata British Council"
-      ],
-      studyCardTitle: "Porta il tuo inglese fuori dall’aula.",
-      studyCardText:
-        "Un soggiorno studio può trasformare l’inglese in un’esperienza reale: nuove persone, nuovi luoghi e tante occasioni per comunicare.",
-      studyCardButton: "Scopri ELAC Study Vacations",
-
-      reviewsSmall: "Le opinioni dei nostri studenti",
-      reviewsTitle: "Cosa dicono di noi",
-      reviewsIntro:
-        "La fiducia delle famiglie e degli studenti è una delle cose più importanti per noi.",
-      reviewsScoreText: "40 recensioni su Google",
-      reviewsButton: "Leggi tutte le recensioni",
-      reviewsMessageTitle: "Vuoi sapere cosa pensano davvero i nostri studenti?",
-      reviewsMessageText:
-        "Clicca per leggere le recensioni complete e le esperienze condivise da chi ha già studiato con noi."
-    },
-
-    en: {
-      nav: ["Home", "Courses", "About Us", "Gallery", "Contact"],
-      whatsappNav: "WhatsApp Us",
-
-      eyebrow: "English courses in Bagheria",
-      heroTitle: 'English comes <span>alive.</span>',
-      heroText:
-        'Friendly, engaging English courses for children, teenagers and adults at London Language School in Bagheria. <span class="tagline">We make English fun!</span>',
-      trial: "Book a Trial Lesson",
-      discover: "Discover Our Courses",
-
-      coursesSmall: "Our Courses",
-      coursesTitle: "English for every stage",
-      coursesText:
-        "Learn English in a welcoming environment designed to help students communicate with confidence and enjoy the learning process.",
-
-      childrenTitle: "Children",
-      childrenText:
-        "Fun, active English lessons that encourage children to learn naturally through communication, games and engaging activities.",
-
-      teensTitle: "Teenagers",
-      teensText:
-        "Practical English that builds confidence, strengthens school skills and helps students use the language in real situations.",
-
-      adultsTitle: "Adults",
-      adultsText:
-        "Supportive English courses focused on communication, confidence and useful language for everyday life, travel and work.",
-
-      aboutBoxTitle: "More than grammar.",
-      aboutBoxText1:
-        'We want students to <strong>use English</strong>, enjoy English and feel confident speaking English.',
-      aboutBoxText2:
-        "At London Language School, lessons are designed to be engaging, encouraging and memorable.",
-
-      aboutTitle: "A local school with a passion for English.",
-      aboutText1:
-        "London Language School is an English language school in Bagheria, created around a simple idea: learning works better when students feel comfortable, involved and motivated.",
-      aboutText2:
-       "With our method, you don't just study English: you learn to speak it, understand it and actually use it.",
-
-      ticks: [
-       "Real communication in English",
-"Practice and consolidation",
-"Cambridge English exam preparation",
-"Fun and engaging lessons"
-      ],
-
-      gallerySmall: "Life at London",
-      galleryTitle: "Learning should be memorable.",
-      galleryText:
-        "A little look at lessons, activities and special moments from London Language School.",
-      videoCaption: "Kids Having Fun in Lesson 🎉",
-      galleryItems: [
-       "Our lessons",
-"Engaging activities",
-"Learning together"
-      ],
-    
-
-   ctaTitle: "Ready to start speaking English?",
-      ctaText:
-        "Contact London Language School and discover the right course for you.",
-      ctaButton: "Message us on WhatsApp",
-
-      contactSmall: "Contact Us",
-      contactTitle: "Come and say hello.",
-      contactText:
-        "Contact us for information about courses, enrolment and trial lessons.",
-
-      address: "Address",
-      phone: "Phone / WhatsApp",
-      email: "Email",
-
-      socialTitle: "Follow the school",
-      socialText:
-        "Follow London Language School online for news, activities, events and updates.",
-
-   footerLocation: "Via Bernardo Mattarella, 167/1 Piano<br>90011 Bagheria (PA), Italy<br>P. IVA: IT07339590825",
-
-      studyAbroadTitle: "Live English in the UK.",
-      studyAbroadText:
-        "Through our collaboration with ELAC Study Vacations, we can offer UK study-vacation opportunities combining English lessons, activities, excursions and an international environment where students can use English beyond the classroom.",
-      studyPoints: [
-        "🇬🇧 Experience life in the UK",
-        "💬 Use English in real situations",
-        "🌍 International environment",
-        "🎓 British Council-accredited ELAC"
-      ],
-      studyCardTitle: "Take your English beyond the classroom.",
-      studyCardText:
-        "A study vacation can turn English into a real experience: new people, new places and many opportunities to communicate.",
-      studyCardButton: "Discover ELAC Study Vacations",
-
-      reviewsSmall: "What our students say",
-      reviewsTitle: "Our Google reviews",
-      reviewsIntro:
-        "The trust of our students and families is one of the things we value most.",
-      reviewsScoreText: "40 Google reviews",
-      reviewsButton: "Read all reviews",
-      reviewsMessageTitle: "Want to know what our students really think?",
-      reviewsMessageText:
-        "Click to read the full reviews and experiences shared by people who have already studied with us."
+    function toggleMenu() {
+      document.getElementById("nav").classList.toggle("open");
     }
-  };
 
-  function setLanguage(lang) {
-    const t = translations[lang];
-
-    document.documentElement.lang = lang;
-
-    const navLinks = document.querySelectorAll("#nav > a:not(.nav-cta)");
-    t.nav.forEach((text, i) => {
-      if (navLinks[i]) navLinks[i].textContent = text;
+    document.querySelectorAll("#nav a").forEach(link => {
+      link.addEventListener("click", () => {
+        document.getElementById("nav").classList.remove("open");
+      });
     });
 
-    const navCTA = document.querySelector(".nav-cta");
-    if (navCTA) navCTA.textContent = t.whatsappNav;
+    const translations = {
+      it: {
+        nav: ["Home", "Corsi", "Chi siamo", "Galleria", "Contatti"],
+        whatsappNav: "Scrivici su WhatsApp",
+        eyebrow: "Corsi di inglese a Bagheria",
+        heroTitle: 'L’inglese prende <span>vita.</span>',
+        heroText:
+          'Corsi coinvolgenti per bambini, ragazzi e adulti. <strong>Impara. Parla. Cresci.</strong> <span class="tagline">We make English fun!</span>',
+        trial: "Prenota una prova",
+        discover: "Scopri i corsi",
 
-    document.querySelector(".eyebrow").textContent = t.eyebrow;
-    document.querySelector(".hero h1").innerHTML = t.heroTitle;
-    document.querySelector(".hero p").innerHTML = t.heroText;
+        benefitsSmall: "Non solo lezioni di inglese",
+        benefitsTitle: "Imparare l’inglese deve fare la differenza.",
+        benefitsText:
+          "Il nostro obiettivo non è solo studiare l’inglese, ma aiutare ogni studente a usarlo con sicurezza nella vita reale.",
 
-    const heroButtons = document.querySelectorAll(".hero-buttons .button");
-    if (heroButtons[0]) heroButtons[0].textContent = t.trial;
-    if (heroButtons[1]) heroButtons[1].textContent = t.discover;
+        coursesSmall: "I nostri corsi",
+        coursesTitle: "Inglese per ogni età.",
+        coursesText:
+          "Percorsi pensati per aiutare bambini, ragazzi e adulti a comunicare con sicurezza e a usare davvero l’inglese.",
 
-  
+        childrenTitle: "Bambini",
+        childrenText:
+          "Inglese attraverso giochi, movimento e comunicazione reale. Lezioni coinvolgenti per imparare con naturalezza e sicurezza.",
+        teensTitle: "Ragazzi",
+        teensText:
+          "Più sicurezza nel parlare, supporto per la scuola e inglese utile nella vita reale, con un approccio pratico e comunicativo.",
+        adultsTitle: "Adulti",
+        adultsText:
+          "Corsi pratici per comunicazione, lavoro, viaggi e vita quotidiana, con particolare attenzione alla sicurezza nel parlare.",
 
-    
-const coursesHeading = document.querySelector("#courses .section-heading");
-if (coursesHeading) {
-  coursesHeading.querySelector("small").textContent = t.coursesSmall;
-  coursesHeading.querySelector("h2").textContent = t.coursesTitle;
-  coursesHeading.querySelector("p").textContent = t.coursesText;
-}
-    const cards = document.querySelectorAll(".courses .card");
-    cards[0].querySelector("h3").textContent = t.childrenTitle;
-    cards[0].querySelector("p").textContent = t.childrenText;
+        paymentsKicker: "Pagamenti flessibili",
+        paymentsTitle: "Più semplice iniziare. Più facile organizzarsi.",
+        paymentsText:
+          "Per i nostri corsi di inglese a Bagheria sono disponibili soluzioni di pagamento flessibili, anche in comode rate.",
+        paymentsPoints: [
+          "✓ Pagamenti distribuiti nel tempo",
+          "✓ Soluzioni disponibili per diversi corsi",
+          "✓ Informazioni chiare prima dell’iscrizione"
+        ],
+        paymentsButton: "Chiedi informazioni",
 
-    cards[1].querySelector("h3").textContent = t.teensTitle;
-    cards[1].querySelector("p").textContent = t.teensText;
+        studyTitle: "Vivi l’inglese nel Regno Unito.",
+        studyText:
+          "Grazie alla nostra collaborazione con ELAC Study Vacations, possiamo offrire opportunità di soggiorno studio nel Regno Unito: lezioni di inglese, attività, escursioni e un ambiente internazionale per usare la lingua anche fuori dall’aula.",
+        studyPoints: [
+          "🇬🇧 Esperienza nel Regno Unito",
+          "💬 Inglese in situazioni reali",
+          "🌍 Ambiente internazionale",
+          "🎓 ELAC accreditata British Council"
+        ],
+        studyCardTitle: "Porta il tuo inglese fuori dall’aula.",
+        studyCardText:
+          "Un soggiorno studio può trasformare l’inglese in un’esperienza reale: nuove persone, nuovi luoghi e tante occasioni per comunicare.",
+        studyCardButton: "Scopri ELAC Study Vacations",
 
-    cards[2].querySelector("h3").textContent = t.adultsTitle;
-    cards[2].querySelector("p").textContent = t.adultsText;
+        gallerySmall: "La vita alla London",
+        galleryTitle: "Imparare deve lasciare il segno.",
+        galleryText:
+          "Uno sguardo alle lezioni, alle attività e ai momenti speciali della London Language School.",
+        galleryCaption: "Bambini che si divertono durante la lezione 🎉",
+        galleryItems: ["Le nostre lezioni", "Attività coinvolgenti", "Imparare insieme"],
 
-   
+        reviewsSmall: "Le opinioni dei nostri studenti",
+        reviewsTitle: "Cosa dicono di noi",
+        reviewsIntro:
+          "La fiducia delle famiglie e degli studenti è una delle cose più importanti per noi.",
+        reviewsScoreText: "40 recensioni su Google",
+        reviewsButton: "Leggi tutte le recensioni",
 
-    document.querySelectorAll(".tick").forEach((el, i) => {
-      el.textContent = t.ticks[i];
-    });
+        ctaTitle: "Pronto a parlare inglese davvero?",
+        ctaText: "Contattaci e scopri il corso più adatto a te.",
+        ctaButton: "Scrivici su WhatsApp",
 
-    const galleryHeading = document.querySelector("#gallery .section-heading");
-if (galleryHeading) {
-  galleryHeading.querySelector("small").textContent = t.gallerySmall;
-  galleryHeading.querySelector("h2").textContent = t.galleryTitle;
-  galleryHeading.querySelector("p").textContent = t.galleryText;
-}
-    const videoCaption = document.querySelector(".video-caption");
-    if (videoCaption) videoCaption.textContent = t.videoCaption;
+        contactSmall: "Contattaci",
+        contactTitle: "Vieni a trovarci.",
+        contactText:
+          "Contattaci per informazioni sui corsi, iscrizioni e lezioni di prova.",
+        socialTitle: "Seguici",
+        socialText:
+          "Segui London Language School online per novità, attività, eventi e aggiornamenti."
+      },
 
-    document.querySelectorAll(".gallery-item span").forEach((el, i) => {
-      if (t.galleryItems[i]) el.textContent = t.galleryItems[i];
-    });
+      en: {
+        nav: ["Home", "Courses", "About us", "Gallery", "Contact"],
+        whatsappNav: "WhatsApp us",
+        eyebrow: "English courses in Bagheria",
+        heroTitle: 'English comes <span>alive.</span>',
+        heroText:
+          'Engaging English courses for children, teenagers and adults. <strong>Learn. Speak. Grow.</strong> <span class="tagline">We make English fun!</span>',
+        trial: "Book a trial lesson",
+        discover: "Discover our courses",
 
-    
+        benefitsSmall: "More than English lessons",
+        benefitsTitle: "Learning English should make a real difference.",
+        benefitsText:
+          "Our goal is not simply to study English, but to help every student use it confidently in real life.",
 
+        coursesSmall: "Our courses",
+        coursesTitle: "English for every age.",
+        coursesText:
+          "Courses designed to help children, teenagers and adults communicate confidently and really use English.",
 
-    const studyTitle = document.querySelector(".study-abroad-title");
-    if (studyTitle) studyTitle.textContent = t.studyAbroadTitle;
+        childrenTitle: "Children",
+        childrenText:
+          "English through games, movement and real communication. Engaging lessons that help children learn naturally and confidently.",
+        teensTitle: "Teenagers",
+        teensText:
+          "Greater confidence speaking, support for school and useful English for real life through a practical, communicative approach.",
+        adultsTitle: "Adults",
+        adultsText:
+          "Practical English for communication, work, travel and everyday life, with a strong focus on speaking confidence.",
 
-    const studyText = document.querySelector(".study-abroad-text");
-    if (studyText) studyText.textContent = t.studyAbroadText;
+        paymentsKicker: "Flexible payments",
+        paymentsTitle: "Easier to start. Easier to manage.",
+        paymentsText:
+          "Flexible payment options, including instalments, are available for our English courses in Bagheria.",
+        paymentsPoints: [
+          "✓ Spread payments over time",
+          "✓ Options available for different courses",
+          "✓ Clear information before enrolment"
+        ],
+        paymentsButton: "Ask for information",
 
-    document.querySelectorAll(".study-point").forEach((el, i) => {
-      if (t.studyPoints && t.studyPoints[i]) el.textContent = t.studyPoints[i];
-    });
+        studyTitle: "Live English in the UK.",
+        studyText:
+          "Through our collaboration with ELAC Study Vacations, we can offer UK study-vacation opportunities combining English lessons, activities, excursions and an international environment where students can use English beyond the classroom.",
+        studyPoints: [
+          "🇬🇧 Experience life in the UK",
+          "💬 Use English in real situations",
+          "🌍 International environment",
+          "🎓 British Council-accredited ELAC"
+        ],
+        studyCardTitle: "Take your English beyond the classroom.",
+        studyCardText:
+          "A study vacation can turn English into a real experience: new people, new places and many opportunities to communicate.",
+        studyCardButton: "Discover ELAC Study Vacations",
 
-    const studyCardTitle = document.querySelector(".study-card-title");
-    if (studyCardTitle) studyCardTitle.textContent = t.studyCardTitle;
+        gallerySmall: "Life at London",
+        galleryTitle: "Learning should be memorable.",
+        galleryText:
+          "A look at lessons, activities and special moments from London Language School.",
+        galleryCaption: "Kids having fun in class 🎉",
+        galleryItems: ["Our lessons", "Engaging activities", "Learning together"],
 
-    const studyCardText = document.querySelector(".study-card-text");
-    if (studyCardText) studyCardText.textContent = t.studyCardText;
+        reviewsSmall: "What our students say",
+        reviewsTitle: "Our Google reviews",
+        reviewsIntro:
+          "The trust of our students and families is one of the things we value most.",
+        reviewsScoreText: "40 Google reviews",
+        reviewsButton: "Read all reviews",
 
-    const studyCardButton = document.querySelector(".study-card-button");
-    if (studyCardButton) studyCardButton.textContent = t.studyCardButton;
+        ctaTitle: "Ready to start speaking English?",
+        ctaText: "Contact us and discover the right course for you.",
+        ctaButton: "Message us on WhatsApp",
 
-    const reviewsSmall = document.querySelector(".reviews-small");
-    if (reviewsSmall) reviewsSmall.textContent = t.reviewsSmall;
+        contactSmall: "Contact us",
+        contactTitle: "Come and say hello.",
+        contactText:
+          "Contact us for information about courses, enrolment and trial lessons.",
+        socialTitle: "Follow the school",
+        socialText:
+          "Follow London Language School online for news, activities, events and updates."
+      }
+    };
 
-    const reviewsTitle = document.querySelector(".reviews-title");
-    if (reviewsTitle) reviewsTitle.textContent = t.reviewsTitle;
+    function setLanguage(lang) {
+      const t = translations[lang];
+      document.documentElement.lang = lang;
 
-    const reviewsIntro = document.querySelector(".reviews-intro");
-    if (reviewsIntro) reviewsIntro.textContent = t.reviewsIntro;
+      const navLinks = document.querySelectorAll("#nav > a:not(.nav-cta)");
+      t.nav.forEach((text, i) => {
+        if (navLinks[i]) navLinks[i].textContent = text;
+      });
 
-    const reviewsScoreText = document.querySelector(".reviews-score-text");
-    if (reviewsScoreText) reviewsScoreText.textContent = t.reviewsScoreText;
+      const navCTA = document.querySelector(".nav-cta");
+      if (navCTA) navCTA.textContent = t.whatsappNav;
 
-    const reviewsButton = document.querySelector(".reviews-button");
-    if (reviewsButton) reviewsButton.textContent = t.reviewsButton;
+      document.querySelector(".eyebrow").textContent = t.eyebrow;
+      document.querySelector(".hero h1").innerHTML = t.heroTitle;
+      document.querySelector(".hero-copy").innerHTML = t.heroText;
 
-    const reviewsMessageTitle = document.querySelector(".reviews-message-title");
-    if (reviewsMessageTitle) reviewsMessageTitle.textContent = t.reviewsMessageTitle;
+      const heroButtons = document.querySelectorAll(".hero-buttons .button");
+      if (heroButtons[0]) heroButtons[0].textContent = t.trial;
+      if (heroButtons[1]) heroButtons[1].textContent = t.discover;
 
-    const reviewsMessageText = document.querySelector(".reviews-message-text");
-    if (reviewsMessageText) reviewsMessageText.textContent = t.reviewsMessageText;
+      const benefitHeading = document.querySelector(".benefits .section-heading");
+      benefitHeading.querySelector("small").textContent = t.benefitsSmall;
+      benefitHeading.querySelector("h2").textContent = t.benefitsTitle;
+      benefitHeading.querySelector("p").textContent = t.benefitsText;
 
+      const coursesHeading = document.querySelector("#courses .section-heading");
+      coursesHeading.querySelector("small").textContent = t.coursesSmall;
+      coursesHeading.querySelector("h2").textContent = t.coursesTitle;
+      coursesHeading.querySelector("p").textContent = t.coursesText;
 
-    document.querySelector(".cta h2").textContent = t.ctaTitle;
-    document.querySelector(".cta p").textContent = t.ctaText;
-    document.querySelector(".cta .button").textContent = t.ctaButton;
+      const courseCards = document.querySelectorAll(".courses .card");
+      courseCards[0].querySelector("h3").textContent = t.childrenTitle;
+      courseCards[0].querySelector("p").textContent = t.childrenText;
+      courseCards[1].querySelector("h3").textContent = t.teensTitle;
+      courseCards[1].querySelector("p").textContent = t.teensText;
+      courseCards[2].querySelector("h3").textContent = t.adultsTitle;
+      courseCards[2].querySelector("p").textContent = t.adultsText;
 
-   const contactHeading = document.querySelector("#contact .section-heading");
-if (contactHeading) {
-  contactHeading.querySelector("small").textContent = t.contactSmall;
-  contactHeading.querySelector("h2").textContent = t.contactTitle;
-  contactHeading.querySelector("p").textContent = t.contactText;
-}
+      document.querySelector(".payments-kicker").textContent = t.paymentsKicker;
+      document.querySelector(".payments-content h3").textContent = t.paymentsTitle;
+      document.querySelector(".payments-content p").textContent = t.paymentsText;
 
-   
- 
+      document.querySelectorAll(".payment-points div").forEach((el, i) => {
+        if (t.paymentsPoints[i]) el.textContent = t.paymentsPoints[i];
+      });
 
-    document.querySelector(".social-box h3").textContent = t.socialTitle;
-    document.querySelector(".social-box p").textContent = t.socialText;
+      document.querySelector(".payments-action .button").textContent = t.paymentsButton;
 
-    const footerPs = document.querySelectorAll("footer p");
-    if (footerPs[0]) {
-      footerPs[0].innerHTML =
-        "<strong>London Language School</strong><br>" + t.footerLocation;
+      document.querySelector(".study-abroad-title").textContent = t.studyTitle;
+      document.querySelector(".study-abroad-text").textContent = t.studyText;
+
+      document.querySelectorAll(".study-point").forEach((el, i) => {
+        if (t.studyPoints[i]) el.textContent = t.studyPoints[i];
+      });
+
+      document.querySelector(".study-card-title").textContent = t.studyCardTitle;
+      document.querySelector(".study-card-text").textContent = t.studyCardText;
+      document.querySelector(".study-card-button").textContent = t.studyCardButton;
+
+      const galleryHeading = document.querySelector("#gallery .section-heading");
+      galleryHeading.querySelector("small").textContent = t.gallerySmall;
+      galleryHeading.querySelector("h2").textContent = t.galleryTitle;
+      galleryHeading.querySelector("p").textContent = t.galleryText;
+      document.querySelector(".video-caption").textContent = t.galleryCaption;
+
+      document.querySelectorAll(".gallery-item span").forEach((el, i) => {
+        if (t.galleryItems[i]) el.textContent = t.galleryItems[i];
+      });
+
+      document.querySelector(".reviews-small").textContent = t.reviewsSmall;
+      document.querySelector(".reviews-title").textContent = t.reviewsTitle;
+      document.querySelector(".reviews-intro").textContent = t.reviewsIntro;
+      document.querySelector(".reviews-score-text").textContent = t.reviewsScoreText;
+      document.querySelector(".reviews-button").textContent = t.reviewsButton;
+
+      document.querySelector(".cta h2").textContent = t.ctaTitle;
+      document.querySelector(".cta p").textContent = t.ctaText;
+      document.querySelector(".cta .button").textContent = t.ctaButton;
+
+      const contactHeading = document.querySelector("#contact .section-heading");
+      contactHeading.querySelector("small").textContent = t.contactSmall;
+      contactHeading.querySelector("h2").textContent = t.contactTitle;
+      contactHeading.querySelector("p").textContent = t.contactText;
+
+      document.querySelector(".social-box h3").textContent = t.socialTitle;
+      document.querySelector(".social-box p").textContent = t.socialText;
+
+      document.querySelectorAll(".lang-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.lang === lang);
+      });
+
+      localStorage.setItem("lls-language", lang);
     }
 
     document.querySelectorAll(".lang-btn").forEach(btn => {
-      btn.classList.toggle("active", btn.dataset.lang === lang);
+      btn.addEventListener("click", () => setLanguage(btn.dataset.lang));
     });
 
-    localStorage.setItem("lls-language", lang);
-  }
+    document.getElementById("year").textContent = new Date().getFullYear();
 
-  document.querySelectorAll(".lang-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      setLanguage(btn.dataset.lang);
-    });
-  });
-
-  document.getElementById("year").textContent = new Date().getFullYear();
-
-  const savedLanguage = localStorage.getItem("lls-language");
-
-  if (savedLanguage === "en") {
-    setLanguage("en");
-  } else {
-    setLanguage("it");
-  }
-</script>
+    const savedLanguage = localStorage.getItem("lls-language");
+    setLanguage(savedLanguage === "en" ? "en" : "it");
+  </script>
 
 </body>
 </html>
+'''
+
+out = Path("/mnt/data/index-modern.html")
+out.write_text(html, encoding="utf-8")
+print(f"Created {out} with {len(html.splitlines())} lines")
