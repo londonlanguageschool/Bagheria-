@@ -1,288 +1,1349 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-
-<title>My LLS | London Language School</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-<link rel="stylesheet" href="portal.css">
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#082d5c">
+  <meta name="description" content="London Language School management portal">
+  <title>LLS Portal | London Language School</title>
+  <link rel="stylesheet" href="portal.css">
 </head>
 
 <body>
-
-<header class="hero">
-
-<h1>🇬🇧 My LLS</h1>
-
-<p>London Language School</p>
-
-</header>
-
-<div class="container">
-
-<section class="profile-card">
-
-<div class="avatar">
-
-👨
-
-</div>
-
-<div>
-
-<h2>Welcome back, Giovanni!</h2>
-
-<p>Cambridge A2 Key</p>
-
-<p>Teacher Emma Brown</p>
-
-<p>Next Lesson • Tuesday 17:00</p>
-
-<p>Member since September 2026</p>
-
-</div>
-
-</section>
-
-<section class="cards">
-
-<div class="card">
-
-<h3>Attendance</h3>
-
-<div class="percent green">
-
-91%
-
-</div>
-
-<p>Excellent</p>
-
-</div>
-
-<div class="card">
-
-<h3>Homework</h3>
-
-<div class="percent blue">
-
-84%
-
-</div>
-
-<p>Completed</p>
-
-</div>
-
-<div class="card">
-
-<h3>Progress</h3>
-
-<div class="percent orange">
-
-79%
-
-</div>
-
-<p>Excellent Progress</p>
-
-</div>
-
-<div class="card">
-
-<h3>Current Level</h3>
-
-<div class="level">
-
-A2
-
-</div>
-
-<p>Cambridge Key</p>
-
-</div>
-
-</section>
-
-<section class="panel">
-
-<h2>🏆 Achievements</h2>
-
-<div class="badges">
-
-<div class="badge">⭐ Perfect Attendance</div>
-
-<div class="badge">📚 Homework Hero</div>
-
-<div class="badge">🎤 Speaking Star</div>
-
-<div class="badge">🏅 Great Participation</div>
-
-</div>
-
-</section>
-
-<section class="panel">
-
-<h2>📈 Your English Journey</h2>
-
-<div class="timeline">
-
-<div class="stage complete">
-
-A1
-
-</div>
-
-<div class="stage current">
-
-A2
-
-</div>
-
-<div class="stage">
-
-B1
-
-</div>
-
-<div class="stage">
-
-B2
-
-</div>
-
-<div class="stage">
-
-C1
-
-</div>
-
-<div class="stage">
-
-C2
-
-</div>
-
-</div>
-
-</section>
-
-<section class="panel">
-
-<h2>📚 Today's Lesson</h2>
-
-<p><strong>Topic</strong></p>
-
-<p>Present Perfect</p>
-
-<br>
-
-<p>✅ Grammar</p>
-
-<p>✅ Speaking</p>
-
-<p>✅ Listening</p>
-
-<p>✅ Vocabulary</p>
-
-</section>
-
-<section class="panel">
-
-<h2>📝 Homework</h2>
-
-<p>
-
-Workbook page 42
-
-</p>
-
-<p>
-
-Due Thursday
-
-</p>
-
-<a href="#" class="button">
-
-Open Homework
-
-</a>
-
-</section>
-
-<section class="panel">
-
-<h2>💬 Teacher Feedback</h2>
-
-<p>
-
-Excellent lesson today.
-
-</p>
-
-<p>
-
-Continue speaking English at home for ten minutes each evening.
-
-</p>
-
-</section>
-
-<section class="panel">
-
-<h2>📄 Reports</h2>
-
-<div class="download">
-
-January Report
-
-<a href="#">
-
-Download
-
-</a>
-
-</div>
-
-<div class="download">
-
-Final Report
-
-<a href="#">
-
-Download
-
-</a>
-
-</div>
-
-</section>
-
-<div class="footer">
-
-London Language School
-
-<br>
-
-We make English fun!
-
-</div>
-
-</div>
-
-<script src="portal.js"></script>
-
+  <div class="app-shell">
+
+    <!-- =========================
+         MOBILE OVERLAY
+    ========================== -->
+    <button
+      class="sidebar-overlay"
+      id="sidebarOverlay"
+      aria-label="Close navigation"
+      type="button"
+    ></button>
+
+    <!-- =========================
+         SIDEBAR
+    ========================== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <span class="brand-mark-main">LLS</span>
+        </div>
+
+        <div class="brand-copy">
+          <strong>London</strong>
+          <span>Language School</span>
+        </div>
+      </div>
+
+      <div class="brand-tagline">We make English fun!</div>
+
+      <nav class="main-nav" aria-label="Main navigation">
+        <button class="nav-item active" data-page="dashboard" type="button">
+          <span class="nav-icon" aria-hidden="true">⌂</span>
+          <span>Dashboard</span>
+        </button>
+
+        <button class="nav-item" data-page="students" type="button">
+          <span class="nav-icon" aria-hidden="true">♙</span>
+          <span>Students</span>
+        </button>
+
+        <button class="nav-item" data-page="classes" type="button">
+          <span class="nav-icon" aria-hidden="true">▣</span>
+          <span>Classes</span>
+        </button>
+
+        <button class="nav-item" data-page="attendance" type="button">
+          <span class="nav-icon" aria-hidden="true">✓</span>
+          <span>Attendance</span>
+        </button>
+
+        <button class="nav-item" data-page="fees" type="button">
+          <span class="nav-icon" aria-hidden="true">€</span>
+          <span>Fees & Payments</span>
+        </button>
+
+        <button class="nav-item" data-page="enquiries" type="button">
+          <span class="nav-icon" aria-hidden="true">✉</span>
+          <span>Enquiries</span>
+          <span class="nav-badge" id="enquiryNavBadge">0</span>
+        </button>
+
+        <button class="nav-item" data-page="teachers" type="button">
+          <span class="nav-icon" aria-hidden="true">♟</span>
+          <span>Teachers</span>
+        </button>
+
+        <button class="nav-item" data-page="reports" type="button">
+          <span class="nav-icon" aria-hidden="true">↗</span>
+          <span>Reports</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="nav-item" data-page="settings" type="button">
+          <span class="nav-icon" aria-hidden="true">⚙</span>
+          <span>Settings</span>
+        </button>
+
+        <div class="school-card">
+          <div class="school-card-icon">L</div>
+          <div>
+            <strong>London Language School</strong>
+            <span>Bagheria, Sicily</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- =========================
+         MAIN
+    ========================== -->
+    <main class="main">
+
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button
+            class="icon-button mobile-menu-button"
+            id="mobileMenuButton"
+            type="button"
+            aria-label="Open navigation"
+          >
+            ☰
+          </button>
+
+          <div>
+            <p class="eyebrow">London Language School</p>
+            <h1 id="pageTitle">Dashboard</h1>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="global-search">
+            <span aria-hidden="true">⌕</span>
+            <input
+              id="globalSearchInput"
+              type="search"
+              placeholder="Search students, classes, enquiries..."
+              autocomplete="off"
+              aria-label="Search portal"
+            >
+            <div class="global-search-results" id="globalSearchResults"></div>
+          </div>
+
+          <button
+            class="icon-button"
+            id="notificationButton"
+            type="button"
+            aria-label="Notifications"
+          >
+            ♢
+            <span class="notification-dot" id="notificationDot"></span>
+          </button>
+
+          <div class="user-menu-wrap">
+            <button class="user-button" id="userMenuButton" type="button">
+              <div class="avatar">A</div>
+              <div class="user-copy">
+                <strong>Admin</strong>
+                <span>School portal</span>
+              </div>
+              <span aria-hidden="true">⌄</span>
+            </button>
+
+            <div class="user-dropdown" id="userDropdown">
+              <button type="button" data-page-target="settings">
+                Portal settings
+              </button>
+              <button type="button" id="backupDataButton">
+                Export backup
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="content">
+
+        <!-- =========================
+             DASHBOARD
+        ========================== -->
+        <section class="page active" id="page-dashboard">
+          <div class="hero">
+            <div>
+              <p class="hero-kicker" id="todayLabel">Today</p>
+              <h2>Welcome to your school portal.</h2>
+              <p>
+                Keep students, classes, payments, enquiries and attendance
+                organised in one place.
+              </p>
+            </div>
+
+            <div class="hero-actions">
+              <button class="button button-secondary" id="quickEnquiryButton" type="button">
+                + New enquiry
+              </button>
+              <button class="button button-primary" id="quickStudentButton" type="button">
+                + Add student
+              </button>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <article class="stat-card">
+              <div class="stat-icon stat-blue">♙</div>
+              <div class="stat-main">
+                <span>Active students</span>
+                <strong id="statStudents">0</strong>
+                <small id="statStudentsSub">Across all courses</small>
+              </div>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-icon stat-red">▣</div>
+              <div class="stat-main">
+                <span>Active classes</span>
+                <strong id="statClasses">0</strong>
+                <small id="statClassesSub">Current groups</small>
+              </div>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-icon stat-green">€</div>
+              <div class="stat-main">
+                <span>Collected this month</span>
+                <strong id="statCollected">€0</strong>
+                <small id="statCollectedSub">Recorded payments</small>
+              </div>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-icon stat-orange">✉</div>
+              <div class="stat-main">
+                <span>Open enquiries</span>
+                <strong id="statEnquiries">0</strong>
+                <small id="statEnquiriesSub">Need follow-up</small>
+              </div>
+            </article>
+          </div>
+
+          <div class="dashboard-grid">
+            <article class="panel dashboard-main-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-label">Today</p>
+                  <h3>Today's classes</h3>
+                </div>
+
+                <button class="text-button" data-page-target="classes" type="button">
+                  View all →
+                </button>
+              </div>
+
+              <div id="todayClassesList" class="schedule-list"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-label">Enrolment</p>
+                  <h3>Student breakdown</h3>
+                </div>
+              </div>
+
+              <div class="breakdown-chart">
+                <div class="donut" id="studentDonut">
+                  <div class="donut-centre">
+                    <strong id="donutTotal">0</strong>
+                    <span>students</span>
+                  </div>
+                </div>
+
+                <div class="chart-legend" id="studentBreakdownLegend"></div>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-label">Follow-up</p>
+                  <h3>Recent enquiries</h3>
+                </div>
+
+                <button class="text-button" data-page-target="enquiries" type="button">
+                  Open CRM →
+                </button>
+              </div>
+
+              <div id="recentEnquiriesList" class="compact-list"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-label">Finance</p>
+                  <h3>Payment overview</h3>
+                </div>
+              </div>
+
+              <div class="payment-summary">
+                <div>
+                  <span>Paid</span>
+                  <strong id="dashboardPaidAmount">€0</strong>
+                </div>
+                <div>
+                  <span>Outstanding</span>
+                  <strong id="dashboardDueAmount">€0</strong>
+                </div>
+              </div>
+
+              <div class="progress-track">
+                <div class="progress-fill" id="paymentProgressBar"></div>
+              </div>
+
+              <p class="muted" id="paymentProgressText">
+                No payment data yet.
+              </p>
+
+              <button class="button button-soft full-width" data-page-target="fees" type="button">
+                Manage payments
+              </button>
+            </article>
+          </div>
+        </section>
+
+        <!-- =========================
+             STUDENTS
+        ========================== -->
+        <section class="page" id="page-students">
+          <div class="page-toolbar">
+            <div>
+              <p class="section-label">Student management</p>
+              <h2>Students</h2>
+              <p class="page-description">
+                Manage enrolments, contact information, course allocation and status.
+              </p>
+            </div>
+
+            <div class="toolbar-buttons">
+              <button class="button button-secondary" id="exportStudentsButton" type="button">
+                Export CSV
+              </button>
+              <button class="button button-primary" id="addStudentButton" type="button">
+                + Add student
+              </button>
+            </div>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-search">
+              <span>⌕</span>
+              <input
+                id="studentSearch"
+                type="search"
+                placeholder="Search students..."
+              >
+            </div>
+
+            <select id="studentStatusFilter" aria-label="Filter by status">
+              <option value="all">All statuses</option>
+              <option value="Active">Active</option>
+              <option value="Paused">Paused</option>
+              <option value="Completed">Completed</option>
+            </select>
+
+            <select id="studentLevelFilter" aria-label="Filter by level">
+              <option value="all">All levels</option>
+              <option value="A1">A1</option>
+              <option value="A2">A2</option>
+              <option value="B1">B1</option>
+              <option value="B2">B2</option>
+              <option value="C1">C1</option>
+              <option value="C2">C2</option>
+              <option value="Young Learners">Young Learners</option>
+            </select>
+          </div>
+
+          <div class="table-card">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Course / Class</th>
+                    <th>Level</th>
+                    <th>Contact</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th class="table-actions-cell">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="studentsTableBody"></tbody>
+              </table>
+            </div>
+
+            <div class="table-footer">
+              <span id="studentsTableCount">0 students</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- =========================
+             CLASSES
+        ========================== -->
+        <section class="page" id="page-classes">
+          <div class="page-toolbar">
+            <div>
+              <p class="section-label">Academic organisation</p>
+              <h2>Classes</h2>
+              <p class="page-description">
+                View groups, teachers, lesson times, rooms and capacity.
+              </p>
+            </div>
+
+            <button class="button button-primary" id="addClassButton" type="button">
+              + Create class
+            </button>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-search">
+              <span>⌕</span>
+              <input id="classSearch" type="search" placeholder="Search classes...">
+            </div>
+
+            <select id="classDayFilter">
+              <option value="all">All days</option>
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+            </select>
+          </div>
+
+          <div class="class-grid" id="classGrid"></div>
+        </section>
+
+        <!-- =========================
+             ATTENDANCE
+        ========================== -->
+        <section class="page" id="page-attendance">
+          <div class="page-toolbar">
+            <div>
+              <p class="section-label">Academic records</p>
+              <h2>Attendance</h2>
+              <p class="page-description">
+                Record attendance for each student and monitor attendance rates.
+              </p>
+            </div>
+
+            <button class="button button-secondary" id="exportAttendanceButton" type="button">
+              Export CSV
+            </button>
+          </div>
+
+          <div class="attendance-controls panel">
+            <div class="form-field">
+              <label for="attendanceClassSelect">Class</label>
+              <select id="attendanceClassSelect"></select>
+            </div>
+
+            <div class="form-field">
+              <label for="attendanceDate">Lesson date</label>
+              <input id="attendanceDate" type="date">
+            </div>
+
+            <button class="button button-primary" id="saveAttendanceButton" type="button">
+              Save attendance
+            </button>
+          </div>
+
+          <div class="attendance-summary-grid">
+            <article class="mini-stat">
+              <span>Students</span>
+              <strong id="attendanceTotal">0</strong>
+            </article>
+
+            <article class="mini-stat">
+              <span>Present</span>
+              <strong id="attendancePresent">0</strong>
+            </article>
+
+            <article class="mini-stat">
+              <span>Absent</span>
+              <strong id="attendanceAbsent">0</strong>
+            </article>
+
+            <article class="mini-stat">
+              <span>Attendance rate</span>
+              <strong id="attendanceRate">0%</strong>
+            </article>
+          </div>
+
+          <div class="table-card">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Level</th>
+                    <th>Attendance</th>
+                    <th>Lesson status</th>
+                  </tr>
+                </thead>
+                <tbody id="attendanceTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =========================
+             FEES
+        ========================== -->
+        <section class="page" id="page-fees">
+          <div class="page-toolbar">
+            <div>
+              <p class="section-label">Finance</p>
+              <h2>Fees & Payments</h2>
+              <p class="page-description">
+                Track fees, payments, outstanding balances and payment dates.
+              </p>
+            </div>
+
+            <div class="toolbar-buttons">
+              <button class="button button-secondary" id="exportPaymentsButton" type="button">
+                Export CSV
+              </button>
+              <button class="button button-primary" id="addPaymentButton" type="button">
+                + Record payment
+              </button>
+            </div>
+          </div>
+
+          <div class="finance-stats">
+            <article class="finance-card">
+              <span>Total fees</span>
+              <strong id="financeTotalFees">€0</strong>
+            </article>
+
+            <article class="finance-card finance-card-positive">
+              <span>Collected</span>
+              <strong id="financeCollected">€0</strong>
+            </article>
+
+            <article class="finance-card finance-card-warning">
+              <span>Outstanding</span>
+              <strong id="financeOutstanding">€0</strong>
+            </article>
+
+            <article class="finance-card">
+              <span>Collection rate</span>
+              <strong id="financeRate">0%</strong>
+            </article>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-search">
+              <span>⌕</span>
+              <input id="paymentSearch" type="search" placeholder="Search payments...">
+            </div>
+
+            <select id="paymentStatusFilter">
+              <option value="all">All statuses</option>
+              <option value="Paid">Paid</option>
+              <option value="Part-paid">Part-paid</option>
+              <option value="Due">Due</option>
+            </select>
+          </div>
+
+          <div class="table-card">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Description</th>
+                    <th>Total fee</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                    <th>Last payment</th>
+                    <th>Status</th>
+                    <th class="table-actions-cell">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="paymentsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =========================
+             ENQUIRIES
+        ========================== -->
+        <section class="page" id="page-enquiries">
+          <div class="page-toolbar">
+            <div>
+              <p class="section-label">Sales & enrolment</p>
+              <h2>Enquiries</h2>
+              <p class="page-description">
+                Follow every lead from first contact to enrolment.
+              </p>
+            </div>
+
+            <div class="toolbar-buttons">
+              <button class="button button-secondary" id="exportEnquiriesButton" type="button">
+                Export CSV
+              </button>
+              <button class="button button-primary" id="addEnquiryButton" type="button">
+                + New enquiry
+              </button>
+            </div>
+          </div>
+
+          <div class="pipeline" id="enquiryPipeline"></div>
+
+          <div class="filter-bar">
+            <div class="filter-search">
+              <span>⌕</span>
+              <input id="enquirySearch" type="search" placeholder="Search enquiries...">
+            </div>
+
+            <select id="enquiryStatusFilter">
+              <option value="all">All stages</option>
+              <option value="New">New</option>
+              <option value="Contacted">Contacted</option>
+              <option value="Trial booked">Trial booked</option>
+              <option value="Interested">Interested</option>
+              <option value="Enrolled">Enrolled</option>
+              <option value="Lost">Lost</option>
+            </select>
+          </div>
+
+          <div class="table-card">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Interested in</th>
+                    <th>Contact</th>
+                    <th>Source</th>
+                    <th>Stage</th>
+                    <th>Follow-up</th>
+                    <th>Created</th>
+                    <th class="table-actions-cell">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="enquiriesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =========================
+             TEACHERS
+        ========================== -->
+        <section class="page" id="page-teachers">
+          <div class="page-toolbar">
+            <div>
+              <p class="section-label">Team</p>
+              <h2>Teachers</h2>
+              <p class="page-description">
+                Manage teaching staff, contact information and class allocation.
+              </p>
+            </div>
+
+            <button class="button button-primary" id="addTeacherButton" type="button">
+              + Add teacher
+            </button>
+          </div>
+
+          <div class="teacher-grid" id="teacherGrid"></div>
+        </section>
+
+        <!-- =========================
+             REPORTS
+        ========================== -->
+        <section class="page" id="page-reports">
+          <div class="page-toolbar">
+            <div>
+              <p class="section-label">Performance</p>
+              <h2>Reports</h2>
+              <p class="page-description">
+                A practical overview of enrolment, finance and enquiry performance.
+              </p>
+            </div>
+
+            <button class="button button-secondary" id="exportFullReportButton" type="button">
+              Export report
+            </button>
+          </div>
+
+          <div class="reports-grid">
+            <article class="report-card report-hero">
+              <span>Active enrolments</span>
+              <strong id="reportActiveStudents">0</strong>
+              <small>Students currently marked active</small>
+            </article>
+
+            <article class="report-card">
+              <span>Average class size</span>
+              <strong id="reportAverageClass">0</strong>
+              <small>Active students per class</small>
+            </article>
+
+            <article class="report-card">
+              <span>Fee collection rate</span>
+              <strong id="reportCollectionRate">0%</strong>
+              <small>Collected against fees recorded</small>
+            </article>
+
+            <article class="report-card">
+              <span>Enquiry conversion</span>
+              <strong id="reportConversionRate">0%</strong>
+              <small>Enrolled enquiries / total enquiries</small>
+            </article>
+          </div>
+
+          <div class="dashboard-grid reports-panels">
+            <article class="panel dashboard-main-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-label">Students</p>
+                  <h3>Students by CEFR level</h3>
+                </div>
+              </div>
+              <div id="levelReportBars" class="bar-report"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-label">Enquiries</p>
+                  <h3>Lead sources</h3>
+                </div>
+              </div>
+              <div id="sourceReportList" class="metric-list"></div>
+            </article>
+
+            <article class="panel dashboard-main-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-label">Finance</p>
+                  <h3>Financial snapshot</h3>
+                </div>
+              </div>
+
+              <div class="report-finance-grid">
+                <div>
+                  <span>Fees recorded</span>
+                  <strong id="reportFees">€0</strong>
+                </div>
+                <div>
+                  <span>Collected</span>
+                  <strong id="reportCollected">€0</strong>
+                </div>
+                <div>
+                  <span>Outstanding</span>
+                  <strong id="reportOutstanding">€0</strong>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-label">CRM</p>
+                  <h3>Follow-up health</h3>
+                </div>
+              </div>
+
+              <div class="metric-list" id="followupHealth"></div>
+            </article>
+          </div>
+        </section>
+
+        <!-- =========================
+             SETTINGS
+        ========================== -->
+        <section class="page" id="page-settings">
+          <div class="page-toolbar">
+            <div>
+              <p class="section-label">Portal</p>
+              <h2>Settings</h2>
+              <p class="page-description">
+                Configure basic school details and manage your local portal data.
+              </p>
+            </div>
+          </div>
+
+          <div class="settings-grid">
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-label">School details</p>
+                  <h3>General settings</h3>
+                </div>
+              </div>
+
+              <form id="settingsForm" class="form-grid">
+                <div class="form-field form-field-wide">
+                  <label for="schoolName">School name</label>
+                  <input id="schoolName" name="schoolName" type="text">
+                </div>
+
+                <div class="form-field">
+                  <label for="schoolPhone">Telephone</label>
+                  <input id="schoolPhone" name="schoolPhone" type="tel">
+                </div>
+
+                <div class="form-field">
+                  <label for="schoolEmail">Email</label>
+                  <input id="schoolEmail" name="schoolEmail" type="email">
+                </div>
+
+                <div class="form-field form-field-wide">
+                  <label for="schoolAddress">Address</label>
+                  <input id="schoolAddress" name="schoolAddress" type="text">
+                </div>
+
+                <div class="form-actions form-field-wide">
+                  <button class="button button-primary" type="submit">
+                    Save settings
+                  </button>
+                </div>
+              </form>
+            </article>
+
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-label">Data</p>
+                  <h3>Backup & restore</h3>
+                </div>
+              </div>
+
+              <p class="muted settings-copy">
+                Portal data is stored locally in this browser. Export regular
+                backups if this version is being used operationally.
+              </p>
+
+              <div class="stack-buttons">
+                <button class="button button-secondary" id="settingsExportBackup" type="button">
+                  Export full backup
+                </button>
+
+                <label class="button button-soft file-button">
+                  Import backup
+                  <input
+                    id="backupImportInput"
+                    type="file"
+                    accept=".json,application/json"
+                  >
+                </label>
+
+                <button class="button button-danger-outline" id="resetPortalButton" type="button">
+                  Reset portal data
+                </button>
+              </div>
+            </article>
+          </div>
+
+          <div class="system-note">
+            <strong>Important production note</strong>
+            <p>
+              This version is a complete browser-based portal. For multiple
+              simultaneous users, secure online login, cloud access or GDPR-grade
+              central storage, connect the interface to a protected backend/database
+              before storing real student data across devices.
+            </p>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- =========================
+       STUDENT MODAL
+  ========================== -->
+  <div class="modal-backdrop" id="studentModal">
+    <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="studentModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">Student record</p>
+          <h2 id="studentModalTitle">Add student</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="studentModal">×</button>
+      </div>
+
+      <form id="studentForm">
+        <input type="hidden" id="studentId">
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="studentFirstName">First name *</label>
+            <input id="studentFirstName" type="text" required>
+          </div>
+
+          <div class="form-field">
+            <label for="studentLastName">Surname *</label>
+            <input id="studentLastName" type="text" required>
+          </div>
+
+          <div class="form-field">
+            <label for="studentEmail">Email</label>
+            <input id="studentEmail" type="email">
+          </div>
+
+          <div class="form-field">
+            <label for="studentPhone">Telephone</label>
+            <input id="studentPhone" type="tel">
+          </div>
+
+          <div class="form-field">
+            <label for="studentDob">Date of birth</label>
+            <input id="studentDob" type="date">
+          </div>
+
+          <div class="form-field">
+            <label for="studentLevel">Level *</label>
+            <select id="studentLevel" required>
+              <option value="">Select level</option>
+              <option value="Young Learners">Young Learners</option>
+              <option value="A1">A1</option>
+              <option value="A2">A2</option>
+              <option value="B1">B1</option>
+              <option value="B2">B2</option>
+              <option value="C1">C1</option>
+              <option value="C2">C2</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="studentClass">Class</label>
+            <select id="studentClass"></select>
+          </div>
+
+          <div class="form-field">
+            <label for="studentStatus">Status</label>
+            <select id="studentStatus">
+              <option value="Active">Active</option>
+              <option value="Paused">Paused</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="studentJoined">Joined</label>
+            <input id="studentJoined" type="date">
+          </div>
+
+          <div class="form-field">
+            <label for="studentParent">Parent / guardian</label>
+            <input id="studentParent" type="text">
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="studentNotes">Notes</label>
+            <textarea id="studentNotes" rows="4"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="button button-secondary" type="button" data-close-modal="studentModal">
+            Cancel
+          </button>
+          <button class="button button-primary" type="submit">
+            Save student
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================
+       CLASS MODAL
+  ========================== -->
+  <div class="modal-backdrop" id="classModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="classModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">Class record</p>
+          <h2 id="classModalTitle">Create class</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="classModal">×</button>
+      </div>
+
+      <form id="classForm">
+        <input id="classId" type="hidden">
+
+        <div class="form-grid">
+          <div class="form-field form-field-wide">
+            <label for="className">Class name *</label>
+            <input id="className" type="text" required>
+          </div>
+
+          <div class="form-field">
+            <label for="classLevel">Level *</label>
+            <select id="classLevel" required>
+              <option value="">Select level</option>
+              <option value="Young Learners">Young Learners</option>
+              <option value="A1">A1</option>
+              <option value="A2">A2</option>
+              <option value="B1">B1</option>
+              <option value="B2">B2</option>
+              <option value="C1">C1</option>
+              <option value="C2">C2</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="classTeacher">Teacher</label>
+            <select id="classTeacher"></select>
+          </div>
+
+          <div class="form-field">
+            <label for="classDay">Day *</label>
+            <select id="classDay" required>
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="classTime">Start time *</label>
+            <input id="classTime" type="time" required>
+          </div>
+
+          <div class="form-field">
+            <label for="classDuration">Duration (minutes)</label>
+            <input id="classDuration" type="number" min="30" step="15" value="90">
+          </div>
+
+          <div class="form-field">
+            <label for="classRoom">Room</label>
+            <input id="classRoom" type="text">
+          </div>
+
+          <div class="form-field">
+            <label for="classCapacity">Capacity</label>
+            <input id="classCapacity" type="number" min="1" value="10">
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="classNotes">Notes</label>
+            <textarea id="classNotes" rows="3"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="button button-secondary" type="button" data-close-modal="classModal">
+            Cancel
+          </button>
+          <button class="button button-primary" type="submit">
+            Save class
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================
+       PAYMENT MODAL
+  ========================== -->
+  <div class="modal-backdrop" id="paymentModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="paymentModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">Finance</p>
+          <h2 id="paymentModalTitle">Record payment</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="paymentModal">×</button>
+      </div>
+
+      <form id="paymentForm">
+        <input id="paymentId" type="hidden">
+
+        <div class="form-grid">
+          <div class="form-field form-field-wide">
+            <label for="paymentStudent">Student *</label>
+            <select id="paymentStudent" required></select>
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="paymentDescription">Description *</label>
+            <input
+              id="paymentDescription"
+              type="text"
+              placeholder="e.g. General English course"
+              required
+            >
+          </div>
+
+          <div class="form-field">
+            <label for="paymentFee">Total fee (€) *</label>
+            <input id="paymentFee" type="number" min="0" step="0.01" required>
+          </div>
+
+          <div class="form-field">
+            <label for="paymentPaid">Amount paid (€) *</label>
+            <input id="paymentPaid" type="number" min="0" step="0.01" required>
+          </div>
+
+          <div class="form-field">
+            <label for="paymentDate">Payment date</label>
+            <input id="paymentDate" type="date">
+          </div>
+
+          <div class="form-field">
+            <label for="paymentMethod">Method</label>
+            <select id="paymentMethod">
+              <option value="Cash">Cash</option>
+              <option value="Card">Card</option>
+              <option value="Bank transfer">Bank transfer</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="paymentNotes">Notes</label>
+            <textarea id="paymentNotes" rows="3"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="button button-secondary" type="button" data-close-modal="paymentModal">
+            Cancel
+          </button>
+          <button class="button button-primary" type="submit">
+            Save payment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================
+       ENQUIRY MODAL
+  ========================== -->
+  <div class="modal-backdrop" id="enquiryModal">
+    <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="enquiryModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">Lead record</p>
+          <h2 id="enquiryModalTitle">New enquiry</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="enquiryModal">×</button>
+      </div>
+
+      <form id="enquiryForm">
+        <input id="enquiryId" type="hidden">
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="enquiryName">Name *</label>
+            <input id="enquiryName" type="text" required>
+          </div>
+
+          <div class="form-field">
+            <label for="enquiryStudentAge">Student age</label>
+            <input id="enquiryStudentAge" type="number" min="3" max="100">
+          </div>
+
+          <div class="form-field">
+            <label for="enquiryPhone">Telephone</label>
+            <input id="enquiryPhone" type="tel">
+          </div>
+
+          <div class="form-field">
+            <label for="enquiryEmail">Email</label>
+            <input id="enquiryEmail" type="email">
+          </div>
+
+          <div class="form-field">
+            <label for="enquiryCourse">Interested in *</label>
+            <input
+              id="enquiryCourse"
+              type="text"
+              placeholder="e.g. Cambridge B2"
+              required
+            >
+          </div>
+
+          <div class="form-field">
+            <label for="enquirySource">Source</label>
+            <select id="enquirySource">
+              <option value="Walk-in">Walk-in</option>
+              <option value="WhatsApp">WhatsApp</option>
+              <option value="Facebook">Facebook</option>
+              <option value="Instagram">Instagram</option>
+              <option value="Google">Google</option>
+              <option value="Referral">Referral</option>
+              <option value="Website">Website</option>
+              <option value="School partnership">School partnership</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="enquiryStatus">Stage</label>
+            <select id="enquiryStatus">
+              <option value="New">New</option>
+              <option value="Contacted">Contacted</option>
+              <option value="Trial booked">Trial booked</option>
+              <option value="Interested">Interested</option>
+              <option value="Enrolled">Enrolled</option>
+              <option value="Lost">Lost</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="enquiryFollowup">Next follow-up</label>
+            <input id="enquiryFollowup" type="date">
+          </div>
+
+          <div class="form-field">
+            <label for="enquiryCreated">Enquiry date</label>
+            <input id="enquiryCreated" type="date">
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="enquiryNotes">Notes</label>
+            <textarea id="enquiryNotes" rows="4"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="button button-secondary" type="button" data-close-modal="enquiryModal">
+            Cancel
+          </button>
+          <button class="button button-primary" type="submit">
+            Save enquiry
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================
+       TEACHER MODAL
+  ========================== -->
+  <div class="modal-backdrop" id="teacherModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="teacherModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">Team record</p>
+          <h2 id="teacherModalTitle">Add teacher</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="teacherModal">×</button>
+      </div>
+
+      <form id="teacherForm">
+        <input id="teacherId" type="hidden">
+
+        <div class="form-grid">
+          <div class="form-field form-field-wide">
+            <label for="teacherName">Name *</label>
+            <input id="teacherName" type="text" required>
+          </div>
+
+          <div class="form-field">
+            <label for="teacherEmail">Email</label>
+            <input id="teacherEmail" type="email">
+          </div>
+
+          <div class="form-field">
+            <label for="teacherPhone">Telephone</label>
+            <input id="teacherPhone" type="tel">
+          </div>
+
+          <div class="form-field">
+            <label for="teacherRole">Role</label>
+            <input id="teacherRole" type="text" placeholder="English Teacher">
+          </div>
+
+          <div class="form-field">
+            <label for="teacherStatus">Status</label>
+            <select id="teacherStatus">
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="teacherNotes">Notes</label>
+            <textarea id="teacherNotes" rows="3"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="button button-secondary" type="button" data-close-modal="teacherModal">
+            Cancel
+          </button>
+          <button class="button button-primary" type="submit">
+            Save teacher
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================
+       CONFIRM MODAL
+  ========================== -->
+  <div class="modal-backdrop" id="confirmModal">
+    <div class="modal modal-small" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">Confirm action</p>
+          <h2 id="confirmModalTitle">Are you sure?</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="confirmModal">×</button>
+      </div>
+
+      <p id="confirmModalMessage" class="confirm-copy"></p>
+
+      <div class="modal-actions">
+        <button class="button button-secondary" type="button" data-close-modal="confirmModal">
+          Cancel
+        </button>
+        <button class="button button-danger" id="confirmActionButton" type="button">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================
+       NOTIFICATIONS
+  ========================== -->
+  <aside class="notification-panel" id="notificationPanel">
+    <div class="notification-panel-header">
+      <div>
+        <p class="section-label">Portal</p>
+        <h3>Notifications</h3>
+      </div>
+      <button class="modal-close" id="closeNotificationPanel" type="button">×</button>
+    </div>
+
+    <div id="notificationList"></div>
+  </aside>
+
+  <!-- =========================
+       TOAST
+  ========================== -->
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+
+  <script src="portal.js"></script>
 </body>
-
 </html>
