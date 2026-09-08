@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>My LLS | London Language School</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
 
@@ -15,128 +14,286 @@
 margin:0;
 padding:0;
 box-sizing:border-box;
-font-family:Poppins,sans-serif;
+font-family:'Poppins',sans-serif;
 }
 
 body{
-background:#f5f8fc;
-color:#12345a;
+background:#eef3fa;
+color:#17375e;
 }
 
-header{
-background:#0d3b78;
+.hero{
+
+background:linear-gradient(135deg,#0b4ea2,#082d66);
+
+padding:70px 40px;
+
 color:white;
-padding:25px;
-text-align:center;
+
 }
 
-header h1{
-font-size:2.5rem;
-}
+.hero-container{
 
-header p{
-opacity:.9;
-margin-top:10px;
-}
-
-.container{
 max-width:1200px;
+
 margin:auto;
-padding:40px 20px;
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:center;
+
+gap:40px;
+
+flex-wrap:wrap;
+
 }
 
-.grid{
+.hero h1{
+
+font-size:52px;
+
+margin-bottom:10px;
+
+}
+
+.hero p{
+
+font-size:20px;
+
+opacity:.95;
+
+}
+
+.summary{
+
+background:white;
+
+color:#17375e;
+
+padding:30px;
+
+border-radius:25px;
+
+width:320px;
+
+box-shadow:0 15px 40px rgba(0,0,0,.2);
+
+}
+
+.summary h2{
+
+margin-bottom:20px;
+
+}
+
+.summary p{
+
+margin:12px 0;
+
+font-size:17px;
+
+}
+
+.wrapper{
+
+max-width:1200px;
+
+margin:auto;
+
+padding:50px 20px;
+
+}
+
+.cards{
+
 display:grid;
+
 grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+
 gap:25px;
+
+margin-bottom:40px;
+
 }
 
 .card{
+
 background:white;
-border-radius:18px;
+
+border-radius:25px;
+
 padding:30px;
-box-shadow:0 8px 25px rgba(0,0,0,.08);
+
+box-shadow:0 10px 25px rgba(0,0,0,.08);
+
 transition:.3s;
+
 }
 
 .card:hover{
+
 transform:translateY(-6px);
+
 }
 
-.card h2{
-font-size:1.2rem;
-margin-bottom:20px;
+.card h3{
+
+margin-top:20px;
+
+font-size:22px;
+
 }
 
-.big{
-font-size:3rem;
+.circle{
+
+width:140px;
+
+height:140px;
+
+border-radius:50%;
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+margin:auto;
+
+font-size:34px;
+
 font-weight:700;
-color:#0d3b78;
-}
 
-.progress{
-height:12px;
-background:#e4e8ef;
-border-radius:50px;
-overflow:hidden;
-margin-top:18px;
-}
+border:14px solid;
 
-.bar{
-height:12px;
-border-radius:50px;
 }
 
 .green{
-background:#22c55e;
-width:91%;
+
+border-color:#27c05b;
+
 }
 
 .blue{
-background:#2563eb;
-width:84%;
+
+border-color:#2563eb;
+
 }
 
 .orange{
-background:#f59e0b;
-width:76%;
+
+border-color:#ff9800;
+
 }
 
-.section{
-margin-top:45px;
-}
+.panel{
 
-.lesson{
 background:white;
-padding:30px;
-border-radius:18px;
-box-shadow:0 8px 25px rgba(0,0,0,.08);
-margin-bottom:25px;
+
+border-radius:25px;
+
+padding:35px;
+
+margin-bottom:30px;
+
+box-shadow:0 10px 25px rgba(0,0,0,.08);
+
 }
 
-.lesson h3{
-margin-bottom:15px;
+.panel h2{
+
+margin-bottom:20px;
+
+font-size:28px;
+
+}
+
+.lesson-grid{
+
+display:grid;
+
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+
+gap:20px;
+
+margin-top:20px;
+
+}
+
+.lesson-item{
+
+background:#f4f8ff;
+
+padding:18px;
+
+border-radius:18px;
+
 }
 
 button{
+
 background:#e53935;
-color:white;
+
 border:none;
-padding:15px 28px;
-border-radius:10px;
-font-size:16px;
+
+padding:16px 30px;
+
+color:white;
+
+font-size:17px;
+
+border-radius:12px;
+
 cursor:pointer;
-margin-top:20px;
+
+margin-top:25px;
+
+transition:.3s;
+
 }
 
 button:hover{
-background:#cc2020;
+
+background:#bf1f1f;
+
+}
+
+.badges{
+
+display:grid;
+
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+
+gap:18px;
+
+}
+
+.badge{
+
+background:#f3f8ff;
+
+padding:18px;
+
+border-radius:18px;
+
+font-weight:600;
+
+font-size:18px;
+
 }
 
 footer{
+
+padding:60px;
+
 text-align:center;
-padding:50px;
-color:#666;
+
+color:#5d6982;
+
+font-size:18px;
+
 }
 
 </style>
@@ -145,120 +302,352 @@ color:#666;
 
 <body>
 
-<header>
+<section class="hero">
 
-<h1>⭐ My LLS</h1>
+<div class="hero-container">
 
-<p>Your Personal Learning Dashboard</p>
+<div>
 
-</header>
+<h1>👋 Welcome back Sophie</h1>
 
-<div class="container">
-
-<div class="grid">
-
-<div class="card">
-
-<h2>📈 Attendance</h2>
-
-<div class="big">91%</div>
-
-<div class="progress">
-<div class="bar green"></div>
-</div>
-
-</div>
-
-<div class="card">
-
-<h2>📚 Homework</h2>
-
-<div class="big">84%</div>
-
-<div class="progress">
-<div class="bar blue"></div>
-</div>
-
-</div>
-
-<div class="card">
-
-<h2>⭐ Progress</h2>
-
-<div class="big">GOOD</div>
-
-<div class="progress">
-<div class="bar orange"></div>
-</div>
-
-</div>
-
-<div class="card">
-
-<h2>🎯 Current Level</h2>
-
-<div class="big">A2</div>
-
-Cambridge Key for Schools
-
-</div>
-
-</div>
-
-<div class="section">
-
-<div class="lesson">
-
-<h3>Latest Lesson</h3>
-
-<p><strong>Topic:</strong> Present Perfect</p>
-
-<p><strong>Activities:</strong> Speaking about experiences</p>
-
-</div>
-
-<div class="lesson">
-
-<h3>Homework</h3>
-
-Workbook Page 42
-
-<br><br>
-
-Due Thursday
+<p>Your personal learning dashboard</p>
 
 <br>
 
-<button>Open Material</button>
+<p>London Language School</p>
+
+<p>🇬🇧 We make English fun!</p>
 
 </div>
 
-<div class="lesson">
+<div class="summary">
 
-<h3>Teacher Advice</h3>
+<h2>Current Course</h2>
 
-Excellent participation today.
+<p><strong>A2 Cambridge Key</strong></p>
+
+<p>👩‍🏫 Emma Brown</p>
+
+<p>📅 Tuesday 17:00</p>
+
+<p>📍 Classroom 2</p>
+
+</div>
+
+</div>
+
+</section>
+
+<div class="wrapper">
+
+<div class="cards">
+
+<div class="card">
+
+<div class="circle green">
+
+91%
+
+</div>
+
+<h3 align="center">Attendance</h3>
+
+</div>
+
+<div class="card">
+
+<div class="circle blue">
+
+84%
+
+</div>
+
+<h3 align="center">Homework</h3>
+
+</div>
+
+<div class="card">
+
+<div class="circle orange">
+
+79%
+
+</div>
+
+<h3 align="center">Excellent Progress</h3>
+
+</div>
+
+</div>
+
+<div class="panel">
+
+<h2>📖 Latest Lesson</h2>
+
+<div class="lesson-grid">
+
+<div class="lesson-item">
+
+<strong>Topic</strong>
 
 <br><br>
 
-Continue speaking English at home.
+Present Perfect
 
 </div>
 
-<div class="lesson">
+<div class="lesson-item">
+
+✔ Grammar
+
+</div>
+
+<div class="lesson-item">
+
+✔ Speaking
+
+</div>
+
+<div class="lesson-item">
+
+✔ Listening
+
+</div>
+
+<div class="lesson-item">
+
+✔ Vocabulary
+
+</div>
+
+</div>
+
+</div>
+<div class="panel">
+
+<h2>📚 Homework</h2>
+
+<p style="font-size:22px;font-weight:600;">
+
+Workbook Page 42
+
+</p>
+
+<br>
+
+<p>
+
+Complete exercises 1–6 and revise the Present Perfect vocabulary.
+
+</p>
+
+<br>
+
+<p>
+
+<strong>Due:</strong> Thursday
+
+</p>
+
+<button>
+
+📎 Open Material
+
+</button>
+
+</div>
+
+<div class="panel">
+
+<h2>💬 Teacher Feedback</h2>
+
+<p style="font-size:20px;">
+
+🌟 Excellent participation today.
+
+</p>
+
+<br>
+
+<p>
+
+You answered confidently during the speaking activities and worked well with your partner.
+
+</p>
+
+<br>
+
+<p>
+
+Continue practising speaking English at home for 10–15 minutes this week.
+
+</p>
+
+</div>
+
+<div class="panel">
+
+<h2>🏆 Achievements</h2>
+
+<div class="badges">
+
+<div class="badge">
+
+🥇 Excellent Attendance
+
+</div>
+
+<div class="badge">
+
+📚 Homework Hero
+
+</div>
+
+<div class="badge">
+
+🎯 Five Lessons Completed
+
+</div>
+
+<div class="badge">
+
+⭐ Great Participation
+
+</div>
+
+<div class="badge">
+
+🇬🇧 English Speaker
+
+</div>
+
+<div class="badge">
+
+🚀 Fantastic Progress
+
+</div>
+
+</div>
+
+</div>
+
+<div class="panel">
+
+<h2>📈 Progress Timeline</h2>
+
+<div class="lesson-grid">
+
+<div class="lesson-item">
+
+Lesson 1
+
+<br><br>
+
+🟩 Excellent
+
+</div>
+
+<div class="lesson-item">
+
+Lesson 2
+
+<br><br>
+
+🟩 Excellent
+
+</div>
+
+<div class="lesson-item">
+
+Lesson 3
+
+<br><br>
+
+🟦 Good
+
+</div>
+
+<div class="lesson-item">
+
+Lesson 4
+
+<br><br>
+
+🟨 Satisfactory
+
+</div>
+
+<div class="lesson-item">
+
+Lesson 5
+
+<br><br>
+
+🟩 Excellent
+
+</div>
+
+</div>
+
+</div>
+<div class="panel">
+
+<h2>📄 Academic Reports</h2>
+
+<div class="lesson-grid">
+
+<div class="lesson-item">
 
 <h3>January Report</h3>
 
-Available January 2027
+<p><strong>Teacher Comment</strong></p>
+
+<p>
+Sophie has made excellent progress during the first part of the course.
+She participates confidently and completes homework to a high standard.
+Continue reading in English at home to build vocabulary.
+</p>
 
 </div>
 
-<div class="lesson">
+<div class="lesson-item">
 
 <h3>Final Report</h3>
 
-Available May 2027
+<p><strong>Teacher Comment</strong></p>
 
+<p>
+Excellent progress throughout the course.
+Sophie has shown confidence in speaking, improved her grammar and developed a much wider vocabulary.
+Keep using English regularly over the summer.
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="panel">
+
+<h2>🎯 Course Goals</h2>
+
+<div class="lesson-grid">
+
+<div class="lesson-item">
+✔ Improve speaking confidence
+</div>
+
+<div class="lesson-item">
+✔ Build everyday vocabulary
+</div>
+
+<div class="lesson-item">
+✔ Improve listening skills
+</div>
+
+<div class="lesson-item">
+✔ Prepare for Cambridge exams
 </div>
 
 </div>
@@ -267,13 +656,38 @@ Available May 2027
 
 <footer>
 
-London Language School
+<h2>🇬🇧 London Language School</h2>
 
 <br>
 
+<p>
+
+My LLS Student Portal Demo
+
+</p>
+
+<br>
+
+<p>
+
+This is an example student dashboard.
+
+Future versions will automatically display live attendance,
+homework, lesson progress and teacher feedback directly from
+the London Language School register.
+
+</p>
+
+<br><br>
+
+<p>
+
 We make English fun!
+
+</p>
 
 </footer>
 
 </body>
+
 </html>
