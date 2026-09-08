@@ -3982,3 +3982,99 @@ function downloadFile(
     URL.revokeObjectURL(url);
   }, 1000);
 }
+
+/* ===== CLASS 1 NEW LIVE CONNECTION ===== */
+
+(() => {
+  const CLASS1_API =
+    "https://script.google.com/macros/s/AKfycbyHbfFoaiMOT1rpY2DcbXAkuNwMoOHVdLlG2aQLgPgCe5gqPuyk8VYm7i4eGQRm8iqi/exec";
+
+  async function loadClass1Live() {
+    const classGrid = document.getElementById("classGrid");
+
+    if (!classGrid) return;
+
+    let panel = document.getElementById("class1LivePanel");
+
+    if (!panel) {
+      panel = document.createElement("div");
+      panel.id = "class1LivePanel";
+      panel.className = "class-card";
+
+      classGrid.parentNode.insertBefore(panel, classGrid);
+    }
+
+    panel.innerHTML = `
+      <h3>Class 1 NEW</h3>
+      <p>Connecting to Google Sheets...</p>
+    `;
+
+    try {
+      const response = await fetch(
+        CLASS1_API + "?action=getClass1&t=" + Date.now(),
+        {
+          method: "GET",
+          cache: "no-store"
+        }
+      );
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Connection failed");
+      }
+
+      const filledLessons = data.lessons.filter(lesson =>
+        Object.values(lesson).some(value =>
+          String(value || "").trim()
+        )
+      );
+
+      panel.innerHTML = `
+        <h3>Class 1 NEW</h3>
+        <p style="color:green;font-weight:700;">
+          ● CONNECTED
+        </p>
+        <p>
+          ${data.lessons.length} register rows received
+        </p>
+        <p>
+          ${filledLessons.length} rows contain data
+        </p>
+        <button type="button" id="refreshClass1Live">
+          Refresh
+        </button>
+      `;
+
+      document
+        .getElementById("refreshClass1Live")
+        ?.addEventListener("click", loadClass1Live);
+
+      console.log("Class 1 NEW live data:", data);
+
+    } catch (error) {
+      panel.innerHTML = `
+        <h3>Class 1 NEW</h3>
+        <p style="color:red;font-weight:700;">
+          CONNECTION ERROR
+        </p>
+        <p>${error.message}</p>
+        <button type="button" id="retryClass1Live">
+          Retry
+        </button>
+      `;
+
+      document
+        .getElementById("retryClass1Live")
+        ?.addEventListener("click", loadClass1Live);
+
+      console.error("Class 1 connection error:", error);
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", loadClass1Live);
+  } else {
+    loadClass1Live();
+  }
+})();
