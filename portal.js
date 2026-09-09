@@ -4612,12 +4612,16 @@ async function loadStudentsLive(force = false) {
   `;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 30000);
 
   try {
     const response = await fetch(
-      `${LLS_API_URL}?action=getStudents&t=${Date.now()}`,
-      { method: "GET", cache: "no-store", redirect: "follow", signal: controller.signal }
+      `${LLS_API_URL}?action=getStudents`,
+      {
+        method: "GET",
+        redirect: "follow",
+        signal: controller.signal
+      }
     );
 
     const raw = await response.text();
@@ -4637,7 +4641,7 @@ async function loadStudentsLive(force = false) {
     renderStudentsLiveTable(studentsLiveRecords);
   } catch (error) {
     const message = error?.name === "AbortError"
-      ? "The Students request timed out after 15 seconds."
+      ? "The Students request timed out after 30 seconds."
       : error?.message || "Unknown Students connection error.";
 
     body.innerHTML = `
