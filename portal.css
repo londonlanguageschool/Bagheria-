@@ -2396,3 +2396,92 @@ tbody tr:hover {
     box-shadow: none;
   }
 }
+
+/* =========================================================
+   LIVE GOOGLE SHEETS REGISTER
+========================================================= */
+
+.live-sheet-panel {
+  margin-bottom: 18px;
+}
+
+.live-sheet-status {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.live-sheet-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.live-status {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.live-status-loading {
+  background: var(--orange-100);
+  color: var(--orange-700);
+}
+
+.live-status-connected {
+  background: var(--green-100);
+  color: var(--green-700);
+}
+
+.live-status-error {
+  background: var(--red-100);
+  color: var(--red-700);
+}
+
+.button-small {
+  min-height: 34px;
+  padding: 6px 11px;
+  font-size: 0.75rem;
+}
+
+.live-register-table {
+  margin-top: 14px;
+  border: 1px solid var(--ink-100);
+  border-radius: 10px;
+}
+
+.live-register-table table {
+  min-width: 880px;
+}
+
+.live-register-table th,
+.live-register-table td {
+  padding: 10px 12px;
+  vertical-align: top;
+}
+
+.live-register-table td {
+  font-size: 0.76rem;
+}
+
+.live-preview-note {
+  margin: 9px 0 0;
+}
+
+@media (max-width: 720px) {
+  .live-sheet-status {
+    flex-direction: column;
+  }
+
+  .live-sheet-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

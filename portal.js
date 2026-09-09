@@ -7,6 +7,11 @@
 
 const STORAGE_KEY = "lls_portal_v1";
 
+const LLS_API_URL =
+  "https://script.google.com/macros/s/AKfycbyHbfFoaiMOT1rpY2DcbXAkuNwMoOHVdLlG2aQLgPgCe5gqPuyk8VYm7i4eGQRm8iqi/exec";
+
+let class1LiveLoaded = false;
+
 const LEVELS = [
   "Young Learners",
   "A1",
@@ -272,6 +277,10 @@ function navigateTo(page, updateHash = true) {
   document.body.classList.remove("sidebar-open");
   closeGlobalSearch();
   closeUserDropdown();
+
+  if (page === "classes") {
+    loadClass1Live();
+  }
 
   if (page === "attendance") {
     populateAttendanceClassSelect();
@@ -3983,98 +3992,200 @@ function downloadFile(
   }, 1000);
 }
 
-/* ===== CLASS 1 NEW LIVE CONNECTION ===== */
+/* =========================================================
+   CLASS 1 NEW — LIVE GOOGLE SHEETS CONNECTION
+   Uses the deployed Apps Script web app.
+========================================================= */
 
-(() => {
-  const CLASS1_API =
-    "https://script.google.com/macros/s/AKfycbyHbfFoaiMOT1rpY2DcbXAkuNwMoOHVdLlG2aQLgPgCe5gqPuyk8VYm7i4eGQRm8iqi/exec";
+async function loadClass1Live(force = false) {
+  const panel = byId("class1LivePanel");
 
-  async function loadClass1Live() {
-    const classGrid = document.getElementById("classGrid");
+  if (!panel) {
+    return;
+  }
 
-    if (!classGrid) return;
+  if (class1LiveLoaded && !force) {
+    return;
+  }
 
-    let panel = document.getElementById("class1LivePanel");
+  panel.innerHTML = `
+    <div class="live-sheet-status">
+      <div>
+        <p class="section-label">Google Sheets</p>
+        <h3>Class 1 NEW</h3>
+      </div>
+      <span class="live-status live-status-loading">Connecting…</span>
+    </div>
+    <p class="muted">Reading the test register from the school Google Sheet.</p>
+  `;
 
-    if (!panel) {
-      panel = document.createElement("div");
-      panel.id = "class1LivePanel";
-      panel.className = "class-card";
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
 
-      classGrid.parentNode.insertBefore(panel, classGrid);
-    }
+  try {
+    const response = await fetch(
+      `${LLS_API_URL}?action=getClass1&t=${Date.now()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        redirect: "follow",
+        signal: controller.signal
+      }
+    );
 
-    panel.innerHTML = `
-      <h3>Class 1 NEW</h3>
-      <p>Connecting to Google Sheets...</p>
-    `;
+    const raw = await response.text();
+
+    let data;
 
     try {
-      const response = await fetch(
-        CLASS1_API + "?action=getClass1&t=" + Date.now(),
-        {
-          method: "GET",
-          cache: "no-store"
-        }
+      data = JSON.parse(raw);
+    } catch (parseError) {
+      throw new Error(
+        "The Apps Script did not return JSON. Check the web-app deployment permissions."
       );
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || "Connection failed");
-      }
-
-      const filledLessons = data.lessons.filter(lesson =>
-        Object.values(lesson).some(value =>
-          String(value || "").trim()
-        )
-      );
-
-      panel.innerHTML = `
-        <h3>Class 1 NEW</h3>
-        <p style="color:green;font-weight:700;">
-          ● CONNECTED
-        </p>
-        <p>
-          ${data.lessons.length} register rows received
-        </p>
-        <p>
-          ${filledLessons.length} rows contain data
-        </p>
-        <button type="button" id="refreshClass1Live">
-          Refresh
-        </button>
-      `;
-
-      document
-        .getElementById("refreshClass1Live")
-        ?.addEventListener("click", loadClass1Live);
-
-      console.log("Class 1 NEW live data:", data);
-
-    } catch (error) {
-      panel.innerHTML = `
-        <h3>Class 1 NEW</h3>
-        <p style="color:red;font-weight:700;">
-          CONNECTION ERROR
-        </p>
-        <p>${error.message}</p>
-        <button type="button" id="retryClass1Live">
-          Retry
-        </button>
-      `;
-
-      document
-        .getElementById("retryClass1Live")
-        ?.addEventListener("click", loadClass1Live);
-
-      console.error("Class 1 connection error:", error);
     }
+
+    if (!data || data.success !== true) {
+      throw new Error(
+        data?.error || "Google Sheets returned an unsuccessful response."
+      );
+    }
+
+    const lessons = Array.isArray(data.lessons)
+      ? data.lessons
+      : [];
+
+    const filledLessons = lessons.filter((lesson) => {
+      const usefulKeys = [
+        "Month",
+        "Lesson",
+        "Date",
+        "Teacher",
+        "Record of work / pages covered",
+        "Homework set"
+      ];
+
+      return usefulKeys.some((key) =>
+        String(lesson?.[key] ?? "").trim()
+      );
+    });
+
+    class1LiveLoaded = true;
+
+    panel.innerHTML = `
+      <div class="live-sheet-status">
+        <div>
+          <p class="section-label">Google Sheets</p>
+          <h3>Class 1 NEW</h3>
+        </div>
+
+        <div class="live-sheet-actions">
+          <span class="live-status live-status-connected">● Connected</span>
+          <button
+            class="button button-secondary button-small"
+            id="refreshClass1Live"
+            type="button"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <p class="muted">
+        Live data from the test register. ${filledLessons.length} lesson row${filledLessons.length === 1 ? "" : "s"} contain register data.
+      </p>
+
+      ${renderClass1LessonPreview(filledLessons)}
+    `;
+
+    byId("refreshClass1Live")?.addEventListener(
+      "click",
+      () => loadClass1Live(true)
+    );
+
+    console.log("Class 1 NEW live data loaded:", data);
+
+  } catch (error) {
+    class1LiveLoaded = false;
+
+    const message =
+      error?.name === "AbortError"
+        ? "The connection timed out after 15 seconds."
+        : error?.message || "Unknown connection error.";
+
+    panel.innerHTML = `
+      <div class="live-sheet-status">
+        <div>
+          <p class="section-label">Google Sheets</p>
+          <h3>Class 1 NEW</h3>
+        </div>
+        <span class="live-status live-status-error">Connection error</span>
+      </div>
+
+      <p class="muted">${escapeHtml(message)}</p>
+
+      <button
+        class="button button-secondary button-small"
+        id="retryClass1Live"
+        type="button"
+      >
+        Retry connection
+      </button>
+    `;
+
+    byId("retryClass1Live")?.addEventListener(
+      "click",
+      () => loadClass1Live(true)
+    );
+
+    console.error("Class 1 connection error:", error);
+
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function renderClass1LessonPreview(lessons) {
+  if (!lessons.length) {
+    return emptyState(
+      "The connection works, but no lesson rows currently contain data."
+    );
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", loadClass1Live);
-  } else {
-    loadClass1Live();
-  }
-})();
+  const rows = lessons
+    .slice(0, 12)
+    .map((lesson) => `
+      <tr>
+        <td>${escapeHtml(lesson["Month"] || "—")}</td>
+        <td>${escapeHtml(lesson["Lesson"] || "—")}</td>
+        <td>${escapeHtml(lesson["Date"] || "—")}</td>
+        <td>${escapeHtml(lesson["Teacher"] || "—")}</td>
+        <td>${escapeHtml(lesson["Record of work / pages covered"] || "—")}</td>
+        <td>${escapeHtml(lesson["Homework set"] || "—")}</td>
+      </tr>
+    `)
+    .join("");
+
+  return `
+    <div class="table-wrap live-register-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Lesson</th>
+            <th>Date</th>
+            <th>Teacher</th>
+            <th>Record of work</th>
+            <th>Homework</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+
+    ${lessons.length > 12
+      ? `<p class="muted live-preview-note">Showing the first 12 populated lesson rows.</p>`
+      : ""}
+  `;
+}
+
