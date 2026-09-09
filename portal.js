@@ -12,6 +12,8 @@ const LLS_API_URL =
 
 let class1LiveLoaded = false;
 let class1LiveLessons = [];
+let studentsLiveLoaded = false;
+let studentsLiveRecords = [];
 
 const LEVELS = [
   "Young Learners",
@@ -281,6 +283,10 @@ function navigateTo(page, updateHash = true) {
 
   if (page === "classes") {
     loadClass1Live();
+  }
+
+  if (page === "students") {
+    loadStudentsLive();
   }
 
   if (page === "attendance") {
@@ -796,7 +802,7 @@ function renderRecentEnquiries() {
    STUDENTS
 ========================================================= */
 
-function renderStudents() {
+function renderStudentsLocalLegacy() {
   const body = byId("studentsTableBody");
 
   const query =
@@ -4560,3 +4566,136 @@ async function saveClass1LessonEdit(event) {
   }
 }
 
+
+
+/* =========================================================
+   LIVE STUDENTS — GOOGLE SHEETS
+========================================================= */
+
+function renderStudents() {
+  const body = byId("studentsTableBody");
+  if (!body) return;
+
+  if (studentsLiveLoaded) {
+    renderStudentsLiveTable(studentsLiveRecords);
+    return;
+  }
+
+  body.innerHTML = `
+    <tr><td colspan="6">
+      <div class="live-students-loading">
+        <strong>Loading students from Google Sheets…</strong>
+        <span class="muted">Using the TEST Students register.</span>
+      </div>
+    </td></tr>
+  `;
+
+  loadStudentsLive();
+}
+
+async function loadStudentsLive(force = false) {
+  const body = byId("studentsTableBody");
+  if (!body) return;
+
+  if (studentsLiveLoaded && !force) {
+    renderStudentsLiveTable(studentsLiveRecords);
+    return;
+  }
+
+  body.innerHTML = `
+    <tr><td colspan="6">
+      <div class="live-students-loading">
+        <strong>Connecting to Google Sheets…</strong>
+        <span class="muted">Loading the TEST Students register.</span>
+      </div>
+    </td></tr>
+  `;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const response = await fetch(
+      `${LLS_API_URL}?action=getStudents&t=${Date.now()}`,
+      { method: "GET", cache: "no-store", redirect: "follow", signal: controller.signal }
+    );
+
+    const raw = await response.text();
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (_) {
+      throw new Error("The Students API response was not JSON.");
+    }
+
+    if (!data || data.success !== true) {
+      throw new Error(data?.error || "Google Sheets did not return the Students list.");
+    }
+
+    studentsLiveRecords = Array.isArray(data.students) ? data.students : [];
+    studentsLiveLoaded = true;
+    renderStudentsLiveTable(studentsLiveRecords);
+  } catch (error) {
+    const message = error?.name === "AbortError"
+      ? "The Students request timed out after 15 seconds."
+      : error?.message || "Unknown Students connection error.";
+
+    body.innerHTML = `
+      <tr><td colspan="6">
+        <div class="live-students-error">
+          <strong>Could not load Students from Google Sheets.</strong>
+          <span>${escapeHtml(message)}</span>
+          <button class="button button-secondary" id="retryStudentsLive" type="button">Try again</button>
+        </div>
+      </td></tr>
+    `;
+    byId("retryStudentsLive")?.addEventListener("click", () => loadStudentsLive(true));
+    console.error("Students live-data error:", error);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function renderStudentsLiveTable(students) {
+  const body = byId("studentsTableBody");
+  if (!body) return;
+
+  const search = String(byId("studentSearch")?.value || "").trim().toLowerCase();
+  const classFilter = String(byId("studentClassFilter")?.value || "").trim();
+  const statusFilter = String(byId("studentStatusFilter")?.value || "").trim();
+
+  const filtered = students.filter((student) => {
+    const text = [
+      student["Student ID"], student["First Name"], student["Surname"],
+      student["Email"], student["Class"], student["Status"]
+    ].join(" ").toLowerCase();
+
+    return (!search || text.includes(search))
+      && (!classFilter || String(student["Class"] || "") === classFilter)
+      && (!statusFilter || String(student["Status"] || "") === statusFilter);
+  });
+
+  if (!filtered.length) {
+    body.innerHTML = `<tr><td colspan="6">${emptyState(
+      students.length
+        ? "No Google Sheet students match the current filters."
+        : "The Students sheet is connected, but it does not contain any student records."
+    )}</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = filtered.map((student) => {
+    const fullName = [student["First Name"] || "", student["Surname"] || ""].join(" ").trim();
+    return `
+      <tr>
+        <td><strong>${escapeHtml(fullName || "Unnamed student")}</strong>
+          <div class="live-student-id">${escapeHtml(student["Student ID"] || "—")}</div>
+        </td>
+        <td>${escapeHtml(student["Email"] || "—")}</td>
+        <td>${escapeHtml(student["Class"] || "—")}</td>
+        <td><span class="status-pill">${escapeHtml(student["Status"] || "—")}</span></td>
+        <td>Google Sheets</td>
+        <td><span class="live-readonly-badge">Live · read-only</span></td>
+      </tr>`;
+  }).join("");
+}
