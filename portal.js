@@ -4031,7 +4031,7 @@ async function loadClass1Live(force = false) {
 
   try {
     const response = await fetch(
-      `${LLS_API_URL}?action=getClass1&t=${Date.now()}`,
+      `${LLS_API_URL}?action=getClassRegister&class=${encodeURIComponent("Class 1 NEW")}&t=${Date.now()}`,
       {
         method: "GET",
         cache: "no-store",
@@ -4517,7 +4517,8 @@ async function saveClass1LessonEdit(event) {
         "Content-Type": "text/plain;charset=utf-8"
       },
       body: JSON.stringify({
-        action: "updateLesson",
+        action: "updateClassRegister",
+        className: "Class 1 NEW",
         rowNumber,
         updates
       }),
