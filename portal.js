@@ -11,6 +11,7 @@ const LLS_API_URL =
   "https://script.google.com/macros/s/AKfycbyHbfFoaiMOT1rpY2DcbXAkuNwMoOHVdLlG2aQLgPgCe5gqPuyk8VYm7i4eGQRm8iqi/exec";
 
 let class1LiveLoaded = false;
+let class1LiveLessons = [];
 
 const LEVELS = [
   "Young Learners",
@@ -4071,6 +4072,7 @@ async function loadClass1Live(force = false) {
     });
 
     class1LiveLoaded = true;
+    class1LiveLessons = filledLessons;
 
     panel.innerHTML = `
       <div class="live-sheet-status">
@@ -4102,6 +4104,16 @@ async function loadClass1Live(force = false) {
       "click",
       () => loadClass1Live(true)
     );
+
+    panel
+      .querySelectorAll("[data-edit-live-lesson]")
+      .forEach((button) => {
+        button.addEventListener("click", () => {
+          openClass1LessonEditor(
+            Number(button.dataset.editLiveLesson)
+          );
+        });
+      });
 
     console.log("Class 1 NEW live data loaded:", data);
 
@@ -4162,6 +4174,15 @@ function renderClass1LessonPreview(lessons) {
         <td>${escapeHtml(lesson["Teacher"] || "—")}</td>
         <td>${escapeHtml(lesson["Record of work / pages covered"] || "—")}</td>
         <td>${escapeHtml(lesson["Homework set"] || "—")}</td>
+        <td class="table-actions-cell">
+          <button
+            class="row-action"
+            type="button"
+            data-edit-live-lesson="${Number(lesson.rowNumber)}"
+          >
+            Edit
+          </button>
+        </td>
       </tr>
     `)
     .join("");
@@ -4177,6 +4198,7 @@ function renderClass1LessonPreview(lessons) {
             <th>Teacher</th>
             <th>Record of work</th>
             <th>Homework</th>
+            <th class="table-actions-cell">Admin</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -4187,5 +4209,202 @@ function renderClass1LessonPreview(lessons) {
       ? `<p class="muted live-preview-note">Showing the first 12 populated lesson rows.</p>`
       : ""}
   `;
+}
+
+function openClass1LessonEditor(rowNumber) {
+  const lesson = class1LiveLessons.find(
+    (item) => Number(item.rowNumber) === Number(rowNumber)
+  );
+
+  if (!lesson) {
+    showToast("Could not find that lesson row.", "error");
+    return;
+  }
+
+  let modal = byId("class1LessonEditor");
+
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "class1LessonEditor";
+    modal.className = "live-editor-backdrop";
+    modal.innerHTML = `
+      <div class="live-editor-card" role="dialog" aria-modal="true" aria-labelledby="liveEditorTitle">
+        <div class="live-editor-header">
+          <div>
+            <p class="section-label">Administrator</p>
+            <h3 id="liveEditorTitle">Edit Class 1 lesson</h3>
+          </div>
+          <button class="icon-button" id="closeLiveLessonEditor" type="button" aria-label="Close">×</button>
+        </div>
+
+        <form id="class1LessonEditorForm">
+          <input id="liveLessonRowNumber" type="hidden">
+
+          <div class="live-editor-grid">
+            <div class="form-field">
+              <label for="liveLessonDate">Date</label>
+              <input id="liveLessonDate" type="text" placeholder="dd/mm/yyyy">
+            </div>
+
+            <div class="form-field">
+              <label for="liveLessonTeacher">Teacher</label>
+              <input id="liveLessonTeacher" type="text">
+            </div>
+
+            <div class="form-field live-editor-wide">
+              <label for="liveLessonRecord">Record of work / pages covered</label>
+              <textarea id="liveLessonRecord" rows="4"></textarea>
+            </div>
+
+            <div class="form-field live-editor-wide">
+              <label for="liveLessonHomework">Homework set</label>
+              <textarea id="liveLessonHomework" rows="3"></textarea>
+            </div>
+          </div>
+
+          <p class="live-editor-help">
+            Saving here updates the test Google Sheet through the deployed Apps Script.
+          </p>
+
+          <div class="live-editor-actions">
+            <button class="button button-secondary" id="cancelLiveLessonEdit" type="button">
+              Cancel
+            </button>
+            <button class="button button-primary" id="saveLiveLessonEdit" type="submit">
+              Save to Google Sheet
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    byId("closeLiveLessonEditor").addEventListener(
+      "click",
+      closeClass1LessonEditor
+    );
+
+    byId("cancelLiveLessonEdit").addEventListener(
+      "click",
+      closeClass1LessonEditor
+    );
+
+    modal.addEventListener("mousedown", (event) => {
+      if (event.target === modal) {
+        closeClass1LessonEditor();
+      }
+    });
+
+    byId("class1LessonEditorForm").addEventListener(
+      "submit",
+      saveClass1LessonEdit
+    );
+  }
+
+  setValue("liveLessonRowNumber", String(lesson.rowNumber || ""));
+  setValue("liveLessonDate", lesson["Date"] || "");
+  setValue("liveLessonTeacher", lesson["Teacher"] || "");
+  setValue("liveLessonRecord", lesson["Record of work / pages covered"] || "");
+  setValue("liveLessonHomework", lesson["Homework set"] || "");
+
+  modal.classList.add("visible");
+  document.body.classList.add("modal-open");
+}
+
+function closeClass1LessonEditor() {
+  const modal = byId("class1LessonEditor");
+
+  if (modal) {
+    modal.classList.remove("visible");
+  }
+
+  document.body.classList.remove("modal-open");
+}
+
+async function saveClass1LessonEdit(event) {
+  event.preventDefault();
+
+  const rowNumber = Number(value("liveLessonRowNumber"));
+  const saveButton = byId("saveLiveLessonEdit");
+
+  if (!rowNumber) {
+    showToast("The Google Sheet row number is missing.", "error");
+    return;
+  }
+
+  const updates = {
+    "Date": value("liveLessonDate").trim(),
+    "Teacher": value("liveLessonTeacher").trim(),
+    "Record of work / pages covered": value("liveLessonRecord").trim(),
+    "Homework set": value("liveLessonHomework").trim()
+  };
+
+  const originalText = saveButton.textContent;
+  saveButton.disabled = true;
+  saveButton.textContent = "Saving…";
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    /*
+     * text/plain keeps this a CORS "simple request", avoiding an
+     * OPTIONS preflight that Google Apps Script web apps do not handle
+     * reliably. Apps Script still receives the JSON text in postData.
+     */
+    const response = await fetch(LLS_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify({
+        action: "updateLesson",
+        rowNumber,
+        updates
+      }),
+      cache: "no-store",
+      redirect: "follow",
+      signal: controller.signal
+    });
+
+    const raw = await response.text();
+
+    let data;
+
+    try {
+      data = JSON.parse(raw);
+    } catch (parseError) {
+      throw new Error(
+        "The Apps Script save response was not JSON. Check the web-app deployment."
+      );
+    }
+
+    if (!data || data.success !== true) {
+      throw new Error(
+        data?.error || "Google Sheets did not confirm the save."
+      );
+    }
+
+    closeClass1LessonEditor();
+    showToast("Lesson saved to Google Sheets.", "success");
+
+    class1LiveLoaded = false;
+    await loadClass1Live(true);
+
+  } catch (error) {
+    const message =
+      error?.name === "AbortError"
+        ? "The save timed out after 15 seconds."
+        : error?.message || "Unknown save error.";
+
+    showToast(message, "error");
+    console.error("Class 1 save error:", error);
+
+  } finally {
+    clearTimeout(timeout);
+    saveButton.disabled = false;
+    saveButton.textContent = originalText;
+  }
 }
 
