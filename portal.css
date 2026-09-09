@@ -2581,3 +2581,68 @@ tbody tr:hover {
   }
 }
 
+/* =========================================================
+   CLASS 1 STUDENT PROGRESS EDITING
+========================================================= */
+
+.live-editor-section + .live-editor-section {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.live-editor-section-heading {
+  margin-bottom: 14px;
+}
+
+.live-editor-section-heading h4 {
+  margin: 0 0 5px;
+}
+
+.live-editor-section-heading p {
+  margin: 0;
+}
+
+.live-student-editor {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--ink-25, #f8fafc);
+  overflow: hidden;
+}
+
+.live-student-editor summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+  padding: 13px 15px;
+  font-weight: 700;
+  list-style-position: inside;
+}
+
+.live-student-editor summary .muted {
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.live-student-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 4px 15px 16px;
+}
+
+@media (max-width: 640px) {
+  .live-student-editor summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .live-student-editor-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

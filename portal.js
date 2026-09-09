@@ -4211,6 +4211,105 @@ function renderClass1LessonPreview(lessons) {
   `;
 }
 
+function getClass1StudentFields(lesson) {
+  const groups = new Map();
+  const pattern = /^Student\s+(\d+)\s+(Attendance|Homework|Feedback|Advice)$/i;
+
+  Object.keys(lesson || {}).forEach((header) => {
+    const match = header.match(pattern);
+
+    if (!match) {
+      return;
+    }
+
+    const number = Number(match[1]);
+    const field = match[2];
+
+    if (!groups.has(number)) {
+      groups.set(number, {});
+    }
+
+    groups.get(number)[field] = {
+      header,
+      value: lesson[header] || ""
+    };
+  });
+
+  return [...groups.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([number, fields]) => ({
+      number,
+      fields
+    }));
+}
+
+function renderClass1StudentEditorFields(lesson) {
+  const students = getClass1StudentFields(lesson);
+
+  if (!students.length) {
+    return `
+      <p class="muted">
+        No Student Attendance / Homework / Feedback / Advice columns were found in this register row.
+      </p>
+    `;
+  }
+
+  return students
+    .map((student, index) => {
+      const fieldOrder = ["Attendance", "Homework", "Feedback", "Advice"];
+
+      const fieldsHtml = fieldOrder
+        .map((fieldName) => {
+          const field = student.fields[fieldName];
+
+          if (!field) {
+            return "";
+          }
+
+          const inputId = `liveStudent${student.number}${fieldName}`;
+
+          if (fieldName === "Feedback" || fieldName === "Advice") {
+            return `
+              <div class="form-field">
+                <label for="${inputId}">${escapeHtml(fieldName)}</label>
+                <textarea
+                  id="${inputId}"
+                  rows="3"
+                  data-live-sheet-header="${escapeHtml(field.header)}"
+                >${escapeHtml(field.value)}</textarea>
+              </div>
+            `;
+          }
+
+          return `
+            <div class="form-field">
+              <label for="${inputId}">${escapeHtml(fieldName)}</label>
+              <input
+                id="${inputId}"
+                type="text"
+                value="${escapeHtml(field.value)}"
+                data-live-sheet-header="${escapeHtml(field.header)}"
+              >
+            </div>
+          `;
+        })
+        .join("");
+
+      return `
+        <details class="live-student-editor" ${index === 0 ? "open" : ""}>
+          <summary>
+            <span>Student ${student.number}</span>
+            <span class="muted">Attendance · Homework · Feedback · Advice</span>
+          </summary>
+          <div class="live-student-editor-grid">
+            ${fieldsHtml}
+          </div>
+        </details>
+      `;
+    })
+    .join("");
+}
+
 function openClass1LessonEditor(rowNumber) {
   const lesson = class1LiveLessons.find(
     (item) => Number(item.rowNumber) === Number(rowNumber)
@@ -4240,30 +4339,59 @@ function openClass1LessonEditor(rowNumber) {
         <form id="class1LessonEditorForm">
           <input id="liveLessonRowNumber" type="hidden">
 
-          <div class="live-editor-grid">
-            <div class="form-field">
-              <label for="liveLessonDate">Date</label>
-              <input id="liveLessonDate" type="text" placeholder="dd/mm/yyyy">
+          <div class="live-editor-section">
+            <div class="live-editor-section-heading">
+              <h4>Lesson details</h4>
             </div>
 
-            <div class="form-field">
-              <label for="liveLessonTeacher">Teacher</label>
-              <input id="liveLessonTeacher" type="text">
-            </div>
+            <div class="live-editor-grid">
+              <div class="form-field">
+                <label for="liveLessonDate">Date</label>
+                <input id="liveLessonDate" type="text" placeholder="dd/mm/yyyy">
+              </div>
 
-            <div class="form-field live-editor-wide">
-              <label for="liveLessonRecord">Record of work / pages covered</label>
-              <textarea id="liveLessonRecord" rows="4"></textarea>
-            </div>
+              <div class="form-field">
+                <label for="liveLessonTeacher">Teacher</label>
+                <input id="liveLessonTeacher" type="text">
+              </div>
 
-            <div class="form-field live-editor-wide">
-              <label for="liveLessonHomework">Homework set</label>
-              <textarea id="liveLessonHomework" rows="3"></textarea>
+              <div class="form-field live-editor-wide">
+                <label for="liveLessonRecord">Record of work / pages covered</label>
+                <textarea id="liveLessonRecord" rows="4"></textarea>
+              </div>
+
+              <div class="form-field live-editor-wide">
+                <label for="liveLessonHomework">Homework set</label>
+                <textarea id="liveLessonHomework" rows="3"></textarea>
+              </div>
+
+              <div class="form-field">
+                <label for="liveLessonDueDate">Due date</label>
+                <input id="liveLessonDueDate" type="text" placeholder="dd/mm/yyyy">
+              </div>
+
+              <div class="form-field">
+                <label for="liveLessonMaterialLink">Where to find it / material link</label>
+                <input id="liveLessonMaterialLink" type="text">
+              </div>
             </div>
           </div>
 
+          <div class="live-editor-section">
+            <div class="live-editor-section-heading">
+              <div>
+                <h4>Student progress records</h4>
+                <p class="muted">
+                  These fields come directly from the Student Attendance, Homework, Feedback and Advice columns in the test register.
+                </p>
+              </div>
+            </div>
+
+            <div id="liveStudentEditorFields"></div>
+          </div>
+
           <p class="live-editor-help">
-            Saving here updates the test Google Sheet through the deployed Apps Script.
+            Saving here updates the TEST Google Sheet through the deployed Apps Script.
           </p>
 
           <div class="live-editor-actions">
@@ -4307,6 +4435,17 @@ function openClass1LessonEditor(rowNumber) {
   setValue("liveLessonTeacher", lesson["Teacher"] || "");
   setValue("liveLessonRecord", lesson["Record of work / pages covered"] || "");
   setValue("liveLessonHomework", lesson["Homework set"] || "");
+  setValue("liveLessonDueDate", lesson["Due date"] || "");
+  setValue(
+    "liveLessonMaterialLink",
+    lesson["Where to find it / material link"] || ""
+  );
+
+  const studentFields = byId("liveStudentEditorFields");
+
+  if (studentFields) {
+    studentFields.innerHTML = renderClass1StudentEditorFields(lesson);
+  }
 
   modal.classList.add("visible");
   document.body.classList.add("modal-open");
@@ -4337,8 +4476,22 @@ async function saveClass1LessonEdit(event) {
     "Date": value("liveLessonDate").trim(),
     "Teacher": value("liveLessonTeacher").trim(),
     "Record of work / pages covered": value("liveLessonRecord").trim(),
-    "Homework set": value("liveLessonHomework").trim()
+    "Homework set": value("liveLessonHomework").trim(),
+    "Due date": value("liveLessonDueDate").trim(),
+    "Where to find it / material link": value("liveLessonMaterialLink").trim()
   };
+
+  document
+    .querySelectorAll(
+      "#liveStudentEditorFields [data-live-sheet-header]"
+    )
+    .forEach((field) => {
+      const header = field.dataset.liveSheetHeader;
+
+      if (header) {
+        updates[header] = field.value.trim();
+      }
+    });
 
   const originalText = saveButton.textContent;
   saveButton.disabled = true;
@@ -4349,9 +4502,8 @@ async function saveClass1LessonEdit(event) {
 
   try {
     /*
-     * text/plain keeps this a CORS "simple request", avoiding an
-     * OPTIONS preflight that Google Apps Script web apps do not handle
-     * reliably. Apps Script still receives the JSON text in postData.
+     * text/plain keeps this a CORS simple request and avoids an OPTIONS
+     * preflight. Apps Script still receives the JSON text in postData.
      */
     const response = await fetch(LLS_API_URL, {
       method: "POST",
@@ -4387,7 +4539,7 @@ async function saveClass1LessonEdit(event) {
     }
 
     closeClass1LessonEditor();
-    showToast("Lesson saved to Google Sheets.", "success");
+    showToast("Lesson and student records saved to Google Sheets.", "success");
 
     class1LiveLoaded = false;
     await loadClass1Live(true);
