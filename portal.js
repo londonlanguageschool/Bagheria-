@@ -4664,48 +4664,50 @@ function renderStudentsLiveTable(students) {
   const body = byId("studentsTableBody");
   if (!body) return;
 
-  const search = String(byId("studentSearch")?.value || "").trim().toLowerCase();
-  const rawClassFilter = String(byId("studentClassFilter")?.value || "").trim();
-  const rawStatusFilter = String(byId("studentStatusFilter")?.value || "").trim();
+  // V4.3: first prove the live Students data displays correctly.
+  // Filters will be reconnected after the live-data table is confirmed.
+  const records = Array.isArray(students) ? students : [];
 
-  const classFilter =
-    /^(all|all levels|all classes)$/i.test(rawClassFilter) ? "" : rawClassFilter;
-
-  const statusFilter =
-    /^(all|all statuses)$/i.test(rawStatusFilter) ? "" : rawStatusFilter;
-
-  const filtered = students.filter((student) => {
-    const text = [
-      student["Student ID"], student["First Name"], student["Surname"],
-      student["Email"], student["Class"], student["Status"]
-    ].join(" ").toLowerCase();
-
-    return (!search || text.includes(search))
-      && (!classFilter || String(student["Class"] || "") === classFilter)
-      && (!statusFilter || String(student["Status"] || "") === statusFilter);
-  });
-
-  if (!filtered.length) {
-    body.innerHTML = `<tr><td colspan="6">${emptyState(
-      students.length
-        ? "No Google Sheet students match the current filters."
-        : "The Students sheet is connected, but it does not contain any student records."
-    )}</td></tr>`;
+  if (!records.length) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="7">
+          ${emptyState("The Students sheet is connected, but it does not contain any student records.")}
+        </td>
+      </tr>
+    `;
     return;
   }
 
-  body.innerHTML = filtered.map((student) => {
-    const fullName = [student["First Name"] || "", student["Surname"] || ""].join(" ").trim();
+  body.innerHTML = records.map((student) => {
+    const fullName = [
+      student["First Name"] || "",
+      student["Surname"] || ""
+    ].join(" ").trim();
+
     return `
       <tr>
-        <td><strong>${escapeHtml(fullName || "Unnamed student")}</strong>
+        <td>
+          <strong>${escapeHtml(fullName || "Unnamed student")}</strong>
           <div class="live-student-id">${escapeHtml(student["Student ID"] || "—")}</div>
         </td>
-        <td>${escapeHtml(student["Email"] || "—")}</td>
         <td>${escapeHtml(student["Class"] || "—")}</td>
+        <td>—</td>
+        <td>${escapeHtml(student["Email"] || "—")}</td>
         <td><span class="status-pill">${escapeHtml(student["Status"] || "—")}</span></td>
-        <td>Google Sheets</td>
+        <td>—</td>
         <td><span class="live-readonly-badge">Live · read-only</span></td>
-      </tr>`;
+      </tr>
+    `;
   }).join("");
+
+  const countElement =
+    byId("studentCount") ||
+    byId("studentsCount");
+
+  if (countElement) {
+    countElement.textContent =
+      `${records.length} student${records.length === 1 ? "" : "s"}`;
+  }
 }
+
