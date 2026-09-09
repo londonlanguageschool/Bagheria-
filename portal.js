@@ -4665,8 +4665,14 @@ function renderStudentsLiveTable(students) {
   if (!body) return;
 
   const search = String(byId("studentSearch")?.value || "").trim().toLowerCase();
-  const classFilter = String(byId("studentClassFilter")?.value || "").trim();
-  const statusFilter = String(byId("studentStatusFilter")?.value || "").trim();
+  const rawClassFilter = String(byId("studentClassFilter")?.value || "").trim();
+  const rawStatusFilter = String(byId("studentStatusFilter")?.value || "").trim();
+
+  const classFilter =
+    /^(all|all levels|all classes)$/i.test(rawClassFilter) ? "" : rawClassFilter;
+
+  const statusFilter =
+    /^(all|all statuses)$/i.test(rawStatusFilter) ? "" : rawStatusFilter;
 
   const filtered = students.filter((student) => {
     const text = [
