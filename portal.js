@@ -4712,3 +4712,1046 @@ function renderStudentsLiveTable(students) {
   }
 }
 
+
+
+/* =========================================================
+   V6 — CORE DATA ARCHITECTURE
+   Students + Classes + Enrolments + dynamic class registers
+   ---------------------------------------------------------
+   This block deliberately overrides selected V5 functions.
+   V5 remains the known-good rollback package.
+========================================================= */
+
+let v6PortalDataLoaded = false;
+let v6PortalData = {
+  students: [],
+  classes: [],
+  enrolments: []
+};
+
+let v6SelectedClassId = "";
+let v6CurrentClass = null;
+let v6CurrentRegisterLessons = [];
+
+async function loadV6PortalData(force = false) {
+  if (v6PortalDataLoaded && !force) {
+    return v6PortalData;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const response = await fetch(
+      `${LLS_API_URL}?action=getPortalData&t=${Date.now()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        redirect: "follow",
+        signal: controller.signal
+      }
+    );
+
+    const raw = await response.text();
+    let data;
+
+    try {
+      data = JSON.parse(raw);
+    } catch (error) {
+      throw new Error(
+        "The Apps Script did not return JSON. Check the deployed web app."
+      );
+    }
+
+    if (!data || data.success !== true) {
+      throw new Error(
+        data?.error || "The portal data request was unsuccessful."
+      );
+    }
+
+    v6PortalData = {
+      students: Array.isArray(data.students) ? data.students : [],
+      classes: Array.isArray(data.classes) ? data.classes : [],
+      enrolments: Array.isArray(data.enrolments) ? data.enrolments : []
+    };
+
+    studentsLiveRecords = v6PortalData.students;
+    studentsLiveLoaded = true;
+    v6PortalDataLoaded = true;
+
+    if (
+      !v6SelectedClassId ||
+      !v6PortalData.classes.some(
+        (item) => String(item["Class ID"] || "") === v6SelectedClassId
+      )
+    ) {
+      const firstActive =
+        v6PortalData.classes.find(
+          (item) =>
+            String(item["Status"] || "").toLowerCase() === "active"
+        ) ||
+        v6PortalData.classes[0];
+
+      v6SelectedClassId =
+        String(firstActive?.["Class ID"] || "");
+    }
+
+    return v6PortalData;
+
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function v6GetClassById(classId) {
+  return v6PortalData.classes.find(
+    (item) =>
+      String(item["Class ID"] || "") === String(classId || "")
+  ) || null;
+}
+
+function v6GetStudentById(studentId) {
+  return v6PortalData.students.find(
+    (item) =>
+      String(item["Student ID"] || "") === String(studentId || "")
+  ) || null;
+}
+
+function v6ActiveEnrolmentsForClass(classId) {
+  return v6PortalData.enrolments
+    .filter((item) => {
+      const matchesClass =
+        String(item["Class ID"] || "") === String(classId || "");
+
+      const status =
+        String(item["Status"] || "").trim().toLowerCase();
+
+      return matchesClass && (!status || status === "active");
+    })
+    .sort(
+      (a, b) =>
+        Number(a["Register Slot"] || 999) -
+        Number(b["Register Slot"] || 999)
+    );
+}
+
+function v6StudentNameForSlot(classId, slotNumber) {
+  const enrolment = v6ActiveEnrolmentsForClass(classId)
+    .find(
+      (item) =>
+        Number(item["Register Slot"]) === Number(slotNumber)
+    );
+
+  if (!enrolment) {
+    return "";
+  }
+
+  const student =
+    v6GetStudentById(enrolment["Student ID"]);
+
+  if (!student) {
+    return String(enrolment["Student ID"] || "");
+  }
+
+  return [
+    student["First Name"] || "",
+    student["Surname"] || ""
+  ].join(" ").trim();
+}
+
+/* -------------------------
+   CLASSES — LIVE DATABASE
+------------------------- */
+
+function renderClasses() {
+  const container = byId("classGrid");
+  if (!container) return;
+
+  if (!v6PortalDataLoaded) {
+    container.innerHTML = `
+      <div class="panel">
+        <strong>Loading classes from Google Sheets…</strong>
+        <p class="muted">The Classes and Enrolments tables are now the source of truth.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const query =
+    String(byId("classSearch")?.value || "")
+      .trim()
+      .toLowerCase();
+
+  const day =
+    String(byId("classDayFilter")?.value || "all");
+
+  const records = v6PortalData.classes
+    .filter((item) => {
+      const status =
+        String(item["Status"] || "").toLowerCase();
+
+      if (status && status !== "active") {
+        return false;
+      }
+
+      const haystack = [
+        item["Class ID"],
+        item["Class Name"],
+        item["School Year"],
+        item["Level"],
+        item["Teacher"],
+        item["Day"],
+        item["Time"],
+        item["Room"]
+      ].join(" ").toLowerCase();
+
+      const matchesSearch =
+        !query || haystack.includes(query);
+
+      const matchesDay =
+        day === "all" ||
+        String(item["Day"] || "") === day;
+
+      return matchesSearch && matchesDay;
+    });
+
+  if (!records.length) {
+    container.innerHTML =
+      emptyState("No live classes match the current filters.");
+    return;
+  }
+
+  container.innerHTML = records.map((item) => {
+    const classId = String(item["Class ID"] || "");
+    const className =
+      String(item["Class Name"] || classId || "Unnamed class");
+    const enrolmentCount =
+      v6ActiveEnrolmentsForClass(classId).length;
+    const selected =
+      classId === v6SelectedClassId;
+
+    return `
+      <article class="class-card ${selected ? "class-card-selected" : ""}">
+        <div class="class-card-top">
+          <div>
+            <p class="section-label">${escapeHtml(item["School Year"] || "School year")}</p>
+            <h3>${escapeHtml(className)}</h3>
+          </div>
+          <span class="status-pill">${escapeHtml(item["Status"] || "Active")}</span>
+        </div>
+
+        <div class="class-meta-grid">
+          <div>
+            <span>Level</span>
+            <strong>${escapeHtml(item["Level"] || "—")}</strong>
+          </div>
+          <div>
+            <span>Teacher</span>
+            <strong>${escapeHtml(item["Teacher"] || "—")}</strong>
+          </div>
+          <div>
+            <span>Schedule</span>
+            <strong>${escapeHtml(
+              [item["Day"], item["Time"]].filter(Boolean).join(" · ") || "—"
+            )}</strong>
+          </div>
+          <div>
+            <span>Students</span>
+            <strong>${enrolmentCount}</strong>
+          </div>
+        </div>
+
+        <button
+          class="button ${selected ? "button-soft" : "button-secondary"} full-width"
+          type="button"
+          data-v6-open-class="${escapeHtml(classId)}"
+        >
+          ${selected ? "Register selected" : "Open register"}
+        </button>
+      </article>
+    `;
+  }).join("");
+
+  container
+    .querySelectorAll("[data-v6-open-class]")
+    .forEach((button) => {
+      button.addEventListener("click", async () => {
+        v6SelectedClassId =
+          String(button.dataset.v6OpenClass || "");
+
+        renderClasses();
+        await loadV6ClassRegister(v6SelectedClassId, true);
+      });
+    });
+}
+
+async function loadClass1Live(force = false) {
+  const panel = byId("class1LivePanel");
+  if (!panel) return;
+
+  panel.innerHTML = `
+    <div class="live-sheet-status">
+      <div>
+        <p class="section-label">Google Sheets</p>
+        <h3>Classes</h3>
+      </div>
+      <span class="live-status live-status-loading">Connecting…</span>
+    </div>
+    <p class="muted">Loading Classes, Students and Enrolments from the live test database.</p>
+  `;
+
+  try {
+    await loadV6PortalData(force);
+    renderClasses();
+    renderStudents();
+
+    if (!v6SelectedClassId) {
+      panel.innerHTML = `
+        <div class="live-sheet-status">
+          <div>
+            <p class="section-label">Google Sheets</p>
+            <h3>No classes configured</h3>
+          </div>
+          <span class="live-status live-status-error">Setup required</span>
+        </div>
+        <p class="muted">
+          Add at least one row to the Classes sheet.
+        </p>
+      `;
+      return;
+    }
+
+    await loadV6ClassRegister(v6SelectedClassId, force);
+
+  } catch (error) {
+    const message =
+      error?.name === "AbortError"
+        ? "The connection timed out."
+        : error?.message || "Unknown connection error.";
+
+    panel.innerHTML = `
+      <div class="live-sheet-status">
+        <div>
+          <p class="section-label">Google Sheets</p>
+          <h3>Portal database</h3>
+        </div>
+        <span class="live-status live-status-error">Connection error</span>
+      </div>
+
+      <p class="muted">${escapeHtml(message)}</p>
+
+      <button
+        class="button button-secondary button-small"
+        id="retryClass1Live"
+        type="button"
+      >
+        Retry connection
+      </button>
+    `;
+
+    byId("retryClass1Live")?.addEventListener(
+      "click",
+      () => loadClass1Live(true)
+    );
+
+    console.error("V6 portal data error:", error);
+  }
+}
+
+async function loadV6ClassRegister(classId, force = false) {
+  const panel = byId("class1LivePanel");
+  if (!panel) return;
+
+  const classRecord = v6GetClassById(classId);
+
+  if (!classRecord) {
+    throw new Error("The selected class could not be found.");
+  }
+
+  const className =
+    String(classRecord["Class Name"] || classId);
+
+  panel.innerHTML = `
+    <div class="live-sheet-status">
+      <div>
+        <p class="section-label">Live register</p>
+        <h3>${escapeHtml(className)}</h3>
+      </div>
+      <span class="live-status live-status-loading">Loading…</span>
+    </div>
+    <p class="muted">Reading this class register from Google Sheets.</p>
+  `;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const response = await fetch(
+      `${LLS_API_URL}?action=getClassRegister&classId=${encodeURIComponent(classId)}&t=${Date.now()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        redirect: "follow",
+        signal: controller.signal
+      }
+    );
+
+    const raw = await response.text();
+    let data;
+
+    try {
+      data = JSON.parse(raw);
+    } catch (error) {
+      throw new Error("The class register response was not JSON.");
+    }
+
+    if (!data || data.success !== true) {
+      throw new Error(
+        data?.error || "The class register could not be loaded."
+      );
+    }
+
+    const lessons = Array.isArray(data.lessons)
+      ? data.lessons
+      : [];
+
+    const filledLessons = lessons.filter((lesson) => {
+      return [
+        "Month",
+        "Lesson",
+        "Date",
+        "Teacher",
+        "Record of work / pages covered",
+        "Homework set"
+      ].some((key) =>
+        String(lesson?.[key] ?? "").trim()
+      );
+    });
+
+    v6CurrentClass = classRecord;
+    v6CurrentRegisterLessons = filledLessons;
+
+    // Keep the existing editor's working storage compatible.
+    class1LiveLessons = filledLessons;
+    class1LiveLoaded = true;
+
+    const enrolmentCount =
+      v6ActiveEnrolmentsForClass(classId).length;
+
+    panel.innerHTML = `
+      <div class="live-sheet-status">
+        <div>
+          <p class="section-label">Live register</p>
+          <h3>${escapeHtml(className)}</h3>
+          <p class="muted">
+            ${escapeHtml(classRecord["School Year"] || "")}
+            ${classRecord["Level"] ? ` · ${escapeHtml(classRecord["Level"])}` : ""}
+            · ${enrolmentCount} enrolled student${enrolmentCount === 1 ? "" : "s"}
+          </p>
+        </div>
+
+        <div class="live-sheet-actions">
+          <span class="live-status live-status-connected">● Connected</span>
+          <button
+            class="button button-secondary button-small"
+            id="refreshClass1Live"
+            type="button"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <p class="muted">
+        ${filledLessons.length} register row${filledLessons.length === 1 ? "" : "s"} loaded.
+      </p>
+
+      ${renderClass1LessonPreview(filledLessons)}
+    `;
+
+    byId("refreshClass1Live")?.addEventListener(
+      "click",
+      async () => {
+        v6PortalDataLoaded = false;
+        await loadV6PortalData(true);
+        renderClasses();
+        renderStudents();
+        await loadV6ClassRegister(classId, true);
+      }
+    );
+
+    panel
+      .querySelectorAll("[data-edit-live-lesson]")
+      .forEach((button) => {
+        button.addEventListener("click", () => {
+          openClass1LessonEditor(
+            Number(button.dataset.editLiveLesson)
+          );
+        });
+      });
+
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/* -------------------------
+   NAMED STUDENTS IN EDITOR
+------------------------- */
+
+function renderClass1StudentEditorFields(lesson) {
+  const students = getClass1StudentFields(lesson);
+
+  if (!students.length) {
+    return `
+      <p class="muted">
+        No Attendance / Homework / Feedback / Advice student columns were found.
+      </p>
+    `;
+  }
+
+  return students
+    .map((student, index) => {
+      const studentName =
+        v6StudentNameForSlot(
+          v6CurrentClass?.["Class ID"],
+          student.number
+        );
+
+      const label =
+        studentName
+          ? `${studentName} · Student ${student.number}`
+          : `Student ${student.number}`;
+
+      const fieldOrder = [
+        "Attendance",
+        "Homework",
+        "Feedback",
+        "Advice"
+      ];
+
+      const fieldsHtml = fieldOrder
+        .map((fieldName) => {
+          const field = student.fields[fieldName];
+          if (!field) return "";
+
+          const inputId =
+            `liveStudent${student.number}${fieldName}`;
+
+          if (
+            fieldName === "Feedback" ||
+            fieldName === "Advice"
+          ) {
+            return `
+              <div class="form-field">
+                <label for="${inputId}">${escapeHtml(fieldName)}</label>
+                <textarea
+                  id="${inputId}"
+                  rows="3"
+                  data-live-sheet-header="${escapeHtml(field.header)}"
+                >${escapeHtml(field.value)}</textarea>
+              </div>
+            `;
+          }
+
+          return `
+            <div class="form-field">
+              <label for="${inputId}">${escapeHtml(fieldName)}</label>
+              <input
+                id="${inputId}"
+                type="text"
+                value="${escapeHtml(field.value)}"
+                data-live-sheet-header="${escapeHtml(field.header)}"
+              >
+            </div>
+          `;
+        })
+        .join("");
+
+      return `
+        <details class="live-student-editor" ${index === 0 ? "open" : ""}>
+          <summary>
+            <span>${escapeHtml(label)}</span>
+            <span class="muted">Attendance · Homework · Feedback · Advice</span>
+          </summary>
+          <div class="live-student-editor-grid">
+            ${fieldsHtml}
+          </div>
+        </details>
+      `;
+    })
+    .join("");
+}
+
+function openClass1LessonEditor(rowNumber) {
+  const lesson = class1LiveLessons.find(
+    (item) => Number(item.rowNumber) === Number(rowNumber)
+  );
+
+  if (!lesson) {
+    showToast("Could not find that lesson row.", "error");
+    return;
+  }
+
+  let modal = byId("class1LessonEditor");
+
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "class1LessonEditor";
+    modal.className = "live-editor-backdrop";
+    modal.innerHTML = `
+      <div class="live-editor-card" role="dialog" aria-modal="true" aria-labelledby="liveEditorTitle">
+        <div class="live-editor-header">
+          <div>
+            <p class="section-label">Administrator</p>
+            <h3 id="liveEditorTitle">Edit lesson</h3>
+          </div>
+          <button class="icon-button" id="closeLiveLessonEditor" type="button" aria-label="Close">×</button>
+        </div>
+
+        <form id="class1LessonEditorForm">
+          <input id="liveLessonRowNumber" type="hidden">
+
+          <div class="live-editor-section">
+            <div class="live-editor-section-heading">
+              <h4>Lesson details</h4>
+            </div>
+
+            <div class="live-editor-grid">
+              <div class="form-field">
+                <label for="liveLessonDate">Date</label>
+                <input id="liveLessonDate" type="text" placeholder="dd/mm/yyyy">
+              </div>
+
+              <div class="form-field">
+                <label for="liveLessonTeacher">Teacher</label>
+                <input id="liveLessonTeacher" type="text">
+              </div>
+
+              <div class="form-field live-editor-wide">
+                <label for="liveLessonRecord">Record of work / pages covered</label>
+                <textarea id="liveLessonRecord" rows="4"></textarea>
+              </div>
+
+              <div class="form-field live-editor-wide">
+                <label for="liveLessonHomework">Homework set</label>
+                <textarea id="liveLessonHomework" rows="3"></textarea>
+              </div>
+
+              <div class="form-field">
+                <label for="liveLessonDueDate">Due date</label>
+                <input id="liveLessonDueDate" type="text" placeholder="dd/mm/yyyy">
+              </div>
+
+              <div class="form-field">
+                <label for="liveLessonMaterialLink">Where to find it / material link</label>
+                <input id="liveLessonMaterialLink" type="text">
+              </div>
+            </div>
+          </div>
+
+          <div class="live-editor-section">
+            <div class="live-editor-section-heading">
+              <div>
+                <h4>Student progress records</h4>
+                <p class="muted">
+                  Student names come from Enrolments; register data still writes to the existing Student N columns.
+                </p>
+              </div>
+            </div>
+
+            <div id="liveStudentEditorFields"></div>
+          </div>
+
+          <p class="live-editor-help">
+            Saving here updates the TEST Google Sheet through the deployed Apps Script.
+          </p>
+
+          <div class="live-editor-actions">
+            <button class="button button-secondary" id="cancelLiveLessonEdit" type="button">
+              Cancel
+            </button>
+            <button class="button button-primary" id="saveLiveLessonEdit" type="submit">
+              Save to Google Sheet
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    byId("closeLiveLessonEditor").addEventListener(
+      "click",
+      closeClass1LessonEditor
+    );
+
+    byId("cancelLiveLessonEdit").addEventListener(
+      "click",
+      closeClass1LessonEditor
+    );
+
+    modal.addEventListener("mousedown", (event) => {
+      if (event.target === modal) {
+        closeClass1LessonEditor();
+      }
+    });
+
+    byId("class1LessonEditorForm").addEventListener(
+      "submit",
+      saveClass1LessonEdit
+    );
+  }
+
+  const className =
+    String(v6CurrentClass?.["Class Name"] || "Class register");
+
+  text("liveEditorTitle", `Edit ${className} lesson`);
+
+  setValue("liveLessonRowNumber", String(lesson.rowNumber || ""));
+  setValue("liveLessonDate", lesson["Date"] || "");
+  setValue("liveLessonTeacher", lesson["Teacher"] || "");
+  setValue("liveLessonRecord", lesson["Record of work / pages covered"] || "");
+  setValue("liveLessonHomework", lesson["Homework set"] || "");
+  setValue("liveLessonDueDate", lesson["Due date"] || "");
+  setValue(
+    "liveLessonMaterialLink",
+    lesson["Where to find it / material link"] || ""
+  );
+
+  const studentFields = byId("liveStudentEditorFields");
+  if (studentFields) {
+    studentFields.innerHTML =
+      renderClass1StudentEditorFields(lesson);
+  }
+
+  modal.classList.add("visible");
+  document.body.classList.add("modal-open");
+}
+
+async function saveClass1LessonEdit(event) {
+  event.preventDefault();
+
+  const rowNumber =
+    Number(value("liveLessonRowNumber"));
+
+  const saveButton =
+    byId("saveLiveLessonEdit");
+
+  const classId =
+    String(v6CurrentClass?.["Class ID"] || "");
+
+  if (!rowNumber || !classId) {
+    showToast(
+      "The class or Google Sheet row number is missing.",
+      "error"
+    );
+    return;
+  }
+
+  const updates = {
+    "Date": value("liveLessonDate").trim(),
+    "Teacher": value("liveLessonTeacher").trim(),
+    "Record of work / pages covered": value("liveLessonRecord").trim(),
+    "Homework set": value("liveLessonHomework").trim(),
+    "Due date": value("liveLessonDueDate").trim(),
+    "Where to find it / material link": value("liveLessonMaterialLink").trim()
+  };
+
+  document
+    .querySelectorAll(
+      "#liveStudentEditorFields [data-live-sheet-header]"
+    )
+    .forEach((field) => {
+      const header =
+        field.dataset.liveSheetHeader;
+
+      if (header) {
+        updates[header] =
+          field.value.trim();
+      }
+    });
+
+  const originalText =
+    saveButton.textContent;
+
+  saveButton.disabled = true;
+  saveButton.textContent = "Saving…";
+
+  const controller =
+    new AbortController();
+
+  const timeout =
+    setTimeout(
+      () => controller.abort(),
+      30000
+    );
+
+  try {
+    const response = await fetch(
+      LLS_API_URL,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify({
+          action: "updateClassRegister",
+          classId,
+          rowNumber,
+          updates
+        }),
+        cache: "no-store",
+        redirect: "follow",
+        signal: controller.signal
+      }
+    );
+
+    const raw =
+      await response.text();
+
+    let data;
+
+    try {
+      data = JSON.parse(raw);
+    } catch (error) {
+      throw new Error(
+        "The Apps Script save response was not JSON."
+      );
+    }
+
+    if (!data || data.success !== true) {
+      throw new Error(
+        data?.error ||
+        "Google Sheets did not confirm the save."
+      );
+    }
+
+    closeClass1LessonEditor();
+
+    showToast(
+      "Lesson and student records saved to Google Sheets.",
+      "success"
+    );
+
+    await loadV6ClassRegister(
+      classId,
+      true
+    );
+
+  } catch (error) {
+    const message =
+      error?.name === "AbortError"
+        ? "The save timed out."
+        : error?.message ||
+          "Unknown save error.";
+
+    showToast(message, "error");
+    console.error("V6 class save error:", error);
+
+  } finally {
+    clearTimeout(timeout);
+    saveButton.disabled = false;
+    saveButton.textContent = originalText;
+  }
+}
+
+/* -------------------------
+   STUDENTS — LIVE + FILTERS
+------------------------- */
+
+function renderStudents() {
+  const body = byId("studentsTableBody");
+  if (!body) return;
+
+  if (!v6PortalDataLoaded) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="7">
+          <div class="live-students-loading">
+            <strong>Loading students from Google Sheets…</strong>
+            <span class="muted">Classes are now derived from Enrolments.</span>
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  renderStudentsLiveTable(
+    v6PortalData.students
+  );
+}
+
+async function loadStudentsLive(force = false) {
+  const body = byId("studentsTableBody");
+  if (!body) return;
+
+  try {
+    await loadV6PortalData(force);
+    renderStudents();
+    renderClasses();
+  } catch (error) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="7">
+          ${emptyState(
+            `Could not load the live student database: ${escapeHtml(
+              error?.message || "Unknown error"
+            )}`
+          )}
+        </td>
+      </tr>
+    `;
+  }
+}
+
+function renderStudentsLiveTable(students) {
+  const body = byId("studentsTableBody");
+  if (!body) return;
+
+  const query =
+    String(byId("studentSearch")?.value || "")
+      .trim()
+      .toLowerCase();
+
+  const statusFilter =
+    String(byId("studentStatusFilter")?.value || "all");
+
+  const levelFilter =
+    String(byId("studentLevelFilter")?.value || "all");
+
+  const records =
+    (Array.isArray(students) ? students : [])
+      .map((student) => {
+        const studentId =
+          String(student["Student ID"] || "");
+
+        const enrolments =
+          v6PortalData.enrolments.filter((item) => {
+            const matches =
+              String(item["Student ID"] || "") === studentId;
+
+            const status =
+              String(item["Status"] || "").trim().toLowerCase();
+
+            return matches && (!status || status === "active");
+          });
+
+        const classRecords =
+          enrolments
+            .map((item) =>
+              v6GetClassById(item["Class ID"])
+            )
+            .filter(Boolean);
+
+        const classNames =
+          classRecords
+            .map((item) =>
+              String(item["Class Name"] || item["Class ID"] || "")
+            )
+            .filter(Boolean);
+
+        const levels =
+          classRecords
+            .map((item) =>
+              String(item["Level"] || "")
+            )
+            .filter(Boolean);
+
+        const startDates =
+          enrolments
+            .map((item) =>
+              String(item["Start Date"] || "")
+            )
+            .filter(Boolean);
+
+        return {
+          student,
+          studentId,
+          classNames,
+          levels,
+          joined: startDates[0] || ""
+        };
+      })
+      .filter((item) => {
+        const student = item.student;
+
+        const fullName = [
+          student["First Name"] || "",
+          student["Surname"] || ""
+        ].join(" ").trim();
+
+        const haystack = [
+          item.studentId,
+          fullName,
+          student["Email"],
+          student["Phone"],
+          ...item.classNames,
+          ...item.levels
+        ].join(" ").toLowerCase();
+
+        const matchesSearch =
+          !query || haystack.includes(query);
+
+        const status =
+          String(student["Status"] || "");
+
+        const matchesStatus =
+          statusFilter === "all" ||
+          status === statusFilter;
+
+        const matchesLevel =
+          levelFilter === "all" ||
+          item.levels.includes(levelFilter);
+
+        return (
+          matchesSearch &&
+          matchesStatus &&
+          matchesLevel
+        );
+      });
+
+  if (!records.length) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="7">
+          ${emptyState("No live students match the current filters.")}
+        </td>
+      </tr>
+    `;
+  } else {
+    body.innerHTML = records.map((item) => {
+      const student = item.student;
+
+      const fullName = [
+        student["First Name"] || "",
+        student["Surname"] || ""
+      ].join(" ").trim();
+
+      return `
+        <tr>
+          <td>
+            <strong>${escapeHtml(fullName || "Unnamed student")}</strong>
+            <div class="live-student-id">${escapeHtml(item.studentId || "—")}</div>
+          </td>
+          <td>${escapeHtml(item.classNames.join(", ") || "—")}</td>
+          <td>${escapeHtml(item.levels.join(", ") || "—")}</td>
+          <td>${escapeHtml(student["Email"] || student["Phone"] || "—")}</td>
+          <td><span class="status-pill">${escapeHtml(student["Status"] || "—")}</span></td>
+          <td>${escapeHtml(item.joined || "—")}</td>
+          <td><span class="live-readonly-badge">Live · read-only</span></td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  const countElement =
+    byId("studentsTableCount");
+
+  if (countElement) {
+    countElement.textContent =
+      `${records.length} student${records.length === 1 ? "" : "s"}`;
+  }
+}
