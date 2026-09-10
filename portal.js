@@ -5755,3 +5755,687 @@ function renderStudentsLiveTable(students) {
       `${records.length} student${records.length === 1 ? "" : "s"}`;
   }
 }
+
+
+/* =========================================================
+   V7 — ADMINISTRATOR PORTAL FOUNDATION
+   ---------------------------------------------------------
+   Builds on the proven V6 Google Sheets architecture.
+   - Live administrator dashboard
+   - Searchable student profiles
+   - Class profiles with enrolled students
+   - Enrolment relationships visible throughout
+   - Existing V6 register editor remains writable
+   - Master Students / Classes / Enrolments remain read-only
+     until authenticated write endpoints are introduced.
+========================================================= */
+
+let v7BootError = "";
+
+function initialisePortal() {
+  ensureStateStructure();
+  bindNavigation();
+  bindGlobalControls();
+  bindForms();
+  bindFilters();
+  initialiseDates();
+  populateSelects();
+  renderAll();
+  v7PrepareAdministratorUi();
+  navigateTo(readPageFromHash() || "dashboard", false);
+  v7LoadAdministratorData();
+}
+
+async function v7LoadAdministratorData(force = false) {
+  v7SetDatabaseStrip("loading", "Connecting to the live TEST database…");
+
+  try {
+    await loadV6PortalData(force);
+    v7BootError = "";
+
+    renderStudents();
+    renderClasses();
+    v7RenderDashboardLive();
+    v7SetDatabaseStrip(
+      "connected",
+      `${v6PortalData.students.length} students · ${v6PortalData.classes.length} classes · ${v6PortalData.enrolments.length} enrolments`
+    );
+  } catch (error) {
+    v7BootError = error?.message || "Unknown database connection error.";
+    v7SetDatabaseStrip("error", v7BootError);
+    console.error("V7 administrator bootstrap error:", error);
+  }
+}
+
+function v7PrepareAdministratorUi() {
+  const hero = document.querySelector("#page-dashboard .hero");
+  if (hero && !byId("v7DatabaseStrip")) {
+    const strip = document.createElement("div");
+    strip.id = "v7DatabaseStrip";
+    strip.className = "v7-database-strip";
+    strip.innerHTML = `
+      <div>
+        <strong>TEST database</strong>
+        <span id="v7DatabaseMessage">Connecting…</span>
+      </div>
+      <button class="button button-secondary button-small" id="v7RefreshDatabase" type="button">
+        Refresh live data
+      </button>
+    `;
+    hero.insertAdjacentElement("afterend", strip);
+
+    byId("v7RefreshDatabase")?.addEventListener("click", async () => {
+      v6PortalDataLoaded = false;
+      await v7LoadAdministratorData(true);
+      if (v6SelectedClassId && document.querySelector("#page-classes.active")) {
+        await loadV6ClassRegister(v6SelectedClassId, true);
+      }
+    });
+  }
+
+  const studentDescription = document.querySelector("#page-students .page-description");
+  if (studentDescription) {
+    studentDescription.textContent =
+      "Live student records and enrolments from Google Sheets. Open a student to view their current class relationships.";
+  }
+
+  const classDescription = document.querySelector("#page-classes .page-description");
+  if (classDescription) {
+    classDescription.textContent =
+      "Live class metadata, enrolments and lesson registers from Google Sheets.";
+  }
+
+  [
+    ["addStudentButton", "Master student editing will be enabled after secure authenticated write access is added."],
+    ["quickStudentButton", "Master student editing will be enabled after secure authenticated write access is added."],
+    ["addClassButton", "Master class editing will be enabled after secure authenticated write access is added."]
+  ].forEach(([id, title]) => {
+    const button = byId(id);
+    if (!button) return;
+    button.disabled = true;
+    button.title = title;
+    button.classList.add("v7-disabled-master-write");
+  });
+
+  v7EnsureProfileModal();
+}
+
+function v7SetDatabaseStrip(status, message) {
+  const strip = byId("v7DatabaseStrip");
+  const messageEl = byId("v7DatabaseMessage");
+  if (!strip || !messageEl) return;
+
+  strip.dataset.status = status;
+  messageEl.textContent = message;
+
+  const refresh = byId("v7RefreshDatabase");
+  if (refresh) {
+    refresh.disabled = status === "loading";
+    refresh.textContent = status === "loading" ? "Connecting…" : "Refresh live data";
+  }
+}
+
+function v7ActiveEnrolmentsForStudent(studentId) {
+  return v6PortalData.enrolments.filter((item) => {
+    const matches =
+      String(item["Student ID"] || "") === String(studentId || "");
+    const status =
+      String(item["Status"] || "").trim().toLowerCase();
+    return matches && (!status || status === "active");
+  });
+}
+
+function v7StudentFullName(student) {
+  return [
+    student?.["First Name"] || "",
+    student?.["Surname"] || ""
+  ].join(" ").trim() || String(student?.["Student ID"] || "Unnamed student");
+}
+
+function v7RenderDashboardLive() {
+  if (!v6PortalDataLoaded) return;
+
+  const activeStudents = v6PortalData.students.filter((student) => {
+    const status = String(student["Status"] || "").trim().toLowerCase();
+    return !status || status === "active";
+  });
+
+  const activeClasses = v6PortalData.classes.filter((item) => {
+    const status = String(item["Status"] || "").trim().toLowerCase();
+    return !status || status === "active";
+  });
+
+  text("statStudents", activeStudents.length);
+  text(
+    "statStudentsSub",
+    `${v6PortalData.students.length} live student record${v6PortalData.students.length === 1 ? "" : "s"}`
+  );
+
+  text("statClasses", activeClasses.length);
+  text(
+    "statClassesSub",
+    `${v6PortalData.enrolments.length} enrolment record${v6PortalData.enrolments.length === 1 ? "" : "s"}`
+  );
+
+  renderTodayClasses();
+  renderStudentBreakdown();
+}
+
+function renderTodayClasses() {
+  const container = byId("todayClassesList");
+  if (!container) return;
+
+  if (!v6PortalDataLoaded) {
+    container.innerHTML = `
+      <div class="empty-mini">
+        <strong>Loading live classes…</strong>
+        <span>Connecting to Google Sheets.</span>
+      </div>
+    `;
+    return;
+  }
+
+  const todayName = new Intl.DateTimeFormat("en-GB", {
+    weekday: "long"
+  }).format(new Date());
+
+  const classes = v6PortalData.classes.filter((item) => {
+    const status = String(item["Status"] || "").trim().toLowerCase();
+    return (
+      (!status || status === "active") &&
+      String(item["Day"] || "").trim().toLowerCase() === todayName.toLowerCase()
+    );
+  });
+
+  if (!classes.length) {
+    container.innerHTML = `
+      <div class="empty-mini">
+        <strong>No live classes scheduled for ${escapeHtml(todayName)}.</strong>
+        <span>Add the Day field in the Classes sheet to populate this list.</span>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = classes.map((item) => {
+    const classId = String(item["Class ID"] || "");
+    const count = v6ActiveEnrolmentsForClass(classId).length;
+    return `
+      <button class="v7-today-class" type="button" data-v7-dashboard-class="${escapeHtml(classId)}">
+        <div>
+          <strong>${escapeHtml(item["Class Name"] || classId)}</strong>
+          <span>${escapeHtml([item["Time"], item["Room"]].filter(Boolean).join(" · ") || "Schedule not completed")}</span>
+        </div>
+        <span>${count} student${count === 1 ? "" : "s"} →</span>
+      </button>
+    `;
+  }).join("");
+
+  container.querySelectorAll("[data-v7-dashboard-class]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      v6SelectedClassId = button.dataset.v7DashboardClass;
+      navigateTo("classes");
+      renderClasses();
+      await loadV6ClassRegister(v6SelectedClassId, true);
+    });
+  });
+}
+
+function renderStudentBreakdown() {
+  const container = byId("studentBreakdown");
+  if (!container) return;
+
+  if (!v6PortalDataLoaded) {
+    container.innerHTML = `<p class="muted">Loading live enrolment levels…</p>`;
+    return;
+  }
+
+  const counts = {};
+  v6PortalData.enrolments.forEach((enrolment) => {
+    const status = String(enrolment["Status"] || "").trim().toLowerCase();
+    if (status && status !== "active") return;
+    const classRecord = v6GetClassById(enrolment["Class ID"]);
+    const level = String(classRecord?.["Level"] || "Not set").trim() || "Not set";
+    counts[level] = (counts[level] || 0) + 1;
+  });
+
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
+  if (!entries.length) {
+    container.innerHTML = `<p class="muted">No active enrolments yet.</p>`;
+    return;
+  }
+
+  const total = entries.reduce((sumValue, [, count]) => sumValue + count, 0);
+
+  container.innerHTML = entries.map(([level, count]) => `
+    <div class="breakdown-row">
+      <div class="breakdown-label">
+        <span>${escapeHtml(level)}</span>
+        <strong>${count}</strong>
+      </div>
+      <div class="breakdown-bar">
+        <div style="width:${Math.max(4, Math.round((count / total) * 100))}%"></div>
+      </div>
+    </div>
+  `).join("");
+}
+
+/* -------------------------
+   STUDENTS — V7 PROFILES
+------------------------- */
+
+function renderStudentsLiveTable(students) {
+  const body = byId("studentsTableBody");
+  if (!body) return;
+
+  const query = String(byId("studentSearch")?.value || "").trim().toLowerCase();
+  const statusFilter = String(byId("studentStatusFilter")?.value || "all");
+  const levelFilter = String(byId("studentLevelFilter")?.value || "all");
+
+  const records = (Array.isArray(students) ? students : [])
+    .map((student) => {
+      const studentId = String(student["Student ID"] || "");
+      const enrolments = v7ActiveEnrolmentsForStudent(studentId);
+      const classRecords = enrolments
+        .map((item) => v6GetClassById(item["Class ID"]))
+        .filter(Boolean);
+      const classNames = classRecords
+        .map((item) => String(item["Class Name"] || item["Class ID"] || ""))
+        .filter(Boolean);
+      const levels = classRecords
+        .map((item) => String(item["Level"] || ""))
+        .filter(Boolean);
+      const joined =
+        enrolments.map((item) => String(item["Start Date"] || "")).find(Boolean) || "";
+
+      return { student, studentId, enrolments, classRecords, classNames, levels, joined };
+    })
+    .filter((item) => {
+      const student = item.student;
+      const fullName = v7StudentFullName(student);
+      const haystack = [
+        item.studentId,
+        fullName,
+        student["Email"],
+        student["Phone"],
+        ...item.classNames,
+        ...item.levels
+      ].join(" ").toLowerCase();
+
+      const status = String(student["Status"] || "");
+      return (
+        (!query || haystack.includes(query)) &&
+        (statusFilter === "all" || status === statusFilter) &&
+        (levelFilter === "all" || item.levels.includes(levelFilter))
+      );
+    });
+
+  if (!records.length) {
+    body.innerHTML = `
+      <tr><td colspan="7">${emptyState("No live students match the current filters.")}</td></tr>
+    `;
+  } else {
+    body.innerHTML = records.map((item) => {
+      const student = item.student;
+      return `
+        <tr class="v7-clickable-row" data-v7-student-row="${escapeHtml(item.studentId)}">
+          <td>
+            <strong>${escapeHtml(v7StudentFullName(student))}</strong>
+            <div class="live-student-id">${escapeHtml(item.studentId || "—")}</div>
+          </td>
+          <td>${escapeHtml(item.classNames.join(", ") || "—")}</td>
+          <td>${escapeHtml(item.levels.join(", ") || "—")}</td>
+          <td>${escapeHtml(student["Email"] || student["Phone"] || "—")}</td>
+          <td><span class="status-pill">${escapeHtml(student["Status"] || "—")}</span></td>
+          <td>${escapeHtml(item.joined || "—")}</td>
+          <td>
+            <button class="button button-secondary button-small" type="button"
+              data-v7-open-student="${escapeHtml(item.studentId)}">
+              Open profile
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  const countElement = byId("studentsTableCount");
+  if (countElement) {
+    countElement.textContent =
+      `${records.length} student${records.length === 1 ? "" : "s"}`;
+  }
+
+  body.querySelectorAll("[data-v7-open-student]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      v7OpenStudentProfile(button.dataset.v7OpenStudent);
+    });
+  });
+
+  body.querySelectorAll("[data-v7-student-row]").forEach((row) => {
+    row.addEventListener("click", () => {
+      v7OpenStudentProfile(row.dataset.v7StudentRow);
+    });
+  });
+}
+
+/* -------------------------
+   CLASSES — V7 PROFILES
+------------------------- */
+
+function renderClasses() {
+  const container = byId("classGrid");
+  if (!container) return;
+
+  if (!v6PortalDataLoaded) {
+    container.innerHTML = `
+      <div class="panel">
+        <strong>Loading classes from Google Sheets…</strong>
+        <p class="muted">Classes and Enrolments are the source of truth.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const query = String(byId("classSearch")?.value || "").trim().toLowerCase();
+  const day = String(byId("classDayFilter")?.value || "all");
+
+  const records = v6PortalData.classes.filter((item) => {
+    const status = String(item["Status"] || "").trim().toLowerCase();
+    if (status && status !== "active") return false;
+
+    const haystack = [
+      item["Class ID"], item["Class Name"], item["School Year"], item["Level"],
+      item["Teacher"], item["Day"], item["Time"], item["Room"]
+    ].join(" ").toLowerCase();
+
+    return (
+      (!query || haystack.includes(query)) &&
+      (day === "all" || String(item["Day"] || "") === day)
+    );
+  });
+
+  if (!records.length) {
+    container.innerHTML = emptyState("No live classes match the current filters.");
+    return;
+  }
+
+  container.innerHTML = records.map((item) => {
+    const classId = String(item["Class ID"] || "");
+    const className = String(item["Class Name"] || classId || "Unnamed class");
+    const enrolments = v6ActiveEnrolmentsForClass(classId);
+    const capacity = Number(item["Capacity"] || 0);
+    const studentNames = enrolments
+      .slice(0, 4)
+      .map((enrolment) => v7StudentFullName(v6GetStudentById(enrolment["Student ID"])))
+      .filter(Boolean);
+    const selected = classId === v6SelectedClassId;
+
+    return `
+      <article class="class-card v7-class-card ${selected ? "class-card-selected" : ""}">
+        <div class="class-card-top">
+          <div>
+            <p class="section-label">${escapeHtml(item["School Year"] || "School year")}</p>
+            <h3>${escapeHtml(className)}</h3>
+            <div class="live-student-id">${escapeHtml(classId)}</div>
+          </div>
+          <span class="status-pill">${escapeHtml(item["Status"] || "Active")}</span>
+        </div>
+
+        <div class="class-meta-grid">
+          <div><span>Level</span><strong>${escapeHtml(item["Level"] || "—")}</strong></div>
+          <div><span>Teacher</span><strong>${escapeHtml(item["Teacher"] || "—")}</strong></div>
+          <div><span>Schedule</span><strong>${escapeHtml([item["Day"], item["Time"]].filter(Boolean).join(" · ") || "—")}</strong></div>
+          <div><span>Room</span><strong>${escapeHtml(item["Room"] || "—")}</strong></div>
+        </div>
+
+        <div class="v7-class-enrolments">
+          <div class="v7-class-enrolments-head">
+            <span>Active enrolments</span>
+            <strong>${enrolments.length}${capacity ? ` / ${capacity}` : ""}</strong>
+          </div>
+          <p>${escapeHtml(studentNames.join(", ") || "No students enrolled")}${enrolments.length > 4 ? ` +${enrolments.length - 4} more` : ""}</p>
+        </div>
+
+        <div class="v7-class-actions">
+          <button class="button button-secondary" type="button"
+            data-v7-class-profile="${escapeHtml(classId)}">
+            Class details
+          </button>
+          <button class="button ${selected ? "button-soft" : "button-primary"}" type="button"
+            data-v6-open-class="${escapeHtml(classId)}">
+            ${selected ? "Open selected register" : "Open register"}
+          </button>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  container.querySelectorAll("[data-v7-class-profile]").forEach((button) => {
+    button.addEventListener("click", () => {
+      v7OpenClassProfile(button.dataset.v7ClassProfile);
+    });
+  });
+
+  container.querySelectorAll("[data-v6-open-class]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      v6SelectedClassId = String(button.dataset.v6OpenClass || "");
+      renderClasses();
+      await loadV6ClassRegister(v6SelectedClassId, true);
+      byId("class1LivePanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+}
+
+/* -------------------------
+   PROFILE MODAL
+------------------------- */
+
+function v7EnsureProfileModal() {
+  if (byId("v7ProfileModal")) return;
+
+  const modal = document.createElement("div");
+  modal.id = "v7ProfileModal";
+  modal.className = "live-editor-backdrop";
+  modal.innerHTML = `
+    <div class="live-editor-card v7-profile-card" role="dialog" aria-modal="true" aria-labelledby="v7ProfileTitle">
+      <div class="live-editor-header">
+        <div>
+          <p class="section-label" id="v7ProfileKicker">Administrator</p>
+          <h3 id="v7ProfileTitle">Profile</h3>
+        </div>
+        <button class="icon-button" id="v7CloseProfile" type="button" aria-label="Close">×</button>
+      </div>
+      <div id="v7ProfileBody"></div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  byId("v7CloseProfile").addEventListener("click", v7CloseProfile);
+  modal.addEventListener("mousedown", (event) => {
+    if (event.target === modal) v7CloseProfile();
+  });
+}
+
+function v7CloseProfile() {
+  byId("v7ProfileModal")?.classList.remove("visible");
+  document.body.classList.remove("modal-open");
+}
+
+function v7ShowProfile(kicker, title, html) {
+  v7EnsureProfileModal();
+  text("v7ProfileKicker", kicker);
+  text("v7ProfileTitle", title);
+  byId("v7ProfileBody").innerHTML = html;
+  byId("v7ProfileModal").classList.add("visible");
+  document.body.classList.add("modal-open");
+}
+
+function v7InfoField(label, value) {
+  return `
+    <div class="v7-info-field">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(String(value || "—"))}</strong>
+    </div>
+  `;
+}
+
+function v7OpenStudentProfile(studentId) {
+  const student = v6GetStudentById(studentId);
+  if (!student) {
+    showToast("Student not found in the live database.", "error");
+    return;
+  }
+
+  const enrolments = v7ActiveEnrolmentsForStudent(studentId);
+
+  const enrolmentHtml = enrolments.length
+    ? enrolments.map((enrolment) => {
+        const classRecord = v6GetClassById(enrolment["Class ID"]);
+        const classId = String(enrolment["Class ID"] || "");
+        return `
+          <div class="v7-enrolment-card">
+            <div>
+              <strong>${escapeHtml(classRecord?.["Class Name"] || classId)}</strong>
+              <span>${escapeHtml([
+                classRecord?.["Level"],
+                classRecord?.["Day"],
+                classRecord?.["Time"]
+              ].filter(Boolean).join(" · ") || "Class details not completed")}</span>
+            </div>
+            <div class="v7-enrolment-meta">
+              <span>Slot ${escapeHtml(enrolment["Register Slot"] || "—")}</span>
+              <span>${escapeHtml(enrolment["School Year"] || classRecord?.["School Year"] || "—")}</span>
+              <button class="button button-secondary button-small" type="button"
+                data-v7-profile-open-class="${escapeHtml(classId)}">Open class</button>
+            </div>
+          </div>
+        `;
+      }).join("")
+    : `<p class="muted">No active enrolments found for this student.</p>`;
+
+  v7ShowProfile(
+    "Student profile · Live TEST data",
+    v7StudentFullName(student),
+    `
+      <div class="v7-profile-status-row">
+        <span class="status-pill">${escapeHtml(student["Status"] || "—")}</span>
+        <span class="live-readonly-badge">Master record · read-only</span>
+      </div>
+
+      <div class="v7-info-grid">
+        ${v7InfoField("Student ID", student["Student ID"])}
+        ${v7InfoField("Email", student["Email"])}
+        ${v7InfoField("Phone", student["Phone"])}
+        ${v7InfoField("Date of birth", student["Date of Birth"] || student["DOB"])}
+        ${v7InfoField("Parent / guardian", student["Parent / Guardian"] || student["Parent"])}
+        ${v7InfoField("Notes", student["Notes"])}
+      </div>
+
+      <div class="v7-profile-section">
+        <div class="v7-profile-section-head">
+          <h4>Current enrolments</h4>
+          <span>${enrolments.length}</span>
+        </div>
+        ${enrolmentHtml}
+      </div>
+
+      <p class="live-editor-help">
+        V7 intentionally keeps master student data read-only. Register feedback and attendance continue to save through the proven V6 register editor.
+      </p>
+    `
+  );
+
+  byId("v7ProfileBody")
+    .querySelectorAll("[data-v7-profile-open-class]")
+    .forEach((button) => {
+      button.addEventListener("click", async () => {
+        const classId = button.dataset.v7ProfileOpenClass;
+        v7CloseProfile();
+        v6SelectedClassId = classId;
+        navigateTo("classes");
+        renderClasses();
+        await loadV6ClassRegister(classId, true);
+      });
+    });
+}
+
+function v7OpenClassProfile(classId) {
+  const classRecord = v6GetClassById(classId);
+  if (!classRecord) {
+    showToast("Class not found in the live database.", "error");
+    return;
+  }
+
+  const enrolments = v6ActiveEnrolmentsForClass(classId);
+  const studentsHtml = enrolments.length
+    ? enrolments.map((enrolment) => {
+        const student = v6GetStudentById(enrolment["Student ID"]);
+        const studentId = String(enrolment["Student ID"] || "");
+        return `
+          <button class="v7-student-link-card" type="button"
+            data-v7-class-student="${escapeHtml(studentId)}">
+            <div>
+              <strong>${escapeHtml(v7StudentFullName(student))}</strong>
+              <span>${escapeHtml(studentId)}</span>
+            </div>
+            <span>Register slot ${escapeHtml(enrolment["Register Slot"] || "—")} →</span>
+          </button>
+        `;
+      }).join("")
+    : `<p class="muted">No active enrolments found for this class.</p>`;
+
+  v7ShowProfile(
+    "Class profile · Live TEST data",
+    String(classRecord["Class Name"] || classId),
+    `
+      <div class="v7-profile-status-row">
+        <span class="status-pill">${escapeHtml(classRecord["Status"] || "Active")}</span>
+        <span class="live-readonly-badge">${escapeHtml(classId)}</span>
+      </div>
+
+      <div class="v7-info-grid">
+        ${v7InfoField("School year", classRecord["School Year"])}
+        ${v7InfoField("Level", classRecord["Level"])}
+        ${v7InfoField("Teacher", classRecord["Teacher"])}
+        ${v7InfoField("Day", classRecord["Day"])}
+        ${v7InfoField("Time", classRecord["Time"])}
+        ${v7InfoField("Room", classRecord["Room"])}
+        ${v7InfoField("Capacity", classRecord["Capacity"])}
+        ${v7InfoField("Register sheet", classRecord["Register Sheet"])}
+      </div>
+
+      <div class="v7-profile-section">
+        <div class="v7-profile-section-head">
+          <h4>Enrolled students</h4>
+          <span>${enrolments.length}</span>
+        </div>
+        <div class="v7-student-link-list">${studentsHtml}</div>
+      </div>
+
+      <div class="v7-profile-footer-actions">
+        <button class="button button-primary" id="v7ProfileOpenRegister" type="button">
+          Open lesson register
+        </button>
+      </div>
+    `
+  );
+
+  byId("v7ProfileBody")
+    .querySelectorAll("[data-v7-class-student]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        v7OpenStudentProfile(button.dataset.v7ClassStudent);
+      });
+    });
+
+  byId("v7ProfileOpenRegister")?.addEventListener("click", async () => {
+    v7CloseProfile();
+    v6SelectedClassId = classId;
+    navigateTo("classes");
+    renderClasses();
+    await loadV6ClassRegister(classId, true);
+    byId("class1LivePanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
