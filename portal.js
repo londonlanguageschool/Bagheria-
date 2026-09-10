@@ -6838,5 +6838,15 @@ function v7OpenStudentProfile(studentId) {
 
 document.addEventListener("DOMContentLoaded", () => {
   byId("enrolmentForm")?.addEventListener("submit", v8SaveEnrolment);
+
+  // V7 intentionally disabled master-data writes. V8 enables student
+  // creation/editing while class creation remains locked for a later release.
+  ["addStudentButton", "quickStudentButton"].forEach((id) => {
+    const button = byId(id);
+    if (!button) return;
+    button.disabled = false;
+    button.title = "";
+    button.classList.remove("v7-disabled-master-write");
+  });
 });
 
