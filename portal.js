@@ -6439,3 +6439,404 @@ function v7OpenClassProfile(classId) {
     byId("class1LivePanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 }
+
+
+/* =========================================================
+   V8 — STUDENT & ENROLMENT MANAGEMENT
+   ---------------------------------------------------------
+   Live TEST Google Sheets writes:
+   - create/update student master record
+   - create enrolment
+   - automatically allocate register slot
+   - end enrolment without deleting history
+========================================================= */
+
+async function v8Post(action, payload = {}) {
+  const response = await fetch(LLS_API_URL, {
+    method: "POST",
+    cache: "no-store",
+    redirect: "follow",
+    headers: {
+      "Content-Type": "text/plain;charset=utf-8"
+    },
+    body: JSON.stringify({
+      action,
+      ...payload
+    })
+  });
+
+  const raw = await response.text();
+  let data;
+
+  try {
+    data = JSON.parse(raw);
+  } catch (error) {
+    throw new Error("The Apps Script did not return JSON.");
+  }
+
+  if (!data || data.success !== true) {
+    throw new Error(data?.error || "The Google Sheets update failed.");
+  }
+
+  return data;
+}
+
+async function v8ReloadLiveData() {
+  v6PortalDataLoaded = false;
+  studentsLiveLoaded = false;
+  await loadV6PortalData(true);
+  renderAll();
+}
+
+function v8SetBusy(buttonId, busy, busyText, normalText) {
+  const button = byId(buttonId);
+  if (!button) return;
+
+  button.disabled = busy;
+  button.textContent = busy ? busyText : normalText;
+}
+
+/* -------------------------
+   STUDENT FORM — LIVE
+------------------------- */
+
+function openNewStudent() {
+  byId("studentForm").reset();
+  setValue("studentId", "");
+  setValue("studentStatus", "Active");
+  setValue("studentJoined", isoDate(new Date()));
+
+  text("studentModalTitle", "Add student");
+  openModal("studentModal");
+}
+
+function openEditStudent(id) {
+  const student = v6GetStudentById(id);
+
+  if (!student) {
+    showToast("Student not found in the live database.", "error");
+    return;
+  }
+
+  setValue("studentId", student["Student ID"] || "");
+  setValue("studentFirstName", student["First Name"] || "");
+  setValue("studentLastName", student["Surname"] || "");
+  setValue("studentEmail", student["Email"] || "");
+  setValue("studentPhone", student["Phone"] || "");
+  setValue("studentDob", student["Date of Birth"] || student["DOB"] || "");
+  setValue("studentLevel", student["Level"] || "");
+  setValue("studentStatus", student["Status"] || "Active");
+  setValue("studentJoined", student["Joined"] || "");
+  setValue(
+    "studentParent",
+    student["Parent / Guardian"] || student["Parent"] || ""
+  );
+  setValue("studentNotes", student["Notes"] || "");
+
+  text("studentModalTitle", `Edit ${v7StudentFullName(student)}`);
+  openModal("studentModal");
+}
+
+async function saveStudentForm(event) {
+  event.preventDefault();
+
+  const studentId = value("studentId").trim();
+  const firstName = value("studentFirstName").trim();
+  const surname = value("studentLastName").trim();
+
+  if (!firstName || !surname) {
+    showToast("First name and surname are required.", "error");
+    return;
+  }
+
+  const fields = {
+    "First Name": firstName,
+    "Surname": surname,
+    "Email": value("studentEmail").trim(),
+    "Phone": value("studentPhone").trim(),
+    "Date of Birth": value("studentDob"),
+    "Level": value("studentLevel"),
+    "Status": value("studentStatus") || "Active",
+    "Joined": value("studentJoined"),
+    "Parent / Guardian": value("studentParent").trim(),
+    "Notes": value("studentNotes").trim()
+  };
+
+  v8SetBusy(
+    "studentSaveButton",
+    true,
+    "Saving…",
+    studentId ? "Save changes" : "Save student"
+  );
+
+  try {
+    const result = await v8Post(
+      studentId ? "updateStudent" : "createStudent",
+      studentId
+        ? { studentId, fields }
+        : { fields }
+    );
+
+    closeModal("studentModal");
+    await v8ReloadLiveData();
+
+    const savedId = String(result.studentId || studentId || "");
+    showToast(
+      studentId ? "Student updated in Google Sheets." : `Student ${savedId} created.`,
+      "success"
+    );
+
+    if (savedId) {
+      v7OpenStudentProfile(savedId);
+    }
+
+  } catch (error) {
+    showToast(error.message, "error");
+  } finally {
+    v8SetBusy(
+      "studentSaveButton",
+      false,
+      "",
+      studentId ? "Save changes" : "Save student"
+    );
+  }
+}
+
+/* -------------------------
+   ENROLMENT FORM
+------------------------- */
+
+function v8PopulateEnrolmentClassSelect() {
+  const select = byId("enrolmentClassId");
+  if (!select) return;
+
+  const activeClasses = v6PortalData.classes.filter((item) => {
+    const status = String(item["Status"] || "").trim().toLowerCase();
+    return !status || status === "active";
+  });
+
+  select.innerHTML = `
+    <option value="">Select class</option>
+    ${activeClasses.map((item) => `
+      <option value="${escapeHtml(item["Class ID"] || "")}">
+        ${escapeHtml(item["Class Name"] || item["Class ID"] || "Unnamed class")}
+        ${item["School Year"] ? ` · ${escapeHtml(item["School Year"])}` : ""}
+      </option>
+    `).join("")}
+  `;
+}
+
+function v8OpenEnrolment(studentId) {
+  const student = v6GetStudentById(studentId);
+
+  if (!student) {
+    showToast("Student not found in the live database.", "error");
+    return;
+  }
+
+  byId("enrolmentForm").reset();
+  setValue("enrolmentStudentId", studentId);
+  setValue("enrolmentStudentName", v7StudentFullName(student));
+  setValue("enrolmentSchoolYear", "2026-27");
+  setValue("enrolmentStartDate", isoDate(new Date()));
+
+  v8PopulateEnrolmentClassSelect();
+  text("enrolmentModalTitle", `Enrol ${v7StudentFullName(student)}`);
+  openModal("enrolmentModal");
+}
+
+async function v8SaveEnrolment(event) {
+  event.preventDefault();
+
+  const studentId = value("enrolmentStudentId").trim();
+  const classId = value("enrolmentClassId").trim();
+  const schoolYear = value("enrolmentSchoolYear").trim();
+  const startDate = value("enrolmentStartDate");
+
+  if (!studentId || !classId || !schoolYear) {
+    showToast("Student, class and school year are required.", "error");
+    return;
+  }
+
+  v8SetBusy("enrolmentSaveButton", true, "Creating…", "Create enrolment");
+
+  try {
+    const result = await v8Post("createEnrolment", {
+      studentId,
+      classId,
+      schoolYear,
+      startDate
+    });
+
+    closeModal("enrolmentModal");
+    await v8ReloadLiveData();
+
+    showToast(
+      `Enrolment created · register slot ${result.registerSlot}.`,
+      "success"
+    );
+
+    v7OpenStudentProfile(studentId);
+
+  } catch (error) {
+    showToast(error.message, "error");
+  } finally {
+    v8SetBusy("enrolmentSaveButton", false, "", "Create enrolment");
+  }
+}
+
+async function v8EndEnrolment(enrolmentId, studentId) {
+  openConfirm(
+    "End this enrolment?",
+    "The enrolment will be marked Completed and kept in Google Sheets for history. It will not be deleted.",
+    async () => {
+      try {
+        await v8Post("endEnrolment", { enrolmentId });
+        await v8ReloadLiveData();
+        showToast("Enrolment completed.", "success");
+        v7OpenStudentProfile(studentId);
+      } catch (error) {
+        showToast(error.message, "error");
+      }
+    },
+    "End enrolment"
+  );
+}
+
+/* -------------------------
+   STUDENT PROFILE — V8
+------------------------- */
+
+function v7OpenStudentProfile(studentId) {
+  const student = v6GetStudentById(studentId);
+
+  if (!student) {
+    showToast("Student not found in the live database.", "error");
+    return;
+  }
+
+  const enrolments = v7ActiveEnrolmentsForStudent(studentId);
+
+  const enrolmentHtml = enrolments.length
+    ? enrolments.map((enrolment) => {
+        const classRecord = v6GetClassById(enrolment["Class ID"]);
+        const classId = String(enrolment["Class ID"] || "");
+        const enrolmentId = String(enrolment["Enrolment ID"] || "");
+
+        return `
+          <div class="v7-enrolment-card">
+            <div>
+              <strong>${escapeHtml(classRecord?.["Class Name"] || classId)}</strong>
+              <span>${escapeHtml([
+                classRecord?.["Level"],
+                classRecord?.["Day"],
+                classRecord?.["Time"]
+              ].filter(Boolean).join(" · ") || "Class details not completed")}</span>
+            </div>
+
+            <div class="v7-enrolment-meta">
+              <span>Slot ${escapeHtml(enrolment["Register Slot"] || "—")}</span>
+              <span>${escapeHtml(enrolment["School Year"] || classRecord?.["School Year"] || "—")}</span>
+
+              <div class="v8-enrolment-actions">
+                <button class="button button-secondary button-small" type="button"
+                  data-v7-profile-open-class="${escapeHtml(classId)}">
+                  Open class
+                </button>
+
+                <button class="button button-secondary button-small v8-danger-button" type="button"
+                  data-v8-end-enrolment="${escapeHtml(enrolmentId)}">
+                  End enrolment
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("")
+    : `<p class="muted">No active enrolments found for this student.</p>`;
+
+  v7ShowProfile(
+    "Student profile · Live TEST data",
+    v7StudentFullName(student),
+    `
+      <div class="v7-profile-status-row">
+        <span class="status-pill">${escapeHtml(student["Status"] || "—")}</span>
+        <span class="v8-test-badge">Google Sheets master record</span>
+      </div>
+
+      <div class="v8-profile-actions">
+        <button class="button button-secondary" id="v8EditStudentButton" type="button">
+          Edit student
+        </button>
+        <button class="button button-primary" id="v8AddEnrolmentButton" type="button">
+          + Add enrolment
+        </button>
+      </div>
+
+      <div class="v7-info-grid">
+        ${v7InfoField("Student ID", student["Student ID"])}
+        ${v7InfoField("Email", student["Email"])}
+        ${v7InfoField("Phone", student["Phone"])}
+        ${v7InfoField("Date of birth", student["Date of Birth"] || student["DOB"])}
+        ${v7InfoField("Current level", student["Level"])}
+        ${v7InfoField("Joined", student["Joined"])}
+        ${v7InfoField("Parent / guardian", student["Parent / Guardian"] || student["Parent"])}
+        ${v7InfoField("Notes", student["Notes"])}
+      </div>
+
+      <div class="v7-profile-section">
+        <div class="v7-profile-section-head">
+          <h4>Current enrolments</h4>
+          <span>${enrolments.length}</span>
+        </div>
+        ${enrolmentHtml}
+      </div>
+
+      <p class="live-editor-help">
+        V8 TEST mode: student and enrolment changes now save to Google Sheets.
+        Do not enter real personal data until authentication and permissions are implemented.
+      </p>
+    `
+  );
+
+  byId("v8EditStudentButton")?.addEventListener("click", () => {
+    v7CloseProfile();
+    openEditStudent(studentId);
+  });
+
+  byId("v8AddEnrolmentButton")?.addEventListener("click", () => {
+    v7CloseProfile();
+    v8OpenEnrolment(studentId);
+  });
+
+  byId("v7ProfileBody")
+    .querySelectorAll("[data-v7-profile-open-class]")
+    .forEach((button) => {
+      button.addEventListener("click", async () => {
+        const classId = button.dataset.v7ProfileOpenClass;
+        v7CloseProfile();
+        v6SelectedClassId = classId;
+        navigateTo("classes");
+        renderClasses();
+        await loadV6ClassRegister(classId, true);
+      });
+    });
+
+  byId("v7ProfileBody")
+    .querySelectorAll("[data-v8-end-enrolment]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const enrolmentId = button.dataset.v8EndEnrolment;
+        v8EndEnrolment(enrolmentId, studentId);
+      });
+    });
+}
+
+/* -------------------------
+   V8 INITIALISATION ADD-ON
+------------------------- */
+
+document.addEventListener("DOMContentLoaded", () => {
+  byId("enrolmentForm")?.addEventListener("submit", v8SaveEnrolment);
+});
+

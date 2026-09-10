@@ -2934,3 +2934,59 @@ tbody tr:hover {
     justify-content: flex-start;
   }
 }
+
+
+/* =========================================================
+   V8 — STUDENT & ENROLMENT MANAGEMENT
+========================================================= */
+
+.v8-form-note {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--navy-100);
+  border-radius: 12px;
+  background: var(--navy-50);
+  color: var(--ink-700);
+  font-size: 0.9rem;
+}
+
+.v8-profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 4px;
+}
+
+.v8-enrolment-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.v8-test-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--orange-100);
+  color: var(--orange-700);
+  font-weight: 800;
+  font-size: 0.78rem;
+}
+
+.v8-danger-button {
+  color: var(--red-700);
+  border-color: var(--red-100);
+}
+
+.v8-danger-button:hover {
+  background: var(--red-100);
+}
+
+input[readonly] {
+  background: var(--ink-50);
+  color: var(--ink-700);
+  cursor: default;
+}

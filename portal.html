@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#082d5c">
   <meta name="description" content="London Language School management portal">
-  <title>LLS Portal V7 | London Language School</title>
-  <link rel="stylesheet" href="portal.css?v=7.1">
+  <title>LLS Portal V8 | London Language School</title>
+  <link rel="stylesheet" href="portal.css?v=8">
 </head>
 
 <body>
@@ -882,13 +882,13 @@
   </div>
 
   <!-- =========================
-       STUDENT MODAL
+       STUDENT MODAL — V8 LIVE MASTER DATA
   ========================== -->
   <div class="modal-backdrop" id="studentModal">
     <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="studentModalTitle">
       <div class="modal-header">
         <div>
-          <p class="section-label">Student record</p>
+          <p class="section-label">Live student master record · TEST data</p>
           <h2 id="studentModalTitle">Add student</h2>
         </div>
         <button class="modal-close" type="button" data-close-modal="studentModal">×</button>
@@ -896,6 +896,10 @@
 
       <form id="studentForm">
         <input type="hidden" id="studentId">
+
+        <div class="v8-form-note">
+          Student records save directly to the TEST Google Sheet. Class allocation is managed separately through enrolments.
+        </div>
 
         <div class="form-grid">
           <div class="form-field">
@@ -924,9 +928,9 @@
           </div>
 
           <div class="form-field">
-            <label for="studentLevel">Level *</label>
-            <select id="studentLevel" required>
-              <option value="">Select level</option>
+            <label for="studentLevel">Current level</label>
+            <select id="studentLevel">
+              <option value="">Not set</option>
               <option value="Young Learners">Young Learners</option>
               <option value="A1">A1</option>
               <option value="A2">A2</option>
@@ -935,11 +939,6 @@
               <option value="C1">C1</option>
               <option value="C2">C2</option>
             </select>
-          </div>
-
-          <div class="form-field">
-            <label for="studentClass">Class</label>
-            <select id="studentClass"></select>
           </div>
 
           <div class="form-field">
@@ -956,7 +955,7 @@
             <input id="studentJoined" type="date">
           </div>
 
-          <div class="form-field">
+          <div class="form-field form-field-wide">
             <label for="studentParent">Parent / guardian</label>
             <input id="studentParent" type="text">
           </div>
@@ -971,8 +970,62 @@
           <button class="button button-secondary" type="button" data-close-modal="studentModal">
             Cancel
           </button>
-          <button class="button button-primary" type="submit">
+          <button class="button button-primary" id="studentSaveButton" type="submit">
             Save student
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================
+       ENROLMENT MODAL — V8
+  ========================== -->
+  <div class="modal-backdrop" id="enrolmentModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="enrolmentModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">Live enrolment · TEST data</p>
+          <h2 id="enrolmentModalTitle">Enrol student</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="enrolmentModal">×</button>
+      </div>
+
+      <form id="enrolmentForm">
+        <input type="hidden" id="enrolmentStudentId">
+
+        <div class="v8-form-note">
+          The portal will automatically assign the next available register slot for the selected class.
+        </div>
+
+        <div class="form-grid">
+          <div class="form-field form-field-wide">
+            <label for="enrolmentStudentName">Student</label>
+            <input id="enrolmentStudentName" type="text" readonly>
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="enrolmentClassId">Class *</label>
+            <select id="enrolmentClassId" required></select>
+          </div>
+
+          <div class="form-field">
+            <label for="enrolmentSchoolYear">School year *</label>
+            <input id="enrolmentSchoolYear" type="text" value="2026-27" required>
+          </div>
+
+          <div class="form-field">
+            <label for="enrolmentStartDate">Start date</label>
+            <input id="enrolmentStartDate" type="date">
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="button button-secondary" type="button" data-close-modal="enrolmentModal">
+            Cancel
+          </button>
+          <button class="button button-primary" id="enrolmentSaveButton" type="submit">
+            Create enrolment
           </button>
         </div>
       </form>
@@ -1356,6 +1409,6 @@
   ========================== -->
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
-  <script src="portal.js?v=7.1"></script>
+  <script src="portal.js?v=8"></script>
 </body>
 </html>
