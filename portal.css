@@ -3017,3 +3017,36 @@ input[readonly] {
   font-size: 0.75rem;
   line-height: 1.45;
 }
+
+
+/* =========================================================
+   V10 — LIVE ATTENDANCE
+========================================================= */
+
+.v10-attendance-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.v10-attendance-status .muted {
+  margin: 5px 0 0;
+}
+
+.v10-attendance-select {
+  min-width: 140px;
+}
+
+.status-warning {
+  background: var(--orange-100);
+  color: var(--orange-700);
+}
+
+@media (max-width: 760px) {
+  .v10-attendance-status {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

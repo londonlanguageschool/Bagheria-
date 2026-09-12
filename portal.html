@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#082d5c">
   <meta name="description" content="London Language School management portal">
-  <title>LLS Portal V9 | London Language School</title>
-  <link rel="stylesheet" href="portal.css?v=9">
+  <title>LLS Portal V10 | London Language School</title>
+  <link rel="stylesheet" href="portal.css?v=10">
 </head>
 
 <body>
@@ -450,7 +450,7 @@
               <p class="section-label">Academic records</p>
               <h2>Attendance</h2>
               <p class="page-description">
-                Record attendance for each student and monitor attendance rates.
+                Record live attendance against the selected class register in Google Sheets.
               </p>
             </div>
 
@@ -470,9 +470,25 @@
               <input id="attendanceDate" type="date">
             </div>
 
+            <div class="form-field">
+              <label for="attendanceLessonSelect">Register lesson</label>
+              <select id="attendanceLessonSelect"></select>
+            </div>
+
             <button class="button button-primary" id="saveAttendanceButton" type="button">
               Save attendance
             </button>
+          </div>
+
+          <div class="panel v10-attendance-status" id="attendanceLiveStatus">
+            <div>
+              <p class="section-label">Google Sheets</p>
+              <h3>Live attendance register</h3>
+              <p class="muted" id="attendanceLiveStatusText">
+                Choose a class to load its linked lesson register.
+              </p>
+            </div>
+            <span class="live-status live-status-loading" id="attendanceLiveBadge">Waiting…</span>
           </div>
 
           <div class="attendance-summary-grid">
@@ -1423,6 +1439,6 @@
   ========================== -->
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
-  <script src="portal.js?v=9"></script>
+  <script src="portal.js?v=10"></script>
 </body>
 </html>
