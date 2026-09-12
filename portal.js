@@ -7110,82 +7110,112 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 /* =========================================================
-   V10 — LIVE ATTENDANCE
+   V10.1 — LIVE ATTENDANCE FIX
    ---------------------------------------------------------
-   Attendance now reads/writes the selected class register
-   through the existing getClassRegister/updateClassRegister API.
+   Replaces the legacy localStorage attendance functions with
+   Google Sheets-backed attendance using V6/V9 live data.
 ========================================================= */
 
-let v10AttendanceRegister = null;
-let v10AttendanceLesson = null;
-let v10AttendanceClassId = "";
-let v10AttendanceDirty = false;
+let v101AttendanceRegister = null;
+let v101AttendanceLesson = null;
+let v101AttendanceClassId = "";
 
-function v10SetAttendanceStatus(message, stateName) {
-  const textNode = byId("attendanceLiveStatusText");
+function v101AttendanceStatus(message, stateName = "waiting") {
+  const msg = byId("attendanceLiveStatusText");
   const badge = byId("attendanceLiveBadge");
 
-  if (textNode) textNode.textContent = message || "";
-  if (!badge) return;
+  if (msg) msg.textContent = message || "";
 
-  badge.className = "live-status";
-  if (stateName === "ok") {
-    badge.classList.add("live-status-success");
-    badge.textContent = "Live";
-  } else if (stateName === "error") {
-    badge.classList.add("live-status-error");
-    badge.textContent = "Problem";
-  } else {
-    badge.classList.add("live-status-loading");
-    badge.textContent = "Loading…";
+  if (badge) {
+    badge.className = "live-status";
+    if (stateName === "ok") {
+      badge.classList.add("live-status-success");
+      badge.textContent = "Live";
+    } else if (stateName === "error") {
+      badge.classList.add("live-status-error");
+      badge.textContent = "Problem";
+    } else if (stateName === "loading") {
+      badge.classList.add("live-status-loading");
+      badge.textContent = "Loading…";
+    } else {
+      badge.classList.add("live-status-loading");
+      badge.textContent = "Waiting…";
+    }
   }
 }
 
-function v10PopulateAttendanceClasses() {
+function v101ResetAttendanceSummary() {
+  text("attendanceTotal", "0");
+  text("attendancePresent", "0");
+  text("attendanceAbsent", "0");
+  text("attendanceRate", "0%");
+}
+
+async function populateAttendanceClassSelect() {
   const select = byId("attendanceClassSelect");
   if (!select) return;
 
-  const current = String(select.value || "");
-  const classes = Array.isArray(v6PortalData?.classes)
-    ? v6PortalData.classes.filter((item) =>
-        String(item["Status"] || "Active").toLowerCase() !== "completed"
-      )
-    : [];
+  const previous = String(select.value || "");
 
-  select.innerHTML = [
-    '<option value="">Select class</option>',
-    ...classes.map((item) => {
-      const classId = String(item["Class ID"] || "");
-      const label = String(item["Class Name"] || classId || "Unnamed class");
-      const hasRegister = String(item["Register Sheet"] || "").trim() !== "";
-      return `<option value="${escapeHtml(classId)}">${escapeHtml(label)}${hasRegister ? "" : " · no register"}</option>`;
-    })
-  ].join("");
+  try {
+    if (!v6PortalDataLoaded) {
+      await loadV6PortalData(false);
+    }
 
-  if (current && classes.some((item) => String(item["Class ID"] || "") === current)) {
-    select.value = current;
-  } else if (classes.length) {
-    select.value = String(classes[0]["Class ID"] || "");
+    const classes = Array.isArray(v6PortalData.classes)
+      ? v6PortalData.classes.filter((item) => {
+          const status = String(item["Status"] || "").trim().toLowerCase();
+          return !status || status === "active";
+        })
+      : [];
+
+    if (!classes.length) {
+      select.innerHTML = '<option value="">No classes available</option>';
+      return;
+    }
+
+    select.innerHTML = [
+      '<option value="">Select class</option>',
+      ...classes.map((item) => {
+        const id = String(item["Class ID"] || "");
+        const name = String(item["Class Name"] || id || "Unnamed class");
+        const level = String(item["Level"] || "").trim();
+        const suffix = level ? ` — ${level}` : "";
+        return `<option value="${escapeHtml(id)}">${escapeHtml(name + suffix)}</option>`;
+      })
+    ].join("");
+
+    if (previous && classes.some((item) => String(item["Class ID"] || "") === previous)) {
+      select.value = previous;
+    } else if (v6SelectedClassId && classes.some((item) => String(item["Class ID"] || "") === String(v6SelectedClassId))) {
+      select.value = String(v6SelectedClassId);
+    }
+  } catch (error) {
+    select.innerHTML = '<option value="">Could not load classes</option>';
+    v101AttendanceStatus(error?.message || "Could not load classes.", "error");
   }
 }
 
-async function v10LoadAttendanceRegister() {
-  const select = byId("attendanceClassSelect");
-  const classId = String(select?.value || "").trim();
-
-  v10AttendanceRegister = null;
-  v10AttendanceLesson = null;
-  v10AttendanceClassId = classId;
-  v10AttendanceDirty = false;
-
+async function renderAttendance() {
   const body = byId("attendanceTableBody");
   const lessonSelect = byId("attendanceLessonSelect");
 
+  if (!body) return;
+
+  await populateAttendanceClassSelect();
+
+  const classId = String(value("attendanceClassSelect") || "").trim();
+  v101AttendanceClassId = classId;
+  v101AttendanceRegister = null;
+  v101AttendanceLesson = null;
+  v101ResetAttendanceSummary();
+
   if (!classId) {
-    if (body) body.innerHTML = tableEmptyRow(4, "Choose a class to load attendance.");
-    if (lessonSelect) lessonSelect.innerHTML = '<option value="">No lesson loaded</option>';
-    v10UpdateAttendanceSummary();
-    v10SetAttendanceStatus("Choose a class to load its linked lesson register.", "waiting");
+    if (lessonSelect) {
+      lessonSelect.innerHTML = '<option value="">No lesson loaded</option>';
+    }
+    body.innerHTML = tableEmptyRow(4, "Choose a class to load attendance.");
+    v101AttendanceStatus("Choose a class to load its linked lesson register.", "waiting");
     return;
   }
 
@@ -7193,172 +7223,189 @@ async function v10LoadAttendanceRegister() {
   const registerSheet = String(classRecord?.["Register Sheet"] || "").trim();
 
   if (!registerSheet) {
-    if (body) body.innerHTML = tableEmptyRow(4, "This class does not have a register sheet linked yet.");
-    if (lessonSelect) lessonSelect.innerHTML = '<option value="">No register linked</option>';
-    v10UpdateAttendanceSummary();
-    v10SetAttendanceStatus("This class has no Register Sheet linked in the Classes sheet.", "error");
+    if (lessonSelect) {
+      lessonSelect.innerHTML = '<option value="">No register linked</option>';
+    }
+    body.innerHTML = tableEmptyRow(4, "This class does not have a register sheet linked yet.");
+    v101AttendanceStatus("This class has no Register Sheet linked in the Classes sheet.", "error");
     return;
   }
 
-  v10SetAttendanceStatus(`Loading ${classRecord?.["Class Name"] || classId}…`, "loading");
+  v101AttendanceStatus(
+    `Loading ${String(classRecord?.["Class Name"] || classId)}…`,
+    "loading"
+  );
 
   try {
-    const url =
-      `${LLS_API_URL}?action=getClassRegister&classId=${encodeURIComponent(classId)}&_=${Date.now()}`;
-    const response = await fetch(url, { cache: "no-store" });
-    const result = await response.json();
+    const response = await fetch(
+      `${LLS_API_URL}?action=getClassRegister&classId=${encodeURIComponent(classId)}&_=${Date.now()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        redirect: "follow"
+      }
+    );
 
-    if (!result.success) {
-      throw new Error(result.error || "Could not load the class register.");
+    const raw = await response.text();
+    let data;
+
+    try {
+      data = JSON.parse(raw);
+    } catch (error) {
+      throw new Error("The Apps Script register response was not JSON.");
     }
 
-    v10AttendanceRegister = result;
-    v10PopulateAttendanceLessons();
-    v10RenderAttendance();
-    v10SetAttendanceStatus(
-      `${result.className || classId} · ${result.lessons?.length || 0} register rows loaded.`,
+    if (!data || data.success !== true) {
+      throw new Error(data?.error || "Could not load the class register.");
+    }
+
+    v101AttendanceRegister = data;
+
+    const lessons = Array.isArray(data.lessons) ? data.lessons : [];
+
+    if (!lessons.length) {
+      if (lessonSelect) {
+        lessonSelect.innerHTML = '<option value="">No lessons found</option>';
+      }
+      body.innerHTML = tableEmptyRow(4, "No lesson rows were found in this register.");
+      v101AttendanceStatus("The class register loaded, but it contains no lesson rows.", "error");
+      return;
+    }
+
+    if (lessonSelect) {
+      lessonSelect.innerHTML = lessons.map((lesson, index) => {
+        const date = String(lesson["Date"] || "").trim();
+        const work = String(
+          lesson["Record of Work"] ||
+          lesson["Record of work"] ||
+          ""
+        ).trim();
+
+        const bits = [`Lesson ${index + 1}`];
+        if (date) bits.push(date);
+        if (work) bits.push(work.length > 50 ? `${work.slice(0, 50)}…` : work);
+
+        return `<option value="${Number(lesson.rowNumber)}">${escapeHtml(bits.join(" · "))}</option>`;
+      }).join("");
+    }
+
+    const chosenDate = String(value("attendanceDate") || "").trim();
+    let selectedLesson = lessons[0];
+
+    if (chosenDate) {
+      const parts = chosenDate.split("-");
+      if (parts.length === 3) {
+        const displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        const dateMatch = lessons.find(
+          (lesson) => String(lesson["Date"] || "").trim() === displayDate
+        );
+        if (dateMatch) selectedLesson = dateMatch;
+      }
+    }
+
+    if (lessonSelect) {
+      lessonSelect.value = String(selectedLesson.rowNumber);
+    }
+
+    v101RenderSelectedLesson();
+
+    v101AttendanceStatus(
+      `${data.className || classId} · ${lessons.length} register rows loaded.`,
       "ok"
     );
   } catch (error) {
-    if (body) body.innerHTML = tableEmptyRow(4, escapeHtml(error.message));
-    if (lessonSelect) lessonSelect.innerHTML = '<option value="">Unable to load</option>';
-    v10UpdateAttendanceSummary();
-    v10SetAttendanceStatus(error.message, "error");
+    if (lessonSelect) {
+      lessonSelect.innerHTML = '<option value="">Unable to load</option>';
+    }
+    body.innerHTML = tableEmptyRow(
+      4,
+      error?.message || "Could not load the class register."
+    );
+    v101AttendanceStatus(
+      error?.message || "Could not load the class register.",
+      "error"
+    );
   }
 }
 
-function v10PopulateAttendanceLessons() {
-  const select = byId("attendanceLessonSelect");
-  if (!select) return;
-
-  const lessons = Array.isArray(v10AttendanceRegister?.lessons)
-    ? v10AttendanceRegister.lessons
+function v101FindAttendanceHeader(slot) {
+  const headers = Array.isArray(v101AttendanceRegister?.headers)
+    ? v101AttendanceRegister.headers
     : [];
 
-  if (!lessons.length) {
-    select.innerHTML = '<option value="">No lessons found</option>';
-    v10AttendanceLesson = null;
-    return;
-  }
-
-  select.innerHTML = lessons.map((lesson, index) => {
-    const date = String(lesson["Date"] || "").trim();
-    const work = String(lesson["Record of Work"] || lesson["Record of work"] || "").trim();
-    const labelBits = [`Lesson ${index + 1}`];
-    if (date) labelBits.push(date);
-    if (work) labelBits.push(work.length > 45 ? `${work.slice(0, 45)}…` : work);
-
-    return `<option value="${Number(lesson.rowNumber)}">${escapeHtml(labelBits.join(" · "))}</option>`;
-  }).join("");
-
-  const requestedDate = String(byId("attendanceDate")?.value || "").trim();
-  let selected = lessons[0];
-
-  if (requestedDate) {
-    const match = lessons.find((lesson) => {
-      const display = String(lesson["Date"] || "").trim();
-      return v10DateMatchesInput(display, requestedDate);
-    });
-    if (match) selected = match;
-  }
-
-  select.value = String(selected.rowNumber);
-  v10AttendanceLesson = selected;
-}
-
-function v10DateMatchesInput(displayDate, isoValue) {
-  if (!displayDate || !isoValue) return false;
-  const [y, m, d] = isoValue.split("-");
-  const variants = [
-    `${d}/${m}/${y}`,
-    `${d}/${m}/${String(y).slice(-2)}`,
-    isoValue
-  ];
-  return variants.includes(displayDate);
-}
-
-function v10GetActiveAttendanceStudents() {
-  if (!v10AttendanceClassId) return [];
-
-  const enrolments = v6ActiveEnrolmentsForClass(v10AttendanceClassId)
-    .slice()
-    .sort((a, b) =>
-      Number(a["Register Slot"] || 0) - Number(b["Register Slot"] || 0)
-    );
-
-  return enrolments.map((enrolment) => {
-    const student = v6GetStudentById(enrolment["Student ID"]);
-    return {
-      enrolment,
-      student,
-      slot: Number(enrolment["Register Slot"] || 0)
-    };
-  }).filter((item) => item.student && item.slot > 0);
-}
-
-function v10AttendanceHeaderForSlot(slot) {
-  if (!v10AttendanceRegister?.headers?.length) return "";
-
-  const candidates = [
+  const exactCandidates = [
     `Student ${slot}`,
     `Student ${slot} Attendance`,
     `Student ${slot} attendance`
   ];
 
-  for (const candidate of candidates) {
-    if (v10AttendanceRegister.headers.includes(candidate)) return candidate;
+  for (const candidate of exactCandidates) {
+    if (headers.includes(candidate)) return candidate;
   }
 
-  const prefix = `Student ${slot}`;
-  return v10AttendanceRegister.headers.find((header) => {
+  const prefix = `student ${slot}`;
+  return headers.find((header) => {
     const normalised = String(header || "").trim().toLowerCase();
-    return normalised === prefix.toLowerCase();
+    return normalised === prefix ||
+      normalised.startsWith(prefix + " ");
   }) || "";
 }
 
-function v10NormaliseAttendanceValue(value) {
+function v101NormaliseAttendance(value) {
   const raw = String(value || "").trim().toLowerCase();
 
   if (["present", "p", "yes", "y", "1", "✓", "✔"].includes(raw)) return "Present";
   if (["absent", "a", "no", "n", "0", "x", "✗"].includes(raw)) return "Absent";
   if (["late", "l"].includes(raw)) return "Late";
   if (["excused", "e"].includes(raw)) return "Excused";
+
   return "";
 }
 
-function v10RenderAttendance() {
+function v101RenderSelectedLesson() {
   const body = byId("attendanceTableBody");
-  if (!body) return;
-
   const lessonSelect = byId("attendanceLessonSelect");
-  const selectedRow = Number(lessonSelect?.value || 0);
-  const lessons = Array.isArray(v10AttendanceRegister?.lessons)
-    ? v10AttendanceRegister.lessons
+
+  if (!body || !v101AttendanceRegister) return;
+
+  const lessons = Array.isArray(v101AttendanceRegister.lessons)
+    ? v101AttendanceRegister.lessons
     : [];
 
-  v10AttendanceLesson =
-    lessons.find((lesson) => Number(lesson.rowNumber) === selectedRow) ||
+  const rowNumber = Number(lessonSelect?.value || 0);
+
+  v101AttendanceLesson =
+    lessons.find((lesson) => Number(lesson.rowNumber) === rowNumber) ||
     lessons[0] ||
     null;
 
-  const students = v10GetActiveAttendanceStudents();
-
-  if (!v10AttendanceLesson) {
+  if (!v101AttendanceLesson) {
     body.innerHTML = tableEmptyRow(4, "No register lesson selected.");
-    v10UpdateAttendanceSummary();
+    v101ResetAttendanceSummary();
     return;
   }
+
+  const students = v6ActiveEnrolmentsForClass(v101AttendanceClassId)
+    .map((enrolment) => {
+      const student = v6GetStudentById(enrolment["Student ID"]);
+      return {
+        enrolment,
+        student,
+        slot: Number(enrolment["Register Slot"] || 0)
+      };
+    })
+    .filter((item) => item.student && item.slot > 0);
 
   if (!students.length) {
     body.innerHTML = tableEmptyRow(4, "No active students are enrolled in this class.");
-    v10UpdateAttendanceSummary();
+    v101ResetAttendanceSummary();
     return;
   }
 
-  body.innerHTML = students.map(({ enrolment, student, slot }) => {
-    const header = v10AttendanceHeaderForSlot(slot);
-    const currentValue = header
-      ? v10NormaliseAttendanceValue(v10AttendanceLesson[header])
+  body.innerHTML = students.map(({ student, slot }) => {
+    const header = v101FindAttendanceHeader(slot);
+    const current = header
+      ? v101NormaliseAttendance(v101AttendanceLesson[header])
       : "";
 
     const name = v7StudentFullName(student);
@@ -7379,15 +7426,14 @@ function v10RenderAttendance() {
         <td>
           ${header ? `
             <select
-              class="v10-attendance-select"
+              class="v101-attendance-select"
               data-attendance-header="${escapeHtml(header)}"
-              data-attendance-student="${escapeHtml(student["Student ID"] || "")}"
             >
-              <option value="" ${currentValue === "" ? "selected" : ""}>Not marked</option>
-              <option value="Present" ${currentValue === "Present" ? "selected" : ""}>Present</option>
-              <option value="Absent" ${currentValue === "Absent" ? "selected" : ""}>Absent</option>
-              <option value="Late" ${currentValue === "Late" ? "selected" : ""}>Late</option>
-              <option value="Excused" ${currentValue === "Excused" ? "selected" : ""}>Excused</option>
+              <option value="" ${current === "" ? "selected" : ""}>Not marked</option>
+              <option value="Present" ${current === "Present" ? "selected" : ""}>Present</option>
+              <option value="Absent" ${current === "Absent" ? "selected" : ""}>Absent</option>
+              <option value="Late" ${current === "Late" ? "selected" : ""}>Late</option>
+              <option value="Excused" ${current === "Excused" ? "selected" : ""}>Excused</option>
             </select>
           ` : `
             <span class="status-pill status-warning">No slot column</span>
@@ -7402,19 +7448,16 @@ function v10RenderAttendance() {
     `;
   }).join("");
 
-  body.querySelectorAll(".v10-attendance-select").forEach((select) => {
-    select.addEventListener("change", () => {
-      v10AttendanceDirty = true;
-      v10UpdateAttendanceSummary();
-    });
+  body.querySelectorAll(".v101-attendance-select").forEach((select) => {
+    select.addEventListener("change", v101UpdateSummary);
   });
 
-  v10UpdateAttendanceSummary();
+  v101UpdateSummary();
 }
 
-function v10UpdateAttendanceSummary() {
+function v101UpdateSummary() {
   const selects = Array.from(
-    document.querySelectorAll("#attendanceTableBody .v10-attendance-select")
+    document.querySelectorAll("#attendanceTableBody .v101-attendance-select")
   );
 
   const total = selects.length;
@@ -7424,22 +7467,25 @@ function v10UpdateAttendanceSummary() {
   const absent = selects.filter((select) =>
     ["Absent", "Excused"].includes(select.value)
   ).length;
-  const rate = total > 0 ? Math.round((present / total) * 100) : 0;
 
-  text("attendanceTotal", total);
-  text("attendancePresent", present);
-  text("attendanceAbsent", absent);
+  const rate = total > 0
+    ? Math.round((present / total) * 100)
+    : 0;
+
+  text("attendanceTotal", String(total));
+  text("attendancePresent", String(present));
+  text("attendanceAbsent", String(absent));
   text("attendanceRate", `${rate}%`);
 }
 
-async function v10SaveAttendance() {
-  if (!v10AttendanceRegister || !v10AttendanceLesson) {
-    showToast("Load a class register and select a lesson first.", "error");
+async function saveAttendance() {
+  if (!v101AttendanceClassId || !v101AttendanceLesson) {
+    showToast("Choose a class and register lesson first.", "error");
     return;
   }
 
   const selects = Array.from(
-    document.querySelectorAll("#attendanceTableBody .v10-attendance-select")
+    document.querySelectorAll("#attendanceTableBody .v101-attendance-select")
   );
 
   if (!selects.length) {
@@ -7448,8 +7494,9 @@ async function v10SaveAttendance() {
   }
 
   const updates = {};
+
   selects.forEach((select) => {
-    const header = String(select.dataset.attendanceHeader || "");
+    const header = String(select.dataset.attendanceHeader || "").trim();
     if (header) updates[header] = select.value;
   });
 
@@ -7462,22 +7509,21 @@ async function v10SaveAttendance() {
   }
 
   try {
-    const result = await v8Post("updateClassRegister", {
-      classId: v10AttendanceClassId,
-      rowNumber: Number(v10AttendanceLesson.rowNumber),
+    await v8Post("updateClassRegister", {
+      classId: v101AttendanceClassId,
+      rowNumber: Number(v101AttendanceLesson.rowNumber),
       updates
     });
 
-    Object.entries(updates).forEach(([header, value]) => {
-      v10AttendanceLesson[header] = value;
+    Object.entries(updates).forEach(([header, val]) => {
+      v101AttendanceLesson[header] = val;
     });
 
-    v10AttendanceDirty = false;
     showToast("Attendance saved to Google Sheets.", "success");
-    v10SetAttendanceStatus("Attendance saved to the live class register.", "ok");
+    v101AttendanceStatus("Attendance saved to the live class register.", "ok");
   } catch (error) {
-    showToast(error.message, "error");
-    v10SetAttendanceStatus(error.message, "error");
+    showToast(error?.message || "Attendance could not be saved.", "error");
+    v101AttendanceStatus(error?.message || "Attendance could not be saved.", "error");
   } finally {
     if (button) {
       button.disabled = false;
@@ -7486,63 +7532,32 @@ async function v10SaveAttendance() {
   }
 }
 
-function v10PatchClassProfileRegisterButton() {
-  const modal = byId("classProfileModal");
-  if (!modal) return;
-
-  const observer = new MutationObserver(() => {
-    const classId = String(v6SelectedClassId || "");
-    const classRecord = classId ? v6GetClassById(classId) : null;
-    const registerSheet = String(classRecord?.["Register Sheet"] || "").trim();
-
-    modal.querySelectorAll("button").forEach((button) => {
-      if (button.textContent?.trim() === "Open lesson register" && !registerSheet) {
-        button.disabled = true;
-        button.textContent = "No register linked";
-        button.title = "Add a Register Sheet to this class before opening the lesson register.";
-      }
-    });
-  });
-
-  observer.observe(modal, { childList: true, subtree: true });
-}
-
+/* Keep the class profile honest when no register is linked. */
 document.addEventListener("DOMContentLoaded", () => {
-  v10PatchClassProfileRegisterButton();
-
-  const classSelect = byId("attendanceClassSelect");
   const lessonSelect = byId("attendanceLessonSelect");
-  const dateInput = byId("attendanceDate");
-  const saveButton = byId("saveAttendanceButton");
-
-  if (classSelect) {
-    classSelect.addEventListener("change", v10LoadAttendanceRegister);
-  }
-
   if (lessonSelect) {
-    lessonSelect.addEventListener("change", v10RenderAttendance);
+    lessonSelect.addEventListener("change", v101RenderSelectedLesson);
   }
 
-  if (dateInput) {
-    dateInput.addEventListener("change", () => {
-      if (!v10AttendanceRegister) return;
-      v10PopulateAttendanceLessons();
-      v10RenderAttendance();
+  const modal = byId("classProfileModal");
+  if (modal) {
+    const observer = new MutationObserver(() => {
+      const classId = String(v6SelectedClassId || "");
+      const classRecord = classId ? v6GetClassById(classId) : null;
+      const registerSheet = String(classRecord?.["Register Sheet"] || "").trim();
+
+      modal.querySelectorAll("button").forEach((button) => {
+        if (
+          button.textContent?.trim() === "Open lesson register" &&
+          !registerSheet
+        ) {
+          button.disabled = true;
+          button.textContent = "No register linked";
+          button.title = "Add a Register Sheet before opening the lesson register.";
+        }
+      });
     });
+
+    observer.observe(modal, { childList: true, subtree: true });
   }
-
-  if (saveButton) {
-    saveButton.replaceWith(saveButton.cloneNode(true));
-    byId("saveAttendanceButton")?.addEventListener("click", v10SaveAttendance);
-  }
-
-  const originalNavigateTo = window.navigateTo;
-  window.navigateTo = function(page, updateHash = true) {
-    originalNavigateTo(page, updateHash);
-
-    if (page === "attendance") {
-      v10PopulateAttendanceClasses();
-      setTimeout(v10LoadAttendanceRegister, 0);
-    }
-  };
 });
