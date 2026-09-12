@@ -7333,21 +7333,15 @@ function v101FindAttendanceHeader(slot) {
     ? v101AttendanceRegister.headers
     : [];
 
-  const exactCandidates = [
-    `Student ${slot}`,
-    `Student ${slot} Attendance`,
-    `Student ${slot} attendance`
-  ];
+  const wanted = `student ${slot} attendance`;
 
-  for (const candidate of exactCandidates) {
-    if (headers.includes(candidate)) return candidate;
-  }
-
-  const prefix = `student ${slot}`;
   return headers.find((header) => {
-    const normalised = String(header || "").trim().toLowerCase();
-    return normalised === prefix ||
-      normalised.startsWith(prefix + " ");
+    const normalised = String(header || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+
+    return normalised === wanted;
   }) || "";
 }
 
@@ -7561,3 +7555,7 @@ document.addEventListener("DOMContentLoaded", () => {
     observer.observe(modal, { childList: true, subtree: true });
   }
 });
+
+
+/* V10.2: Attendance maps only to exact "Student N Attendance" columns.
+   Homework, Feedback and Advice are intentionally excluded. */
