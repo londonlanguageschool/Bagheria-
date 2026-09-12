@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#082d5c">
   <meta name="description" content="London Language School management portal">
-  <title>LLS Portal V8.1 | London Language School</title>
-  <link rel="stylesheet" href="portal.css?v=8.1">
+  <title>LLS Portal V9 | London Language School</title>
+  <link rel="stylesheet" href="portal.css?v=9">
 </head>
 
 <body>
@@ -1036,10 +1036,10 @@
        CLASS MODAL
   ========================== -->
   <div class="modal-backdrop" id="classModal">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="classModalTitle">
+    <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="classModalTitle">
       <div class="modal-header">
         <div>
-          <p class="section-label">Class record</p>
+          <p class="section-label">Live class master record · TEST data</p>
           <h2 id="classModalTitle">Create class</h2>
         </div>
         <button class="modal-close" type="button" data-close-modal="classModal">×</button>
@@ -1048,6 +1048,10 @@
       <form id="classForm">
         <input id="classId" type="hidden">
 
+        <div class="v8-form-note">
+          V9 saves class metadata directly to the Classes sheet. Register sheets remain separate lesson-register tabs.
+        </div>
+
         <div class="form-grid">
           <div class="form-field form-field-wide">
             <label for="className">Class name *</label>
@@ -1055,8 +1059,13 @@
           </div>
 
           <div class="form-field">
-            <label for="classLevel">Level *</label>
-            <select id="classLevel" required>
+            <label for="classSchoolYear">School year *</label>
+            <input id="classSchoolYear" type="text" value="2026-27" required>
+          </div>
+
+          <div class="form-field">
+            <label for="classLevel">Level</label>
+            <select id="classLevel">
               <option value="">Select level</option>
               <option value="Young Learners">Young Learners</option>
               <option value="A1">A1</option>
@@ -1070,12 +1079,13 @@
 
           <div class="form-field">
             <label for="classTeacher">Teacher</label>
-            <select id="classTeacher"></select>
+            <input id="classTeacher" type="text" placeholder="e.g. Colin">
           </div>
 
           <div class="form-field">
-            <label for="classDay">Day *</label>
-            <select id="classDay" required>
+            <label for="classDay">Day</label>
+            <select id="classDay">
+              <option value="">Select day</option>
               <option value="Monday">Monday</option>
               <option value="Tuesday">Tuesday</option>
               <option value="Wednesday">Wednesday</option>
@@ -1086,13 +1096,8 @@
           </div>
 
           <div class="form-field">
-            <label for="classTime">Start time *</label>
-            <input id="classTime" type="time" required>
-          </div>
-
-          <div class="form-field">
-            <label for="classDuration">Duration (minutes)</label>
-            <input id="classDuration" type="number" min="30" step="15" value="90">
+            <label for="classTime">Start time</label>
+            <input id="classTime" type="time">
           </div>
 
           <div class="form-field">
@@ -1105,9 +1110,18 @@
             <input id="classCapacity" type="number" min="1" value="10">
           </div>
 
-          <div class="form-field form-field-wide">
-            <label for="classNotes">Notes</label>
-            <textarea id="classNotes" rows="3"></textarea>
+          <div class="form-field">
+            <label for="classRegisterSheet">Register sheet</label>
+            <input id="classRegisterSheet" type="text" placeholder="e.g. Class 2 NEW">
+          </div>
+
+          <div class="form-field">
+            <label for="classStatus">Status</label>
+            <select id="classStatus">
+              <option value="Active">Active</option>
+              <option value="Paused">Paused</option>
+              <option value="Completed">Completed</option>
+            </select>
           </div>
         </div>
 
@@ -1115,7 +1129,7 @@
           <button class="button button-secondary" type="button" data-close-modal="classModal">
             Cancel
           </button>
-          <button class="button button-primary" type="submit">
+          <button class="button button-primary" id="classSaveButton" type="submit">
             Save class
           </button>
         </div>
@@ -1409,6 +1423,6 @@
   ========================== -->
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
-  <script src="portal.js?v=8.1"></script>
+  <script src="portal.js?v=9"></script>
 </body>
 </html>

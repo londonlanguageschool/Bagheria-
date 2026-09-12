@@ -6850,3 +6850,260 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+
+/* =========================================================
+   V9 — LIVE CLASS MANAGEMENT
+   ---------------------------------------------------------
+   Builds on V8.1 without changing the proven student,
+   enrolment or register-write paths.
+   - create class in Classes sheet
+   - edit class metadata in Classes sheet
+   - class cards remain driven by getPortalData
+   - register button is protected when no register sheet exists
+========================================================= */
+
+function v9EnableClassWrites() {
+  const button = byId("addClassButton");
+  if (!button) return;
+  button.disabled = false;
+  button.title = "";
+  button.classList.remove("v7-disabled-master-write");
+}
+
+function openNewClass() {
+  const form = byId("classForm");
+  if (!form) return;
+
+  form.reset();
+  setValue("classId", "");
+  setValue("classSchoolYear", "2026-27");
+  setValue("classCapacity", "10");
+  setValue("classStatus", "Active");
+  text("classModalTitle", "Create class");
+  openModal("classModal");
+}
+
+function openEditClass(classId) {
+  const item = v6GetClassById(classId);
+
+  if (!item) {
+    showToast("Class not found in the live database.", "error");
+    return;
+  }
+
+  setValue("classId", item["Class ID"] || "");
+  setValue("className", item["Class Name"] || "");
+  setValue("classSchoolYear", item["School Year"] || "2026-27");
+  setValue("classLevel", item["Level"] || "");
+  setValue("classTeacher", item["Teacher"] || "");
+  setValue("classDay", item["Day"] || "");
+  setValue("classTime", String(item["Time"] || "").slice(0, 5));
+  setValue("classRoom", item["Room"] || "");
+  setValue("classCapacity", item["Capacity"] || "10");
+  setValue("classRegisterSheet", item["Register Sheet"] || "");
+  setValue("classStatus", item["Status"] || "Active");
+
+  text("classModalTitle", `Edit ${item["Class Name"] || classId}`);
+  openModal("classModal");
+}
+
+async function saveClassForm(event) {
+  event.preventDefault();
+
+  const classId = value("classId").trim();
+  const className = value("className").trim();
+  const schoolYear = value("classSchoolYear").trim();
+
+  if (!className || !schoolYear) {
+    showToast("Class name and school year are required.", "error");
+    return;
+  }
+
+  const capacity = Number(value("classCapacity") || 0);
+  if (capacity < 1) {
+    showToast("Class capacity must be at least 1.", "error");
+    return;
+  }
+
+  const fields = {
+    "Class Name": className,
+    "School Year": schoolYear,
+    "Level": value("classLevel"),
+    "Teacher": value("classTeacher").trim(),
+    "Day": value("classDay"),
+    "Time": value("classTime"),
+    "Room": value("classRoom").trim(),
+    "Capacity": capacity,
+    "Register Sheet": value("classRegisterSheet").trim(),
+    "Status": value("classStatus") || "Active"
+  };
+
+  v8SetBusy(
+    "classSaveButton",
+    true,
+    "Saving…",
+    classId ? "Save changes" : "Save class"
+  );
+
+  try {
+    const result = await v8Post(
+      classId ? "updateClass" : "createClass",
+      classId ? { classId, fields } : { fields }
+    );
+
+    closeModal("classModal");
+    await v8ReloadLiveData();
+
+    const savedId = String(result.classId || classId || "");
+    showToast(
+      classId ? "Class updated in Google Sheets." : `Class ${savedId} created.`,
+      "success"
+    );
+
+    if (savedId) {
+      v6SelectedClassId = savedId;
+      renderClasses();
+      v7OpenClassProfile(savedId);
+    }
+  } catch (error) {
+    showToast(error.message, "error");
+  } finally {
+    v8SetBusy(
+      "classSaveButton",
+      false,
+      "",
+      classId ? "Save changes" : "Save class"
+    );
+  }
+}
+
+function renderClasses() {
+  const container = byId("classGrid");
+  if (!container) return;
+
+  if (!v6PortalDataLoaded) {
+    container.innerHTML = `
+      <div class="panel">
+        <strong>Loading classes from Google Sheets…</strong>
+        <p class="muted">Classes and Enrolments are the source of truth.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const query = String(byId("classSearch")?.value || "").trim().toLowerCase();
+  const day = String(byId("classDayFilter")?.value || "all");
+
+  const records = v6PortalData.classes.filter((item) => {
+    const haystack = [
+      item["Class ID"], item["Class Name"], item["School Year"], item["Level"],
+      item["Teacher"], item["Day"], item["Time"], item["Room"], item["Status"]
+    ].join(" ").toLowerCase();
+
+    return (
+      (!query || haystack.includes(query)) &&
+      (day === "all" || String(item["Day"] || "") === day)
+    );
+  });
+
+  if (!records.length) {
+    container.innerHTML = emptyState("No live classes match the current filters.");
+    return;
+  }
+
+  container.innerHTML = records.map((item) => {
+    const classId = String(item["Class ID"] || "");
+    const className = String(item["Class Name"] || classId || "Unnamed class");
+    const enrolments = v6ActiveEnrolmentsForClass(classId);
+    const capacity = Number(item["Capacity"] || 0);
+    const registerSheet = String(item["Register Sheet"] || "").trim();
+    const studentNames = enrolments
+      .slice(0, 4)
+      .map((enrolment) => v7StudentFullName(v6GetStudentById(enrolment["Student ID"])))
+      .filter(Boolean);
+    const selected = classId === v6SelectedClassId;
+
+    return `
+      <article class="class-card v7-class-card ${selected ? "class-card-selected" : ""}">
+        <div class="class-card-top">
+          <div>
+            <p class="section-label">${escapeHtml(item["School Year"] || "School year")}</p>
+            <h3>${escapeHtml(className)}</h3>
+            <div class="live-student-id">${escapeHtml(classId)}</div>
+          </div>
+          <span class="status-pill">${escapeHtml(item["Status"] || "Active")}</span>
+        </div>
+
+        <div class="class-meta-grid">
+          <div><span>Level</span><strong>${escapeHtml(item["Level"] || "—")}</strong></div>
+          <div><span>Teacher</span><strong>${escapeHtml(item["Teacher"] || "—")}</strong></div>
+          <div><span>Schedule</span><strong>${escapeHtml([item["Day"], item["Time"]].filter(Boolean).join(" · ") || "—")}</strong></div>
+          <div><span>Room</span><strong>${escapeHtml(item["Room"] || "—")}</strong></div>
+        </div>
+
+        <div class="v7-class-enrolments">
+          <div class="v7-class-enrolments-head">
+            <span>Active enrolments</span>
+            <strong>${enrolments.length}${capacity ? ` / ${capacity}` : ""}</strong>
+          </div>
+          <p>${escapeHtml(studentNames.join(", ") || "No students enrolled")}${enrolments.length > 4 ? ` +${enrolments.length - 4} more` : ""}</p>
+        </div>
+
+        ${registerSheet ? "" : `
+          <div class="v9-register-warning">
+            No register sheet linked yet. You can still enrol students and edit this class.
+          </div>
+        `}
+
+        <div class="v7-class-actions v9-class-actions">
+          <button class="button button-secondary" type="button"
+            data-v9-edit-class="${escapeHtml(classId)}">
+            Edit class
+          </button>
+          <button class="button button-secondary" type="button"
+            data-v7-class-profile="${escapeHtml(classId)}">
+            Details
+          </button>
+          <button class="button ${selected ? "button-soft" : "button-primary"}" type="button"
+            data-v6-open-class="${escapeHtml(classId)}"
+            ${registerSheet ? "" : "disabled"}
+            title="${registerSheet ? "Open lesson register" : "Add a Register Sheet name before opening the register"}">
+            ${registerSheet ? (selected ? "Open selected register" : "Open register") : "Register not linked"}
+          </button>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  container.querySelectorAll("[data-v9-edit-class]").forEach((button) => {
+    button.addEventListener("click", () => {
+      openEditClass(button.dataset.v9EditClass);
+    });
+  });
+
+  container.querySelectorAll("[data-v7-class-profile]").forEach((button) => {
+    button.addEventListener("click", () => {
+      v7OpenClassProfile(button.dataset.v7ClassProfile);
+    });
+  });
+
+  container.querySelectorAll("[data-v6-open-class]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      if (button.disabled) return;
+      v6SelectedClassId = String(button.dataset.v6OpenClass || "");
+      renderClasses();
+      await loadV6ClassRegister(v6SelectedClassId, true);
+      byId("class1LivePanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  v9EnableClassWrites();
+
+  const classDescription = document.querySelector("#page-classes .page-description");
+  if (classDescription) {
+    classDescription.textContent =
+      "Create and edit live class records in Google Sheets, manage enrolments and open linked lesson registers.";
+  }
+});

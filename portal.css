@@ -2990,3 +2990,30 @@ input[readonly] {
   color: var(--ink-700);
   cursor: default;
 }
+
+
+/* =========================================================
+   V9 — LIVE CLASS MANAGEMENT
+========================================================= */
+
+.v9-class-actions {
+  flex-wrap: wrap;
+}
+
+.v9-class-actions .button[disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+
+.v9-register-warning {
+  margin-top: 12px;
+  border: 1px solid #f0d59b;
+  border-radius: 10px;
+  background: #fff8e8;
+  color: #7a5512;
+  padding: 9px 11px;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
