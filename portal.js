@@ -381,7 +381,7 @@ function bindGlobalControls() {
   byId("quickEnquiryButton").addEventListener("click", openNewEnquiry);
   byId("addStudentButton").addEventListener("click", openNewStudent);
   byId("addClassButton").addEventListener("click", openNewClass);
-  byId("addPaymentButton").addEventListener("click", openNewPayment);
+  byId("addPaymentButton").addEventListener("click", openNewPaymentV11);
   byId("addEnquiryButton").addEventListener("click", openNewEnquiry);
   byId("addTeacherButton").addEventListener("click", openNewTeacher);
 
