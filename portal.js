@@ -7924,76 +7924,52 @@ function v11FeeDueDates(fee) {
 }
 
 function v11DueScheduleForFee(fee) {
-  const dates = v11FeeDueDates(fee);
-  const total = v11AmountDue(fee);
+  const entries = [
+    { number: "1", date: String(fee["Instalment 1 Due"] || "").trim(), amount: v11Money(fee["Instalment 1 Amount"]) },
+    { number: "2", date: String(fee["Instalment 2 Due"] || "").trim(), amount: v11Money(fee["Instalment 2 Amount"]) },
+    { number: "3", date: String(fee["Instalment 3 Due"] || "").trim(), amount: v11Money(fee["Instalment 3 Amount"]) }
+  ].filter((entry) => entry.date && entry.amount > 0);
 
-  if (!dates.length || total <= 0) {
-    return [];
-  }
-
-  return dates.map((date, index) => ({
-    date,
-    cumulativeDue:
-      index === dates.length - 1
-        ? total
-        : (total * (index + 1)) / dates.length
-  }));
+  let cumulative = 0;
+  return entries.map((entry) => {
+    cumulative += entry.amount;
+    return { ...entry, cumulativeDue: cumulative };
+  });
 }
 
 function v11OverdueAmountForFee(fee) {
-  const balance = v11BalanceForFee(fee);
-
-  if (balance <= 0) {
-    return 0;
-  }
+  if (v11BalanceForFee(fee) <= 0) return 0;
 
   const today = isoDate(new Date());
+  const payments = v11PaymentsForFee(fee["Fee ID"]);
   const schedule = v11DueScheduleForFee(fee);
-  const paid = v11PaidForFee(fee);
 
-  const pastDueEntries = schedule.filter(
-    (entry) => entry.date && entry.date < today
-  );
+  return schedule
+    .filter((entry) => entry.date < today)
+    .reduce((total, entry) => {
+      const paidToInstalment = payments
+        .filter((payment) => String(payment["Instalment"] || "").trim() === entry.number)
+        .reduce((sum, payment) => sum + v11Money(payment["Amount"]), 0);
 
-  if (!pastDueEntries.length) {
-    return 0;
-  }
-
-  const dueSoFar =
-    pastDueEntries[pastDueEntries.length - 1].cumulativeDue;
-
-  return Math.max(
-    0,
-    Math.min(balance, dueSoFar - paid)
-  );
+      return total + Math.max(0, entry.amount - paidToInstalment);
+    }, 0);
 }
 
 function v11NextDueDate(fee) {
-  if (v11BalanceForFee(fee) <= 0) {
-    return "";
-  }
+  if (v11BalanceForFee(fee) <= 0) return "";
 
-  const today = isoDate(new Date());
-  const paid = v11PaidForFee(fee);
+  const payments = v11PaymentsForFee(fee["Fee ID"]);
   const schedule = v11DueScheduleForFee(fee);
 
-  const next = schedule.find(
-    (entry) =>
-      entry.date >= today &&
-      paid + 0.005 < entry.cumulativeDue
-  );
+  for (const entry of schedule) {
+    const paidToInstalment = payments
+      .filter((payment) => String(payment["Instalment"] || "").trim() === entry.number)
+      .reduce((total, payment) => total + v11Money(payment["Amount"]), 0);
 
-  if (next) {
-    return next.date;
+    if (paidToInstalment + 0.005 < entry.amount) return entry.date;
   }
 
-  const unpaidPast = schedule.find(
-    (entry) =>
-      entry.date < today &&
-      paid + 0.005 < entry.cumulativeDue
-  );
-
-  return unpaidPast?.date || "";
+  return "";
 }
 
 function v11FeeDisplayStatus(fee) {
@@ -8351,8 +8327,11 @@ function openEditFee(feeId) {
   setValue("feeCourseFee", v11Money(fee["Course Fee"]));
   setValue("feeDiscount", v11Money(fee["Discount"]));
   setValue("feePaymentPlan", fee["Payment Plan"] || "Full payment");
+  setValue("feeInstalment1Amount", v11Money(fee["Instalment 1 Amount"]) || "");
   setValue("feeInstalment1", fee["Instalment 1 Due"]);
+  setValue("feeInstalment2Amount", v11Money(fee["Instalment 2 Amount"]) || "");
   setValue("feeInstalment2", fee["Instalment 2 Due"]);
+  setValue("feeInstalment3Amount", v11Money(fee["Instalment 3 Amount"]) || "");
   setValue("feeInstalment3", fee["Instalment 3 Due"]);
   setValue("feeStatus", fee["Status"] || "Open");
   setValue("feeNotes", fee["Notes"]);
@@ -8385,6 +8364,18 @@ async function saveV11FeeForm(event) {
     return;
   }
 
+  const plan = value("feePaymentPlan");
+  const amountDue = Math.max(0, courseFee - discount);
+  const instalmentTotal =
+    v11Money(value("feeInstalment1Amount")) +
+    v11Money(value("feeInstalment2Amount")) +
+    v11Money(value("feeInstalment3Amount"));
+
+  if (/instalment/i.test(plan) && Math.abs(instalmentTotal - amountDue) > 0.01) {
+    showToast(`Instalment amounts must total ${formatMoney(amountDue)}.`, "error");
+    return;
+  }
+
   const enrolment =
     v11ActiveEnrolmentForStudent(studentId);
 
@@ -8394,10 +8385,13 @@ async function saveV11FeeForm(event) {
     "School Year": value("feeSchoolYear").trim(),
     "Course Fee": courseFee,
     "Discount": discount,
-    "Amount Due": Math.max(0, courseFee - discount),
+    "Amount Due": amountDue,
     "Payment Plan": value("feePaymentPlan"),
+    "Instalment 1 Amount": v11Money(value("feeInstalment1Amount")),
     "Instalment 1 Due": value("feeInstalment1"),
+    "Instalment 2 Amount": v11Money(value("feeInstalment2Amount")),
     "Instalment 2 Due": value("feeInstalment2"),
+    "Instalment 3 Amount": v11Money(value("feeInstalment3Amount")),
     "Instalment 3 Due": value("feeInstalment3"),
     "Status": value("feeStatus"),
     "Notes": value("feeNotes").trim()
@@ -8508,11 +8502,22 @@ function openNewPaymentV11(preselectedFeeId = "") {
 
   if (preselectedFeeId) {
     const fee = v11FeeById(preselectedFeeId);
+
     if (fee) {
-      setValue(
-        "paymentPaid",
-        v11BalanceForFee(fee).toFixed(2)
-      );
+      const nextDate = v11NextDueDate(fee);
+      const schedule = v11DueScheduleForFee(fee);
+      const nextInstalment = schedule.find((entry) => entry.date === nextDate);
+
+      if (nextInstalment) {
+        const alreadyPaid = v11PaymentsForFee(fee["Fee ID"])
+          .filter((payment) => String(payment["Instalment"] || "").trim() === nextInstalment.number)
+          .reduce((total, payment) => total + v11Money(payment["Amount"]), 0);
+
+        setValue("paymentPaid", Math.max(0, nextInstalment.amount - alreadyPaid).toFixed(2));
+        setValue("paymentInstalment", nextInstalment.number);
+      } else {
+        setValue("paymentPaid", v11BalanceForFee(fee).toFixed(2));
+      }
     }
   }
 
