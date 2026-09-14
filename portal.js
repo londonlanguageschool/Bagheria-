@@ -8186,7 +8186,7 @@ function renderPayments() {
 
     body.querySelectorAll("[data-v11-pay-fee]").forEach((button) => {
       button.addEventListener("click", () => {
-        openNewPayment(button.dataset.v11PayFee);
+        openNewPaymentV11(button.dataset.v11PayFee);
       });
     });
 
@@ -8459,7 +8459,7 @@ function v11PopulatePaymentFeeSelect(selectedFeeId = "") {
   select.value = selectedFeeId || "";
 }
 
-function openNewPayment(preselectedFeeId = "") {
+function openNewPaymentV11(preselectedFeeId = "") {
   if (!v11FinanceLoaded) {
     showToast("Wait for the live Finance data to load.", "error");
     return;
