@@ -7617,61 +7617,59 @@ renderDashboard = function () {
   );
 };
 
-async function v11ApiGetTable(tableName) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+async function v11ApiGetFinanceData() {
+  const maxAttempts = 2;
+  let lastError = null;
 
-  try {
-    const response = await fetch(
-      `${LLS_API_URL}?action=getTable&table=${encodeURIComponent(tableName)}&t=${Date.now()}`,
-      {
-        method: "GET",
-        cache: "no-store",
-        redirect: "follow",
-        signal: controller.signal
-      }
-    );
-
-    const raw = await response.text();
-    let data;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
 
     try {
-      data = JSON.parse(raw);
-    } catch (_) {
-      throw new Error(
-        `The ${tableName} response was not valid JSON.`
+      const response = await fetch(
+        `${LLS_API_URL}?action=getFinanceData&t=${Date.now()}`,
+        {
+          method: "GET",
+          cache: "no-store",
+          redirect: "follow",
+          signal: controller.signal
+        }
       );
-    }
 
-    if (!data || data.success !== true) {
-      throw new Error(
-        data?.error || `Could not load ${tableName}.`
-      );
-    }
+      const raw = await response.text();
+      let data;
 
-    return Array.isArray(data.records)
-      ? data.records
-      : [];
-  } finally {
-    clearTimeout(timeout);
+      try {
+        data = JSON.parse(raw);
+      } catch (_) {
+        throw new Error("The Finance response was not valid JSON.");
+      }
+
+      if (!data || data.success !== true) {
+        throw new Error(
+          data?.error || "Could not load Finance data."
+        );
+      }
+
+      return {
+        fees: Array.isArray(data.fees) ? data.fees : [],
+        payments: Array.isArray(data.payments) ? data.payments : [],
+        students: Array.isArray(data.students) ? data.students : [],
+        enrolments: Array.isArray(data.enrolments) ? data.enrolments : []
+      };
+
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
   }
-}
 
-async function v11ApiGetFinanceData() {
-  const [fees, payments, students, enrolments] =
-    await Promise.all([
-      v11ApiGetTable("fees"),
-      v11ApiGetTable("payments"),
-      v11ApiGetTable("students"),
-      v11ApiGetTable("enrolments")
-    ]);
-
-  return {
-    fees,
-    payments,
-    students,
-    enrolments
-  };
+  throw lastError || new Error("Finance data could not be loaded.");
 }
 
 async function v11ApiPost(payload) {
@@ -7722,10 +7720,10 @@ async function loadV11Finance(force = false) {
   }
 
   v11FinanceLoading = true;
-  v11SetFinanceConnection("Connecting…", "loading", "Reading Fees and Payments from Google Sheets.");
+  v11SetFinanceConnection(v11FinanceLoaded ? "Refreshing…" : "Connecting…", "loading", "Reading Fees and Payments from Google Sheets.");
 
   const body = byId("paymentsTableBody");
-  if (body) {
+  if (body && !v11FinanceLoaded) {
     body.innerHTML = `
       <tr>
         <td colspan="8">
@@ -7773,7 +7771,7 @@ async function loadV11Finance(force = false) {
 
     const message =
       error?.name === "AbortError"
-        ? "A Finance table request timed out after 15 seconds."
+        ? "Finance could not refresh after two attempts. Your last loaded data is still shown."
         : error?.message || "Unknown finance connection error.";
 
     v11SetFinanceConnection("Connection error", "error", message);
