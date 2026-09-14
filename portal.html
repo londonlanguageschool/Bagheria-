@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#082d5c">
   <meta name="description" content="London Language School management portal">
-  <title>LLS Portal V10.2 | London Language School</title>
-  <link rel="stylesheet" href="portal.css?v=10.2">
+  <title>LLS Portal V11 | London Language School</title>
+  <link rel="stylesheet" href="portal.css?v=11">
 </head>
 
 <body>
@@ -538,16 +538,22 @@
         <section class="page" id="page-fees">
           <div class="page-toolbar">
             <div>
-              <p class="section-label">Finance</p>
+              <p class="section-label">Private management finance</p>
               <h2>Fees & Payments</h2>
               <p class="page-description">
-                Track fees, payments, outstanding balances and payment dates.
+                Live fee accounts and payment records from the school Google Sheet.
               </p>
             </div>
 
             <div class="toolbar-buttons">
+              <button class="button button-secondary" id="refreshFinanceButton" type="button">
+                Refresh
+              </button>
               <button class="button button-secondary" id="exportPaymentsButton" type="button">
                 Export CSV
+              </button>
+              <button class="button button-soft" id="addFeeButton" type="button">
+                + Add fee
               </button>
               <button class="button button-primary" id="addPaymentButton" type="button">
                 + Record payment
@@ -555,32 +561,53 @@
             </div>
           </div>
 
-          <div class="finance-stats">
+          <div class="panel finance-live-banner" id="financeLiveStatus">
+            <div>
+              <p class="section-label">Google Sheets</p>
+              <h3>Live finance data</h3>
+              <p class="muted" id="financeLiveStatusText">
+                Open this page to load Fees and Payments.
+              </p>
+            </div>
+            <span class="live-status live-status-loading" id="financeLiveBadge">Waiting…</span>
+          </div>
+
+          <div class="finance-stats finance-stats-v11">
             <article class="finance-card">
-              <span>Total fees</span>
+              <span>Total due</span>
               <strong id="financeTotalFees">€0</strong>
+              <small>After discounts</small>
             </article>
 
             <article class="finance-card finance-card-positive">
               <span>Collected</span>
               <strong id="financeCollected">€0</strong>
+              <small>All recorded payments</small>
             </article>
 
             <article class="finance-card finance-card-warning">
               <span>Outstanding</span>
               <strong id="financeOutstanding">€0</strong>
+              <small>Still to collect</small>
+            </article>
+
+            <article class="finance-card finance-card-danger">
+              <span>Overdue</span>
+              <strong id="financeOverdue">€0</strong>
+              <small id="financeOverdueSub">No overdue accounts</small>
             </article>
 
             <article class="finance-card">
               <span>Collection rate</span>
               <strong id="financeRate">0%</strong>
+              <small id="financeRateSub">No fees recorded</small>
             </article>
           </div>
 
           <div class="filter-bar">
             <div class="filter-search">
               <span>⌕</span>
-              <input id="paymentSearch" type="search" placeholder="Search payments...">
+              <input id="paymentSearch" type="search" placeholder="Search student, fee ID or payment plan...">
             </div>
 
             <select id="paymentStatusFilter">
@@ -588,6 +615,7 @@
               <option value="Paid">Paid</option>
               <option value="Part-paid">Part-paid</option>
               <option value="Due">Due</option>
+              <option value="Overdue">Overdue</option>
             </select>
           </div>
 
@@ -597,11 +625,11 @@
                 <thead>
                   <tr>
                     <th>Student</th>
-                    <th>Description</th>
-                    <th>Total fee</th>
+                    <th>Fee / plan</th>
+                    <th>Amount due</th>
                     <th>Paid</th>
                     <th>Balance</th>
-                    <th>Last payment</th>
+                    <th>Next due</th>
                     <th>Status</th>
                     <th class="table-actions-cell">Actions</th>
                   </tr>
@@ -609,7 +637,20 @@
                 <tbody id="paymentsTableBody"></tbody>
               </table>
             </div>
+            <div class="table-footer">
+              <span id="financeTableCount">0 fee accounts</span>
+            </div>
           </div>
+
+          <article class="panel finance-history-panel">
+            <div class="panel-header">
+              <div>
+                <p class="section-label">Transactions</p>
+                <h3>Recent payments</h3>
+              </div>
+            </div>
+            <div id="recentPaymentsList" class="finance-history-list"></div>
+          </article>
         </section>
 
         <!-- =========================
@@ -1156,13 +1197,102 @@
   </div>
 
   <!-- =========================
-       PAYMENT MODAL
+       FEE MODAL — V11
+  ========================== -->
+  <div class="modal-backdrop" id="feeModal">
+    <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="feeModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">Private finance</p>
+          <h2 id="feeModalTitle">Add student fee</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="feeModal">×</button>
+      </div>
+
+      <form id="feeForm">
+        <input id="feeId" type="hidden">
+
+        <div class="form-grid">
+          <div class="form-field form-field-wide">
+            <label for="feeStudent">Student *</label>
+            <select id="feeStudent" required></select>
+          </div>
+
+          <div class="form-field">
+            <label for="feeSchoolYear">School year *</label>
+            <input id="feeSchoolYear" type="text" placeholder="2026/27" required>
+          </div>
+
+          <div class="form-field">
+            <label for="feePaymentPlan">Payment plan</label>
+            <select id="feePaymentPlan">
+              <option value="Full payment">Full payment</option>
+              <option value="2 instalments">2 instalments</option>
+              <option value="3 instalments">3 instalments</option>
+              <option value="Custom">Custom</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="feeCourseFee">Course fee (€) *</label>
+            <input id="feeCourseFee" type="number" min="0" step="0.01" required>
+          </div>
+
+          <div class="form-field">
+            <label for="feeDiscount">Discount (€)</label>
+            <input id="feeDiscount" type="number" min="0" step="0.01" value="0">
+          </div>
+
+          <div class="form-field">
+            <label for="feeInstalment1">Instalment 1 due</label>
+            <input id="feeInstalment1" type="date">
+          </div>
+
+          <div class="form-field">
+            <label for="feeInstalment2">Instalment 2 due</label>
+            <input id="feeInstalment2" type="date">
+          </div>
+
+          <div class="form-field">
+            <label for="feeInstalment3">Instalment 3 due</label>
+            <input id="feeInstalment3" type="date">
+          </div>
+
+          <div class="form-field">
+            <label for="feeStatus">Account status</label>
+            <select id="feeStatus">
+              <option value="Open">Open</option>
+              <option value="Closed">Closed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="feeNotes">Notes</label>
+            <textarea id="feeNotes" rows="3" placeholder="Optional internal note"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="button button-secondary" type="button" data-close-modal="feeModal">
+            Cancel
+          </button>
+          <button class="button button-primary" id="feeSaveButton" type="submit">
+            Save fee
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================
+       PAYMENT MODAL — V11
   ========================== -->
   <div class="modal-backdrop" id="paymentModal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="paymentModalTitle">
       <div class="modal-header">
         <div>
-          <p class="section-label">Finance</p>
+          <p class="section-label">Private finance</p>
           <h2 id="paymentModalTitle">Record payment</h2>
         </div>
         <button class="modal-close" type="button" data-close-modal="paymentModal">×</button>
@@ -1173,33 +1303,18 @@
 
         <div class="form-grid">
           <div class="form-field form-field-wide">
-            <label for="paymentStudent">Student *</label>
-            <select id="paymentStudent" required></select>
-          </div>
-
-          <div class="form-field form-field-wide">
-            <label for="paymentDescription">Description *</label>
-            <input
-              id="paymentDescription"
-              type="text"
-              placeholder="e.g. General English course"
-              required
-            >
+            <label for="paymentFeeAccount">Fee account *</label>
+            <select id="paymentFeeAccount" required></select>
           </div>
 
           <div class="form-field">
-            <label for="paymentFee">Total fee (€) *</label>
-            <input id="paymentFee" type="number" min="0" step="0.01" required>
+            <label for="paymentPaid">Amount received (€) *</label>
+            <input id="paymentPaid" type="number" min="0.01" step="0.01" required>
           </div>
 
           <div class="form-field">
-            <label for="paymentPaid">Amount paid (€) *</label>
-            <input id="paymentPaid" type="number" min="0" step="0.01" required>
-          </div>
-
-          <div class="form-field">
-            <label for="paymentDate">Payment date</label>
-            <input id="paymentDate" type="date">
+            <label for="paymentDate">Payment date *</label>
+            <input id="paymentDate" type="date" required>
           </div>
 
           <div class="form-field">
@@ -1212,6 +1327,28 @@
             </select>
           </div>
 
+          <div class="form-field">
+            <label for="paymentInstalment">Instalment</label>
+            <select id="paymentInstalment">
+              <option value="">Not specified</option>
+              <option value="1">Instalment 1</option>
+              <option value="2">Instalment 2</option>
+              <option value="3">Instalment 3</option>
+              <option value="Full">Full payment</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="paymentReference">Reference</label>
+            <input id="paymentReference" type="text" placeholder="Receipt / transfer reference">
+          </div>
+
+          <div class="form-field">
+            <label for="paymentRecordedBy">Recorded by</label>
+            <input id="paymentRecordedBy" type="text" placeholder="e.g. Helen">
+          </div>
+
           <div class="form-field form-field-wide">
             <label for="paymentNotes">Notes</label>
             <textarea id="paymentNotes" rows="3"></textarea>
@@ -1222,7 +1359,7 @@
           <button class="button button-secondary" type="button" data-close-modal="paymentModal">
             Cancel
           </button>
-          <button class="button button-primary" type="submit">
+          <button class="button button-primary" id="paymentSaveButton" type="submit">
             Save payment
           </button>
         </div>
@@ -1426,7 +1563,7 @@
   ========================== -->
   <aside class="notification-panel" id="notificationPanel">
     <div class="notification-panel-header">
-      <div>
+      <div>A
         <p class="section-label">Portal</p>
         <h3>Notifications</h3>
       </div>
@@ -1441,6 +1578,6 @@
   ========================== -->
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
-  <script src="portal.js?v=10.2"></script>
+  <script src="portal.js?v=11"></script>
 </body>
 </html>

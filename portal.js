@@ -7559,3 +7559,1105 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* V10.2: Attendance maps only to exact "Student N Attendance" columns.
    Homework, Feedback and Advice are intentionally excluded. */
+
+
+/* =========================================================
+   V11 — PRIVATE FINANCE / GOOGLE SHEETS
+   Fees = what is owed
+   Payments = money actually received
+========================================================= */
+
+let v11FinanceLoaded = false;
+let v11FinanceLoading = false;
+let v11FinanceData = {
+  students: [],
+  enrolments: [],
+  fees: [],
+  payments: []
+};
+
+const v11BaseNavigateTo = navigateTo;
+navigateTo = function (page, updateHash = true) {
+  v11BaseNavigateTo(page, updateHash);
+
+  if (page === "fees") {
+    loadV11Finance();
+  }
+};
+
+const v11BaseRenderDashboard = renderDashboard;
+renderDashboard = function () {
+  v11BaseRenderDashboard();
+
+  if (!v11FinanceLoaded) {
+    return;
+  }
+
+  const summary = v11FinanceSummary();
+
+  text("statCollected", formatMoney(summary.currentMonthCollected));
+  text("statCollectedSub", "Live payments received this month");
+  text("dashboardPaidAmount", formatMoney(summary.collected));
+  text("dashboardDueAmount", formatMoney(summary.outstanding));
+
+  const rate =
+    summary.totalDue > 0
+      ? Math.min(100, (summary.collected / summary.totalDue) * 100)
+      : 0;
+
+  if (byId("paymentProgressBar")) {
+    byId("paymentProgressBar").style.width = `${rate}%`;
+  }
+
+  text(
+    "paymentProgressText",
+    summary.totalDue
+      ? `${Math.round(rate)}% of live recorded fees have been collected.`
+      : "No live fee data yet."
+  );
+};
+
+async function v11ApiGetPortalData() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const response = await fetch(
+      `${LLS_API_URL}?action=getPortalData&t=${Date.now()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        redirect: "follow",
+        signal: controller.signal
+      }
+    );
+
+    const raw = await response.text();
+    let data;
+
+    try {
+      data = JSON.parse(raw);
+    } catch (_) {
+      throw new Error("The Finance API response was not JSON.");
+    }
+
+    if (!data || data.success !== true) {
+      throw new Error(
+        data?.error || "Google Sheets did not return finance data."
+      );
+    }
+
+    return data;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function v11ApiPost(payload) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const response = await fetch(LLS_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+      redirect: "follow",
+      signal: controller.signal
+    });
+
+    const raw = await response.text();
+    let data;
+
+    try {
+      data = JSON.parse(raw);
+    } catch (_) {
+      throw new Error("The Finance save response was not JSON.");
+    }
+
+    if (!data || data.success !== true) {
+      throw new Error(
+        data?.error || "Google Sheets did not confirm the finance save."
+      );
+    }
+
+    return data;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function loadV11Finance(force = false) {
+  if (v11FinanceLoading) {
+    return;
+  }
+
+  if (v11FinanceLoaded && !force) {
+    renderPayments();
+    return;
+  }
+
+  v11FinanceLoading = true;
+  v11SetFinanceConnection("Connecting…", "loading", "Reading Fees and Payments from Google Sheets.");
+
+  const body = byId("paymentsTableBody");
+  if (body) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="8">
+          <div class="finance-empty-loading">Loading live finance records…</div>
+        </td>
+      </tr>
+    `;
+  }
+
+  try {
+    const data = await v11ApiGetPortalData();
+
+    v11FinanceData = {
+      students: Array.isArray(data.students) ? data.students : [],
+      enrolments: Array.isArray(data.enrolments) ? data.enrolments : [],
+      fees: Array.isArray(data.fees) ? data.fees : [],
+      payments: Array.isArray(data.payments) ? data.payments : []
+    };
+
+    v11FinanceLoaded = true;
+
+    // Keep V6 live data in sync with the same response.
+    if (typeof v6PortalData !== "undefined") {
+      v6PortalData = {
+        students: v11FinanceData.students,
+        classes: Array.isArray(data.classes) ? data.classes : [],
+        enrolments: v11FinanceData.enrolments
+      };
+      v6PortalDataLoaded = true;
+      studentsLiveRecords = v11FinanceData.students;
+      studentsLiveLoaded = true;
+    }
+
+    v11SetFinanceConnection(
+      "● Connected",
+      "connected",
+      `${v11FinanceData.fees.length} fee account${v11FinanceData.fees.length === 1 ? "" : "s"} · ${v11FinanceData.payments.length} payment${v11FinanceData.payments.length === 1 ? "" : "s"}`
+    );
+
+    renderPayments();
+    renderDashboard();
+
+  } catch (error) {
+    v11FinanceLoaded = false;
+
+    const message =
+      error?.name === "AbortError"
+        ? "The finance request timed out after 30 seconds."
+        : error?.message || "Unknown finance connection error.";
+
+    v11SetFinanceConnection("Connection error", "error", message);
+
+    if (body) {
+      body.innerHTML = `
+        <tr>
+          <td colspan="8">
+            <div class="live-students-error">
+              <strong>Could not load Finance from Google Sheets.</strong>
+              <span>${escapeHtml(message)}</span>
+              <button class="button button-secondary" id="retryFinanceLive" type="button">Try again</button>
+            </div>
+          </td>
+        </tr>
+      `;
+
+      byId("retryFinanceLive")?.addEventListener(
+        "click",
+        () => loadV11Finance(true)
+      );
+    }
+
+    console.error("V11 Finance error:", error);
+
+  } finally {
+    v11FinanceLoading = false;
+  }
+}
+
+function v11SetFinanceConnection(label, mode, message) {
+  const badge = byId("financeLiveBadge");
+
+  if (badge) {
+    badge.textContent = label;
+    badge.className = "live-status";
+
+    if (mode === "connected") {
+      badge.classList.add("live-status-connected");
+    } else if (mode === "error") {
+      badge.classList.add("live-status-error");
+    } else {
+      badge.classList.add("live-status-loading");
+    }
+  }
+
+  text("financeLiveStatusText", message);
+}
+
+function v11StudentById(studentId) {
+  return v11FinanceData.students.find(
+    (student) =>
+      String(student["Student ID"] || "") === String(studentId || "")
+  ) || null;
+}
+
+function v11StudentName(studentId) {
+  const student = v11StudentById(studentId);
+
+  if (!student) {
+    return studentId || "Unknown student";
+  }
+
+  return [
+    student["First Name"] || "",
+    student["Surname"] || ""
+  ].join(" ").trim() || studentId || "Unknown student";
+}
+
+function v11FeeById(feeId) {
+  return v11FinanceData.fees.find(
+    (fee) =>
+      String(fee["Fee ID"] || "") === String(feeId || "")
+  ) || null;
+}
+
+function v11PaymentsForFee(feeId) {
+  return v11FinanceData.payments.filter(
+    (payment) =>
+      String(payment["Fee ID"] || "") === String(feeId || "")
+  );
+}
+
+function v11Money(valueToParse) {
+  if (
+    valueToParse === null ||
+    valueToParse === undefined ||
+    String(valueToParse).trim() === ""
+  ) {
+    return 0;
+  }
+
+  let raw =
+    String(valueToParse)
+      .trim()
+      .replace(/[€\s]/g, "");
+
+  if (raw.includes(",") && raw.includes(".")) {
+    if (raw.lastIndexOf(",") > raw.lastIndexOf(".")) {
+      raw = raw.replace(/\./g, "").replace(",", ".");
+    } else {
+      raw = raw.replace(/,/g, "");
+    }
+  } else if (raw.includes(",")) {
+    raw = raw.replace(",", ".");
+  }
+
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function v11AmountDue(fee) {
+  const explicit = String(fee["Amount Due"] || "").trim();
+
+  if (explicit !== "") {
+    return Math.max(0, v11Money(explicit));
+  }
+
+  return Math.max(
+    0,
+    v11Money(fee["Course Fee"]) - v11Money(fee["Discount"])
+  );
+}
+
+function v11PaidForFee(fee) {
+  return v11PaymentsForFee(fee["Fee ID"])
+    .reduce(
+      (total, payment) =>
+        total + v11Money(payment["Amount"]),
+      0
+    );
+}
+
+function v11BalanceForFee(fee) {
+  return Math.max(
+    0,
+    v11AmountDue(fee) - v11PaidForFee(fee)
+  );
+}
+
+function v11FeeDueDates(fee) {
+  return [
+    fee["Instalment 1 Due"],
+    fee["Instalment 2 Due"],
+    fee["Instalment 3 Due"]
+  ]
+    .map((date) => String(date || "").trim())
+    .filter(Boolean)
+    .sort();
+}
+
+function v11DueScheduleForFee(fee) {
+  const dates = v11FeeDueDates(fee);
+  const total = v11AmountDue(fee);
+
+  if (!dates.length || total <= 0) {
+    return [];
+  }
+
+  return dates.map((date, index) => ({
+    date,
+    cumulativeDue:
+      index === dates.length - 1
+        ? total
+        : (total * (index + 1)) / dates.length
+  }));
+}
+
+function v11OverdueAmountForFee(fee) {
+  const balance = v11BalanceForFee(fee);
+
+  if (balance <= 0) {
+    return 0;
+  }
+
+  const today = isoDate(new Date());
+  const schedule = v11DueScheduleForFee(fee);
+  const paid = v11PaidForFee(fee);
+
+  const pastDueEntries = schedule.filter(
+    (entry) => entry.date && entry.date < today
+  );
+
+  if (!pastDueEntries.length) {
+    return 0;
+  }
+
+  const dueSoFar =
+    pastDueEntries[pastDueEntries.length - 1].cumulativeDue;
+
+  return Math.max(
+    0,
+    Math.min(balance, dueSoFar - paid)
+  );
+}
+
+function v11NextDueDate(fee) {
+  if (v11BalanceForFee(fee) <= 0) {
+    return "";
+  }
+
+  const today = isoDate(new Date());
+  const paid = v11PaidForFee(fee);
+  const schedule = v11DueScheduleForFee(fee);
+
+  const next = schedule.find(
+    (entry) =>
+      entry.date >= today &&
+      paid + 0.005 < entry.cumulativeDue
+  );
+
+  if (next) {
+    return next.date;
+  }
+
+  const unpaidPast = schedule.find(
+    (entry) =>
+      entry.date < today &&
+      paid + 0.005 < entry.cumulativeDue
+  );
+
+  return unpaidPast?.date || "";
+}
+
+function v11FeeDisplayStatus(fee) {
+  const balance = v11BalanceForFee(fee);
+  const paid = v11PaidForFee(fee);
+
+  if (balance <= 0.005) {
+    return "Paid";
+  }
+
+  if (v11OverdueAmountForFee(fee) > 0.005) {
+    return "Overdue";
+  }
+
+  if (paid > 0.005) {
+    return "Part-paid";
+  }
+
+  return "Due";
+}
+
+function v11FinanceSummary() {
+  const totalDue = v11FinanceData.fees.reduce(
+    (total, fee) => total + v11AmountDue(fee),
+    0
+  );
+
+  const collected = v11FinanceData.payments.reduce(
+    (total, payment) => total + v11Money(payment["Amount"]),
+    0
+  );
+
+  const currentMonthCollected = v11FinanceData.payments
+    .filter((payment) =>
+      isCurrentMonth(String(payment["Payment Date"] || ""))
+    )
+    .reduce(
+      (total, payment) => total + v11Money(payment["Amount"]),
+      0
+    );
+
+  const overdue = v11FinanceData.fees.reduce(
+    (total, fee) => total + v11OverdueAmountForFee(fee),
+    0
+  );
+
+  const overdueAccounts = v11FinanceData.fees.filter(
+    (fee) => v11OverdueAmountForFee(fee) > 0.005
+  ).length;
+
+  return {
+    totalDue,
+    collected,
+    currentMonthCollected,
+    outstanding: Math.max(0, totalDue - collected),
+    overdue,
+    overdueAccounts
+  };
+}
+
+function renderPayments() {
+  const body = byId("paymentsTableBody");
+
+  if (!body) {
+    return;
+  }
+
+  if (!v11FinanceLoaded) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="8">
+          <div class="finance-empty-loading">Open Finance to load live data.</div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const summary = v11FinanceSummary();
+
+  text("financeTotalFees", formatMoney(summary.totalDue));
+  text("financeCollected", formatMoney(summary.collected));
+  text("financeOutstanding", formatMoney(summary.outstanding));
+  text("financeOverdue", formatMoney(summary.overdue));
+  text(
+    "financeOverdueSub",
+    summary.overdueAccounts
+      ? `${summary.overdueAccounts} overdue account${summary.overdueAccounts === 1 ? "" : "s"}`
+      : "No overdue accounts"
+  );
+
+  const rate =
+    summary.totalDue > 0
+      ? Math.min(100, (summary.collected / summary.totalDue) * 100)
+      : 0;
+
+  text("financeRate", `${Math.round(rate)}%`);
+  text(
+    "financeRateSub",
+    summary.totalDue
+      ? `${formatMoney(summary.collected)} of ${formatMoney(summary.totalDue)}`
+      : "No fees recorded"
+  );
+
+  const query =
+    String(value("paymentSearch") || "")
+      .trim()
+      .toLowerCase();
+
+  const statusFilter =
+    String(value("paymentStatusFilter") || "all");
+
+  const fees = [...v11FinanceData.fees]
+    .filter((fee) => {
+      const status = v11FeeDisplayStatus(fee);
+      const studentName = v11StudentName(fee["Student ID"]);
+
+      const haystack = [
+        fee["Fee ID"],
+        fee["Student ID"],
+        studentName,
+        fee["School Year"],
+        fee["Payment Plan"],
+        fee["Status"],
+        fee["Notes"]
+      ].join(" ").toLowerCase();
+
+      return (
+        (!query || haystack.includes(query)) &&
+        (statusFilter === "all" || status === statusFilter)
+      );
+    })
+    .sort((a, b) =>
+      v11StudentName(a["Student ID"]).localeCompare(
+        v11StudentName(b["Student ID"])
+      )
+    );
+
+  text(
+    "financeTableCount",
+    `${fees.length} fee account${fees.length === 1 ? "" : "s"}`
+  );
+
+  if (!fees.length) {
+    body.innerHTML = tableEmptyRow(
+      8,
+      query || statusFilter !== "all"
+        ? "No fee accounts match these filters."
+        : "No fee accounts yet. Click “Add fee” to create the first one."
+    );
+  } else {
+    body.innerHTML = fees.map((fee) => {
+      const amountDue = v11AmountDue(fee);
+      const paid = v11PaidForFee(fee);
+      const balance = v11BalanceForFee(fee);
+      const status = v11FeeDisplayStatus(fee);
+      const nextDue = v11NextDueDate(fee);
+      const feeId = String(fee["Fee ID"] || "");
+
+      return `
+        <tr>
+          <td>
+            <div class="finance-account-meta">
+              <strong>${escapeHtml(v11StudentName(fee["Student ID"]))}</strong>
+              <span>${escapeHtml(fee["Student ID"] || "—")}</span>
+            </div>
+          </td>
+
+          <td>
+            <div class="finance-account-meta">
+              <strong>${escapeHtml(feeId || "—")}</strong>
+              <span>
+                ${escapeHtml(fee["Payment Plan"] || "No plan")}
+                ${fee["School Year"] ? ` · ${escapeHtml(fee["School Year"])}` : ""}
+              </span>
+            </div>
+          </td>
+
+          <td>${formatMoney(amountDue)}</td>
+          <td>${formatMoney(paid)}</td>
+
+          <td>
+            <span class="finance-balance ${status === "Paid" ? "paid" : status === "Overdue" ? "overdue" : "due"}">
+              ${formatMoney(balance)}
+            </span>
+          </td>
+
+          <td>
+            ${nextDue
+              ? escapeHtml(formatDate(nextDue))
+              : status === "Paid"
+                ? '<span class="muted">Paid</span>'
+                : '<span class="muted">Not scheduled</span>'}
+          </td>
+
+          <td>${v11FinanceStatusBadge(status)}</td>
+
+          <td class="table-actions-cell">
+            <div class="finance-actions">
+              ${balance > 0.005
+                ? `<button class="row-action" type="button" data-v11-pay-fee="${escapeAttribute(feeId)}">Payment</button>`
+                : ""}
+              <button class="row-action" type="button" data-v11-edit-fee="${escapeAttribute(feeId)}">Edit fee</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    body.querySelectorAll("[data-v11-pay-fee]").forEach((button) => {
+      button.addEventListener("click", () => {
+        openNewPayment(button.dataset.v11PayFee);
+      });
+    });
+
+    body.querySelectorAll("[data-v11-edit-fee]").forEach((button) => {
+      button.addEventListener("click", () => {
+        openEditFee(button.dataset.v11EditFee);
+      });
+    });
+  }
+
+  v11RenderRecentPayments();
+}
+
+function v11FinanceStatusBadge(status) {
+  const className =
+    status === "Paid"
+      ? "status-completed"
+      : status === "Overdue"
+        ? "status-paused"
+        : status === "Part-paid"
+          ? "status-active"
+          : "status-pending";
+
+  return `
+    <span class="status-badge ${className}">
+      ${escapeHtml(status)}
+    </span>
+  `;
+}
+
+function v11RenderRecentPayments() {
+  const container = byId("recentPaymentsList");
+
+  if (!container) {
+    return;
+  }
+
+  const payments = [...v11FinanceData.payments]
+    .sort((a, b) =>
+      String(b["Payment Date"] || "").localeCompare(
+        String(a["Payment Date"] || "")
+      )
+    )
+    .slice(0, 12);
+
+  if (!payments.length) {
+    container.innerHTML = emptyState("No payments have been recorded yet.");
+    return;
+  }
+
+  container.innerHTML = payments.map((payment) => `
+    <div class="finance-history-row">
+      <strong>${escapeHtml(v11StudentName(payment["Student ID"]))}</strong>
+      <span class="amount">${formatMoney(v11Money(payment["Amount"]))}</span>
+      <span>${escapeHtml(payment["Payment Date"] ? formatDate(payment["Payment Date"]) : "—")}</span>
+      <span>${escapeHtml(payment["Payment Method"] || "—")}</span>
+      <span class="muted">${escapeHtml(payment["Reference"] || payment["Notes"] || payment["Payment ID"] || "")}</span>
+    </div>
+  `).join("");
+}
+
+function v11AcademicYear() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+
+  const startYear = month >= 8 ? year : year - 1;
+  return `${startYear}/${String(startYear + 1).slice(-2)}`;
+}
+
+function v11PopulateFeeStudentSelect(selectedId = "") {
+  const select = byId("feeStudent");
+
+  if (!select) {
+    return;
+  }
+
+  select.innerHTML =
+    `<option value="">Select student</option>` +
+    [...v11FinanceData.students]
+      .sort((a, b) =>
+        v11StudentName(a["Student ID"]).localeCompare(
+          v11StudentName(b["Student ID"])
+        )
+      )
+      .map((student) => {
+        const id = String(student["Student ID"] || "");
+        return `
+          <option value="${escapeAttribute(id)}">
+            ${escapeHtml(v11StudentName(id))} — ${escapeHtml(id)}
+          </option>
+        `;
+      })
+      .join("");
+
+  select.value = selectedId || "";
+}
+
+function v11ActiveEnrolmentForStudent(studentId) {
+  return v11FinanceData.enrolments.find((enrolment) => {
+    const sameStudent =
+      String(enrolment["Student ID"] || "") === String(studentId || "");
+
+    const status =
+      String(enrolment["Status"] || "").trim().toLowerCase();
+
+    return sameStudent && (!status || status === "active");
+  }) || null;
+}
+
+function openNewFee() {
+  if (!v11FinanceLoaded) {
+    showToast("Wait for the live Finance data to load.", "error");
+    return;
+  }
+
+  byId("feeForm")?.reset();
+  setValue("feeId", "");
+  setValue("feeSchoolYear", v11AcademicYear());
+  setValue("feeDiscount", "0");
+  setValue("feeStatus", "Open");
+  setValue("feePaymentPlan", "3 instalments");
+
+  v11PopulateFeeStudentSelect();
+
+  text("feeModalTitle", "Add student fee");
+  openModal("feeModal");
+}
+
+function openEditFee(feeId) {
+  const fee = v11FeeById(feeId);
+
+  if (!fee) {
+    showToast("That fee account could not be found.", "error");
+    return;
+  }
+
+  byId("feeForm")?.reset();
+  v11PopulateFeeStudentSelect(String(fee["Student ID"] || ""));
+
+  setValue("feeId", fee["Fee ID"]);
+  setValue("feeSchoolYear", fee["School Year"]);
+  setValue("feeCourseFee", v11Money(fee["Course Fee"]));
+  setValue("feeDiscount", v11Money(fee["Discount"]));
+  setValue("feePaymentPlan", fee["Payment Plan"] || "Full payment");
+  setValue("feeInstalment1", fee["Instalment 1 Due"]);
+  setValue("feeInstalment2", fee["Instalment 2 Due"]);
+  setValue("feeInstalment3", fee["Instalment 3 Due"]);
+  setValue("feeStatus", fee["Status"] || "Open");
+  setValue("feeNotes", fee["Notes"]);
+
+  text("feeModalTitle", "Edit student fee");
+  openModal("feeModal");
+}
+
+async function saveV11FeeForm(event) {
+  event.preventDefault();
+
+  const saveButton = byId("feeSaveButton");
+  const studentId = value("feeStudent");
+  const courseFee = v11Money(value("feeCourseFee"));
+  const discount = v11Money(value("feeDiscount"));
+  const feeId = value("feeId");
+
+  if (!studentId) {
+    showToast("Select a student.", "error");
+    return;
+  }
+
+  if (courseFee <= 0) {
+    showToast("Enter a course fee greater than zero.", "error");
+    return;
+  }
+
+  if (discount < 0 || discount > courseFee) {
+    showToast("Check the discount amount.", "error");
+    return;
+  }
+
+  const enrolment =
+    v11ActiveEnrolmentForStudent(studentId);
+
+  const fields = {
+    "Student ID": studentId,
+    "Enrolment ID": String(enrolment?.["Enrolment ID"] || ""),
+    "School Year": value("feeSchoolYear").trim(),
+    "Course Fee": courseFee,
+    "Discount": discount,
+    "Amount Due": Math.max(0, courseFee - discount),
+    "Payment Plan": value("feePaymentPlan"),
+    "Instalment 1 Due": value("feeInstalment1"),
+    "Instalment 2 Due": value("feeInstalment2"),
+    "Instalment 3 Due": value("feeInstalment3"),
+    "Status": value("feeStatus"),
+    "Notes": value("feeNotes").trim()
+  };
+
+  const original = saveButton?.textContent || "Save fee";
+
+  if (saveButton) {
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving…";
+  }
+
+  try {
+    await v11ApiPost(
+      feeId
+        ? {
+            action: "updateFee",
+            feeId,
+            fields
+          }
+        : {
+            action: "createFee",
+            fields
+          }
+    );
+
+    closeModal("feeModal");
+    showToast(
+      feeId
+        ? "Fee updated in Google Sheets."
+        : "Fee created in Google Sheets.",
+      "success"
+    );
+
+    v11FinanceLoaded = false;
+    await loadV11Finance(true);
+
+  } catch (error) {
+    showToast(
+      error?.message || "Could not save the fee.",
+      "error"
+    );
+    console.error("V11 fee save error:", error);
+
+  } finally {
+    if (saveButton) {
+      saveButton.disabled = false;
+      saveButton.textContent = original;
+    }
+  }
+}
+
+function v11PopulatePaymentFeeSelect(selectedFeeId = "") {
+  const select = byId("paymentFeeAccount");
+
+  if (!select) {
+    return;
+  }
+
+  const openFees = v11FinanceData.fees
+    .filter((fee) => v11BalanceForFee(fee) > 0.005)
+    .sort((a, b) =>
+      v11StudentName(a["Student ID"]).localeCompare(
+        v11StudentName(b["Student ID"])
+      )
+    );
+
+  select.innerHTML =
+    `<option value="">Select fee account</option>` +
+    openFees.map((fee) => `
+      <option value="${escapeAttribute(fee["Fee ID"] || "")}">
+        ${escapeHtml(v11StudentName(fee["Student ID"]))}
+        — ${escapeHtml(fee["Fee ID"] || "")}
+        — balance ${escapeHtml(formatMoney(v11BalanceForFee(fee)))}
+      </option>
+    `).join("");
+
+  select.value = selectedFeeId || "";
+}
+
+function openNewPayment(preselectedFeeId = "") {
+  if (!v11FinanceLoaded) {
+    showToast("Wait for the live Finance data to load.", "error");
+    return;
+  }
+
+  const openFees =
+    v11FinanceData.fees.filter(
+      (fee) => v11BalanceForFee(fee) > 0.005
+    );
+
+  if (!openFees.length) {
+    showToast(
+      "There are no open fee balances. Add a fee account first.",
+      "error"
+    );
+    return;
+  }
+
+  byId("paymentForm")?.reset();
+
+  setValue("paymentId", "");
+  setValue("paymentDate", isoDate(new Date()));
+  setValue("paymentMethod", "Cash");
+  setValue("paymentRecordedBy", "Admin");
+
+  v11PopulatePaymentFeeSelect(preselectedFeeId);
+
+  if (preselectedFeeId) {
+    const fee = v11FeeById(preselectedFeeId);
+    if (fee) {
+      setValue(
+        "paymentPaid",
+        v11BalanceForFee(fee).toFixed(2)
+      );
+    }
+  }
+
+  text("paymentModalTitle", "Record payment");
+  openModal("paymentModal");
+}
+
+async function savePaymentForm(event) {
+  event.preventDefault();
+
+  const feeId = value("paymentFeeAccount");
+  const fee = v11FeeById(feeId);
+  const amount = v11Money(value("paymentPaid"));
+  const saveButton = byId("paymentSaveButton");
+
+  if (!fee) {
+    showToast("Select a fee account.", "error");
+    return;
+  }
+
+  if (amount <= 0) {
+    showToast("Enter the amount received.", "error");
+    return;
+  }
+
+  const original = saveButton?.textContent || "Save payment";
+
+  if (saveButton) {
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving…";
+  }
+
+  try {
+    await v11ApiPost({
+      action: "createPayment",
+      fields: {
+        "Fee ID": feeId,
+        "Student ID": String(fee["Student ID"] || ""),
+        "Payment Date": value("paymentDate"),
+        "Amount": amount,
+        "Payment Method": value("paymentMethod"),
+        "Instalment": value("paymentInstalment"),
+        "Reference": value("paymentReference").trim(),
+        "Recorded By": value("paymentRecordedBy").trim(),
+        "Notes": value("paymentNotes").trim()
+      }
+    });
+
+    closeModal("paymentModal");
+    showToast("Payment recorded in Google Sheets.", "success");
+
+    v11FinanceLoaded = false;
+    await loadV11Finance(true);
+
+  } catch (error) {
+    showToast(
+      error?.message || "Could not record the payment.",
+      "error"
+    );
+    console.error("V11 payment save error:", error);
+
+  } finally {
+    if (saveButton) {
+      saveButton.disabled = false;
+      saveButton.textContent = original;
+    }
+  }
+}
+
+function exportPaymentsCsv() {
+  if (!v11FinanceLoaded) {
+    showToast("Load Finance before exporting.", "error");
+    return;
+  }
+
+  const rows = [
+    [
+      "Fee ID",
+      "Student ID",
+      "Student",
+      "School Year",
+      "Payment Plan",
+      "Course Fee",
+      "Discount",
+      "Amount Due",
+      "Collected",
+      "Balance",
+      "Overdue",
+      "Next Due",
+      "Status"
+    ],
+    ...v11FinanceData.fees.map((fee) => [
+      fee["Fee ID"],
+      fee["Student ID"],
+      v11StudentName(fee["Student ID"]),
+      fee["School Year"],
+      fee["Payment Plan"],
+      v11Money(fee["Course Fee"]),
+      v11Money(fee["Discount"]),
+      v11AmountDue(fee),
+      v11PaidForFee(fee),
+      v11BalanceForFee(fee),
+      v11OverdueAmountForFee(fee),
+      v11NextDueDate(fee),
+      v11FeeDisplayStatus(fee)
+    ]),
+    [],
+    ["PAYMENT TRANSACTIONS"],
+    [
+      "Payment ID",
+      "Fee ID",
+      "Student ID",
+      "Student",
+      "Payment Date",
+      "Amount",
+      "Method",
+      "Instalment",
+      "Reference",
+      "Recorded By",
+      "Notes"
+    ],
+    ...v11FinanceData.payments.map((payment) => [
+      payment["Payment ID"],
+      payment["Fee ID"],
+      payment["Student ID"],
+      v11StudentName(payment["Student ID"]),
+      payment["Payment Date"],
+      v11Money(payment["Amount"]),
+      payment["Payment Method"],
+      payment["Instalment"],
+      payment["Reference"],
+      payment["Recorded By"],
+      payment["Notes"]
+    ])
+  ];
+
+  downloadCsv(
+    `lls-finance-${isoDate(new Date())}.csv`,
+    rows
+  );
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  byId("addFeeButton")?.addEventListener("click", openNewFee);
+  byId("refreshFinanceButton")?.addEventListener(
+    "click",
+    () => loadV11Finance(true)
+  );
+
+  byId("feeForm")?.addEventListener(
+    "submit",
+    saveV11FeeForm
+  );
+
+  const feeStudent = byId("feeStudent");
+  feeStudent?.addEventListener("change", () => {
+    const enrolment =
+      v11ActiveEnrolmentForStudent(feeStudent.value);
+
+    if (enrolment?.["School Year"]) {
+      setValue(
+        "feeSchoolYear",
+        enrolment["School Year"]
+      );
+    }
+  });
+});
