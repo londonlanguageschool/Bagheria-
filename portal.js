@@ -7617,13 +7617,13 @@ renderDashboard = function () {
   );
 };
 
-async function v11ApiGetPortalData() {
+async function v11ApiGetTable(tableName) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
     const response = await fetch(
-      `${LLS_API_URL}?action=getPortalData&t=${Date.now()}`,
+      `${LLS_API_URL}?action=getTable&table=${encodeURIComponent(tableName)}&t=${Date.now()}`,
       {
         method: "GET",
         cache: "no-store",
@@ -7638,19 +7638,40 @@ async function v11ApiGetPortalData() {
     try {
       data = JSON.parse(raw);
     } catch (_) {
-      throw new Error("The Finance API response was not JSON.");
+      throw new Error(
+        `The ${tableName} response was not valid JSON.`
+      );
     }
 
     if (!data || data.success !== true) {
       throw new Error(
-        data?.error || "Google Sheets did not return finance data."
+        data?.error || `Could not load ${tableName}.`
       );
     }
 
-    return data;
+    return Array.isArray(data.records)
+      ? data.records
+      : [];
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function v11ApiGetFinanceData() {
+  const [fees, payments, students, enrolments] =
+    await Promise.all([
+      v11ApiGetTable("fees"),
+      v11ApiGetTable("payments"),
+      v11ApiGetTable("students"),
+      v11ApiGetTable("enrolments")
+    ]);
+
+  return {
+    fees,
+    payments,
+    students,
+    enrolments
+  };
 }
 
 async function v11ApiPost(payload) {
@@ -7715,7 +7736,7 @@ async function loadV11Finance(force = false) {
   }
 
   try {
-    const data = await v11ApiGetPortalData();
+    const data = await v11ApiGetFinanceData();
 
     v11FinanceData = {
       students: Array.isArray(data.students) ? data.students : [],
@@ -7730,7 +7751,7 @@ async function loadV11Finance(force = false) {
     if (typeof v6PortalData !== "undefined") {
       v6PortalData = {
         students: v11FinanceData.students,
-        classes: Array.isArray(data.classes) ? data.classes : [],
+        classes: Array.isArray(v6PortalData.classes) ? v6PortalData.classes : [],
         enrolments: v11FinanceData.enrolments
       };
       v6PortalDataLoaded = true;
@@ -7752,7 +7773,7 @@ async function loadV11Finance(force = false) {
 
     const message =
       error?.name === "AbortError"
-        ? "The finance request timed out after 30 seconds."
+        ? "A Finance table request timed out after 15 seconds."
         : error?.message || "Unknown finance connection error.";
 
     v11SetFinanceConnection("Connection error", "error", message);
