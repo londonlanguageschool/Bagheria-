@@ -339,6 +339,9 @@
 
     .button {
       display: inline-flex;
+      border: 0;
+      cursor: pointer;
+      font: inherit;
       align-items: center;
       justify-content: center;
       gap: 8px;
@@ -949,26 +952,34 @@
 
     .gallery-video {
       background: white;
+      height: 380px;
+      display: flex;
+      flex-direction: column;
     }
 
     .gallery-video iframe {
       display: block;
       width: 100%;
-      aspect-ratio: 9 / 16;
-      max-height: 480px;
+      height: 318px;
+      flex: 1 1 auto;
       border: 0;
       background: #000;
     }
 
     .video-caption {
-      padding: 16px 18px;
+      min-height: 62px;
+      padding: 14px 18px;
       color: var(--navy);
       font-weight: 900;
       text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .gallery-item {
-      min-height: 280px;
+      height: 380px;
+      min-height: 380px;
       display: flex;
       align-items: flex-end;
       padding: 22px;
@@ -1213,6 +1224,127 @@
       color: white;
     }
 
+
+    /* PROSPECTIVE CLIENT JOURNEY */
+
+    .lead-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 3000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(2, 22, 47, 0.72);
+      backdrop-filter: blur(8px);
+    }
+
+    .lead-modal.open { display: flex; }
+
+    .lead-card {
+      width: min(760px, 100%);
+      max-height: 92vh;
+      overflow-y: auto;
+      background: white;
+      border-radius: 28px;
+      padding: 32px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.28);
+      position: relative;
+    }
+
+    .lead-close {
+      position: absolute;
+      top: 16px;
+      right: 18px;
+      border: 0;
+      background: #eef4f9;
+      color: var(--navy);
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      font-size: 1.35rem;
+      cursor: pointer;
+    }
+
+    .lead-kicker {
+      color: var(--red);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .11em;
+      font-size: .76rem;
+      margin-bottom: 7px;
+    }
+
+    .lead-card h2, .lead-card h3 { color: var(--navy); }
+    .lead-card h2 { font-size: 2rem; line-height: 1.1; margin-bottom: 8px; }
+    .lead-intro { color: var(--muted); margin-bottom: 24px; }
+
+    .lead-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .lead-field { display: grid; gap: 6px; margin-bottom: 16px; }
+    .lead-field label { color: var(--navy); font-weight: 850; font-size: .9rem; }
+    .lead-field input, .lead-field select, .lead-field textarea {
+      width: 100%;
+      border: 1px solid #cfdce8;
+      border-radius: 13px;
+      padding: 12px 13px;
+      font: inherit;
+      color: var(--text);
+      background: white;
+    }
+
+    .lead-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+    .lead-message { margin-top: 12px; font-weight: 800; }
+    .lead-message.error { color: var(--red-dark); }
+
+    .journey-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 22px;
+    }
+
+    .journey-option {
+      min-height: 150px;
+      border: 1px solid #dbe7f1;
+      border-radius: 20px;
+      padding: 20px;
+      background: #f8fbfe;
+      color: var(--navy);
+      text-align: left;
+      cursor: pointer;
+      font: inherit;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+    .journey-option:hover { transform: translateY(-3px); box-shadow: var(--shadow-soft); }
+    .journey-option strong { display: block; font-size: 1.05rem; margin: 8px 0 5px; }
+    .journey-option span { color: var(--muted); font-size: .9rem; }
+
+    .level-question {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .level-question p { color: var(--navy); font-weight: 850; margin-bottom: 9px; }
+    .level-question label { display: block; padding: 5px 0; cursor: pointer; }
+    .level-result {
+      background: var(--blue-soft);
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+      margin-top: 18px;
+    }
+
+    @media (max-width: 680px) {
+      .lead-card { padding: 26px 20px; }
+      .lead-grid, .journey-options { grid-template-columns: 1fr; }
+      .gallery-video, .gallery-item { height: 340px; min-height: 340px; }
+    }
+
     /* MOBILE */
 
     @media (max-width: 980px) {
@@ -1416,22 +1548,14 @@
           </p>
 
           <div class="hero-buttons">
-            <a
+            <button
               class="button button-red"
-              href="https://cal.com/londonlanguageschoolbagheria/prova"
-              target="_blank"
-              rel="noopener"
+              type="button"
+              id="startJourneyButton"
+              onclick="openLeadJourney()"
             >
-              Prenota una prova
-            </a>
-<a
-  class="button button-outline"
-  href="https://tally.so/r/vGZxbd"
-  target="_blank"
-  rel="noopener"
->
-  Richiedi informazioni
-</a>
+              Inizia da qui
+            </button>
             <a class="button button-outline" href="#courses">
               Scopri i corsi
             </a>
@@ -2078,6 +2202,65 @@
     ☎
   </a>
 
+
+  <!-- SINGLE PROSPECTIVE-CLIENT JOURNEY -->
+  <div class="lead-modal" id="leadModal" aria-hidden="true">
+    <div class="lead-card" role="dialog" aria-modal="true" aria-labelledby="leadTitle">
+      <button class="lead-close" type="button" onclick="closeLeadJourney()" aria-label="Chiudi">×</button>
+
+      <div id="leadStep1">
+        <div class="lead-kicker">London Language School</div>
+        <h2 id="leadTitle">Inizia da qui</h2>
+        <p class="lead-intro">Lasciaci i tuoi dati e scegli come vuoi continuare. Non devi completare tutti i passaggi.</p>
+
+        <form id="leadForm">
+          <div class="lead-grid">
+            <div class="lead-field"><label for="leadName">Nome e cognome *</label><input id="leadName" required autocomplete="name"></div>
+            <div class="lead-field"><label for="leadPhone">Telefono / WhatsApp *</label><input id="leadPhone" required autocomplete="tel" inputmode="tel" placeholder="+39 ..."></div>
+            <div class="lead-field"><label for="leadEmail">Email</label><input id="leadEmail" type="email" autocomplete="email"></div>
+            <div class="lead-field"><label for="leadWho">Per chi è il corso? *</label>
+              <select id="leadWho" required>
+                <option value="">Seleziona…</option><option>Per me</option><option>Per mio/a figlio/a</option>
+                <option>Per la mia azienda</option><option>Per la mia scuola / istituto</option>
+              </select>
+            </div>
+            <div class="lead-field"><label for="leadAge">Età dello studente</label><input id="leadAge" inputmode="numeric"></div>
+            <div class="lead-field"><label for="leadCourse">Corso di interesse *</label>
+              <select id="leadCourse" required>
+                <option value="">Seleziona…</option><option>Inglese per bambini</option><option>Inglese per ragazzi</option>
+                <option>Inglese per adulti</option><option>Preparazione Cambridge</option><option>Lezioni individuali</option>
+                <option>Corsi aziendali</option><option>Corsi per scuole</option><option>Non sono sicuro/a – vorrei un consiglio</option>
+              </select>
+            </div>
+          </div>
+          <div class="lead-field"><label for="leadNotes">Come possiamo aiutarti?</label><textarea id="leadNotes" rows="3"></textarea></div>
+          <div class="lead-actions"><button class="button button-red" id="leadSaveButton" type="submit">Continua</button></div>
+          <div class="lead-message" id="leadMessage" aria-live="polite"></div>
+        </form>
+      </div>
+
+      <div id="leadStep2" hidden>
+        <div class="lead-kicker">Richiesta ricevuta ✓</div>
+        <h2>Cosa vuoi fare adesso?</h2>
+        <p class="lead-intro">Scegli una sola opzione oppure chiudi: la tua richiesta è già stata registrata.</p>
+        <div class="journey-options">
+          <button class="journey-option" type="button" onclick="showLevelChecker()"><div>📊</div><strong>Scopri il tuo livello</strong><span>Fai un rapido level checker.</span></button>
+          <button class="journey-option" type="button" onclick="bookTrial()"><div>📅</div><strong>Prenota una prova</strong><span>Scegli giorno e orario su Cal.com.</span></button>
+          <button class="journey-option" type="button" onclick="requestInfo()"><div>💬</div><strong>Vorrei informazioni</strong><span>Ti contatteremo noi.</span></button>
+        </div>
+      </div>
+
+      <div id="leadLevel" hidden>
+        <div class="lead-kicker">Quick Level Checker</div>
+        <h2>Qual è il tuo livello?</h2>
+        <p class="lead-intro">10 domande rapide. Il risultato è indicativo e potrà essere confermato con un insegnante.</p>
+        <form id="levelForm"></form>
+        <div class="lead-actions"><button class="button button-red" type="button" onclick="scoreLevelChecker()">Vedi il risultato</button></div>
+        <div id="levelResult"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- FOOTER -->
   <footer>
     <div class="container footer-inner">
@@ -2384,6 +2567,145 @@
 
     const savedLanguage = localStorage.getItem("lls-language");
     setLanguage(savedLanguage === "en" ? "en" : "it");
+  
+    const LLS_ENQUIRY_API = "https://script.google.com/macros/s/AKfycbyHbfFoaiMOT1rpY2DcbXAkuNwMoOHVdLlG2aQLgPgCe5gqPuyk8VYm7i4eGQRm8iqi/exec";
+    let currentLeadId = "";
+
+    function openLeadJourney() {
+      document.getElementById("leadModal").classList.add("open");
+      document.getElementById("leadModal").setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeLeadJourney() {
+      document.getElementById("leadModal").classList.remove("open");
+      document.getElementById("leadModal").setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
+
+    async function enquiryPost(payload) {
+      const response = await fetch(LLS_ENQUIRY_API, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload),
+        redirect: "follow"
+      });
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || "Salvataggio non riuscito.");
+      return data;
+    }
+
+    document.getElementById("leadForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = document.getElementById("leadSaveButton");
+      const message = document.getElementById("leadMessage");
+      button.disabled = true;
+      button.textContent = "Salvataggio…";
+      message.textContent = "";
+      message.className = "lead-message";
+
+      const who = document.getElementById("leadWho").value;
+      const age = document.getElementById("leadAge").value.trim();
+      const notes = document.getElementById("leadNotes").value.trim();
+
+      try {
+        const result = await enquiryPost({
+          action: "createEnquiry",
+          fields: {
+            "Name": document.getElementById("leadName").value.trim(),
+            "Age": age || who,
+            "Phone": document.getElementById("leadPhone").value.trim(),
+            "Email": document.getElementById("leadEmail").value.trim(),
+            "Course": document.getElementById("leadCourse").value,
+            "Source": "Website",
+            "Stage": "New",
+            "Follow-up": "",
+            "Notes": [who, notes].filter(Boolean).join(" — "),
+            "Level Result": "",
+            "Trial Requested": "No"
+          }
+        });
+        currentLeadId = result.enquiryId || "";
+        document.getElementById("leadStep1").hidden = true;
+        document.getElementById("leadStep2").hidden = false;
+      } catch (error) {
+        message.textContent = "Non siamo riusciti a registrare la richiesta. Riprova oppure contattaci su WhatsApp.";
+        message.classList.add("error");
+      } finally {
+        button.disabled = false;
+        button.textContent = "Continua";
+      }
+    });
+
+    async function updateCurrentLead(fields) {
+      if (!currentLeadId) return;
+      try {
+        await enquiryPost({ action: "updateEnquiry", enquiryId: currentLeadId, fields });
+      } catch (error) {
+        console.error("Lead update failed", error);
+      }
+    }
+
+    async function bookTrial() {
+      await updateCurrentLead({ "Trial Requested": "Yes" });
+      window.open("https://cal.com/londonlanguageschoolbagheria/prova", "_blank", "noopener");
+    }
+
+    async function requestInfo() {
+      await updateCurrentLead({ "Notes": "Richiesta informazioni dal sito" });
+      document.getElementById("leadStep2").innerHTML =
+        '<div class="lead-kicker">Perfetto ✓</div><h2>Ti contatteremo presto.</h2><p class="lead-intro">La tua richiesta è già nel nostro sistema. London Language School ti ricontatterà per aiutarti a scegliere il corso più adatto.</p><button class="button button-red" type="button" onclick="closeLeadJourney()">Chiudi</button>';
+    }
+
+    const levelQuestions = [
+      ["I ___ from Italy.", ["am","is","are"], 0],
+      ["She ___ English every Tuesday.", ["study","studies","studying"], 1],
+      ["We ___ to London last year.", ["go","went","have go"], 1],
+      ["I’ve lived here ___ 2022.", ["for","since","from"], 1],
+      ["If it rains, we ___ at home.", ["stay","will stay","stayed"], 1],
+      ["This book ___ by millions of people.", ["has read","has been read","was reading"], 1],
+      ["I wish I ___ more time.", ["have","had","would have"], 1],
+      ["By next June, she ___ the course.", ["will finish","will have finished","finishes"], 1],
+      ["Hardly ___ the meeting started when the fire alarm rang.", ["had","has","did"], 0],
+      ["His explanation was so ___ that everyone understood immediately.", ["lucid","loose","scarce"], 0]
+    ];
+
+    function showLevelChecker() {
+      document.getElementById("leadStep2").hidden = true;
+      document.getElementById("leadLevel").hidden = false;
+      const form = document.getElementById("levelForm");
+      form.innerHTML = levelQuestions.map((q, i) =>
+        `<div class="level-question"><p>${i + 1}. ${q[0]}</p>${q[1].map((a, j) =>
+          `<label><input type="radio" name="q${i}" value="${j}"> ${a}</label>`).join("")}</div>`
+      ).join("");
+    }
+
+    async function scoreLevelChecker() {
+      let score = 0;
+      for (let i = 0; i < levelQuestions.length; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        if (!selected) {
+          document.getElementById("levelResult").innerHTML =
+            '<p class="lead-message error">Rispondi a tutte le domande prima di vedere il risultato.</p>';
+          return;
+        }
+        if (Number(selected.value) === levelQuestions[i][2]) score++;
+      }
+      let level = "A1";
+      if (score >= 9) level = "C1";
+      else if (score >= 7) level = "B2";
+      else if (score >= 5) level = "B1";
+      else if (score >= 3) level = "A2";
+
+      await updateCurrentLead({ "Level Result": level });
+      document.getElementById("levelResult").innerHTML =
+        `<div class="level-result"><div class="lead-kicker">Risultato indicativo</div><h3>Il tuo livello è circa ${level}</h3><p>Possiamo confermarlo gratuitamente con un insegnante.</p><br><button class="button button-red" type="button" onclick="bookTrial()">Prenota una prova</button></div>`;
+    }
+
+    document.getElementById("leadModal").addEventListener("click", (event) => {
+      if (event.target.id === "leadModal") closeLeadJourney();
+    });
+
   </script>
 
 </body>
