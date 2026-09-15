@@ -57,6 +57,8 @@ const CHART_COLOURS = [
 ];
 
 let state = loadState();
+// V12: never render legacy/local enquiry records.
+state.enquiries = [];
 let confirmCallback = null;
 let attendanceDraft = {};
 
@@ -151,9 +153,7 @@ function ensureStateStructure() {
     ? state.payments
     : [];
 
-  state.enquiries = Array.isArray(state.enquiries)
-    ? state.enquiries
-    : [];
+  state.enquiries = []; // V12: Enquiries are live from Google Sheets only.
 
   state.attendance =
     state.attendance && typeof state.attendance === "object"
