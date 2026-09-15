@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#082d5c">
   <meta name="description" content="London Language School management portal">
-  <title>LLS Portal V11 | London Language School</title>
-  <link rel="stylesheet" href="portal.css?v=11">
+  <title>LLS Portal | London Language School</title>
+  <link rel="stylesheet" href="portal.css">
 </head>
 
 <body>
@@ -177,7 +177,8 @@
               <p class="hero-kicker" id="todayLabel">Today</p>
               <h2>Welcome to your school portal.</h2>
               <p>
-                Live administrator view of students, classes and enrolments, with the proven lesson register connected to Google Sheets.
+                Keep students, classes, payments, enquiries and attendance
+                organised in one place.
               </p>
             </div>
 
@@ -408,19 +409,6 @@
             </button>
           </div>
 
-          <div class="panel live-sheet-panel" id="class1LivePanel">
-            <div class="live-sheet-status">
-              <div>
-                <p class="section-label">Google Sheets</p>
-                <h3>Class 1 NEW</h3>
-              </div>
-              <span class="live-status live-status-loading">Waiting…</span>
-            </div>
-            <p class="muted">
-              Open the Classes page to load the live test register.
-            </p>
-          </div>
-
           <div class="filter-bar">
             <div class="filter-search">
               <span>⌕</span>
@@ -450,7 +438,7 @@
               <p class="section-label">Academic records</p>
               <h2>Attendance</h2>
               <p class="page-description">
-                Record live attendance against the selected class register in Google Sheets.
+                Record attendance for each student and monitor attendance rates.
               </p>
             </div>
 
@@ -470,27 +458,9 @@
               <input id="attendanceDate" type="date">
             </div>
 
-            <div class="form-field">
-              <label for="attendanceLessonSelect">Register lesson</label>
-              <select id="attendanceLessonSelect">
-                <option value="">No lesson loaded</option>
-              </select>
-            </div>
-
             <button class="button button-primary" id="saveAttendanceButton" type="button">
               Save attendance
             </button>
-          </div>
-
-          <div class="panel v10-attendance-status" id="attendanceLiveStatus">
-            <div>
-              <p class="section-label">Google Sheets</p>
-              <h3>Live attendance register</h3>
-              <p class="muted" id="attendanceLiveStatusText">
-                Choose a class to load its linked lesson register.
-              </p>
-            </div>
-            <span class="live-status live-status-loading" id="attendanceLiveBadge">Waiting…</span>
           </div>
 
           <div class="attendance-summary-grid">
@@ -538,22 +508,16 @@
         <section class="page" id="page-fees">
           <div class="page-toolbar">
             <div>
-              <p class="section-label">Private management finance</p>
+              <p class="section-label">Finance</p>
               <h2>Fees & Payments</h2>
               <p class="page-description">
-                Live fee accounts and payment records from the school Google Sheet.
+                Track fees, payments, outstanding balances and payment dates.
               </p>
             </div>
 
             <div class="toolbar-buttons">
-              <button class="button button-secondary" id="refreshFinanceButton" type="button">
-                Refresh
-              </button>
               <button class="button button-secondary" id="exportPaymentsButton" type="button">
                 Export CSV
-              </button>
-              <button class="button button-soft" id="addFeeButton" type="button">
-                + Add fee
               </button>
               <button class="button button-primary" id="addPaymentButton" type="button">
                 + Record payment
@@ -561,53 +525,32 @@
             </div>
           </div>
 
-          <div class="panel finance-live-banner" id="financeLiveStatus">
-            <div>
-              <p class="section-label">Google Sheets</p>
-              <h3>Live finance data</h3>
-              <p class="muted" id="financeLiveStatusText">
-                Open this page to load Fees and Payments.
-              </p>
-            </div>
-            <span class="live-status live-status-loading" id="financeLiveBadge">Waiting…</span>
-          </div>
-
-          <div class="finance-stats finance-stats-v11">
+          <div class="finance-stats">
             <article class="finance-card">
-              <span>Total due</span>
+              <span>Total fees</span>
               <strong id="financeTotalFees">€0</strong>
-              <small>After discounts</small>
             </article>
 
             <article class="finance-card finance-card-positive">
               <span>Collected</span>
               <strong id="financeCollected">€0</strong>
-              <small>All recorded payments</small>
             </article>
 
             <article class="finance-card finance-card-warning">
               <span>Outstanding</span>
               <strong id="financeOutstanding">€0</strong>
-              <small>Still to collect</small>
-            </article>
-
-            <article class="finance-card finance-card-danger">
-              <span>Overdue</span>
-              <strong id="financeOverdue">€0</strong>
-              <small id="financeOverdueSub">No overdue accounts</small>
             </article>
 
             <article class="finance-card">
               <span>Collection rate</span>
               <strong id="financeRate">0%</strong>
-              <small id="financeRateSub">No fees recorded</small>
             </article>
           </div>
 
           <div class="filter-bar">
             <div class="filter-search">
               <span>⌕</span>
-              <input id="paymentSearch" type="search" placeholder="Search student, fee ID or payment plan...">
+              <input id="paymentSearch" type="search" placeholder="Search payments...">
             </div>
 
             <select id="paymentStatusFilter">
@@ -615,7 +558,6 @@
               <option value="Paid">Paid</option>
               <option value="Part-paid">Part-paid</option>
               <option value="Due">Due</option>
-              <option value="Overdue">Overdue</option>
             </select>
           </div>
 
@@ -625,11 +567,11 @@
                 <thead>
                   <tr>
                     <th>Student</th>
-                    <th>Fee / plan</th>
-                    <th>Amount due</th>
+                    <th>Description</th>
+                    <th>Total fee</th>
                     <th>Paid</th>
                     <th>Balance</th>
-                    <th>Next due</th>
+                    <th>Last payment</th>
                     <th>Status</th>
                     <th class="table-actions-cell">Actions</th>
                   </tr>
@@ -637,20 +579,7 @@
                 <tbody id="paymentsTableBody"></tbody>
               </table>
             </div>
-            <div class="table-footer">
-              <span id="financeTableCount">0 fee accounts</span>
-            </div>
           </div>
-
-          <article class="panel finance-history-panel">
-            <div class="panel-header">
-              <div>
-                <p class="section-label">Transactions</p>
-                <h3>Recent payments</h3>
-              </div>
-            </div>
-            <div id="recentPaymentsList" class="finance-history-list"></div>
-          </article>
         </section>
 
         <!-- =========================
@@ -941,13 +870,13 @@
   </div>
 
   <!-- =========================
-       STUDENT MODAL — V8 LIVE MASTER DATA
+       STUDENT MODAL
   ========================== -->
   <div class="modal-backdrop" id="studentModal">
     <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="studentModalTitle">
       <div class="modal-header">
         <div>
-          <p class="section-label">Live student master record · TEST data</p>
+          <p class="section-label">Student record</p>
           <h2 id="studentModalTitle">Add student</h2>
         </div>
         <button class="modal-close" type="button" data-close-modal="studentModal">×</button>
@@ -955,10 +884,6 @@
 
       <form id="studentForm">
         <input type="hidden" id="studentId">
-
-        <div class="v8-form-note">
-          Student records save directly to the TEST Google Sheet. Class allocation is managed separately through enrolments.
-        </div>
 
         <div class="form-grid">
           <div class="form-field">
@@ -987,9 +912,9 @@
           </div>
 
           <div class="form-field">
-            <label for="studentLevel">Current level</label>
-            <select id="studentLevel">
-              <option value="">Not set</option>
+            <label for="studentLevel">Level *</label>
+            <select id="studentLevel" required>
+              <option value="">Select level</option>
               <option value="Young Learners">Young Learners</option>
               <option value="A1">A1</option>
               <option value="A2">A2</option>
@@ -998,6 +923,11 @@
               <option value="C1">C1</option>
               <option value="C2">C2</option>
             </select>
+          </div>
+
+          <div class="form-field">
+            <label for="studentClass">Class</label>
+            <select id="studentClass"></select>
           </div>
 
           <div class="form-field">
@@ -1014,7 +944,7 @@
             <input id="studentJoined" type="date">
           </div>
 
-          <div class="form-field form-field-wide">
+          <div class="form-field">
             <label for="studentParent">Parent / guardian</label>
             <input id="studentParent" type="text">
           </div>
@@ -1029,62 +959,8 @@
           <button class="button button-secondary" type="button" data-close-modal="studentModal">
             Cancel
           </button>
-          <button class="button button-primary" id="studentSaveButton" type="submit">
+          <button class="button button-primary" type="submit">
             Save student
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- =========================
-       ENROLMENT MODAL — V8
-  ========================== -->
-  <div class="modal-backdrop" id="enrolmentModal">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="enrolmentModalTitle">
-      <div class="modal-header">
-        <div>
-          <p class="section-label">Live enrolment · TEST data</p>
-          <h2 id="enrolmentModalTitle">Enrol student</h2>
-        </div>
-        <button class="modal-close" type="button" data-close-modal="enrolmentModal">×</button>
-      </div>
-
-      <form id="enrolmentForm">
-        <input type="hidden" id="enrolmentStudentId">
-
-        <div class="v8-form-note">
-          The portal will automatically assign the next available register slot for the selected class.
-        </div>
-
-        <div class="form-grid">
-          <div class="form-field form-field-wide">
-            <label for="enrolmentStudentName">Student</label>
-            <input id="enrolmentStudentName" type="text" readonly>
-          </div>
-
-          <div class="form-field form-field-wide">
-            <label for="enrolmentClassId">Class *</label>
-            <select id="enrolmentClassId" required></select>
-          </div>
-
-          <div class="form-field">
-            <label for="enrolmentSchoolYear">School year *</label>
-            <input id="enrolmentSchoolYear" type="text" value="2026-27" required>
-          </div>
-
-          <div class="form-field">
-            <label for="enrolmentStartDate">Start date</label>
-            <input id="enrolmentStartDate" type="date">
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button class="button button-secondary" type="button" data-close-modal="enrolmentModal">
-            Cancel
-          </button>
-          <button class="button button-primary" id="enrolmentSaveButton" type="submit">
-            Create enrolment
           </button>
         </div>
       </form>
@@ -1095,10 +971,10 @@
        CLASS MODAL
   ========================== -->
   <div class="modal-backdrop" id="classModal">
-    <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="classModalTitle">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="classModalTitle">
       <div class="modal-header">
         <div>
-          <p class="section-label">Live class master record · TEST data</p>
+          <p class="section-label">Class record</p>
           <h2 id="classModalTitle">Create class</h2>
         </div>
         <button class="modal-close" type="button" data-close-modal="classModal">×</button>
@@ -1107,10 +983,6 @@
       <form id="classForm">
         <input id="classId" type="hidden">
 
-        <div class="v8-form-note">
-          V9 saves class metadata directly to the Classes sheet. Register sheets remain separate lesson-register tabs.
-        </div>
-
         <div class="form-grid">
           <div class="form-field form-field-wide">
             <label for="className">Class name *</label>
@@ -1118,13 +990,8 @@
           </div>
 
           <div class="form-field">
-            <label for="classSchoolYear">School year *</label>
-            <input id="classSchoolYear" type="text" value="2026-27" required>
-          </div>
-
-          <div class="form-field">
-            <label for="classLevel">Level</label>
-            <select id="classLevel">
+            <label for="classLevel">Level *</label>
+            <select id="classLevel" required>
               <option value="">Select level</option>
               <option value="Young Learners">Young Learners</option>
               <option value="A1">A1</option>
@@ -1138,13 +1005,12 @@
 
           <div class="form-field">
             <label for="classTeacher">Teacher</label>
-            <input id="classTeacher" type="text" placeholder="e.g. Colin">
+            <select id="classTeacher"></select>
           </div>
 
           <div class="form-field">
-            <label for="classDay">Day</label>
-            <select id="classDay">
-              <option value="">Select day</option>
+            <label for="classDay">Day *</label>
+            <select id="classDay" required>
               <option value="Monday">Monday</option>
               <option value="Tuesday">Tuesday</option>
               <option value="Wednesday">Wednesday</option>
@@ -1155,8 +1021,13 @@
           </div>
 
           <div class="form-field">
-            <label for="classTime">Start time</label>
-            <input id="classTime" type="time">
+            <label for="classTime">Start time *</label>
+            <input id="classTime" type="time" required>
+          </div>
+
+          <div class="form-field">
+            <label for="classDuration">Duration (minutes)</label>
+            <input id="classDuration" type="number" min="30" step="15" value="90">
           </div>
 
           <div class="form-field">
@@ -1169,18 +1040,9 @@
             <input id="classCapacity" type="number" min="1" value="10">
           </div>
 
-          <div class="form-field">
-            <label for="classRegisterSheet">Register sheet</label>
-            <input id="classRegisterSheet" type="text" placeholder="e.g. Class 2 NEW">
-          </div>
-
-          <div class="form-field">
-            <label for="classStatus">Status</label>
-            <select id="classStatus">
-              <option value="Active">Active</option>
-              <option value="Paused">Paused</option>
-              <option value="Completed">Completed</option>
-            </select>
+          <div class="form-field form-field-wide">
+            <label for="classNotes">Notes</label>
+            <textarea id="classNotes" rows="3"></textarea>
           </div>
         </div>
 
@@ -1188,7 +1050,7 @@
           <button class="button button-secondary" type="button" data-close-modal="classModal">
             Cancel
           </button>
-          <button class="button button-primary" id="classSaveButton" type="submit">
+          <button class="button button-primary" type="submit">
             Save class
           </button>
         </div>
@@ -1197,117 +1059,13 @@
   </div>
 
   <!-- =========================
-       FEE MODAL — V11
-  ========================== -->
-  <div class="modal-backdrop" id="feeModal">
-    <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="feeModalTitle">
-      <div class="modal-header">
-        <div>
-          <p class="section-label">Private finance</p>
-          <h2 id="feeModalTitle">Add student fee</h2>
-        </div>
-        <button class="modal-close" type="button" data-close-modal="feeModal">×</button>
-      </div>
-
-      <form id="feeForm">
-        <input id="feeId" type="hidden">
-
-        <div class="form-grid">
-          <div class="form-field form-field-wide">
-            <label for="feeStudent">Student *</label>
-            <select id="feeStudent" required></select>
-          </div>
-
-          <div class="form-field">
-            <label for="feeSchoolYear">School year *</label>
-            <input id="feeSchoolYear" type="text" placeholder="2026/27" required>
-          </div>
-
-          <div class="form-field">
-            <label for="feePaymentPlan">Payment plan</label>
-            <select id="feePaymentPlan">
-              <option value="Full payment">Full payment</option>
-              <option value="2 instalments">2 instalments</option>
-              <option value="3 instalments">3 instalments</option>
-              <option value="Custom">Custom</option>
-            </select>
-          </div>
-
-          <div class="form-field">
-            <label for="feeCourseFee">Course fee (€) *</label>
-            <input id="feeCourseFee" type="number" min="0" step="0.01" required>
-          </div>
-
-          <div class="form-field">
-            <label for="feeDiscount">Discount (€)</label>
-            <input id="feeDiscount" type="number" min="0" step="0.01" value="0">
-          </div>
-
-          <div class="form-field">
-            <label for="feeInstalment1Amount">Instalment 1 amount (€)</label>
-            <input id="feeInstalment1Amount" type="number" min="0" step="0.01">
-          </div>
-
-          <div class="form-field">
-            <label for="feeInstalment1">Instalment 1 due</label>
-            <input id="feeInstalment1" type="date">
-          </div>
-
-          <div class="form-field">
-            <label for="feeInstalment2Amount">Instalment 2 amount (€)</label>
-            <input id="feeInstalment2Amount" type="number" min="0" step="0.01">
-          </div>
-
-          <div class="form-field">
-            <label for="feeInstalment2">Instalment 2 due</label>
-            <input id="feeInstalment2" type="date">
-          </div>
-
-          <div class="form-field">
-            <label for="feeInstalment3Amount">Instalment 3 amount (€)</label>
-            <input id="feeInstalment3Amount" type="number" min="0" step="0.01">
-          </div>
-
-          <div class="form-field">
-            <label for="feeInstalment3">Instalment 3 due</label>
-            <input id="feeInstalment3" type="date">
-          </div>
-
-          <div class="form-field">
-            <label for="feeStatus">Account status</label>
-            <select id="feeStatus">
-              <option value="Open">Open</option>
-              <option value="Closed">Closed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-          </div>
-
-          <div class="form-field form-field-wide">
-            <label for="feeNotes">Notes</label>
-            <textarea id="feeNotes" rows="3" placeholder="Optional internal note"></textarea>
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button class="button button-secondary" type="button" data-close-modal="feeModal">
-            Cancel
-          </button>
-          <button class="button button-primary" id="feeSaveButton" type="submit">
-            Save fee
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- =========================
-       PAYMENT MODAL — V11
+       PAYMENT MODAL
   ========================== -->
   <div class="modal-backdrop" id="paymentModal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="paymentModalTitle">
       <div class="modal-header">
         <div>
-          <p class="section-label">Private finance</p>
+          <p class="section-label">Finance</p>
           <h2 id="paymentModalTitle">Record payment</h2>
         </div>
         <button class="modal-close" type="button" data-close-modal="paymentModal">×</button>
@@ -1318,18 +1076,33 @@
 
         <div class="form-grid">
           <div class="form-field form-field-wide">
-            <label for="paymentFeeAccount">Fee account *</label>
-            <select id="paymentFeeAccount" required></select>
+            <label for="paymentStudent">Student *</label>
+            <select id="paymentStudent" required></select>
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="paymentDescription">Description *</label>
+            <input
+              id="paymentDescription"
+              type="text"
+              placeholder="e.g. General English course"
+              required
+            >
           </div>
 
           <div class="form-field">
-            <label for="paymentPaid">Amount received (€) *</label>
-            <input id="paymentPaid" type="number" min="0.01" step="0.01" required>
+            <label for="paymentFee">Total fee (€) *</label>
+            <input id="paymentFee" type="number" min="0" step="0.01" required>
           </div>
 
           <div class="form-field">
-            <label for="paymentDate">Payment date *</label>
-            <input id="paymentDate" type="date" required>
+            <label for="paymentPaid">Amount paid (€) *</label>
+            <input id="paymentPaid" type="number" min="0" step="0.01" required>
+          </div>
+
+          <div class="form-field">
+            <label for="paymentDate">Payment date</label>
+            <input id="paymentDate" type="date">
           </div>
 
           <div class="form-field">
@@ -1342,28 +1115,6 @@
             </select>
           </div>
 
-          <div class="form-field">
-            <label for="paymentInstalment">Instalment</label>
-            <select id="paymentInstalment">
-              <option value="">Not specified</option>
-              <option value="1">Instalment 1</option>
-              <option value="2">Instalment 2</option>
-              <option value="3">Instalment 3</option>
-              <option value="Full">Full payment</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-
-          <div class="form-field">
-            <label for="paymentReference">Reference</label>
-            <input id="paymentReference" type="text" placeholder="Receipt / transfer reference">
-          </div>
-
-          <div class="form-field">
-            <label for="paymentRecordedBy">Recorded by</label>
-            <input id="paymentRecordedBy" type="text" placeholder="e.g. Helen">
-          </div>
-
           <div class="form-field form-field-wide">
             <label for="paymentNotes">Notes</label>
             <textarea id="paymentNotes" rows="3"></textarea>
@@ -1374,7 +1125,7 @@
           <button class="button button-secondary" type="button" data-close-modal="paymentModal">
             Cancel
           </button>
-          <button class="button button-primary" id="paymentSaveButton" type="submit">
+          <button class="button button-primary" type="submit">
             Save payment
           </button>
         </div>
@@ -1593,6 +1344,43 @@
   ========================== -->
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
-  <script src="portal.js?v=11"></script>
+  <script src="portal.js"></script>
+
+<!-- V12 CUSTOMER JOURNEY -->
+<div class="modal" id="prospectJourneyModal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-modal="prospectJourneyModal"></div>
+  <div class="modal-card modal-card-lg" role="dialog" aria-modal="true">
+    <button class="modal-close" type="button" data-close-modal="prospectJourneyModal" aria-label="Chiudi">×</button>
+    <div class="modal-kicker">LONDON LANGUAGE SCHOOL</div>
+    <h2>Inizia da qui</h2>
+    <p>Troviamo insieme il corso di inglese più adatto a te.</p>
+    <form id="prospectLeadForm">
+      <div class="form-grid">
+        <label>Nome e cognome *<input id="prospectName" required autocomplete="name"></label>
+        <label>WhatsApp *<input id="prospectPhone" required autocomplete="tel" inputmode="tel"></label>
+        <label>Email<input id="prospectEmail" type="email" autocomplete="email"></label>
+        <label>Per chi è il corso? *
+          <select id="prospectWho" required><option value="">Seleziona…</option><option>Per me</option><option>Per mio/a figlio/a</option><option>Per la mia azienda</option><option>Per la mia scuola / istituto</option></select>
+        </label>
+        <label>Età dello studente<input id="prospectAge" inputmode="numeric"></label>
+        <label>Corso di interesse *
+          <select id="prospectCourse" required><option value="">Seleziona…</option><option>Inglese per bambini</option><option>Inglese per ragazzi</option><option>Inglese per adulti</option><option>Preparazione Cambridge</option><option>Lezioni individuali</option><option>Corsi aziendali</option><option>Corsi per scuole</option><option>Non sono sicuro/a – vorrei un consiglio</option></select>
+        </label>
+      </div>
+      <label>Come possiamo aiutarti?<textarea id="prospectNotes" rows="3"></textarea></label>
+      <div class="modal-actions"><button class="btn btn-primary" id="prospectContinue" type="submit">Continua</button></div>
+    </form>
+    <div id="prospectChoices" hidden>
+      <h3>Grazie! Abbiamo ricevuto la tua richiesta.</h3>
+      <p>Scegli cosa preferisci fare adesso. Non devi completare tutte le opzioni.</p>
+      <div class="prospect-choice-grid">
+        <button class="btn btn-secondary" id="prospectLevelChoice" type="button">Scopri il tuo livello</button>
+        <a class="btn btn-primary" id="prospectTrialChoice" href="https://cal.com/londonlanguageschoolbagheria/prova" target="_blank" rel="noopener">Prenota una prova gratuita</a>
+        <button class="btn btn-secondary" id="prospectInfoChoice" type="button">Vorrei maggiori informazioni</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

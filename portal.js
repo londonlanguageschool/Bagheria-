@@ -57,8 +57,7 @@ const CHART_COLOURS = [
 ];
 
 let state = loadState();
-// V12: never render legacy/local enquiry records.
-state.enquiries = [];
+state.enquiries = []; // V12: Google Sheets only
 let confirmCallback = null;
 let attendanceDraft = {};
 
@@ -105,7 +104,21 @@ function getDefaultState() {
 
     payments: [],
 
-    enquiries: [],
+    enquiries: [
+      {
+        id: makeId("enquiry"),
+        name: "Sample Enquiry",
+        age: "",
+        phone: "",
+        email: "",
+        course: "Cambridge English",
+        source: "WhatsApp",
+        status: "New",
+        followup: followUpDate,
+        created: today,
+        notes: "Example enquiry — edit or delete this record."
+      }
+    ],
 
     attendance: {}
   };
@@ -153,7 +166,7 @@ function ensureStateStructure() {
     ? state.payments
     : [];
 
-  state.enquiries = []; // V12: Enquiries are live from Google Sheets only.
+  state.enquiries = []; // V12: Google Sheets only
 
   state.attendance =
     state.attendance && typeof state.attendance === "object"
@@ -8673,160 +8686,46 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-/* =========================================================
-   V12 LIVE ENQUIRIES — GOOGLE SHEETS
-========================================================= */
-
-let v12EnquiriesLoaded = false;
-
-function v12MapEnquiry(row) {
-  return {
-    id: String(row["Enquiry ID"] || ""),
-    name: String(row["Name"] || ""),
-    age: String(row["Age"] || ""),
-    phone: String(row["Phone"] || ""),
-    email: String(row["Email"] || ""),
-    course: String(row["Course"] || ""),
-    source: String(row["Source"] || ""),
-    status: String(row["Stage"] || "New"),
-    followup: String(row["Follow-up"] || ""),
-    created: String(row["Enquiry Date"] || ""),
-    notes: String(row["Notes"] || ""),
-    levelResult: String(row["Level Result"] || ""),
-    trialRequested: String(row["Trial Requested"] || "")
-  };
-}
-
-async function loadV12Enquiries(force = false) {
-  if (v12EnquiriesLoaded && !force) return state.enquiries;
-
-  const response = await fetch(
-    `${LLS_API_URL}?action=getEnquiries&t=${Date.now()}`,
-    { method: "GET", cache: "no-store", redirect: "follow" }
-  );
-  const raw = await response.text();
-  let data;
-  try { data = JSON.parse(raw); }
-  catch (_) { throw new Error("The Enquiries API response was not JSON."); }
-
-  if (!data || data.success !== true) {
-    throw new Error(data?.error || "Google Sheets did not return Enquiries.");
-  }
-
-  state.enquiries = (Array.isArray(data.enquiries) ? data.enquiries : [])
-    .map(v12MapEnquiry);
-  v12EnquiriesLoaded = true;
-
-  renderEnquiries();
-  renderDashboard();
-  return state.enquiries;
-}
-
-async function v12EnquiryPost(payload) {
-  const response = await fetch(LLS_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload),
-    cache: "no-store",
-    redirect: "follow"
-  });
-  const raw = await response.text();
-  let data;
-  try { data = JSON.parse(raw); }
-  catch (_) { throw new Error("The Enquiries save response was not JSON."); }
-
-  if (!data || data.success !== true) {
-    throw new Error(data?.error || "Google Sheets did not confirm the enquiry save.");
-  }
-  return data;
-}
-
-function v12EnquiryFieldsFromForm() {
-  return {
-    "Name": value("enquiryName").trim(),
-    "Age": value("enquiryStudentAge"),
-    "Phone": value("enquiryPhone").trim(),
-    "Email": value("enquiryEmail").trim(),
-    "Course": value("enquiryCourse").trim(),
-    "Source": value("enquirySource"),
-    "Stage": value("enquiryStatus"),
-    "Follow-up": value("enquiryFollowup"),
-    "Enquiry Date": value("enquiryCreated") || isoDate(new Date()),
-    "Notes": value("enquiryNotes").trim()
-  };
-}
-
-async function saveEnquiryForm(event) {
+/* V12 CUSTOMER JOURNEY */
+let v12ProspectEnquiryId = "";
+window.openProspectJourney = function () {
+  const modal = byId("prospectJourneyModal");
+  if (!modal) return;
+  byId("prospectLeadForm")?.reset();
+  byId("prospectLeadForm").hidden = false;
+  byId("prospectChoices").hidden = true;
+  v12ProspectEnquiryId = "";
+  modal.classList.add("is-open");
+  modal.setAttribute("aria-hidden", "false");
+};
+async function v12CreateProspectLead(event) {
   event.preventDefault();
-
-  const id = value("enquiryId");
-  const fields = v12EnquiryFieldsFromForm();
-
-  if (!fields["Name"] || !fields["Course"]) {
-    showToast("Name and course interest are required.", "error");
-    return;
-  }
-
-  const form = byId("enquiryForm");
-  const saveButton = form?.querySelector('button[type="submit"]');
-  const original = saveButton?.textContent || "Save";
-
-  if (saveButton) {
-    saveButton.disabled = true;
-    saveButton.textContent = "Saving…";
-  }
-
-  try {
-    await v12EnquiryPost(
-      id
-        ? { action: "updateEnquiry", enquiryId: id, fields }
-        : { action: "createEnquiry", fields }
-    );
-
-    closeModal("enquiryModal");
-    v12EnquiriesLoaded = false;
-    await loadV12Enquiries(true);
-
-    showToast(
-      id ? "Enquiry updated in Google Sheets." : "Enquiry saved to Google Sheets.",
-      "success"
-    );
-  } catch (error) {
-    showToast(error?.message || "Could not save the enquiry.", "error");
-    console.error("V12 enquiry save error:", error);
-  } finally {
-    if (saveButton) {
-      saveButton.disabled = false;
-      saveButton.textContent = original;
-    }
-  }
+  const name=value("prospectName").trim(), phone=value("prospectPhone").trim(),
+        email=value("prospectEmail").trim(), who=value("prospectWho"),
+        age=value("prospectAge").trim(), course=value("prospectCourse"),
+        notes=value("prospectNotes").trim();
+  if(!name||!phone||!who||!course){ showToast("Completa i campi obbligatori.","error"); return; }
+  const button=byId("prospectContinue");
+  if(button){button.disabled=true;button.textContent="Salvataggio…";}
+  try{
+    const result=await v12EnquiryPost({action:"createEnquiry",fields:{
+      "Name":name,"Age":age||who,"Phone":phone,"Email":email,"Course":course,
+      "Source":"Website","Stage":"New","Follow-up":"","Enquiry Date":isoDate(new Date()),
+      "Notes":[who,notes].filter(Boolean).join(" — "),"Level Result":"","Trial Requested":"No"
+    }});
+    v12ProspectEnquiryId=String(result.enquiryId||result.id||result.enquiry?.["Enquiry ID"]||"");
+    byId("prospectLeadForm").hidden=true; byId("prospectChoices").hidden=false;
+    v12EnquiriesLoaded=false; loadV12Enquiries(true).catch(console.error);
+  }catch(error){showToast(error?.message||"Non siamo riusciti a salvare la richiesta.","error");}
+  finally{if(button){button.disabled=false;button.textContent="Continua";}}
 }
-
-function deleteEnquiry(id) {
-  const enquiry = state.enquiries.find((item) => item.id === id);
-  if (!enquiry) return;
-
-  openConfirm(
-    "Delete enquiry?",
-    `Delete the enquiry for ${enquiry.name}?`,
-    async () => {
-      try {
-        await v12EnquiryPost({ action: "deleteEnquiry", enquiryId: id });
-        v12EnquiriesLoaded = false;
-        await loadV12Enquiries(true);
-        showToast("Enquiry deleted from Google Sheets.", "success");
-      } catch (error) {
-        showToast(error?.message || "Could not delete the enquiry.", "error");
-        console.error("V12 enquiry delete error:", error);
-      }
-    }
-  );
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  // The normal form binding resolves saveEnquiryForm to the V12 function above.
-  loadV12Enquiries(true).catch((error) => {
-    console.error("V12 Enquiries load error:", error);
-    showToast("Could not load Enquiries from Google Sheets.", "error");
+document.addEventListener("DOMContentLoaded",()=>{
+  byId("prospectLeadForm")?.addEventListener("submit",v12CreateProspectLead);
+  byId("prospectTrialChoice")?.addEventListener("click",async()=>{
+    if(!v12ProspectEnquiryId)return;
+    try{await v12EnquiryPost({action:"updateEnquiry",enquiryId:v12ProspectEnquiryId,fields:{"Trial Requested":"Yes"}});}
+    catch(error){console.error("Trial-request update failed:",error);}
   });
+  byId("prospectInfoChoice")?.addEventListener("click",()=>{showToast("Perfetto. Ti contatteremo presto.","success");closeModal("prospectJourneyModal");});
+  byId("prospectLevelChoice")?.addEventListener("click",()=>showToast("Il level checker sarà collegato nel prossimo passaggio.","success"));
 });
