@@ -2714,48 +2714,84 @@
     }
 
     const levelQuestions = [
-      ["I ___ from Italy.", ["am","is","are"], 0],
-      ["She ___ English every Tuesday.", ["study","studies","studying"], 1],
-      ["We ___ to London last year.", ["go","went","have go"], 1],
-      ["I’ve lived here ___ 2022.", ["for","since","from"], 1],
-      ["If it rains, we ___ at home.", ["stay","will stay","stayed"], 1],
-      ["This book ___ by millions of people.", ["has read","has been read","was reading"], 1],
-      ["I wish I ___ more time.", ["have","had","would have"], 1],
-      ["By next June, she ___ the course.", ["will finish","will have finished","finishes"], 1],
-      ["Hardly ___ the meeting started when the fire alarm rang.", ["had","has","did"], 0],
-      ["His explanation was so ___ that everyone understood immediately.", ["lucid","loose","scarce"], 0]
+      {band:"A1",q:"My name ___ Anna.",o:["am","is","are","be"],a:1},
+      {band:"A1",q:"We ___ from Italy.",o:["is","are","am","be"],a:1},
+      {band:"A1",q:"I ___ coffee every morning.",o:["drink","drinks","drinking","am drink"],a:0},
+      {band:"A1",q:"There ___ two books on the table.",o:["is","are","am","be"],a:1},
+      {band:"A1",q:"Choose the best reply: “How are you?”",o:["I'm fine, thanks.","I'm 25 years.","At home.","Yes, I am."],a:0},
+
+      {band:"A2",q:"Yesterday we ___ to Palermo.",o:["go","went","gone","going"],a:1},
+      {band:"A2",q:"She is ___ than her sister.",o:["tall","taller","more tall","tallest"],a:1},
+      {band:"A2",q:"I haven't got ___ milk.",o:["some","any","many","a"],a:1},
+      {band:"A2",q:"What ___ you doing when I called?",o:["was","were","did","are"],a:1},
+      {band:"A2",q:"Choose the best reply: “Would you like to come to dinner?”",o:["Yes, I'd love to.","Yes, I like.","No, I wouldn't like dinner.","I come yesterday."],a:0},
+
+      {band:"B1",q:"If it ___ tomorrow, we'll stay at home.",o:["rains","will rain","rained","would rain"],a:0},
+      {band:"B1",q:"I've lived here ___ 2020.",o:["for","since","from","during"],a:1},
+      {band:"B1",q:"The film ___ by millions of people last year.",o:["saw","was seen","has seen","is seeing"],a:1},
+      {band:"B1",q:"I wish I ___ more free time.",o:["have","had","will have","am having"],a:1},
+      {band:"B1",q:"Maria missed the bus, so she arrived late. Why was Maria late?",o:["She left work late.","The bus arrived late.","She didn't catch the bus.","She forgot the time."],a:2},
+
+      {band:"B2",q:"If I ___ about the problem, I would have helped.",o:["knew","had known","would know","have known"],a:1},
+      {band:"B2",q:"By next June, she ___ here for ten years.",o:["will work","will have worked","has worked","would work"],a:1},
+      {band:"B2",q:"He denied ___ the confidential document.",o:["to copy","copy","having copied","to have copy"],a:2},
+      {band:"B2",q:"The meeting was ___ because the manager was ill.",o:["put off","put out","put up","put through"],a:0},
+      {band:"B2",q:"“The proposal is unlikely to go ahead” means:",o:["It will probably be approved.","It probably will not happen.","It has already started.","Nobody discussed it."],a:1},
+
+      {band:"C1",q:"Hardly ___ the meeting started when the fire alarm went off.",o:["had","has","did","was"],a:0},
+      {band:"C1",q:"Were the company ___ the offer, we would reconsider our position.",o:["accept","to accept","accepted","accepting"],a:1},
+      {band:"C1",q:"Her explanation was so ___ that even the experts struggled to follow it.",o:["straightforward","convoluted","mundane","tentative"],a:1},
+      {band:"C1",q:"Not until the figures were published ___ the scale of the problem.",o:["we realised","did we realise","we had realised","had we realise"],a:1},
+      {band:"C1",q:"“His apology did little to allay their concerns” means:",o:["It reassured them.","It caused new concerns.","It did little to reduce their worries.","It explained their worries."],a:2},
+
+      {band:"C2",q:"The minister's response was deliberately ___, allowing both sides to interpret it favourably.",o:["unequivocal","ambiguous","redundant","sporadic"],a:1},
+      {band:"C2",q:"So compelling ___ that even the sceptics changed their minds.",o:["the evidence was","was the evidence","did the evidence","the evidence did"],a:1},
+      {band:"C2",q:"His argument rests on a rather ___ distinction that may not withstand close scrutiny.",o:["tenuous","lavish","docile","blunt"],a:0},
+      {band:"C2",q:"“She was at pains to distance herself from the decision” means:",o:["She reluctantly accepted it.","She made a strong effort to show she was not associated with it.","The decision hurt her.","She tried to reverse it."],a:1},
+      {band:"C2",q:"The findings should be treated with caution, ___ the relatively small sample size.",o:["notwithstanding","given","whereas","lest"],a:1}
     ];
 
     function showLevelChecker() {
       document.getElementById("leadStep2").hidden = true;
       document.getElementById("leadLevel").hidden = false;
+      document.getElementById("levelResult").innerHTML = "";
       const form = document.getElementById("levelForm");
-      form.innerHTML = levelQuestions.map((q, i) =>
-        `<div class="level-question"><p>${i + 1}. ${q[0]}</p>${q[1].map((a, j) =>
-          `<label><input type="radio" name="q${i}" value="${j}"> ${a}</label>`).join("")}</div>`
+      form.innerHTML = levelQuestions.map((item,i) =>
+        `<div class="level-question"><p><strong>${i+1}. ${item.q}</strong></p>${item.o.map((answer,j) =>
+          `<label><input type="radio" name="q${i}" value="${j}"> ${answer}</label>`).join("")}</div>`
       ).join("");
     }
 
     async function scoreLevelChecker() {
-      let score = 0;
-      for (let i = 0; i < levelQuestions.length; i++) {
-        const selected = document.querySelector(`input[name="q${i}"]:checked`);
-        if (!selected) {
-          document.getElementById("levelResult").innerHTML =
-            '<p class="lead-message error">Rispondi a tutte le domande prima di vedere il risultato.</p>';
+      const scores={A1:0,A2:0,B1:0,B2:0,C1:0,C2:0};
+      for(let i=0;i<levelQuestions.length;i++){
+        const selected=document.querySelector(`input[name="q${i}"]:checked`);
+        if(!selected){
+          document.getElementById("levelResult").innerHTML='<p class="lead-message error">Rispondi a tutte le domande prima di vedere il risultato.</p>';
           return;
         }
-        if (Number(selected.value) === levelQuestions[i][2]) score++;
+        if(Number(selected.value)===levelQuestions[i].a) scores[levelQuestions[i].band]++;
       }
-      let level = "A1";
-      if (score >= 9) level = "C1";
-      else if (score >= 7) level = "B2";
-      else if (score >= 5) level = "B1";
-      else if (score >= 3) level = "A2";
 
-      await updateCurrentLead({ "Level Result": level });
-      document.getElementById("levelResult").innerHTML =
-        `<div class="level-result"><div class="lead-kicker">Risultato indicativo</div><h3>Il tuo livello è circa ${level}</h3><p>Possiamo confermarlo gratuitamente con un insegnante.</p><br><button class="button button-red" type="button" onclick="bookTrial()">Prenota una prova</button></div>`;
+      const bands=["A1","A2","B1","B2","C1","C2"];
+      let level="A1 iniziale";
+      for(const band of bands){
+        if(scores[band]>=4) level=band;
+        else break;
+      }
+
+      try { await updateCurrentLead({"Level Result":level}); }
+      catch(error){ console.error("Level result save error:",error); }
+
+      document.getElementById("levelResult").innerHTML=`
+        <div class="level-result">
+          <div class="lead-kicker">RISULTATO INDICATIVO CEFR / QCER</div>
+          <h3>Il tuo livello è circa ${level}</h3>
+          <p>Questo test online è una guida, non un test di piazzamento completo.</p>
+          <p>Per scegliere la classe giusta dobbiamo valutare anche conversazione, ascolto, pronuncia, fluidità, sicurezza e uso spontaneo dell'inglese.</p>
+          <br>
+          <button class="button button-red" type="button" onclick="bookTrial()">Prenota gratis test di ingresso + lezione di prova</button>
+        </div>`;
     }
 
     document.getElementById("leadModal").addEventListener("click", (event) => {
