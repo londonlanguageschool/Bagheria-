@@ -2751,42 +2751,196 @@
       {band:"C2",q:"The findings should be treated with caution, ___ the relatively small sample size.",o:["notwithstanding","given","whereas","lest"],a:1}
     ];
 
-    function showLevelChecker() {
+
+    const youngQuestions = [
+      {band:"Pre-A1", icon:"🐱", q:"What animal is this?", o:["dog","cat","bird"], a:1},
+      {band:"Pre-A1", icon:"🍌", q:"Which word matches the picture?", o:["apple","banana","orange"], a:1},
+      {band:"Pre-A1", icon:"🔵", q:"What colour is this?", o:["red","blue","green"], a:1},
+      {band:"Pre-A1", icon:"🐶🐶", q:"How many dogs can you see?", o:["one","two","three"], a:1},
+
+      {band:"A1", icon:"🏫", q:"I ___ to school every day.", o:["go","goes","going"], a:0},
+      {band:"A1", icon:"👧📖", q:"She ___ a book.", o:["have got","has got","got"], a:1},
+      {band:"A1", icon:"⚽", q:"Choose the correct sentence.", o:["He can play football.","He can plays football.","He playing football."], a:0},
+      {band:"A1", icon:"🌞", q:"It is sunny. What should you wear?", o:["A T-shirt","A winter coat","Gloves"], a:0},
+
+      {band:"A2", icon:"⚽👦👧", q:"What are they doing?", o:["They play football.","They're playing football.","They played football yesterday."], a:1},
+      {band:"A2", icon:"🚌", q:"Yesterday I ___ the bus to school.", o:["take","took","taken"], a:1},
+      {band:"A2", icon:"🐘🐭", q:"An elephant is ___ than a mouse.", o:["big","bigger","biggest"], a:1},
+      {band:"A2", icon:"🍎🍎🍎", q:"There are ___ apples on the table.", o:["some","any","much"], a:0},
+
+      {band:"B1", icon:"🌧️🏠", q:"If it rains tomorrow, we ___ at home.", o:["stay","will stay","stayed"], a:1},
+      {band:"B1", icon:"📚", q:"I've studied English ___ three years.", o:["since","for","from"], a:1},
+      {band:"B1", icon:"💬", q:"Lily says: “Can you come to my house at 4? We can do our homework together.” What does she want?", o:["To meet and do homework","To go shopping","To play football"], a:0},
+      {band:"B1", icon:"🎬", q:"The film was great, ___ it was a little long.", o:["because","although","so"], a:1}
+    ];
+
+    let youngBandIndex = 0;
+    const youngBands = ["Pre-A1","A1","A2","B1"];
+    let youngHighest = "Pre-A1 iniziale";
+
+    function isYoungLearner() {
+      const who = (document.getElementById("leadWho")?.value || "").toLowerCase();
+      const age = Number(document.getElementById("leadAge")?.value || 0);
+      return who.includes("bamb") || (age > 0 && age <= 12);
+    }
+
+    function showYoungLevelChecker() {
       document.getElementById("leadStep2").hidden = true;
       document.getElementById("leadLevel").hidden = false;
+      youngBandIndex = 0;
+      youngHighest = "Pre-A1 iniziale";
+      renderYoungBand();
+    }
+
+    function renderYoungBand() {
+      const band = youngBands[youngBandIndex];
+      const qs = youngQuestions.filter(x => x.band === band);
+      document.getElementById("levelForm").innerHTML = `
+        <div style="text-align:center;padding:8px 0 16px">
+          <div style="font-size:44px">🐶 ⭐ 🐱</div>
+          <div class="lead-kicker">YOUNG LEARNERS · ${band}</div>
+          <h3 style="margin:6px 0">Let's play in English!</h3>
+          <p>4 domande divertenti · scegli la risposta giusta.</p>
+        </div>
+        ${qs.map((x,i)=>`
+          <div class="level-question" style="background:#f7fbff;border-radius:22px;padding:18px;margin:12px 0">
+            <div style="font-size:58px;text-align:center;margin-bottom:8px">${x.icon}</div>
+            <p style="font-size:1.1rem"><strong>${i+1}. ${x.q}</strong></p>
+            ${x.o.map((a,j)=>`<label style="display:block;background:white;border:2px solid #dceafa;border-radius:15px;padding:12px;margin:8px 0;cursor:pointer"><input type="radio" name="yq${i}" value="${j}"> ${a}</label>`).join("")}
+          </div>`).join("")}`;
+      document.getElementById("levelResult").innerHTML =
+        `<div class="lead-actions"><button class="button button-red" type="button" onclick="scoreYoungBand()">${youngBandIndex===youngBands.length-1?"Vedi il risultato":"Avanti →"}</button></div>`;
+    }
+
+    async function scoreYoungBand() {
+      const band=youngBands[youngBandIndex], qs=youngQuestions.filter(x=>x.band===band);
+      let correct=0;
+      for(let i=0;i<qs.length;i++){
+        const a=document.querySelector(`input[name="yq${i}"]:checked`);
+        if(!a){
+          document.getElementById("levelResult").innerHTML='<p class="lead-message error">Rispondi alle 4 domande prima di continuare 😊</p><div class="lead-actions"><button class="button button-red" type="button" onclick="scoreYoungBand()">Avanti →</button></div>';
+          return;
+        }
+        if(Number(a.value)===qs[i].a) correct++;
+      }
+      if(correct>=3){
+        youngHighest=band;
+        if(youngBandIndex<youngBands.length-1){ youngBandIndex++; renderYoungBand(); return; }
+      }
+      await finishYoungTest();
+    }
+
+    async function finishYoungTest() {
+      const level=youngHighest;
+      try { await updateCurrentLead({"Level Result":`Young Learner ${level}`}); }
+      catch(e){ console.error("Young level save error:",e); }
+      document.getElementById("levelForm").innerHTML="";
+      document.getElementById("levelResult").innerHTML=`
+        <div class="level-result" style="text-align:center;background:#f5fbff;border-radius:24px;padding:24px">
+          <div style="font-size:64px">🐶🎉⭐</div>
+          <div class="lead-kicker">WELL DONE! · BRAVISSIMO!</div>
+          <h3>Livello indicativo: ${level}</h3>
+          <p>Ottimo lavoro! Questo piccolo test ci aiuta a capire il livello di partenza.</p>
+          <p>Il livello definitivo viene stabilito gratuitamente a scuola, dove un insegnante parlerà e giocherà in inglese con il bambino e valuterà comprensione, comunicazione e sicurezza.</p>
+          <br><button class="button button-red" type="button" onclick="bookTrial()">Prenota test di ingresso + lezione di prova</button>
+        </div>`;
+    }
+
+    let currentLevelBandIndex = 0;
+    const levelBands = ["A1","A2","B1","B2","C1","C2"];
+    const levelBandScores = {};
+    let highestDemonstratedLevel = "A1 iniziale";
+
+    function showLevelChecker() {
+      if (isYoungLearner()) {
+        showYoungLevelChecker();
+        return;
+      }
+      document.getElementById("leadStep2").hidden = true;
+      document.getElementById("leadLevel").hidden = false;
+      currentLevelBandIndex = 0;
+      highestDemonstratedLevel = "A1 iniziale";
+      levelBands.forEach(b => levelBandScores[b] = 0);
       document.getElementById("levelResult").innerHTML = "";
+      renderCurrentLevelBand();
+    }
+
+    function renderCurrentLevelBand() {
+      const band = levelBands[currentLevelBandIndex];
+      const questions = levelQuestions.filter(item => item.band === band);
       const form = document.getElementById("levelForm");
-      form.innerHTML = levelQuestions.map((item,i) =>
-        `<div class="level-question"><p><strong>${i+1}. ${item.q}</strong></p>${item.o.map((answer,j) =>
-          `<label><input type="radio" name="q${i}" value="${j}"> ${answer}</label>`).join("")}</div>`
-      ).join("");
+      const approxMinutes = Math.max(2, 10 - currentLevelBandIndex * 2);
+
+      form.innerHTML = `
+        <div class="level-progress">
+          <div class="lead-kicker">TEST DI LIVELLO CEFR / QCER</div>
+          <h3>Livello ${band}</h3>
+          <p>5 domande · circa ${approxMinutes} minuti rimanenti</p>
+        </div>
+        ${questions.map((item,i) => `
+          <div class="level-question">
+            <p><strong>${i+1}. ${item.q}</strong></p>
+            ${item.o.map((answer,j) =>
+              `<label><input type="radio" name="bandQ${i}" value="${j}"> ${answer}</label>`
+            ).join("")}
+          </div>`).join("")}`;
+
+      document.getElementById("levelResult").innerHTML = `
+        <div class="lead-actions">
+          <button class="button button-red" type="button" onclick="scoreLevelChecker()">
+            ${currentLevelBandIndex === levelBands.length - 1 ? "Vedi il risultato" : "Continua"}
+          </button>
+        </div>`;
     }
 
     async function scoreLevelChecker() {
-      const scores={A1:0,A2:0,B1:0,B2:0,C1:0,C2:0};
-      for(let i=0;i<levelQuestions.length;i++){
-        const selected=document.querySelector(`input[name="q${i}"]:checked`);
-        if(!selected){
-          document.getElementById("levelResult").innerHTML='<p class="lead-message error">Rispondi a tutte le domande prima di vedere il risultato.</p>';
+      const band = levelBands[currentLevelBandIndex];
+      const questions = levelQuestions.filter(item => item.band === band);
+      let correct = 0;
+
+      for (let i = 0; i < questions.length; i++) {
+        const selected = document.querySelector(`input[name="bandQ${i}"]:checked`);
+        if (!selected) {
+          document.getElementById("levelResult").innerHTML =
+            `<p class="lead-message error">Rispondi alle 5 domande di questo livello prima di continuare.</p>
+             <div class="lead-actions"><button class="button button-red" type="button" onclick="scoreLevelChecker()">Continua</button></div>`;
           return;
         }
-        if(Number(selected.value)===levelQuestions[i].a) scores[levelQuestions[i].band]++;
+        if (Number(selected.value) === questions[i].a) correct++;
       }
 
-      const bands=["A1","A2","B1","B2","C1","C2"];
-      let level="A1 iniziale";
-      for(const band of bands){
-        if(scores[band]>=4) level=band;
-        else break;
+      levelBandScores[band] = correct;
+
+      if (correct >= 4) {
+        highestDemonstratedLevel = band;
+        if (currentLevelBandIndex < levelBands.length - 1) {
+          currentLevelBandIndex++;
+          renderCurrentLevelBand();
+          const dialog = document.getElementById("leadModal").querySelector(".lead-dialog");
+          if (dialog) dialog.scrollTop = 0;
+          return;
+        }
+      }
+      await finishAdaptiveLevelTest();
+    }
+
+    async function finishAdaptiveLevelTest() {
+      const level = highestDemonstratedLevel;
+      try {
+        await updateCurrentLead({ "Level Result": level });
+      } catch (error) {
+        console.error("Level result save error:", error);
       }
 
-      try { await updateCurrentLead({"Level Result":level}); }
-      catch(error){ console.error("Level result save error:",error); }
+      const scoreSummary = levelBands.slice(0, currentLevelBandIndex + 1)
+        .map(b => `${b}: ${levelBandScores[b]}/5`).join(" · ");
 
-      document.getElementById("levelResult").innerHTML=`
+      document.getElementById("levelForm").innerHTML = "";
+      document.getElementById("levelResult").innerHTML = `
         <div class="level-result">
           <div class="lead-kicker">RISULTATO INDICATIVO CEFR / QCER</div>
           <h3>Il tuo livello è circa ${level}</h3>
+          <p><strong>${scoreSummary}</strong></p>
           <p>Questo test online è una guida, non un test di piazzamento completo.</p>
           <p>Per scegliere la classe giusta dobbiamo valutare anche conversazione, ascolto, pronuncia, fluidità, sicurezza e uso spontaneo dell'inglese.</p>
           <br>
