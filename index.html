@@ -1312,7 +1312,7 @@
 
     .lead-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
     .lead-message { margin-top: 12px; font-weight: 800; }
-    .lead-message.error { color: var(--red-dark); }
+    .lead-message.success {\n      color: #177b52;\n      font-weight: 800;\n    }\n\n    .lead-message.error { color: var(--red-dark); }
 
     .journey-options {
       display: grid;
@@ -2604,11 +2604,38 @@
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload),
+        cache: "no-store",
         redirect: "follow"
       });
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error || "Salvataggio non riuscito.");
+      const raw = await response.text();
+      let data;
+      try { data = JSON.parse(raw); }
+      catch (_) { throw new Error("Conferma del salvataggio non leggibile."); }
+      if (!data || data.success !== true) {
+        throw new Error(data?.error || "Salvataggio non riuscito.");
+      }
       return data;
+    }
+
+    async function findSavedWebsiteEnquiry(fields) {
+      const response = await fetch(
+        `${LLS_ENQUIRY_API}?action=getEnquiries&_=${Date.now()}`,
+        { cache: "no-store", redirect: "follow" }
+      );
+      const data = JSON.parse(await response.text());
+      if (!data || data.success !== true || !Array.isArray(data.enquiries)) return null;
+
+      const clean = value => String(value || "").trim().toLowerCase();
+      const phone = value => String(value || "").replace(/\s+/g, "");
+
+      const matches = data.enquiries.filter(item =>
+        clean(item["Name"]) === clean(fields["Name"]) &&
+        phone(item["Phone"]) === phone(fields["Phone"]) &&
+        clean(item["Email"]) === clean(fields["Email"]) &&
+        clean(item["Course"]) === clean(fields["Course"]) &&
+        clean(item["Source"]) === "website"
+      );
+      return matches.length ? matches[matches.length - 1] : null;
     }
 
     document.getElementById("leadForm").addEventListener("submit", async (event) => {
@@ -2624,23 +2651,47 @@
       const age = document.getElementById("leadAge").value.trim();
       const notes = document.getElementById("leadNotes").value.trim();
 
+      const fields = {
+        "Name": document.getElementById("leadName").value.trim(),
+        "Age": age || who,
+        "Phone": document.getElementById("leadPhone").value.trim(),
+        "Email": document.getElementById("leadEmail").value.trim(),
+        "Course": document.getElementById("leadCourse").value,
+        "Source": "Website",
+        "Stage": "New",
+        "Follow-up": "",
+        "Notes": [who, notes].filter(Boolean).join(" — "),
+        "Level Result": "",
+        "Trial Requested": "No"
+      };
+
       try {
-        const result = await enquiryPost({
-          action: "createEnquiry",
-          fields: {
-            "Name": document.getElementById("leadName").value.trim(),
-            "Age": age || who,
-            "Phone": document.getElementById("leadPhone").value.trim(),
-            "Email": document.getElementById("leadEmail").value.trim(),
-            "Course": document.getElementById("leadCourse").value,
-            "Source": "Website",
-            "Stage": "New",
-            "Follow-up": "",
-            "Notes": [who, notes].filter(Boolean).join(" — "),
-            "Level Result": "",
-            "Trial Requested": "No"
-          }
-        });
+        let result;
+        try {
+          result = await enquiryPost({ action: "createEnquiry", fields });
+        } catch (postError) {
+          const saved = await findSavedWebsiteEnquiry(fields);
+          if (!saved) throw postError;
+          result = { success: true, enquiryId: saved["Enquiry ID"] || "" };
+        }
+
+        currentLeadId = result.enquiryId || "";
+        message.textContent = "✓ Perfetto! I tuoi dati sono stati salvati.";
+        message.className = "lead-message success";
+
+        setTimeout(() => {
+          document.getElementById("leadStep1").hidden = true;
+          document.getElementById("leadStep2").hidden = false;
+        }, 450);
+      } catch (error) {
+        console.error("Website enquiry save error:", error);
+        message.textContent = "Non siamo riusciti a registrare la richiesta. Riprova oppure contattaci su WhatsApp.";
+        message.className = "lead-message error";
+      } finally {
+        button.disabled = false;
+        button.textContent = "Continua";
+      }
+    });
         currentLeadId = result.enquiryId || "";
         document.getElementById("leadStep1").hidden = true;
         document.getElementById("leadStep2").hidden = false;
