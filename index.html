@@ -2272,7 +2272,7 @@
         <h2>Qual è il tuo livello?</h2>
         <p class="lead-intro">10 domande rapide. Il risultato è indicativo e potrà essere confermato con un insegnante.</p>
         <form id="levelForm"></form>
-        <div class="lead-actions"><button class="button button-red" type="button" onclick="scoreLevelChecker()">Vedi il risultato</button></div>
+        <div class="lead-actions"><span></span></div>
         <div id="levelResult"></div>
       </div>
     </div>
@@ -2763,6 +2763,13 @@
          <div class="lead-actions"><button class="button button-red" type="button" onclick="finishYoungTest()">Ho finito · Vedi il risultato</button></div>`;
     }
 
+    const youngLevelDescriptions = {
+      "Pre-A1": "Sta iniziando a riconoscere parole ed espressioni inglesi molto semplici, soprattutto con immagini, giochi e situazioni familiari.",
+      "A1": "Riesce a capire e usare parole e frasi semplici su argomenti familiari come famiglia, scuola, animali, colori e attività quotidiane.",
+      "A2": "Riesce a capire semplici messaggi e brevi testi e a comunicare su argomenti familiari usando frasi semplici.",
+      "B1": "Riesce a capire i punti principali di un inglese chiaro e a parlare in modo semplice di esperienze, interessi, programmi e situazioni quotidiane."
+    };
+
     async function finishYoungTest() {
       let highest = "Pre-A1 iniziale";
       let totalAttempted = 0;
@@ -2797,9 +2804,21 @@
           <div style="font-size:64px">🐶🎉⭐</div>
           <div class="lead-kicker">WELL DONE! · BRAVISSIMO!</div>
           <h3>Livello indicativo: ${highest}</h3>
+          <div style="max-width:700px;margin:16px auto 20px;padding:18px 20px;background:#fff;border-radius:18px;text-align:left">
+            <strong>Cosa riesce a fare a questo livello?</strong>
+            <p style="margin:8px 0 0">${youngLevelDescriptions[highest] || youngLevelDescriptions["Pre-A1"]}</p>
+          </div>
           <p>${summary.join(" · ")}</p>
           <p>Questo è solo un piccolo test online. Il livello definitivo viene stabilito gratuitamente a scuola, dove un insegnante parlerà e giocherà in inglese con il bambino.</p>
-          <br><button class="button button-red" type="button" onclick="bookTrial()">Prenota test di ingresso + lezione di prova</button>
+          <div style="margin-top:24px;padding-top:20px;border-top:1px solid #d7e6f3">
+            <p><strong>Vuoi continuare?</strong> È completamente facoltativo.</p>
+            <div class="lead-actions" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+              <button class="button button-red" type="button" onclick="bookTrial()">Prenota test + prova gratuita</button>
+              <button class="button button-outline" type="button" onclick="requestInfo()">Vorrei essere contattato</button>
+              <button class="button button-outline" type="button" onclick="showYoungLevelChecker()">Rifai il test</button>
+              <button class="button button-outline" type="button" onclick="closeLeadJourney()">Chiudi</button>
+            </div>
+          </div>
         </div>`;
     }
 
@@ -2829,6 +2848,15 @@
         `<p><strong>Non sai più le risposte?</strong> Va bene: fermati qui. Le domande non risposte non impediscono di ottenere il risultato.</p>
          <div class="lead-actions"><button class="button button-red" type="button" onclick="scoreLevelChecker()">Ho finito · Vedi il risultato</button></div>`;
     }
+
+    const cefrDescriptions = {
+      "A1": { title:"Beginner", text:"A questo livello riesci a capire e usare espressioni quotidiane molto comuni, presentarti e rispondere a semplici domande personali." },
+      "A2": { title:"Elementary", text:"A questo livello riesci a comunicare in situazioni quotidiane semplici e a capire frasi frequenti su famiglia, lavoro, acquisti e vita di tutti i giorni." },
+      "B1": { title:"Intermediate", text:"A questo livello riesci a gestire molte situazioni quotidiane, capire i punti principali di un inglese chiaro e parlare di esperienze, programmi e opinioni." },
+      "B2": { title:"Upper-Intermediate", text:"A questo livello riesci a comunicare con una buona naturalezza, capire testi e conversazioni più complessi e spiegare chiaramente idee e opinioni." },
+      "C1": { title:"Advanced", text:"A questo livello riesci a usare l’inglese in modo fluente e flessibile in situazioni sociali, accademiche e professionali e a capire un linguaggio complesso." },
+      "C2": { title:"Proficiency", text:"A questo livello riesci a capire praticamente tutto ciò che ascolti o leggi e a esprimerti con grande fluidità, precisione e naturalezza." }
+    };
 
     async function scoreLevelChecker() {
       let highest = "A1 iniziale";
@@ -2860,15 +2888,29 @@
       try { await updateCurrentLead({"Level Result":highest}); }
       catch(error) { console.error("Level result save warning:",error); }
 
+      const cleanLevel = highest.substring(0,2);
+      const cefrInfo = cefrDescriptions[cleanLevel] || cefrDescriptions["A1"];
       document.getElementById("levelForm").innerHTML = "";
       document.getElementById("levelResult").innerHTML = `
         <div class="level-result">
           <div class="lead-kicker">RISULTATO INDICATIVO CEFR / QCER</div>
-          <h3>Il tuo livello è circa ${highest}</h3>
+          <h3>${cleanLevel} – ${cefrInfo.title} 🎯</h3>
+          <div style="max-width:720px;margin:16px auto 20px;padding:18px 20px;background:#fff;border-radius:18px;text-align:left">
+            <strong>Cosa significa?</strong>
+            <p style="margin:8px 0 0">${cefrInfo.text}</p>
+          </div>
           <p><strong>${summary.join(" · ")}</strong></p>
           <p>Questo test online è una guida, non un test di piazzamento completo.</p>
           <p>Per scegliere la classe giusta dobbiamo valutare anche conversazione, ascolto, pronuncia, fluidità, sicurezza e uso spontaneo dell'inglese.</p>
-          <br><button class="button button-red" type="button" onclick="bookTrial()">Prenota gratis test di ingresso + lezione di prova</button>
+          <div style="margin-top:24px;padding-top:20px;border-top:1px solid #d7e6f3">
+            <p><strong>Vuoi continuare?</strong> È completamente facoltativo.</p>
+            <div class="lead-actions" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+              <button class="button button-red" type="button" onclick="bookTrial()">Prenota test + prova gratuita</button>
+              <button class="button button-outline" type="button" onclick="requestInfo()">Vorrei essere contattato</button>
+              <button class="button button-outline" type="button" onclick="showLevelChecker()">Rifai il test</button>
+              <button class="button button-outline" type="button" onclick="closeLeadJourney()">Chiudi</button>
+            </div>
+          </div>
         </div>`;
     }
 
