@@ -2692,17 +2692,6 @@
         button.textContent = "Continua";
       }
     });
-        currentLeadId = result.enquiryId || "";
-        document.getElementById("leadStep1").hidden = true;
-        document.getElementById("leadStep2").hidden = false;
-      } catch (error) {
-        message.textContent = "Non siamo riusciti a registrare la richiesta. Riprova oppure contattaci su WhatsApp.";
-        message.classList.add("error");
-      } finally {
-        button.disabled = false;
-        button.textContent = "Continua";
-      }
-    });
 
     async function updateCurrentLead(fields) {
       if (!currentLeadId) return;
