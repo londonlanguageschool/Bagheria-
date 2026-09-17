@@ -337,6 +337,19 @@
       margin-bottom: 24px;
     }
 
+    .hero-buttons-primary {
+      align-items: center;
+    }
+
+    .hero-start-button {
+      min-width: 230px;
+      min-height: 54px;
+      padding: 15px 30px;
+      font-size: 1rem;
+      letter-spacing: 0.035em;
+      box-shadow: 0 14px 30px rgba(239, 47, 47, 0.24);
+    }
+
     .button {
       display: inline-flex;
       border: 0;
@@ -1465,6 +1478,12 @@
         width: 100%;
       }
 
+      .hero-start-button {
+        min-width: 0;
+        min-height: 56px;
+        font-size: 1rem;
+      }
+
       .hero-proof {
         display: grid;
       }
@@ -1547,18 +1566,15 @@
             <span class="tagline">We make English fun!</span>
           </p>
 
-          <div class="hero-buttons">
+          <div class="hero-buttons hero-buttons-primary">
             <button
-              class="button button-red"
+              class="button button-red hero-start-button"
               type="button"
               id="startJourneyButton"
               onclick="openLeadJourney()"
             >
-              Inizia da qui
+              INIZIA DA QUI
             </button>
-            <a class="button button-outline" href="#courses">
-              Scopri i corsi
-            </a>
           </div>
 
           <div class="hero-proof">
@@ -2304,6 +2320,7 @@
         heroTitle: 'L’inglese prende <span>vita.</span>',
         heroText:
           'Corsi coinvolgenti per bambini, ragazzi e adulti. <strong>Impara. Parla. Cresci.</strong> <span class="tagline">We make English fun!</span>',
+        start: "INIZIA DA QUI",
         trial: "Prenota una prova",
         info: "Richiedi informazioni",
         discover: "Scopri i corsi",
@@ -2387,6 +2404,7 @@
         heroTitle: 'English comes <span>alive.</span>',
         heroText:
           'Engaging English courses for children, teenagers and adults. <strong>Learn. Speak. Grow.</strong> <span class="tagline">We make English fun!</span>',
+        start: "START HERE",
         trial: "Book a trial lesson",
         info: "Request information",
         discover: "Discover our courses",
@@ -2480,10 +2498,8 @@
       document.querySelector(".hero h1").innerHTML = t.heroTitle;
       document.querySelector(".hero-copy").innerHTML = t.heroText;
 
-      const heroButtons = document.querySelectorAll(".hero-buttons .button");
-      if (heroButtons[0]) heroButtons[0].textContent = t.trial;
-      if (heroButtons[1]) heroButtons[1].textContent = t.info;
-      if (heroButtons[2]) heroButtons[2].textContent = t.discover;
+      const startJourneyButton = document.getElementById("startJourneyButton");
+      if (startJourneyButton) startJourneyButton.textContent = t.start;
 
       const benefitHeading = document.querySelector(".benefits .section-heading");
       benefitHeading.querySelector("small").textContent = t.benefitsSmall;
