@@ -7,6 +7,9 @@
 
 const STORAGE_KEY = "lls_portal_v1";
 
+const LLS_API_URL = "https://script.google.com/macros/s/AKfycbyHbfFoaiMOT1rpY2DcbXAkuNwMoOHVdLlG2aQLgPgCe5gqPuyk8VYm7i4eGQRm8iqi/exec";
+let v12EnquiriesLoaded = false;
+
 const LEVELS = [
   "Young Learners",
   "A1",
@@ -131,6 +134,11 @@ function initialisePortal() {
   populateSelects();
   renderAll();
   navigateTo(readPageFromHash() || "dashboard", false);
+
+  loadV12Enquiries(true).catch((error) => {
+    console.error("V12 Enquiries load error:", error);
+    showToast("Could not load Enquiries from Google Sheets.", "error");
+  });
 }
 
 function ensureStateStructure() {
@@ -157,9 +165,9 @@ function ensureStateStructure() {
     ? state.payments
     : [];
 
-  state.enquiries = Array.isArray(state.enquiries)
-    ? state.enquiries
-    : [];
+  // V12: Enquiries are authoritative in Google Sheets.
+  // Keep this empty until the live API has loaded.
+  state.enquiries = [];
 
   state.attendance =
     state.attendance && typeof state.attendance === "object"
@@ -272,6 +280,13 @@ function navigateTo(page, updateHash = true) {
   document.body.classList.remove("sidebar-open");
   closeGlobalSearch();
   closeUserDropdown();
+
+  if (page === "enquiries") {
+    loadV12Enquiries(false).catch((error) => {
+      console.error("V12 Enquiries load error:", error);
+      showToast("Could not load Enquiries from Google Sheets.", "error");
+    });
+  }
 
   if (page === "attendance") {
     populateAttendanceClassSelect();
@@ -2203,83 +2218,147 @@ function openEditEnquiry(id) {
   openModal("enquiryModal");
 }
 
-function saveEnquiryForm(event) {
+async function loadV12Enquiries(force = false) {
+  if (v12EnquiriesLoaded && !force) {
+    renderEnquiries();
+    return state.enquiries;
+  }
+
+  const response = await fetch(
+    `${LLS_API_URL}?action=getEnquiries&t=${Date.now()}`,
+    { method: "GET", cache: "no-store", redirect: "follow" }
+  );
+
+  const raw = await response.text();
+  let data;
+
+  try {
+    data = JSON.parse(raw);
+  } catch (_) {
+    throw new Error("The Enquiries API response was not JSON.");
+  }
+
+  if (!data || data.success !== true) {
+    throw new Error(data?.error || "Google Sheets did not return Enquiries.");
+  }
+
+  state.enquiries = (Array.isArray(data.enquiries) ? data.enquiries : []).map((row) => ({
+    id: String(row["Enquiry ID"] || ""),
+    name: String(row["Name"] || ""),
+    age: String(row["Age"] || ""),
+    phone: String(row["Phone"] || ""),
+    email: String(row["Email"] || ""),
+    course: String(row["Course"] || ""),
+    source: String(row["Source"] || ""),
+    status: String(row["Stage"] || "New"),
+    followup: String(row["Follow-up"] || ""),
+    created: String(row["Enquiry Date"] || ""),
+    notes: String(row["Notes"] || ""),
+    levelResult: String(row["Level Result"] || ""),
+    trialRequested: String(row["Trial Requested"] || "")
+  }));
+
+  v12EnquiriesLoaded = true;
+  renderEnquiries();
+  renderDashboard();
+  return state.enquiries;
+}
+
+async function v12EnquiryPost(payload) {
+  const response = await fetch(LLS_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+    redirect: "follow"
+  });
+
+  const raw = await response.text();
+  let data;
+
+  try {
+    data = JSON.parse(raw);
+  } catch (_) {
+    throw new Error("The Enquiries save response was not JSON.");
+  }
+
+  if (!data || data.success !== true) {
+    throw new Error(data?.error || "Google Sheets did not confirm the enquiry save.");
+  }
+
+  return data;
+}
+
+async function saveEnquiryForm(event) {
   event.preventDefault();
 
   const id = value("enquiryId");
-
-  const record = {
-    id: id || makeId("enquiry"),
-    name: value("enquiryName").trim(),
-    age: value("enquiryStudentAge"),
-    phone: value("enquiryPhone").trim(),
-    email: value("enquiryEmail").trim(),
-    course: value("enquiryCourse").trim(),
-    source: value("enquirySource"),
-    status: value("enquiryStatus"),
-    followup: value("enquiryFollowup"),
-    created:
-      value("enquiryCreated") ||
-      isoDate(new Date()),
-    notes: value("enquiryNotes").trim()
+  const fields = {
+    "Name": value("enquiryName").trim(),
+    "Age": value("enquiryStudentAge"),
+    "Phone": value("enquiryPhone").trim(),
+    "Email": value("enquiryEmail").trim(),
+    "Course": value("enquiryCourse").trim(),
+    "Source": value("enquirySource"),
+    "Stage": value("enquiryStatus"),
+    "Follow-up": value("enquiryFollowup"),
+    "Enquiry Date": value("enquiryCreated") || isoDate(new Date()),
+    "Notes": value("enquiryNotes").trim()
   };
 
-  if (!record.name || !record.course) {
-    showToast(
-      "Name and course interest are required.",
-      "error"
-    );
+  if (!fields["Name"] || !fields["Course"]) {
+    showToast("Name and course interest are required.", "error");
     return;
   }
 
-  if (id) {
-    state.enquiries = state.enquiries.map(
-      (enquiry) =>
-        enquiry.id === id
-          ? record
-          : enquiry
-    );
-  } else {
-    state.enquiries.push(record);
+  const form = byId("enquiryForm");
+  const saveButton = form?.querySelector('button[type="submit"]');
+  const original = saveButton?.textContent || "Save";
+
+  if (saveButton) {
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving…";
   }
 
-  saveState();
-  closeModal("enquiryModal");
-  renderAll();
+  try {
+    await v12EnquiryPost(
+      id
+        ? { action: "updateEnquiry", enquiryId: id, fields }
+        : { action: "createEnquiry", fields }
+    );
 
-  showToast(
-    id
-      ? "Enquiry updated."
-      : "Enquiry added.",
-    "success"
-  );
+    closeModal("enquiryModal");
+    v12EnquiriesLoaded = false;
+    await loadV12Enquiries(true);
+    showToast(id ? "Enquiry updated in Google Sheets." : "Enquiry saved to Google Sheets.", "success");
+  } catch (error) {
+    console.error("V12 enquiry save error:", error);
+    showToast(error?.message || "Could not save the enquiry.", "error");
+  } finally {
+    if (saveButton) {
+      saveButton.disabled = false;
+      saveButton.textContent = original;
+    }
+  }
 }
 
 function deleteEnquiry(id) {
-  const enquiry = state.enquiries.find(
-    (item) => item.id === id
-  );
-
-  if (!enquiry) {
-    return;
-  }
+  const enquiry = state.enquiries.find((item) => item.id === id);
+  if (!enquiry) return;
 
   openConfirm(
     "Delete enquiry?",
     `Delete the enquiry for ${enquiry.name}?`,
-    () => {
-      state.enquiries =
-        state.enquiries.filter(
-          (item) => item.id !== id
-        );
-
-      saveState();
-      renderAll();
-
-      showToast(
-        "Enquiry deleted.",
-        "success"
-      );
+    async () => {
+      try {
+        await v12EnquiryPost({ action: "deleteEnquiry", enquiryId: id });
+        v12EnquiriesLoaded = false;
+        await loadV12Enquiries(true);
+        showToast("Enquiry deleted from Google Sheets.", "success");
+      } catch (error) {
+        console.error("V12 enquiry delete error:", error);
+        showToast(error?.message || "Could not delete the enquiry.", "error");
+      }
     }
   );
 }
