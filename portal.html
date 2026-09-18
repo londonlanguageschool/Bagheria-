@@ -617,8 +617,9 @@
               <option value="all">All stages</option>
               <option value="New">New</option>
               <option value="Contacted">Contacted</option>
-              <option value="Trial booked">Trial booked</option>
-              <option value="Interested">Interested</option>
+              <option value="Trial/Assessment Booked">Trial/Assessment Booked</option>
+              <option value="Trial/Assessment Completed">Trial/Assessment Completed</option>
+              <option value="Course Offered">Course Offered</option>
               <option value="Enrolled">Enrolled</option>
               <option value="Lost">Lost</option>
             </select>
@@ -1200,8 +1201,9 @@
             <select id="enquiryStatus">
               <option value="New">New</option>
               <option value="Contacted">Contacted</option>
-              <option value="Trial booked">Trial booked</option>
-              <option value="Interested">Interested</option>
+              <option value="Trial/Assessment Booked">Trial/Assessment Booked</option>
+              <option value="Trial/Assessment Completed">Trial/Assessment Completed</option>
+              <option value="Course Offered">Course Offered</option>
               <option value="Enrolled">Enrolled</option>
               <option value="Lost">Lost</option>
             </select>
@@ -1215,6 +1217,37 @@
           <div class="form-field">
             <label for="enquiryCreated">Enquiry date</label>
             <input id="enquiryCreated" type="date">
+          </div>
+
+          <div class="form-field">
+            <label for="enquiryLevelResult">Website level result</label>
+            <input id="enquiryLevelResult" type="text" readonly placeholder="e.g. B1">
+          </div>
+
+          <div class="form-field">
+            <label for="enquiryTrialDate">Trial / assessment date</label>
+            <input id="enquiryTrialDate" type="datetime-local">
+          </div>
+
+          <div class="form-field">
+            <label for="enquiryTeacherLevel">Teacher assessed level</label>
+            <select id="enquiryTeacherLevel">
+              <option value="">Not assessed</option>
+              <option value="Young Learners">Young Learners</option>
+              <option value="A1">A1</option><option value="A2">A2</option>
+              <option value="B1">B1</option><option value="B2">B2</option>
+              <option value="C1">C1</option><option value="C2">C2</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="enquiryCourseOffered">Course / class offered</label>
+            <input id="enquiryCourseOffered" type="text" placeholder="e.g. B1 Adults Tue/Thu">
+          </div>
+
+          <div class="form-field form-field-wide">
+            <label for="enquiryAssessmentNotes">Teacher assessment</label>
+            <textarea id="enquiryAssessmentNotes" rows="3" placeholder="Speaking, listening, grammar, fluency, confidence..."></textarea>
           </div>
 
           <div class="form-field form-field-wide">
@@ -1345,42 +1378,5 @@
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
   <script src="portal.js"></script>
-
-<!-- V12 CUSTOMER JOURNEY -->
-<div class="modal" id="prospectJourneyModal" aria-hidden="true">
-  <div class="modal-backdrop" data-close-modal="prospectJourneyModal"></div>
-  <div class="modal-card modal-card-lg" role="dialog" aria-modal="true">
-    <button class="modal-close" type="button" data-close-modal="prospectJourneyModal" aria-label="Chiudi">×</button>
-    <div class="modal-kicker">LONDON LANGUAGE SCHOOL</div>
-    <h2>Inizia da qui</h2>
-    <p>Troviamo insieme il corso di inglese più adatto a te.</p>
-    <form id="prospectLeadForm">
-      <div class="form-grid">
-        <label>Nome e cognome *<input id="prospectName" required autocomplete="name"></label>
-        <label>WhatsApp *<input id="prospectPhone" required autocomplete="tel" inputmode="tel"></label>
-        <label>Email<input id="prospectEmail" type="email" autocomplete="email"></label>
-        <label>Per chi è il corso? *
-          <select id="prospectWho" required><option value="">Seleziona…</option><option>Per me</option><option>Per mio/a figlio/a</option><option>Per la mia azienda</option><option>Per la mia scuola / istituto</option></select>
-        </label>
-        <label>Età dello studente<input id="prospectAge" inputmode="numeric"></label>
-        <label>Corso di interesse *
-          <select id="prospectCourse" required><option value="">Seleziona…</option><option>Inglese per bambini</option><option>Inglese per ragazzi</option><option>Inglese per adulti</option><option>Preparazione Cambridge</option><option>Lezioni individuali</option><option>Corsi aziendali</option><option>Corsi per scuole</option><option>Non sono sicuro/a – vorrei un consiglio</option></select>
-        </label>
-      </div>
-      <label>Come possiamo aiutarti?<textarea id="prospectNotes" rows="3"></textarea></label>
-      <div class="modal-actions"><button class="btn btn-primary" id="prospectContinue" type="submit">Continua</button></div>
-    </form>
-    <div id="prospectChoices" hidden>
-      <h3>Grazie! Abbiamo ricevuto la tua richiesta.</h3>
-      <p>Scegli cosa preferisci fare adesso. Non devi completare tutte le opzioni.</p>
-      <div class="prospect-choice-grid">
-        <button class="btn btn-secondary" id="prospectLevelChoice" type="button">Scopri il tuo livello</button>
-        <a class="btn btn-primary" id="prospectTrialChoice" href="https://cal.com/londonlanguageschoolbagheria/prova" target="_blank" rel="noopener">Prenota una prova gratuita</a>
-        <button class="btn btn-secondary" id="prospectInfoChoice" type="button">Vorrei maggiori informazioni</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
