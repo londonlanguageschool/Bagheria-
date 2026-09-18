@@ -7,9 +7,6 @@
 
 const STORAGE_KEY = "lls_portal_v1";
 
-const LLS_API_URL = "https://script.google.com/macros/s/AKfycbyHbfFoaiMOT1rpY2DcbXAkuNwMoOHVdLlG2aQLgPgCe5gqPuyk8VYm7i4eGQRm8iqi/exec";
-let v12EnquiriesLoaded = false;
-
 const LEVELS = [
   "Young Learners",
   "A1",
@@ -134,11 +131,6 @@ function initialisePortal() {
   populateSelects();
   renderAll();
   navigateTo(readPageFromHash() || "dashboard", false);
-
-  loadV12Enquiries(true).catch((error) => {
-    console.error("V12 Enquiries load error:", error);
-    showToast("Could not load Enquiries from Google Sheets.", "error");
-  });
 }
 
 function ensureStateStructure() {
@@ -165,9 +157,9 @@ function ensureStateStructure() {
     ? state.payments
     : [];
 
-  // V12: Enquiries are authoritative in Google Sheets.
-  // Keep this empty until the live API has loaded.
-  state.enquiries = [];
+  state.enquiries = Array.isArray(state.enquiries)
+    ? state.enquiries
+    : [];
 
   state.attendance =
     state.attendance && typeof state.attendance === "object"
@@ -280,13 +272,6 @@ function navigateTo(page, updateHash = true) {
   document.body.classList.remove("sidebar-open");
   closeGlobalSearch();
   closeUserDropdown();
-
-  if (page === "enquiries") {
-    loadV12Enquiries(false).catch((error) => {
-      console.error("V12 Enquiries load error:", error);
-      showToast("Could not load Enquiries from Google Sheets.", "error");
-    });
-  }
 
   if (page === "attendance") {
     populateAttendanceClassSelect();
@@ -2218,147 +2203,83 @@ function openEditEnquiry(id) {
   openModal("enquiryModal");
 }
 
-async function loadV12Enquiries(force = false) {
-  if (v12EnquiriesLoaded && !force) {
-    renderEnquiries();
-    return state.enquiries;
-  }
-
-  const response = await fetch(
-    `${LLS_API_URL}?action=getEnquiries&t=${Date.now()}`,
-    { method: "GET", cache: "no-store", redirect: "follow" }
-  );
-
-  const raw = await response.text();
-  let data;
-
-  try {
-    data = JSON.parse(raw);
-  } catch (_) {
-    throw new Error("The Enquiries API response was not JSON.");
-  }
-
-  if (!data || data.success !== true) {
-    throw new Error(data?.error || "Google Sheets did not return Enquiries.");
-  }
-
-  state.enquiries = (Array.isArray(data.enquiries) ? data.enquiries : []).map((row) => ({
-    id: String(row["Enquiry ID"] || ""),
-    name: String(row["Name"] || ""),
-    age: String(row["Age"] || ""),
-    phone: String(row["Phone"] || ""),
-    email: String(row["Email"] || ""),
-    course: String(row["Course"] || ""),
-    source: String(row["Source"] || ""),
-    status: String(row["Stage"] || "New"),
-    followup: String(row["Follow-up"] || ""),
-    created: String(row["Enquiry Date"] || ""),
-    notes: String(row["Notes"] || ""),
-    levelResult: String(row["Level Result"] || ""),
-    trialRequested: String(row["Trial Requested"] || "")
-  }));
-
-  v12EnquiriesLoaded = true;
-  renderEnquiries();
-  renderDashboard();
-  return state.enquiries;
-}
-
-async function v12EnquiryPost(payload) {
-  const response = await fetch(LLS_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload),
-    cache: "no-store",
-    redirect: "follow"
-  });
-
-  const raw = await response.text();
-  let data;
-
-  try {
-    data = JSON.parse(raw);
-  } catch (_) {
-    throw new Error("The Enquiries save response was not JSON.");
-  }
-
-  if (!data || data.success !== true) {
-    throw new Error(data?.error || "Google Sheets did not confirm the enquiry save.");
-  }
-
-  return data;
-}
-
-async function saveEnquiryForm(event) {
+function saveEnquiryForm(event) {
   event.preventDefault();
 
   const id = value("enquiryId");
-  const fields = {
-    "Name": value("enquiryName").trim(),
-    "Age": value("enquiryStudentAge"),
-    "Phone": value("enquiryPhone").trim(),
-    "Email": value("enquiryEmail").trim(),
-    "Course": value("enquiryCourse").trim(),
-    "Source": value("enquirySource"),
-    "Stage": value("enquiryStatus"),
-    "Follow-up": value("enquiryFollowup"),
-    "Enquiry Date": value("enquiryCreated") || isoDate(new Date()),
-    "Notes": value("enquiryNotes").trim()
+
+  const record = {
+    id: id || makeId("enquiry"),
+    name: value("enquiryName").trim(),
+    age: value("enquiryStudentAge"),
+    phone: value("enquiryPhone").trim(),
+    email: value("enquiryEmail").trim(),
+    course: value("enquiryCourse").trim(),
+    source: value("enquirySource"),
+    status: value("enquiryStatus"),
+    followup: value("enquiryFollowup"),
+    created:
+      value("enquiryCreated") ||
+      isoDate(new Date()),
+    notes: value("enquiryNotes").trim()
   };
 
-  if (!fields["Name"] || !fields["Course"]) {
-    showToast("Name and course interest are required.", "error");
+  if (!record.name || !record.course) {
+    showToast(
+      "Name and course interest are required.",
+      "error"
+    );
     return;
   }
 
-  const form = byId("enquiryForm");
-  const saveButton = form?.querySelector('button[type="submit"]');
-  const original = saveButton?.textContent || "Save";
-
-  if (saveButton) {
-    saveButton.disabled = true;
-    saveButton.textContent = "Saving…";
-  }
-
-  try {
-    await v12EnquiryPost(
-      id
-        ? { action: "updateEnquiry", enquiryId: id, fields }
-        : { action: "createEnquiry", fields }
+  if (id) {
+    state.enquiries = state.enquiries.map(
+      (enquiry) =>
+        enquiry.id === id
+          ? record
+          : enquiry
     );
-
-    closeModal("enquiryModal");
-    v12EnquiriesLoaded = false;
-    await loadV12Enquiries(true);
-    showToast(id ? "Enquiry updated in Google Sheets." : "Enquiry saved to Google Sheets.", "success");
-  } catch (error) {
-    console.error("V12 enquiry save error:", error);
-    showToast(error?.message || "Could not save the enquiry.", "error");
-  } finally {
-    if (saveButton) {
-      saveButton.disabled = false;
-      saveButton.textContent = original;
-    }
+  } else {
+    state.enquiries.push(record);
   }
+
+  saveState();
+  closeModal("enquiryModal");
+  renderAll();
+
+  showToast(
+    id
+      ? "Enquiry updated."
+      : "Enquiry added.",
+    "success"
+  );
 }
 
 function deleteEnquiry(id) {
-  const enquiry = state.enquiries.find((item) => item.id === id);
-  if (!enquiry) return;
+  const enquiry = state.enquiries.find(
+    (item) => item.id === id
+  );
+
+  if (!enquiry) {
+    return;
+  }
 
   openConfirm(
     "Delete enquiry?",
     `Delete the enquiry for ${enquiry.name}?`,
-    async () => {
-      try {
-        await v12EnquiryPost({ action: "deleteEnquiry", enquiryId: id });
-        v12EnquiriesLoaded = false;
-        await loadV12Enquiries(true);
-        showToast("Enquiry deleted from Google Sheets.", "success");
-      } catch (error) {
-        console.error("V12 enquiry delete error:", error);
-        showToast(error?.message || "Could not delete the enquiry.", "error");
-      }
+    () => {
+      state.enquiries =
+        state.enquiries.filter(
+          (item) => item.id !== id
+        );
+
+      saveState();
+      renderAll();
+
+      showToast(
+        "Enquiry deleted.",
+        "success"
+      );
     }
   );
 }
@@ -4061,3 +3982,63 @@ function downloadFile(
     URL.revokeObjectURL(url);
   }, 1000);
 }
+
+/* ============================================================
+   LLS V2 — GOOGLE SHEETS ENQUIRY API BRIDGE
+   Restores Enquiries from Apps Script without replacing the
+   portal's existing local state architecture.
+   ============================================================ */
+const LLS_API_URL = "https://script.google.com/macros/s/AKfycbyHbfFoaiMOT1rpY2DcbXAkuNwMoOHVdLlG2aQLgPgCe5gqPuyk8VYm7i4eGQRm8iqi/exec";
+
+async function llsLoadEnquiriesFromSheets() {
+  try {
+    const response = await fetch(`${LLS_API_URL}?action=getEnquiries`, {
+      method: "GET",
+      cache: "no-store"
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    if (payload && payload.success === false) {
+      throw new Error(payload.error || payload.message || "API returned an error");
+    }
+
+    const rows = Array.isArray(payload)
+      ? payload
+      : (payload.enquiries || payload.data || []);
+
+    if (!Array.isArray(rows)) throw new Error("No enquiry array returned by API");
+
+    // Merge into the current portal state rather than disturbing other modules.
+    state.enquiries = rows.map((r, i) => ({
+      ...r,
+      id: r.id || r["Enquiry ID"] || r.enquiryId || r.enquiryID || `ENQ${String(i + 1).padStart(4, "0")}`,
+      name: r.name || r.Name || "",
+      age: r.age || r.Age || "",
+      phone: r.phone || r.Phone || "",
+      email: r.email || r.Email || "",
+      course: r.course || r.Course || r.interestedIn || "",
+      source: r.source || r.Source || "",
+      stage: r.stage || r.Stage || "New",
+      followUp: r.followUp || r["Follow-up"] || r["Follow Up"] || "",
+      enquiryDate: r.enquiryDate || r["Enquiry Date"] || r.created || "",
+      notes: r.notes || r.Notes || "",
+      levelResult: r.levelResult || r["Level Result"] || "",
+      trialRequested: r.trialRequested || r["Trial Requested"] || ""
+    }));
+
+    if (typeof saveState === "function") saveState();
+    if (typeof render === "function") render();
+    else if (typeof renderApp === "function") renderApp();
+
+    console.info(`LLS: loaded ${state.enquiries.length} enquiries from Google Sheets.`);
+    return state.enquiries;
+  } catch (err) {
+    console.error("LLS: could not load enquiries from Google Sheets:", err);
+    return null;
+  }
+}
+
+window.addEventListener("load", () => {
+  llsLoadEnquiriesFromSheets();
+});
+
