@@ -1,1382 +1,3984 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#082d5c">
-  <meta name="description" content="London Language School management portal">
-  <title>LLS Portal | London Language School</title>
-  <link rel="stylesheet" href="portal.css">
-</head>
+"use strict";
 
-<body>
-  <div class="app-shell">
+/* =========================================================
+   LONDON LANGUAGE SCHOOL PORTAL
+   Browser-based production front end
+========================================================= */
 
-    <!-- =========================
-         MOBILE OVERLAY
-    ========================== -->
-    <button
-      class="sidebar-overlay"
-      id="sidebarOverlay"
-      aria-label="Close navigation"
-      type="button"
-    ></button>
+const STORAGE_KEY = "lls_portal_v1";
 
-    <!-- =========================
-         SIDEBAR
-    ========================== -->
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">
-          <span class="brand-mark-main">LLS</span>
+const LEVELS = [
+  "Young Learners",
+  "A1",
+  "A2",
+  "B1",
+  "B2",
+  "C1",
+  "C2"
+];
+
+const ENQUIRY_STAGES = [
+  "New",
+  "Contacted",
+  "Trial booked",
+  "Interested",
+  "Enrolled",
+  "Lost"
+];
+
+const PAGE_TITLES = {
+  dashboard: "Dashboard",
+  students: "Students",
+  classes: "Classes",
+  attendance: "Attendance",
+  fees: "Fees & Payments",
+  enquiries: "Enquiries",
+  teachers: "Teachers",
+  reports: "Reports",
+  settings: "Settings"
+};
+
+const CHART_COLOURS = [
+  "#0b3b78",
+  "#ee3124",
+  "#177b52",
+  "#b76811",
+  "#6d55a3",
+  "#3b7da7",
+  "#8d4050"
+];
+
+let state = loadState();
+let confirmCallback = null;
+let attendanceDraft = {};
+
+/* =========================================================
+   DEFAULT DATA
+========================================================= */
+
+function getDefaultState() {
+  const today = isoDate(new Date());
+  const followUpDate = isoDate(addDays(new Date(), 2));
+
+  return {
+    settings: {
+      schoolName: "London Language School",
+      phone: "",
+      email: "",
+      address: "Bagheria, Sicily, Italy"
+    },
+
+    teachers: [
+      {
+        id: makeId("teacher"),
+        name: "Anna Romano",
+        email: "",
+        phone: "",
+        role: "English Teacher",
+        status: "Active",
+        notes: ""
+      },
+      {
+        id: makeId("teacher"),
+        name: "James Taylor",
+        email: "",
+        phone: "",
+        role: "English Teacher",
+        status: "Active",
+        notes: ""
+      }
+    ],
+
+    classes: [],
+
+    students: [],
+
+    payments: [],
+
+    enquiries: [
+      {
+        id: makeId("enquiry"),
+        name: "Sample Enquiry",
+        age: "",
+        phone: "",
+        email: "",
+        course: "Cambridge English",
+        source: "WhatsApp",
+        status: "New",
+        followup: followUpDate,
+        created: today,
+        notes: "Example enquiry — edit or delete this record."
+      }
+    ],
+
+    attendance: {}
+  };
+}
+
+/* =========================================================
+   INITIALISATION
+========================================================= */
+
+document.addEventListener("DOMContentLoaded", initialisePortal);
+
+function initialisePortal() {
+  ensureStateStructure();
+  bindNavigation();
+  bindGlobalControls();
+  bindForms();
+  bindFilters();
+  initialiseDates();
+  populateSelects();
+  renderAll();
+  navigateTo(readPageFromHash() || "dashboard", false);
+}
+
+function ensureStateStructure() {
+  const defaults = getDefaultState();
+
+  state.settings = {
+    ...defaults.settings,
+    ...(state.settings || {})
+  };
+
+  state.teachers = Array.isArray(state.teachers)
+    ? state.teachers
+    : [];
+
+  state.classes = Array.isArray(state.classes)
+    ? state.classes
+    : [];
+
+  state.students = Array.isArray(state.students)
+    ? state.students
+    : [];
+
+  state.payments = Array.isArray(state.payments)
+    ? state.payments
+    : [];
+
+  state.enquiries = Array.isArray(state.enquiries)
+    ? state.enquiries
+    : [];
+
+  state.attendance =
+    state.attendance && typeof state.attendance === "object"
+      ? state.attendance
+      : {};
+
+  saveState();
+}
+
+function initialiseDates() {
+  const today = new Date();
+
+  setValue("attendanceDate", isoDate(today));
+  setValue("studentJoined", isoDate(today));
+  setValue("paymentDate", isoDate(today));
+  setValue("enquiryCreated", isoDate(today));
+
+  const formatted = new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(today);
+
+  text("todayLabel", formatted);
+}
+
+/* =========================================================
+   STORAGE
+========================================================= */
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+
+    if (!saved) {
+      const defaults = getDefaultState();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults));
+      return defaults;
+    }
+
+    return JSON.parse(saved);
+  } catch (error) {
+    console.error("Unable to load portal data:", error);
+    return getDefaultState();
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.error("Unable to save portal data:", error);
+    showToast("Could not save data in this browser.", "error");
+  }
+}
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function bindNavigation() {
+  document.querySelectorAll("[data-page]").forEach((button) => {
+    button.addEventListener("click", () => {
+      navigateTo(button.dataset.page);
+    });
+  });
+
+  document.querySelectorAll("[data-page-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      navigateTo(button.dataset.pageTarget);
+      closeUserDropdown();
+    });
+  });
+
+  window.addEventListener("hashchange", () => {
+    const page = readPageFromHash();
+
+    if (page && PAGE_TITLES[page]) {
+      navigateTo(page, false);
+    }
+  });
+}
+
+function navigateTo(page, updateHash = true) {
+  if (!PAGE_TITLES[page]) {
+    page = "dashboard";
+  }
+
+  document.querySelectorAll(".page").forEach((section) => {
+    section.classList.toggle(
+      "active",
+      section.id === `page-${page}`
+    );
+  });
+
+  document.querySelectorAll(".nav-item[data-page]").forEach((button) => {
+    button.classList.toggle(
+      "active",
+      button.dataset.page === page
+    );
+  });
+
+  text("pageTitle", PAGE_TITLES[page]);
+
+  if (updateHash) {
+    history.replaceState(null, "", `#${page}`);
+  }
+
+  document.body.classList.remove("sidebar-open");
+  closeGlobalSearch();
+  closeUserDropdown();
+
+  if (page === "attendance") {
+    populateAttendanceClassSelect();
+    renderAttendance();
+  }
+
+  if (page === "reports") {
+    renderReports();
+  }
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
+
+function readPageFromHash() {
+  return location.hash.replace("#", "").trim();
+}
+
+/* =========================================================
+   GLOBAL CONTROLS
+========================================================= */
+
+function bindGlobalControls() {
+  const mobileMenuButton = byId("mobileMenuButton");
+  const sidebarOverlay = byId("sidebarOverlay");
+  const userMenuButton = byId("userMenuButton");
+  const notificationButton = byId("notificationButton");
+  const closeNotificationButton = byId("closeNotificationPanel");
+
+  mobileMenuButton.addEventListener("click", () => {
+    document.body.classList.add("sidebar-open");
+  });
+
+  sidebarOverlay.addEventListener("click", () => {
+    document.body.classList.remove("sidebar-open");
+  });
+
+  userMenuButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    byId("userDropdown").classList.toggle("visible");
+  });
+
+  notificationButton.addEventListener("click", () => {
+    byId("notificationPanel").classList.add("open");
+  });
+
+  closeNotificationButton.addEventListener("click", () => {
+    byId("notificationPanel").classList.remove("open");
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".user-menu-wrap")) {
+      closeUserDropdown();
+    }
+
+    if (
+      !event.target.closest(".global-search") &&
+      !event.target.closest(".global-search-results")
+    ) {
+      closeGlobalSearch();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeAllModals();
+      closeGlobalSearch();
+      closeUserDropdown();
+      byId("notificationPanel").classList.remove("open");
+      document.body.classList.remove("sidebar-open");
+    }
+  });
+
+  document.querySelectorAll("[data-close-modal]").forEach((button) => {
+    button.addEventListener("click", () => {
+      closeModal(button.dataset.closeModal);
+    });
+  });
+
+  document.querySelectorAll(".modal-backdrop").forEach((backdrop) => {
+    backdrop.addEventListener("mousedown", (event) => {
+      if (event.target === backdrop) {
+        closeModal(backdrop.id);
+      }
+    });
+  });
+
+  byId("quickStudentButton").addEventListener("click", openNewStudent);
+  byId("quickEnquiryButton").addEventListener("click", openNewEnquiry);
+  byId("addStudentButton").addEventListener("click", openNewStudent);
+  byId("addClassButton").addEventListener("click", openNewClass);
+  byId("addPaymentButton").addEventListener("click", openNewPayment);
+  byId("addEnquiryButton").addEventListener("click", openNewEnquiry);
+  byId("addTeacherButton").addEventListener("click", openNewTeacher);
+
+  byId("exportStudentsButton").addEventListener(
+    "click",
+    exportStudentsCsv
+  );
+
+  byId("exportPaymentsButton").addEventListener(
+    "click",
+    exportPaymentsCsv
+  );
+
+  byId("exportEnquiriesButton").addEventListener(
+    "click",
+    exportEnquiriesCsv
+  );
+
+  byId("exportAttendanceButton").addEventListener(
+    "click",
+    exportAttendanceCsv
+  );
+
+  byId("exportFullReportButton").addEventListener(
+    "click",
+    exportFullReport
+  );
+
+  byId("backupDataButton").addEventListener(
+    "click",
+    exportBackup
+  );
+
+  byId("settingsExportBackup").addEventListener(
+    "click",
+    exportBackup
+  );
+
+  byId("backupImportInput").addEventListener(
+    "change",
+    importBackup
+  );
+
+  byId("resetPortalButton").addEventListener("click", () => {
+    openConfirm(
+      "Reset portal data?",
+      "This will remove the current portal records stored in this browser and restore the original starter data.",
+      () => {
+        state = getDefaultState();
+        saveState();
+        populateSelects();
+        renderAll();
+        showToast("Portal data reset.", "success");
+      },
+      "Reset"
+    );
+  });
+
+  byId("globalSearchInput").addEventListener(
+    "input",
+    renderGlobalSearch
+  );
+}
+
+/* =========================================================
+   FILTERS
+========================================================= */
+
+function bindFilters() {
+  [
+    "studentSearch",
+    "studentStatusFilter",
+    "studentLevelFilter"
+  ].forEach((id) => {
+    byId(id).addEventListener("input", renderStudents);
+    byId(id).addEventListener("change", renderStudents);
+  });
+
+  [
+    "classSearch",
+    "classDayFilter"
+  ].forEach((id) => {
+    byId(id).addEventListener("input", renderClasses);
+    byId(id).addEventListener("change", renderClasses);
+  });
+
+  [
+    "paymentSearch",
+    "paymentStatusFilter"
+  ].forEach((id) => {
+    byId(id).addEventListener("input", renderPayments);
+    byId(id).addEventListener("change", renderPayments);
+  });
+
+  [
+    "enquirySearch",
+    "enquiryStatusFilter"
+  ].forEach((id) => {
+    byId(id).addEventListener("input", renderEnquiries);
+    byId(id).addEventListener("change", renderEnquiries);
+  });
+
+  byId("attendanceClassSelect").addEventListener(
+    "change",
+    renderAttendance
+  );
+
+  byId("attendanceDate").addEventListener(
+    "change",
+    renderAttendance
+  );
+
+  byId("saveAttendanceButton").addEventListener(
+    "click",
+    saveAttendance
+  );
+}
+
+/* =========================================================
+   FORMS
+========================================================= */
+
+function bindForms() {
+  byId("studentForm").addEventListener(
+    "submit",
+    saveStudentForm
+  );
+
+  byId("classForm").addEventListener(
+    "submit",
+    saveClassForm
+  );
+
+  byId("paymentForm").addEventListener(
+    "submit",
+    savePaymentForm
+  );
+
+  byId("enquiryForm").addEventListener(
+    "submit",
+    saveEnquiryForm
+  );
+
+  byId("teacherForm").addEventListener(
+    "submit",
+    saveTeacherForm
+  );
+
+  byId("settingsForm").addEventListener(
+    "submit",
+    saveSettingsForm
+  );
+
+  byId("confirmActionButton").addEventListener(
+    "click",
+    executeConfirmAction
+  );
+}
+
+/* =========================================================
+   MASTER RENDER
+========================================================= */
+
+function renderAll() {
+  populateSelects();
+  renderDashboard();
+  renderStudents();
+  renderClasses();
+  renderAttendance();
+  renderPayments();
+  renderEnquiries();
+  renderTeachers();
+  renderReports();
+  renderSettings();
+  renderNotifications();
+}
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+function renderDashboard() {
+  const activeStudents = state.students.filter(
+    (student) => student.status === "Active"
+  );
+
+  const totalCollected = sum(
+    state.payments.map((payment) => number(payment.paid))
+  );
+
+  const currentMonthCollected = sum(
+    state.payments
+      .filter((payment) => isCurrentMonth(payment.date))
+      .map((payment) => number(payment.paid))
+  );
+
+  const totalFees = sum(
+    state.payments.map((payment) => number(payment.fee))
+  );
+
+  const outstanding = Math.max(
+    0,
+    totalFees - totalCollected
+  );
+
+  const openEnquiries = state.enquiries.filter(
+    (enquiry) =>
+      !["Enrolled", "Lost"].includes(enquiry.status)
+  );
+
+  text("statStudents", activeStudents.length);
+  text(
+    "statStudentsSub",
+    `${state.students.length} total student record${state.students.length === 1 ? "" : "s"}`
+  );
+
+  text("statClasses", state.classes.length);
+  text(
+    "statClassesSub",
+    `${state.teachers.filter((teacher) => teacher.status === "Active").length} active teacher${state.teachers.filter((teacher) => teacher.status === "Active").length === 1 ? "" : "s"}`
+  );
+
+  text(
+    "statCollected",
+    formatMoney(currentMonthCollected)
+  );
+
+  text(
+    "statCollectedSub",
+    "Payments dated this month"
+  );
+
+  text("statEnquiries", openEnquiries.length);
+  text(
+    "statEnquiriesSub",
+    openEnquiries.length
+      ? "Active sales opportunities"
+      : "Nothing waiting"
+  );
+
+  renderTodayClasses();
+  renderStudentBreakdown();
+  renderRecentEnquiries();
+
+  text(
+    "dashboardPaidAmount",
+    formatMoney(totalCollected)
+  );
+
+  text(
+    "dashboardDueAmount",
+    formatMoney(outstanding)
+  );
+
+  const collectionRate =
+    totalFees > 0
+      ? Math.min(100, (totalCollected / totalFees) * 100)
+      : 0;
+
+  byId("paymentProgressBar").style.width =
+    `${collectionRate}%`;
+
+  text(
+    "paymentProgressText",
+    totalFees
+      ? `${Math.round(collectionRate)}% of recorded fees have been collected.`
+      : "No payment data yet."
+  );
+}
+
+function renderTodayClasses() {
+  const container = byId("todayClassesList");
+  const todayName = new Intl.DateTimeFormat(
+    "en-GB",
+    { weekday: "long" }
+  ).format(new Date());
+
+  const classes = state.classes
+    .filter((item) => item.day === todayName)
+    .sort((a, b) => a.time.localeCompare(b.time));
+
+  if (!classes.length) {
+    container.innerHTML = emptyState(
+      `No classes scheduled for ${todayName}.`
+    );
+    return;
+  }
+
+  container.innerHTML = classes
+    .map((item) => {
+      const enrolled = getClassStudents(item.id).length;
+      const teacher = getTeacher(item.teacherId);
+
+      return `
+        <div class="schedule-item">
+          <div class="schedule-time">${escapeHtml(formatTime(item.time))}</div>
+
+          <div class="schedule-info">
+            <strong>${escapeHtml(item.name)}</strong>
+            <span>
+              ${escapeHtml(item.level)}
+              · ${escapeHtml(teacher?.name || "Teacher not assigned")}
+              ${item.room ? ` · ${escapeHtml(item.room)}` : ""}
+            </span>
+          </div>
+
+          <div class="schedule-count">
+            ${enrolled} student${enrolled === 1 ? "" : "s"}
+          </div>
         </div>
+      `;
+    })
+    .join("");
+}
 
-        <div class="brand-copy">
-          <strong>London</strong>
-          <span>Language School</span>
-        </div>
+function renderStudentBreakdown() {
+  const activeStudents = state.students.filter(
+    (student) => student.status === "Active"
+  );
+
+  const counts = LEVELS
+    .map((level) => ({
+      level,
+      count: activeStudents.filter(
+        (student) => student.level === level
+      ).length
+    }))
+    .filter((item) => item.count > 0);
+
+  text("donutTotal", activeStudents.length);
+
+  const donut = byId("studentDonut");
+  const legend = byId("studentBreakdownLegend");
+
+  if (!activeStudents.length) {
+    donut.style.background = "var(--ink-100)";
+    legend.innerHTML = `
+      <p class="muted">Add active students to see the level breakdown.</p>
+    `;
+    return;
+  }
+
+  let angle = 0;
+  const segments = [];
+
+  counts.forEach((item, index) => {
+    const degrees =
+      (item.count / activeStudents.length) * 360;
+
+    const start = angle;
+    const end = angle + degrees;
+    const colour =
+      CHART_COLOURS[index % CHART_COLOURS.length];
+
+    segments.push(
+      `${colour} ${start}deg ${end}deg`
+    );
+
+    angle = end;
+  });
+
+  donut.style.background =
+    `conic-gradient(${segments.join(",")})`;
+
+  legend.innerHTML = counts
+    .map((item, index) => `
+      <div class="legend-row">
+        <span
+          class="legend-dot"
+          style="background:${CHART_COLOURS[index % CHART_COLOURS.length]}"
+        ></span>
+        <span>${escapeHtml(item.level)}</span>
+        <strong>${item.count}</strong>
       </div>
+    `)
+    .join("");
+}
 
-      <div class="brand-tagline">We make English fun!</div>
+function renderRecentEnquiries() {
+  const container = byId("recentEnquiriesList");
 
-      <nav class="main-nav" aria-label="Main navigation">
-        <button class="nav-item active" data-page="dashboard" type="button">
-          <span class="nav-icon" aria-hidden="true">⌂</span>
-          <span>Dashboard</span>
-        </button>
+  const enquiries = [...state.enquiries]
+    .filter(
+      (enquiry) =>
+        !["Enrolled", "Lost"].includes(enquiry.status)
+    )
+    .sort((a, b) =>
+      String(b.created).localeCompare(String(a.created))
+    )
+    .slice(0, 5);
 
-        <button class="nav-item" data-page="students" type="button">
-          <span class="nav-icon" aria-hidden="true">♙</span>
-          <span>Students</span>
-        </button>
+  if (!enquiries.length) {
+    container.innerHTML = emptyState(
+      "No active enquiries."
+    );
+    return;
+  }
 
-        <button class="nav-item" data-page="classes" type="button">
-          <span class="nav-icon" aria-hidden="true">▣</span>
-          <span>Classes</span>
-        </button>
-
-        <button class="nav-item" data-page="attendance" type="button">
-          <span class="nav-icon" aria-hidden="true">✓</span>
-          <span>Attendance</span>
-        </button>
-
-        <button class="nav-item" data-page="fees" type="button">
-          <span class="nav-icon" aria-hidden="true">€</span>
-          <span>Fees & Payments</span>
-        </button>
-
-        <button class="nav-item" data-page="enquiries" type="button">
-          <span class="nav-icon" aria-hidden="true">✉</span>
-          <span>Enquiries</span>
-          <span class="nav-badge" id="enquiryNavBadge">0</span>
-        </button>
-
-        <button class="nav-item" data-page="teachers" type="button">
-          <span class="nav-icon" aria-hidden="true">♟</span>
-          <span>Teachers</span>
-        </button>
-
-        <button class="nav-item" data-page="reports" type="button">
-          <span class="nav-icon" aria-hidden="true">↗</span>
-          <span>Reports</span>
-        </button>
-      </nav>
-
-      <div class="sidebar-footer">
-        <button class="nav-item" data-page="settings" type="button">
-          <span class="nav-icon" aria-hidden="true">⚙</span>
-          <span>Settings</span>
-        </button>
-
-        <div class="school-card">
-          <div class="school-card-icon">L</div>
-          <div>
-            <strong>London Language School</strong>
-            <span>Bagheria, Sicily</span>
-          </div>
+  container.innerHTML = enquiries
+    .map((enquiry) => `
+      <div class="compact-item">
+        <div class="compact-avatar">
+          ${escapeHtml(getInitials(enquiry.name))}
         </div>
+
+        <div class="compact-copy">
+          <strong>${escapeHtml(enquiry.name)}</strong>
+          <span>${escapeHtml(enquiry.course || "Course not specified")}</span>
+        </div>
+
+        ${statusBadge(enquiry.status)}
       </div>
-    </aside>
+    `)
+    .join("");
+}
 
-    <!-- =========================
-         MAIN
-    ========================== -->
-    <main class="main">
+/* =========================================================
+   STUDENTS
+========================================================= */
 
-      <!-- TOPBAR -->
-      <header class="topbar">
-        <div class="topbar-left">
-          <button
-            class="icon-button mobile-menu-button"
-            id="mobileMenuButton"
-            type="button"
-            aria-label="Open navigation"
-          >
-            ☰
-          </button>
+function renderStudents() {
+  const body = byId("studentsTableBody");
 
-          <div>
-            <p class="eyebrow">London Language School</p>
-            <h1 id="pageTitle">Dashboard</h1>
-          </div>
-        </div>
+  const query =
+    byId("studentSearch").value
+      .trim()
+      .toLowerCase();
 
-        <div class="topbar-actions">
-          <div class="global-search">
-            <span aria-hidden="true">⌕</span>
-            <input
-              id="globalSearchInput"
-              type="search"
-              placeholder="Search students, classes, enquiries..."
-              autocomplete="off"
-              aria-label="Search portal"
-            >
-            <div class="global-search-results" id="globalSearchResults"></div>
-          </div>
+  const status =
+    byId("studentStatusFilter").value;
 
-          <button
-            class="icon-button"
-            id="notificationButton"
-            type="button"
-            aria-label="Notifications"
-          >
-            ♢
-            <span class="notification-dot" id="notificationDot"></span>
-          </button>
+  const level =
+    byId("studentLevelFilter").value;
 
-          <div class="user-menu-wrap">
-            <button class="user-button" id="userMenuButton" type="button">
-              <div class="avatar">A</div>
-              <div class="user-copy">
-                <strong>Admin</strong>
-                <span>School portal</span>
+  const students = [...state.students]
+    .filter((student) => {
+      const haystack = [
+        student.firstName,
+        student.lastName,
+        student.email,
+        student.phone,
+        student.level,
+        getClass(student.classId)?.name
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch =
+        !query || haystack.includes(query);
+
+      const matchesStatus =
+        status === "all" ||
+        student.status === status;
+
+      const matchesLevel =
+        level === "all" ||
+        student.level === level;
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesLevel
+      );
+    })
+    .sort((a, b) =>
+      `${a.lastName} ${a.firstName}`.localeCompare(
+        `${b.lastName} ${b.firstName}`
+      )
+    );
+
+  text(
+    "studentsTableCount",
+    `${students.length} student${students.length === 1 ? "" : "s"}`
+  );
+
+  if (!students.length) {
+    body.innerHTML = tableEmptyRow(
+      7,
+      query || status !== "all" || level !== "all"
+        ? "No students match these filters."
+        : "No students yet. Add your first student."
+    );
+    return;
+  }
+
+  body.innerHTML = students
+    .map((student) => {
+      const classRecord = getClass(student.classId);
+
+      return `
+        <tr>
+          <td>
+            <div class="student-cell">
+              <div class="student-avatar">
+                ${escapeHtml(
+                  getInitials(
+                    `${student.firstName} ${student.lastName}`
+                  )
+                )}
               </div>
-              <span aria-hidden="true">⌄</span>
-            </button>
 
-            <div class="user-dropdown" id="userDropdown">
-              <button type="button" data-page-target="settings">
-                Portal settings
-              </button>
-              <button type="button" id="backupDataButton">
-                Export backup
-              </button>
+              <div>
+                <strong>
+                  ${escapeHtml(student.firstName)}
+                  ${escapeHtml(student.lastName)}
+                </strong>
+                <span>
+                  ${student.dob
+                    ? `DOB ${escapeHtml(formatDate(student.dob))}`
+                    : "Date of birth not set"}
+                </span>
+              </div>
             </div>
-          </div>
-        </div>
-      </header>
+          </td>
 
-      <div class="content">
+          <td>
+            ${classRecord
+              ? escapeHtml(classRecord.name)
+              : '<span class="muted">Not assigned</span>'}
+          </td>
 
-        <!-- =========================
-             DASHBOARD
-        ========================== -->
-        <section class="page active" id="page-dashboard">
-          <div class="hero">
-            <div>
-              <p class="hero-kicker" id="todayLabel">Today</p>
-              <h2>Welcome to your school portal.</h2>
-              <p>
-                Keep students, classes, payments, enquiries and attendance
-                organised in one place.
-              </p>
+          <td>
+            <strong>${escapeHtml(student.level || "—")}</strong>
+          </td>
+
+          <td>
+            <div class="contact-cell">
+              <span>${escapeHtml(student.phone || "—")}</span>
+              <span>${escapeHtml(student.email || "—")}</span>
             </div>
+          </td>
 
-            <div class="hero-actions">
-              <button class="button button-secondary" id="quickEnquiryButton" type="button">
-                + New enquiry
-              </button>
-              <button class="button button-primary" id="quickStudentButton" type="button">
-                + Add student
-              </button>
-            </div>
-          </div>
+          <td>${statusBadge(student.status)}</td>
 
-          <div class="stats-grid">
-            <article class="stat-card">
-              <div class="stat-icon stat-blue">♙</div>
-              <div class="stat-main">
-                <span>Active students</span>
-                <strong id="statStudents">0</strong>
-                <small id="statStudentsSub">Across all courses</small>
-              </div>
-            </article>
+          <td>
+            ${student.joined
+              ? escapeHtml(formatDate(student.joined))
+              : "—"}
+          </td>
 
-            <article class="stat-card">
-              <div class="stat-icon stat-red">▣</div>
-              <div class="stat-main">
-                <span>Active classes</span>
-                <strong id="statClasses">0</strong>
-                <small id="statClassesSub">Current groups</small>
-              </div>
-            </article>
-
-            <article class="stat-card">
-              <div class="stat-icon stat-green">€</div>
-              <div class="stat-main">
-                <span>Collected this month</span>
-                <strong id="statCollected">€0</strong>
-                <small id="statCollectedSub">Recorded payments</small>
-              </div>
-            </article>
-
-            <article class="stat-card">
-              <div class="stat-icon stat-orange">✉</div>
-              <div class="stat-main">
-                <span>Open enquiries</span>
-                <strong id="statEnquiries">0</strong>
-                <small id="statEnquiriesSub">Need follow-up</small>
-              </div>
-            </article>
-          </div>
-
-          <div class="dashboard-grid">
-            <article class="panel dashboard-main-panel">
-              <div class="panel-header">
-                <div>
-                  <p class="section-label">Today</p>
-                  <h3>Today's classes</h3>
-                </div>
-
-                <button class="text-button" data-page-target="classes" type="button">
-                  View all →
-                </button>
-              </div>
-
-              <div id="todayClassesList" class="schedule-list"></div>
-            </article>
-
-            <article class="panel">
-              <div class="panel-header">
-                <div>
-                  <p class="section-label">Enrolment</p>
-                  <h3>Student breakdown</h3>
-                </div>
-              </div>
-
-              <div class="breakdown-chart">
-                <div class="donut" id="studentDonut">
-                  <div class="donut-centre">
-                    <strong id="donutTotal">0</strong>
-                    <span>students</span>
-                  </div>
-                </div>
-
-                <div class="chart-legend" id="studentBreakdownLegend"></div>
-              </div>
-            </article>
-
-            <article class="panel">
-              <div class="panel-header">
-                <div>
-                  <p class="section-label">Follow-up</p>
-                  <h3>Recent enquiries</h3>
-                </div>
-
-                <button class="text-button" data-page-target="enquiries" type="button">
-                  Open CRM →
-                </button>
-              </div>
-
-              <div id="recentEnquiriesList" class="compact-list"></div>
-            </article>
-
-            <article class="panel">
-              <div class="panel-header">
-                <div>
-                  <p class="section-label">Finance</p>
-                  <h3>Payment overview</h3>
-                </div>
-              </div>
-
-              <div class="payment-summary">
-                <div>
-                  <span>Paid</span>
-                  <strong id="dashboardPaidAmount">€0</strong>
-                </div>
-                <div>
-                  <span>Outstanding</span>
-                  <strong id="dashboardDueAmount">€0</strong>
-                </div>
-              </div>
-
-              <div class="progress-track">
-                <div class="progress-fill" id="paymentProgressBar"></div>
-              </div>
-
-              <p class="muted" id="paymentProgressText">
-                No payment data yet.
-              </p>
-
-              <button class="button button-soft full-width" data-page-target="fees" type="button">
-                Manage payments
-              </button>
-            </article>
-          </div>
-        </section>
-
-        <!-- =========================
-             STUDENTS
-        ========================== -->
-        <section class="page" id="page-students">
-          <div class="page-toolbar">
-            <div>
-              <p class="section-label">Student management</p>
-              <h2>Students</h2>
-              <p class="page-description">
-                Manage enrolments, contact information, course allocation and status.
-              </p>
-            </div>
-
-            <div class="toolbar-buttons">
-              <button class="button button-secondary" id="exportStudentsButton" type="button">
-                Export CSV
-              </button>
-              <button class="button button-primary" id="addStudentButton" type="button">
-                + Add student
-              </button>
-            </div>
-          </div>
-
-          <div class="filter-bar">
-            <div class="filter-search">
-              <span>⌕</span>
-              <input
-                id="studentSearch"
-                type="search"
-                placeholder="Search students..."
+          <td class="table-actions-cell">
+            <div class="row-actions">
+              <button
+                class="row-action"
+                type="button"
+                data-edit-student="${student.id}"
               >
-            </div>
-
-            <select id="studentStatusFilter" aria-label="Filter by status">
-              <option value="all">All statuses</option>
-              <option value="Active">Active</option>
-              <option value="Paused">Paused</option>
-              <option value="Completed">Completed</option>
-            </select>
-
-            <select id="studentLevelFilter" aria-label="Filter by level">
-              <option value="all">All levels</option>
-              <option value="A1">A1</option>
-              <option value="A2">A2</option>
-              <option value="B1">B1</option>
-              <option value="B2">B2</option>
-              <option value="C1">C1</option>
-              <option value="C2">C2</option>
-              <option value="Young Learners">Young Learners</option>
-            </select>
-          </div>
-
-          <div class="table-card">
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Student</th>
-                    <th>Course / Class</th>
-                    <th>Level</th>
-                    <th>Contact</th>
-                    <th>Status</th>
-                    <th>Joined</th>
-                    <th class="table-actions-cell">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="studentsTableBody"></tbody>
-              </table>
-            </div>
-
-            <div class="table-footer">
-              <span id="studentsTableCount">0 students</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- =========================
-             CLASSES
-        ========================== -->
-        <section class="page" id="page-classes">
-          <div class="page-toolbar">
-            <div>
-              <p class="section-label">Academic organisation</p>
-              <h2>Classes</h2>
-              <p class="page-description">
-                View groups, teachers, lesson times, rooms and capacity.
-              </p>
-            </div>
-
-            <button class="button button-primary" id="addClassButton" type="button">
-              + Create class
-            </button>
-          </div>
-
-          <div class="filter-bar">
-            <div class="filter-search">
-              <span>⌕</span>
-              <input id="classSearch" type="search" placeholder="Search classes...">
-            </div>
-
-            <select id="classDayFilter">
-              <option value="all">All days</option>
-              <option value="Monday">Monday</option>
-              <option value="Tuesday">Tuesday</option>
-              <option value="Wednesday">Wednesday</option>
-              <option value="Thursday">Thursday</option>
-              <option value="Friday">Friday</option>
-              <option value="Saturday">Saturday</option>
-            </select>
-          </div>
-
-          <div class="class-grid" id="classGrid"></div>
-        </section>
-
-        <!-- =========================
-             ATTENDANCE
-        ========================== -->
-        <section class="page" id="page-attendance">
-          <div class="page-toolbar">
-            <div>
-              <p class="section-label">Academic records</p>
-              <h2>Attendance</h2>
-              <p class="page-description">
-                Record attendance for each student and monitor attendance rates.
-              </p>
-            </div>
-
-            <button class="button button-secondary" id="exportAttendanceButton" type="button">
-              Export CSV
-            </button>
-          </div>
-
-          <div class="attendance-controls panel">
-            <div class="form-field">
-              <label for="attendanceClassSelect">Class</label>
-              <select id="attendanceClassSelect"></select>
-            </div>
-
-            <div class="form-field">
-              <label for="attendanceDate">Lesson date</label>
-              <input id="attendanceDate" type="date">
-            </div>
-
-            <button class="button button-primary" id="saveAttendanceButton" type="button">
-              Save attendance
-            </button>
-          </div>
-
-          <div class="attendance-summary-grid">
-            <article class="mini-stat">
-              <span>Students</span>
-              <strong id="attendanceTotal">0</strong>
-            </article>
-
-            <article class="mini-stat">
-              <span>Present</span>
-              <strong id="attendancePresent">0</strong>
-            </article>
-
-            <article class="mini-stat">
-              <span>Absent</span>
-              <strong id="attendanceAbsent">0</strong>
-            </article>
-
-            <article class="mini-stat">
-              <span>Attendance rate</span>
-              <strong id="attendanceRate">0%</strong>
-            </article>
-          </div>
-
-          <div class="table-card">
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Student</th>
-                    <th>Level</th>
-                    <th>Attendance</th>
-                    <th>Lesson status</th>
-                  </tr>
-                </thead>
-                <tbody id="attendanceTableBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <!-- =========================
-             FEES
-        ========================== -->
-        <section class="page" id="page-fees">
-          <div class="page-toolbar">
-            <div>
-              <p class="section-label">Finance</p>
-              <h2>Fees & Payments</h2>
-              <p class="page-description">
-                Track fees, payments, outstanding balances and payment dates.
-              </p>
-            </div>
-
-            <div class="toolbar-buttons">
-              <button class="button button-secondary" id="exportPaymentsButton" type="button">
-                Export CSV
+                Edit
               </button>
-              <button class="button button-primary" id="addPaymentButton" type="button">
-                + Record payment
+
+              <button
+                class="row-action delete"
+                type="button"
+                data-delete-student="${student.id}"
+              >
+                Delete
               </button>
             </div>
-          </div>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
 
-          <div class="finance-stats">
-            <article class="finance-card">
-              <span>Total fees</span>
-              <strong id="financeTotalFees">€0</strong>
-            </article>
+  body
+    .querySelectorAll("[data-edit-student]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        openEditStudent(button.dataset.editStudent);
+      });
+    });
 
-            <article class="finance-card finance-card-positive">
-              <span>Collected</span>
-              <strong id="financeCollected">€0</strong>
-            </article>
+  body
+    .querySelectorAll("[data-delete-student]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        deleteStudent(button.dataset.deleteStudent);
+      });
+    });
+}
 
-            <article class="finance-card finance-card-warning">
-              <span>Outstanding</span>
-              <strong id="financeOutstanding">€0</strong>
-            </article>
+function openNewStudent() {
+  byId("studentForm").reset();
+  setValue("studentId", "");
+  setValue("studentJoined", isoDate(new Date()));
+  setValue("studentStatus", "Active");
 
-            <article class="finance-card">
-              <span>Collection rate</span>
-              <strong id="financeRate">0%</strong>
-            </article>
-          </div>
+  populateStudentClassSelect();
 
-          <div class="filter-bar">
-            <div class="filter-search">
-              <span>⌕</span>
-              <input id="paymentSearch" type="search" placeholder="Search payments...">
-            </div>
+  text("studentModalTitle", "Add student");
+  openModal("studentModal");
+}
 
-            <select id="paymentStatusFilter">
-              <option value="all">All statuses</option>
-              <option value="Paid">Paid</option>
-              <option value="Part-paid">Part-paid</option>
-              <option value="Due">Due</option>
-            </select>
-          </div>
+function openEditStudent(id) {
+  const student = state.students.find(
+    (item) => item.id === id
+  );
 
-          <div class="table-card">
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Student</th>
-                    <th>Description</th>
-                    <th>Total fee</th>
-                    <th>Paid</th>
-                    <th>Balance</th>
-                    <th>Last payment</th>
-                    <th>Status</th>
-                    <th class="table-actions-cell">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="paymentsTableBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
+  if (!student) {
+    return;
+  }
 
-        <!-- =========================
-             ENQUIRIES
-        ========================== -->
-        <section class="page" id="page-enquiries">
-          <div class="page-toolbar">
-            <div>
-              <p class="section-label">Sales & enrolment</p>
-              <h2>Enquiries</h2>
-              <p class="page-description">
-                Follow every lead from first contact to enrolment.
-              </p>
-            </div>
+  populateStudentClassSelect();
 
-            <div class="toolbar-buttons">
-              <button class="button button-secondary" id="exportEnquiriesButton" type="button">
-                Export CSV
+  setValue("studentId", student.id);
+  setValue("studentFirstName", student.firstName);
+  setValue("studentLastName", student.lastName);
+  setValue("studentEmail", student.email);
+  setValue("studentPhone", student.phone);
+  setValue("studentDob", student.dob);
+  setValue("studentLevel", student.level);
+  setValue("studentClass", student.classId);
+  setValue("studentStatus", student.status);
+  setValue("studentJoined", student.joined);
+  setValue("studentParent", student.parent);
+  setValue("studentNotes", student.notes);
+
+  text("studentModalTitle", "Edit student");
+  openModal("studentModal");
+}
+
+function saveStudentForm(event) {
+  event.preventDefault();
+
+  const id = value("studentId");
+  const firstName = value("studentFirstName").trim();
+  const lastName = value("studentLastName").trim();
+
+  if (!firstName || !lastName) {
+    showToast(
+      "First name and surname are required.",
+      "error"
+    );
+    return;
+  }
+
+  const record = {
+    id: id || makeId("student"),
+    firstName,
+    lastName,
+    email: value("studentEmail").trim(),
+    phone: value("studentPhone").trim(),
+    dob: value("studentDob"),
+    level: value("studentLevel"),
+    classId: value("studentClass"),
+    status: value("studentStatus"),
+    joined: value("studentJoined"),
+    parent: value("studentParent").trim(),
+    notes: value("studentNotes").trim()
+  };
+
+  if (id) {
+    state.students = state.students.map(
+      (student) =>
+        student.id === id
+          ? record
+          : student
+    );
+  } else {
+    state.students.push(record);
+  }
+
+  saveState();
+  closeModal("studentModal");
+  renderAll();
+
+  showToast(
+    id ? "Student updated." : "Student added.",
+    "success"
+  );
+}
+
+function deleteStudent(id) {
+  const student = state.students.find(
+    (item) => item.id === id
+  );
+
+  if (!student) {
+    return;
+  }
+
+  openConfirm(
+    "Delete student?",
+    `Delete ${student.firstName} ${student.lastName}? The student record will be removed from this browser.`,
+    () => {
+      state.students = state.students.filter(
+        (item) => item.id !== id
+      );
+
+      saveState();
+      renderAll();
+      showToast("Student deleted.", "success");
+    }
+  );
+}
+
+/* =========================================================
+   CLASSES
+========================================================= */
+
+function renderClasses() {
+  const container = byId("classGrid");
+
+  const query =
+    byId("classSearch").value
+      .trim()
+      .toLowerCase();
+
+  const day = byId("classDayFilter").value;
+
+  const classes = [...state.classes]
+    .filter((item) => {
+      const teacher = getTeacher(item.teacherId);
+
+      const haystack = [
+        item.name,
+        item.level,
+        item.day,
+        item.room,
+        teacher?.name
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        (!query || haystack.includes(query)) &&
+        (day === "all" || item.day === day)
+      );
+    })
+    .sort((a, b) => {
+      const dayDiff =
+        dayIndex(a.day) - dayIndex(b.day);
+
+      if (dayDiff !== 0) {
+        return dayDiff;
+      }
+
+      return a.time.localeCompare(b.time);
+    });
+
+  if (!classes.length) {
+    container.innerHTML = emptyState(
+      query || day !== "all"
+        ? "No classes match these filters."
+        : "No classes yet. Create your first class."
+    );
+    return;
+  }
+
+  container.innerHTML = classes
+    .map((item) => {
+      const teacher = getTeacher(item.teacherId);
+      const students = getClassStudents(item.id);
+      const capacity = Math.max(
+        1,
+        number(item.capacity) || 1
+      );
+
+      const capacityPercentage = Math.min(
+        100,
+        (students.length / capacity) * 100
+      );
+
+      return `
+        <article class="class-card">
+          <div class="class-card-top">
+            <span class="class-level">
+              ${escapeHtml(item.level)}
+            </span>
+
+            <div class="card-action-menu">
+              <button
+                class="row-action"
+                type="button"
+                data-edit-class="${item.id}"
+              >
+                Edit
               </button>
-              <button class="button button-primary" id="addEnquiryButton" type="button">
-                + New enquiry
+
+              <button
+                class="row-action delete"
+                type="button"
+                data-delete-class="${item.id}"
+              >
+                ×
               </button>
             </div>
           </div>
 
-          <div class="pipeline" id="enquiryPipeline"></div>
+          <h3>${escapeHtml(item.name)}</h3>
 
-          <div class="filter-bar">
-            <div class="filter-search">
-              <span>⌕</span>
-              <input id="enquirySearch" type="search" placeholder="Search enquiries...">
+          <div class="class-teacher">
+            ${escapeHtml(
+              teacher?.name ||
+              "Teacher not assigned"
+            )}
+          </div>
+
+          <div class="class-details">
+            <div class="class-detail">
+              <span>Day</span>
+              <strong>${escapeHtml(item.day)}</strong>
             </div>
 
-            <select id="enquiryStatusFilter">
-              <option value="all">All stages</option>
-              <option value="New">New</option>
-              <option value="Contacted">Contacted</option>
-              <option value="Trial/Assessment Booked">Trial/Assessment Booked</option>
-              <option value="Trial/Assessment Completed">Trial/Assessment Completed</option>
-              <option value="Course Offered">Course Offered</option>
-              <option value="Enrolled">Enrolled</option>
-              <option value="Lost">Lost</option>
-            </select>
-          </div>
-
-          <div class="table-card">
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Interested in</th>
-                    <th>Contact</th>
-                    <th>Source</th>
-                    <th>Stage</th>
-                    <th>Follow-up</th>
-                    <th>Created</th>
-                    <th class="table-actions-cell">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="enquiriesTableBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <!-- =========================
-             TEACHERS
-        ========================== -->
-        <section class="page" id="page-teachers">
-          <div class="page-toolbar">
-            <div>
-              <p class="section-label">Team</p>
-              <h2>Teachers</h2>
-              <p class="page-description">
-                Manage teaching staff, contact information and class allocation.
-              </p>
+            <div class="class-detail">
+              <span>Time</span>
+              <strong>${escapeHtml(formatTime(item.time))}</strong>
             </div>
 
-            <button class="button button-primary" id="addTeacherButton" type="button">
-              + Add teacher
-            </button>
-          </div>
-
-          <div class="teacher-grid" id="teacherGrid"></div>
-        </section>
-
-        <!-- =========================
-             REPORTS
-        ========================== -->
-        <section class="page" id="page-reports">
-          <div class="page-toolbar">
-            <div>
-              <p class="section-label">Performance</p>
-              <h2>Reports</h2>
-              <p class="page-description">
-                A practical overview of enrolment, finance and enquiry performance.
-              </p>
+            <div class="class-detail">
+              <span>Duration</span>
+              <strong>${number(item.duration) || 0} min</strong>
             </div>
 
-            <button class="button button-secondary" id="exportFullReportButton" type="button">
-              Export report
-            </button>
-          </div>
-
-          <div class="reports-grid">
-            <article class="report-card report-hero">
-              <span>Active enrolments</span>
-              <strong id="reportActiveStudents">0</strong>
-              <small>Students currently marked active</small>
-            </article>
-
-            <article class="report-card">
-              <span>Average class size</span>
-              <strong id="reportAverageClass">0</strong>
-              <small>Active students per class</small>
-            </article>
-
-            <article class="report-card">
-              <span>Fee collection rate</span>
-              <strong id="reportCollectionRate">0%</strong>
-              <small>Collected against fees recorded</small>
-            </article>
-
-            <article class="report-card">
-              <span>Enquiry conversion</span>
-              <strong id="reportConversionRate">0%</strong>
-              <small>Enrolled enquiries / total enquiries</small>
-            </article>
-          </div>
-
-          <div class="dashboard-grid reports-panels">
-            <article class="panel dashboard-main-panel">
-              <div class="panel-header">
-                <div>
-                  <p class="section-label">Students</p>
-                  <h3>Students by CEFR level</h3>
-                </div>
-              </div>
-              <div id="levelReportBars" class="bar-report"></div>
-            </article>
-
-            <article class="panel">
-              <div class="panel-header">
-                <div>
-                  <p class="section-label">Enquiries</p>
-                  <h3>Lead sources</h3>
-                </div>
-              </div>
-              <div id="sourceReportList" class="metric-list"></div>
-            </article>
-
-            <article class="panel dashboard-main-panel">
-              <div class="panel-header">
-                <div>
-                  <p class="section-label">Finance</p>
-                  <h3>Financial snapshot</h3>
-                </div>
-              </div>
-
-              <div class="report-finance-grid">
-                <div>
-                  <span>Fees recorded</span>
-                  <strong id="reportFees">€0</strong>
-                </div>
-                <div>
-                  <span>Collected</span>
-                  <strong id="reportCollected">€0</strong>
-                </div>
-                <div>
-                  <span>Outstanding</span>
-                  <strong id="reportOutstanding">€0</strong>
-                </div>
-              </div>
-            </article>
-
-            <article class="panel">
-              <div class="panel-header">
-                <div>
-                  <p class="section-label">CRM</p>
-                  <h3>Follow-up health</h3>
-                </div>
-              </div>
-
-              <div class="metric-list" id="followupHealth"></div>
-            </article>
-          </div>
-        </section>
-
-        <!-- =========================
-             SETTINGS
-        ========================== -->
-        <section class="page" id="page-settings">
-          <div class="page-toolbar">
-            <div>
-              <p class="section-label">Portal</p>
-              <h2>Settings</h2>
-              <p class="page-description">
-                Configure basic school details and manage your local portal data.
-              </p>
+            <div class="class-detail">
+              <span>Room</span>
+              <strong>${escapeHtml(item.room || "—")}</strong>
             </div>
           </div>
 
-          <div class="settings-grid">
-            <article class="panel">
-              <div class="panel-header">
-                <div>
-                  <p class="section-label">School details</p>
-                  <h3>General settings</h3>
-                </div>
+          <div class="capacity-wrap">
+            <div class="capacity-label">
+              <span>Class capacity</span>
+              <strong>
+                ${students.length} / ${capacity}
+              </strong>
+            </div>
+
+            <div class="capacity-bar">
+              <div style="width:${capacityPercentage}%"></div>
+            </div>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+
+  container
+    .querySelectorAll("[data-edit-class]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        openEditClass(button.dataset.editClass);
+      });
+    });
+
+  container
+    .querySelectorAll("[data-delete-class]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        deleteClass(button.dataset.deleteClass);
+      });
+    });
+}
+
+function openNewClass() {
+  byId("classForm").reset();
+  setValue("classId", "");
+  setValue("classDuration", "90");
+  setValue("classCapacity", "10");
+  setValue("classDay", "Monday");
+
+  populateTeacherSelect();
+
+  text("classModalTitle", "Create class");
+  openModal("classModal");
+}
+
+function openEditClass(id) {
+  const item = getClass(id);
+
+  if (!item) {
+    return;
+  }
+
+  populateTeacherSelect();
+
+  setValue("classId", item.id);
+  setValue("className", item.name);
+  setValue("classLevel", item.level);
+  setValue("classTeacher", item.teacherId);
+  setValue("classDay", item.day);
+  setValue("classTime", item.time);
+  setValue("classDuration", item.duration);
+  setValue("classRoom", item.room);
+  setValue("classCapacity", item.capacity);
+  setValue("classNotes", item.notes);
+
+  text("classModalTitle", "Edit class");
+  openModal("classModal");
+}
+
+function saveClassForm(event) {
+  event.preventDefault();
+
+  const id = value("classId");
+
+  const record = {
+    id: id || makeId("class"),
+    name: value("className").trim(),
+    level: value("classLevel"),
+    teacherId: value("classTeacher"),
+    day: value("classDay"),
+    time: value("classTime"),
+    duration: number(value("classDuration")) || 90,
+    room: value("classRoom").trim(),
+    capacity: number(value("classCapacity")) || 10,
+    notes: value("classNotes").trim()
+  };
+
+  if (!record.name || !record.level || !record.time) {
+    showToast(
+      "Class name, level and time are required.",
+      "error"
+    );
+    return;
+  }
+
+  if (id) {
+    state.classes = state.classes.map(
+      (item) =>
+        item.id === id
+          ? record
+          : item
+    );
+  } else {
+    state.classes.push(record);
+  }
+
+  saveState();
+  closeModal("classModal");
+  renderAll();
+
+  showToast(
+    id ? "Class updated." : "Class created.",
+    "success"
+  );
+}
+
+function deleteClass(id) {
+  const item = getClass(id);
+
+  if (!item) {
+    return;
+  }
+
+  const studentCount =
+    getClassStudents(id).length;
+
+  openConfirm(
+    "Delete class?",
+    studentCount
+      ? `${item.name} currently has ${studentCount} student record${studentCount === 1 ? "" : "s"} assigned. Deleting the class will leave those students unassigned.`
+      : `Delete ${item.name}?`,
+    () => {
+      state.classes = state.classes.filter(
+        (record) => record.id !== id
+      );
+
+      state.students = state.students.map(
+        (student) => ({
+          ...student,
+          classId:
+            student.classId === id
+              ? ""
+              : student.classId
+        })
+      );
+
+      saveState();
+      renderAll();
+      showToast("Class deleted.", "success");
+    }
+  );
+}
+
+/* =========================================================
+   ATTENDANCE
+========================================================= */
+
+function populateAttendanceClassSelect() {
+  const select = byId("attendanceClassSelect");
+  const current = select.value;
+
+  if (!state.classes.length) {
+    select.innerHTML =
+      `<option value="">No classes available</option>`;
+    return;
+  }
+
+  select.innerHTML = state.classes
+    .map((item) => `
+      <option value="${escapeAttribute(item.id)}">
+        ${escapeHtml(item.name)} — ${escapeHtml(item.level)}
+      </option>
+    `)
+    .join("");
+
+  if (
+    current &&
+    state.classes.some((item) => item.id === current)
+  ) {
+    select.value = current;
+  }
+}
+
+function renderAttendance() {
+  populateAttendanceClassSelect();
+
+  const classId =
+    value("attendanceClassSelect");
+
+  const date =
+    value("attendanceDate");
+
+  const body =
+    byId("attendanceTableBody");
+
+  if (!classId) {
+    body.innerHTML = tableEmptyRow(
+      4,
+      "Create a class before recording attendance."
+    );
+
+    updateAttendanceSummary([]);
+    return;
+  }
+
+  const students = getClassStudents(classId)
+    .filter((student) => student.status === "Active")
+    .sort((a, b) =>
+      a.lastName.localeCompare(b.lastName)
+    );
+
+  const key = attendanceKey(classId, date);
+  const savedAttendance =
+    state.attendance[key] || {};
+
+  attendanceDraft = {};
+
+  students.forEach((student) => {
+    attendanceDraft[student.id] =
+      savedAttendance[student.id] || "Present";
+  });
+
+  if (!students.length) {
+    body.innerHTML = tableEmptyRow(
+      4,
+      "No active students are assigned to this class."
+    );
+
+    updateAttendanceSummary([]);
+    return;
+  }
+
+  body.innerHTML = students
+    .map((student) => {
+      const current =
+        attendanceDraft[student.id];
+
+      return `
+        <tr>
+          <td>
+            <div class="student-cell">
+              <div class="student-avatar">
+                ${escapeHtml(
+                  getInitials(
+                    `${student.firstName} ${student.lastName}`
+                  )
+                )}
               </div>
 
-              <form id="settingsForm" class="form-grid">
-                <div class="form-field form-field-wide">
-                  <label for="schoolName">School name</label>
-                  <input id="schoolName" name="schoolName" type="text">
-                </div>
-
-                <div class="form-field">
-                  <label for="schoolPhone">Telephone</label>
-                  <input id="schoolPhone" name="schoolPhone" type="tel">
-                </div>
-
-                <div class="form-field">
-                  <label for="schoolEmail">Email</label>
-                  <input id="schoolEmail" name="schoolEmail" type="email">
-                </div>
-
-                <div class="form-field form-field-wide">
-                  <label for="schoolAddress">Address</label>
-                  <input id="schoolAddress" name="schoolAddress" type="text">
-                </div>
-
-                <div class="form-actions form-field-wide">
-                  <button class="button button-primary" type="submit">
-                    Save settings
-                  </button>
-                </div>
-              </form>
-            </article>
-
-            <article class="panel">
-              <div class="panel-header">
-                <div>
-                  <p class="section-label">Data</p>
-                  <h3>Backup & restore</h3>
-                </div>
+              <div>
+                <strong>
+                  ${escapeHtml(student.firstName)}
+                  ${escapeHtml(student.lastName)}
+                </strong>
               </div>
+            </div>
+          </td>
 
-              <p class="muted settings-copy">
-                Portal data is stored locally in this browser. Export regular
-                backups if this version is being used operationally.
-              </p>
+          <td>
+            <strong>${escapeHtml(student.level)}</strong>
+          </td>
 
-              <div class="stack-buttons">
-                <button class="button button-secondary" id="settingsExportBackup" type="button">
-                  Export full backup
-                </button>
+          <td>
+            <div class="attendance-choice">
+              ${attendanceButton(
+                student.id,
+                "Present",
+                current
+              )}
+              ${attendanceButton(
+                student.id,
+                "Absent",
+                current
+              )}
+              ${attendanceButton(
+                student.id,
+                "Late",
+                current
+              )}
+            </div>
+          </td>
 
-                <label class="button button-soft file-button">
-                  Import backup
-                  <input
-                    id="backupImportInput"
-                    type="file"
-                    accept=".json,application/json"
-                  >
-                </label>
-
-                <button class="button button-danger-outline" id="resetPortalButton" type="button">
-                  Reset portal data
-                </button>
-              </div>
-            </article>
-          </div>
-
-          <div class="system-note">
-            <strong>Important production note</strong>
-            <p>
-              This version is a complete browser-based portal. For multiple
-              simultaneous users, secure online login, cloud access or GDPR-grade
-              central storage, connect the interface to a protected backend/database
-              before storing real student data across devices.
-            </p>
-          </div>
-        </section>
-
-      </div>
-    </main>
-  </div>
-
-  <!-- =========================
-       STUDENT MODAL
-  ========================== -->
-  <div class="modal-backdrop" id="studentModal">
-    <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="studentModalTitle">
-      <div class="modal-header">
-        <div>
-          <p class="section-label">Student record</p>
-          <h2 id="studentModalTitle">Add student</h2>
-        </div>
-        <button class="modal-close" type="button" data-close-modal="studentModal">×</button>
-      </div>
-
-      <form id="studentForm">
-        <input type="hidden" id="studentId">
-
-        <div class="form-grid">
-          <div class="form-field">
-            <label for="studentFirstName">First name *</label>
-            <input id="studentFirstName" type="text" required>
-          </div>
-
-          <div class="form-field">
-            <label for="studentLastName">Surname *</label>
-            <input id="studentLastName" type="text" required>
-          </div>
-
-          <div class="form-field">
-            <label for="studentEmail">Email</label>
-            <input id="studentEmail" type="email">
-          </div>
-
-          <div class="form-field">
-            <label for="studentPhone">Telephone</label>
-            <input id="studentPhone" type="tel">
-          </div>
-
-          <div class="form-field">
-            <label for="studentDob">Date of birth</label>
-            <input id="studentDob" type="date">
-          </div>
-
-          <div class="form-field">
-            <label for="studentLevel">Level *</label>
-            <select id="studentLevel" required>
-              <option value="">Select level</option>
-              <option value="Young Learners">Young Learners</option>
-              <option value="A1">A1</option>
-              <option value="A2">A2</option>
-              <option value="B1">B1</option>
-              <option value="B2">B2</option>
-              <option value="C1">C1</option>
-              <option value="C2">C2</option>
-            </select>
-          </div>
-
-          <div class="form-field">
-            <label for="studentClass">Class</label>
-            <select id="studentClass"></select>
-          </div>
-
-          <div class="form-field">
-            <label for="studentStatus">Status</label>
-            <select id="studentStatus">
-              <option value="Active">Active</option>
-              <option value="Paused">Paused</option>
-              <option value="Completed">Completed</option>
-            </select>
-          </div>
-
-          <div class="form-field">
-            <label for="studentJoined">Joined</label>
-            <input id="studentJoined" type="date">
-          </div>
-
-          <div class="form-field">
-            <label for="studentParent">Parent / guardian</label>
-            <input id="studentParent" type="text">
-          </div>
-
-          <div class="form-field form-field-wide">
-            <label for="studentNotes">Notes</label>
-            <textarea id="studentNotes" rows="4"></textarea>
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button class="button button-secondary" type="button" data-close-modal="studentModal">
-            Cancel
-          </button>
-          <button class="button button-primary" type="submit">
-            Save student
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- =========================
-       CLASS MODAL
-  ========================== -->
-  <div class="modal-backdrop" id="classModal">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="classModalTitle">
-      <div class="modal-header">
-        <div>
-          <p class="section-label">Class record</p>
-          <h2 id="classModalTitle">Create class</h2>
-        </div>
-        <button class="modal-close" type="button" data-close-modal="classModal">×</button>
-      </div>
-
-      <form id="classForm">
-        <input id="classId" type="hidden">
-
-        <div class="form-grid">
-          <div class="form-field form-field-wide">
-            <label for="className">Class name *</label>
-            <input id="className" type="text" required>
-          </div>
-
-          <div class="form-field">
-            <label for="classLevel">Level *</label>
-            <select id="classLevel" required>
-              <option value="">Select level</option>
-              <option value="Young Learners">Young Learners</option>
-              <option value="A1">A1</option>
-              <option value="A2">A2</option>
-              <option value="B1">B1</option>
-              <option value="B2">B2</option>
-              <option value="C1">C1</option>
-              <option value="C2">C2</option>
-            </select>
-          </div>
-
-          <div class="form-field">
-            <label for="classTeacher">Teacher</label>
-            <select id="classTeacher"></select>
-          </div>
-
-          <div class="form-field">
-            <label for="classDay">Day *</label>
-            <select id="classDay" required>
-              <option value="Monday">Monday</option>
-              <option value="Tuesday">Tuesday</option>
-              <option value="Wednesday">Wednesday</option>
-              <option value="Thursday">Thursday</option>
-              <option value="Friday">Friday</option>
-              <option value="Saturday">Saturday</option>
-            </select>
-          </div>
-
-          <div class="form-field">
-            <label for="classTime">Start time *</label>
-            <input id="classTime" type="time" required>
-          </div>
-
-          <div class="form-field">
-            <label for="classDuration">Duration (minutes)</label>
-            <input id="classDuration" type="number" min="30" step="15" value="90">
-          </div>
-
-          <div class="form-field">
-            <label for="classRoom">Room</label>
-            <input id="classRoom" type="text">
-          </div>
-
-          <div class="form-field">
-            <label for="classCapacity">Capacity</label>
-            <input id="classCapacity" type="number" min="1" value="10">
-          </div>
-
-          <div class="form-field form-field-wide">
-            <label for="classNotes">Notes</label>
-            <textarea id="classNotes" rows="3"></textarea>
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button class="button button-secondary" type="button" data-close-modal="classModal">
-            Cancel
-          </button>
-          <button class="button button-primary" type="submit">
-            Save class
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- =========================
-       PAYMENT MODAL
-  ========================== -->
-  <div class="modal-backdrop" id="paymentModal">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="paymentModalTitle">
-      <div class="modal-header">
-        <div>
-          <p class="section-label">Finance</p>
-          <h2 id="paymentModalTitle">Record payment</h2>
-        </div>
-        <button class="modal-close" type="button" data-close-modal="paymentModal">×</button>
-      </div>
-
-      <form id="paymentForm">
-        <input id="paymentId" type="hidden">
-
-        <div class="form-grid">
-          <div class="form-field form-field-wide">
-            <label for="paymentStudent">Student *</label>
-            <select id="paymentStudent" required></select>
-          </div>
-
-          <div class="form-field form-field-wide">
-            <label for="paymentDescription">Description *</label>
-            <input
-              id="paymentDescription"
-              type="text"
-              placeholder="e.g. General English course"
-              required
+          <td>
+            <span
+              id="attendance-status-${student.id}"
             >
-          </div>
+              ${statusBadge(current)}
+            </span>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
 
-          <div class="form-field">
-            <label for="paymentFee">Total fee (€) *</label>
-            <input id="paymentFee" type="number" min="0" step="0.01" required>
-          </div>
+  body
+    .querySelectorAll("[data-attendance-student]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const studentId =
+          button.dataset.attendanceStudent;
 
-          <div class="form-field">
-            <label for="paymentPaid">Amount paid (€) *</label>
-            <input id="paymentPaid" type="number" min="0" step="0.01" required>
-          </div>
+        const status =
+          button.dataset.attendanceStatus;
 
-          <div class="form-field">
-            <label for="paymentDate">Payment date</label>
-            <input id="paymentDate" type="date">
-          </div>
+        attendanceDraft[studentId] = status;
 
-          <div class="form-field">
-            <label for="paymentMethod">Method</label>
-            <select id="paymentMethod">
-              <option value="Cash">Cash</option>
-              <option value="Card">Card</option>
-              <option value="Bank transfer">Bank transfer</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
+        renderAttendanceChoiceState(
+          studentId,
+          status
+        );
 
-          <div class="form-field form-field-wide">
-            <label for="paymentNotes">Notes</label>
-            <textarea id="paymentNotes" rows="3"></textarea>
-          </div>
+        updateAttendanceSummary(students);
+      });
+    });
+
+  updateAttendanceSummary(students);
+}
+
+function attendanceButton(studentId, status, current) {
+  const selectedClass =
+    current === status
+      ? `selected-${slug(status)}`
+      : "";
+
+  return `
+    <button
+      class="${selectedClass}"
+      type="button"
+      data-attendance-student="${escapeAttribute(studentId)}"
+      data-attendance-status="${escapeAttribute(status)}"
+    >
+      ${escapeHtml(status)}
+    </button>
+  `;
+}
+
+function renderAttendanceChoiceState(studentId, status) {
+  document
+    .querySelectorAll(
+      `[data-attendance-student="${cssEscape(studentId)}"]`
+    )
+    .forEach((button) => {
+      button.classList.remove(
+        "selected-present",
+        "selected-absent",
+        "selected-late"
+      );
+
+      if (
+        button.dataset.attendanceStatus === status
+      ) {
+        button.classList.add(
+          `selected-${slug(status)}`
+        );
+      }
+    });
+
+  const badge = byId(
+    `attendance-status-${studentId}`
+  );
+
+  if (badge) {
+    badge.innerHTML = statusBadge(status);
+  }
+}
+
+function updateAttendanceSummary(students) {
+  const total = students.length;
+
+  const statuses = students.map(
+    (student) =>
+      attendanceDraft[student.id] || "Present"
+  );
+
+  const present = statuses.filter(
+    (status) =>
+      status === "Present" ||
+      status === "Late"
+  ).length;
+
+  const absent = statuses.filter(
+    (status) => status === "Absent"
+  ).length;
+
+  const rate =
+    total > 0
+      ? Math.round((present / total) * 100)
+      : 0;
+
+  text("attendanceTotal", total);
+  text("attendancePresent", present);
+  text("attendanceAbsent", absent);
+  text("attendanceRate", `${rate}%`);
+}
+
+function saveAttendance() {
+  const classId =
+    value("attendanceClassSelect");
+
+  const date =
+    value("attendanceDate");
+
+  if (!classId || !date) {
+    showToast(
+      "Choose a class and lesson date.",
+      "error"
+    );
+    return;
+  }
+
+  const key =
+    attendanceKey(classId, date);
+
+  state.attendance[key] = {
+    ...attendanceDraft
+  };
+
+  saveState();
+  renderNotifications();
+
+  showToast(
+    "Attendance saved.",
+    "success"
+  );
+}
+
+/* =========================================================
+   PAYMENTS
+========================================================= */
+
+function renderPayments() {
+  const body = byId("paymentsTableBody");
+
+  const query =
+    value("paymentSearch")
+      .trim()
+      .toLowerCase();
+
+  const filterStatus =
+    value("paymentStatusFilter");
+
+  const payments = [...state.payments]
+    .filter((payment) => {
+      const student =
+        getStudent(payment.studentId);
+
+      const status =
+        paymentStatus(payment);
+
+      const haystack = [
+        getStudentName(student),
+        payment.description,
+        payment.method,
+        status
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        (!query || haystack.includes(query)) &&
+        (filterStatus === "all" ||
+          status === filterStatus)
+      );
+    })
+    .sort((a, b) =>
+      String(b.date).localeCompare(String(a.date))
+    );
+
+  updateFinanceStats();
+
+  if (!payments.length) {
+    body.innerHTML = tableEmptyRow(
+      8,
+      query || filterStatus !== "all"
+        ? "No payments match these filters."
+        : "No payment records yet."
+    );
+    return;
+  }
+
+  body.innerHTML = payments
+    .map((payment) => {
+      const student =
+        getStudent(payment.studentId);
+
+      const fee = number(payment.fee);
+      const paid = number(payment.paid);
+      const balance = Math.max(
+        0,
+        fee - paid
+      );
+
+      const status =
+        paymentStatus(payment);
+
+      return `
+        <tr>
+          <td>
+            <strong>
+              ${escapeHtml(
+                getStudentName(student) ||
+                "Student removed"
+              )}
+            </strong>
+          </td>
+
+          <td>${escapeHtml(payment.description || "—")}</td>
+
+          <td>${formatMoney(fee)}</td>
+
+          <td>
+            <strong>${formatMoney(paid)}</strong>
+          </td>
+
+          <td>
+            ${formatMoney(balance)}
+          </td>
+
+          <td>
+            ${payment.date
+              ? escapeHtml(formatDate(payment.date))
+              : "—"}
+          </td>
+
+          <td>
+            ${statusBadge(status)}
+          </td>
+
+          <td class="table-actions-cell">
+            <div class="row-actions">
+              <button
+                class="row-action"
+                type="button"
+                data-edit-payment="${payment.id}"
+              >
+                Edit
+              </button>
+
+              <button
+                class="row-action delete"
+                type="button"
+                data-delete-payment="${payment.id}"
+              >
+                Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  body
+    .querySelectorAll("[data-edit-payment]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        openEditPayment(button.dataset.editPayment);
+      });
+    });
+
+  body
+    .querySelectorAll("[data-delete-payment]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        deletePayment(button.dataset.deletePayment);
+      });
+    });
+}
+
+function updateFinanceStats() {
+  const totalFees = sum(
+    state.payments.map((payment) =>
+      number(payment.fee)
+    )
+  );
+
+  const collected = sum(
+    state.payments.map((payment) =>
+      number(payment.paid)
+    )
+  );
+
+  const outstanding =
+    Math.max(0, totalFees - collected);
+
+  const rate =
+    totalFees > 0
+      ? Math.round(
+          Math.min(
+            100,
+            (collected / totalFees) * 100
+          )
+        )
+      : 0;
+
+  text(
+    "financeTotalFees",
+    formatMoney(totalFees)
+  );
+
+  text(
+    "financeCollected",
+    formatMoney(collected)
+  );
+
+  text(
+    "financeOutstanding",
+    formatMoney(outstanding)
+  );
+
+  text(
+    "financeRate",
+    `${rate}%`
+  );
+}
+
+function openNewPayment() {
+  if (!state.students.length) {
+    showToast(
+      "Add a student before recording a payment.",
+      "error"
+    );
+
+    navigateTo("students");
+    return;
+  }
+
+  byId("paymentForm").reset();
+
+  setValue("paymentId", "");
+  setValue("paymentDate", isoDate(new Date()));
+  setValue("paymentMethod", "Cash");
+
+  populatePaymentStudentSelect();
+
+  text(
+    "paymentModalTitle",
+    "Record payment"
+  );
+
+  openModal("paymentModal");
+}
+
+function openEditPayment(id) {
+  const payment = state.payments.find(
+    (item) => item.id === id
+  );
+
+  if (!payment) {
+    return;
+  }
+
+  populatePaymentStudentSelect();
+
+  setValue("paymentId", payment.id);
+  setValue("paymentStudent", payment.studentId);
+  setValue("paymentDescription", payment.description);
+  setValue("paymentFee", payment.fee);
+  setValue("paymentPaid", payment.paid);
+  setValue("paymentDate", payment.date);
+  setValue("paymentMethod", payment.method);
+  setValue("paymentNotes", payment.notes);
+
+  text(
+    "paymentModalTitle",
+    "Edit payment"
+  );
+
+  openModal("paymentModal");
+}
+
+function savePaymentForm(event) {
+  event.preventDefault();
+
+  const id = value("paymentId");
+  const fee = number(value("paymentFee"));
+  const paid = number(value("paymentPaid"));
+
+  if (!value("paymentStudent")) {
+    showToast(
+      "Select a student.",
+      "error"
+    );
+    return;
+  }
+
+  if (fee < 0 || paid < 0) {
+    showToast(
+      "Payment amounts cannot be negative.",
+      "error"
+    );
+    return;
+  }
+
+  const record = {
+    id: id || makeId("payment"),
+    studentId: value("paymentStudent"),
+    description:
+      value("paymentDescription").trim(),
+    fee,
+    paid,
+    date: value("paymentDate"),
+    method: value("paymentMethod"),
+    notes: value("paymentNotes").trim()
+  };
+
+  if (id) {
+    state.payments = state.payments.map(
+      (payment) =>
+        payment.id === id
+          ? record
+          : payment
+    );
+  } else {
+    state.payments.push(record);
+  }
+
+  saveState();
+  closeModal("paymentModal");
+  renderAll();
+
+  showToast(
+    id
+      ? "Payment updated."
+      : "Payment recorded.",
+    "success"
+  );
+}
+
+function deletePayment(id) {
+  const payment = state.payments.find(
+    (item) => item.id === id
+  );
+
+  if (!payment) {
+    return;
+  }
+
+  openConfirm(
+    "Delete payment record?",
+    "This payment record will be permanently removed from the portal data stored in this browser.",
+    () => {
+      state.payments = state.payments.filter(
+        (item) => item.id !== id
+      );
+
+      saveState();
+      renderAll();
+      showToast(
+        "Payment deleted.",
+        "success"
+      );
+    }
+  );
+}
+
+function paymentStatus(payment) {
+  const fee = number(payment.fee);
+  const paid = number(payment.paid);
+
+  if (fee <= 0 || paid >= fee) {
+    return "Paid";
+  }
+
+  if (paid > 0) {
+    return "Part-paid";
+  }
+
+  return "Due";
+}
+
+/* =========================================================
+   ENQUIRIES
+========================================================= */
+
+function renderEnquiries() {
+  const body = byId("enquiriesTableBody");
+
+  const query =
+    value("enquirySearch")
+      .trim()
+      .toLowerCase();
+
+  const statusFilter =
+    value("enquiryStatusFilter");
+
+  const enquiries = [...state.enquiries]
+    .filter((enquiry) => {
+      const haystack = [
+        enquiry.name,
+        enquiry.phone,
+        enquiry.email,
+        enquiry.course,
+        enquiry.source,
+        enquiry.status
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        (!query || haystack.includes(query)) &&
+        (statusFilter === "all" ||
+          enquiry.status === statusFilter)
+      );
+    })
+    .sort((a, b) =>
+      String(b.created).localeCompare(String(a.created))
+    );
+
+  renderPipeline();
+
+  if (!enquiries.length) {
+    body.innerHTML = tableEmptyRow(
+      8,
+      query || statusFilter !== "all"
+        ? "No enquiries match these filters."
+        : "No enquiries yet."
+    );
+  } else {
+    body.innerHTML = enquiries
+      .map((enquiry) => `
+        <tr>
+          <td>
+            <div class="student-cell">
+              <div class="student-avatar">
+                ${escapeHtml(getInitials(enquiry.name))}
+              </div>
+
+              <div>
+                <strong>${escapeHtml(enquiry.name)}</strong>
+                <span>
+                  ${enquiry.age
+                    ? `Age ${escapeHtml(enquiry.age)}`
+                    : "Age not recorded"}
+                </span>
+              </div>
+            </div>
+          </td>
+
+          <td>
+            ${escapeHtml(enquiry.course || "—")}
+          </td>
+
+          <td>
+            <div class="contact-cell">
+              <span>${escapeHtml(enquiry.phone || "—")}</span>
+              <span>${escapeHtml(enquiry.email || "—")}</span>
+            </div>
+          </td>
+
+          <td>
+            ${escapeHtml(enquiry.source || "—")}
+          </td>
+
+          <td>
+            ${statusBadge(enquiry.status)}
+          </td>
+
+          <td>
+            ${enquiry.followup
+              ? followUpCell(enquiry.followup)
+              : '<span class="muted">Not set</span>'}
+          </td>
+
+          <td>
+            ${enquiry.created
+              ? escapeHtml(formatDate(enquiry.created))
+              : "—"}
+          </td>
+
+          <td class="table-actions-cell">
+            <div class="row-actions">
+              <button
+                class="row-action"
+                type="button"
+                data-edit-enquiry="${enquiry.id}"
+              >
+                Edit
+              </button>
+
+              <button
+                class="row-action delete"
+                type="button"
+                data-delete-enquiry="${enquiry.id}"
+              >
+                Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      `)
+      .join("");
+
+    body
+      .querySelectorAll("[data-edit-enquiry]")
+      .forEach((button) => {
+        button.addEventListener("click", () => {
+          openEditEnquiry(
+            button.dataset.editEnquiry
+          );
+        });
+      });
+
+    body
+      .querySelectorAll("[data-delete-enquiry]")
+      .forEach((button) => {
+        button.addEventListener("click", () => {
+          deleteEnquiry(
+            button.dataset.deleteEnquiry
+          );
+        });
+      });
+  }
+
+  updateEnquiryBadge();
+}
+
+function renderPipeline() {
+  const container = byId("enquiryPipeline");
+
+  container.innerHTML = ENQUIRY_STAGES
+    .map((stage) => {
+      const count = state.enquiries.filter(
+        (enquiry) => enquiry.status === stage
+      ).length;
+
+      return `
+        <div class="pipeline-step">
+          <span>${escapeHtml(stage)}</span>
+          <strong>${count}</strong>
         </div>
+      `;
+    })
+    .join("");
+}
 
-        <div class="modal-actions">
-          <button class="button button-secondary" type="button" data-close-modal="paymentModal">
-            Cancel
-          </button>
-          <button class="button button-primary" type="submit">
-            Save payment
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+function updateEnquiryBadge() {
+  const openCount = state.enquiries.filter(
+    (enquiry) =>
+      !["Enrolled", "Lost"].includes(enquiry.status)
+  ).length;
 
-  <!-- =========================
-       ENQUIRY MODAL
-  ========================== -->
-  <div class="modal-backdrop" id="enquiryModal">
-    <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="enquiryModalTitle">
-      <div class="modal-header">
-        <div>
-          <p class="section-label">Lead record</p>
-          <h2 id="enquiryModalTitle">New enquiry</h2>
-        </div>
-        <button class="modal-close" type="button" data-close-modal="enquiryModal">×</button>
-      </div>
+  const badge = byId("enquiryNavBadge");
 
-      <form id="enquiryForm">
-        <input id="enquiryId" type="hidden">
+  text("enquiryNavBadge", openCount);
 
-        <div class="form-grid">
-          <div class="form-field">
-            <label for="enquiryName">Name *</label>
-            <input id="enquiryName" type="text" required>
+  badge.classList.toggle(
+    "visible",
+    openCount > 0
+  );
+}
+
+function followUpCell(date) {
+  const overdue =
+    isPastDate(date);
+
+  return `
+    <span class="status-badge ${
+      overdue
+        ? "status-paused"
+        : "status-completed"
+    }">
+      ${overdue ? "Overdue · " : ""}
+      ${escapeHtml(formatDate(date))}
+    </span>
+  `;
+}
+
+function openNewEnquiry() {
+  byId("enquiryForm").reset();
+
+  setValue("enquiryId", "");
+  setValue("enquiryStatus", "New");
+  setValue(
+    "enquiryCreated",
+    isoDate(new Date())
+  );
+
+  text(
+    "enquiryModalTitle",
+    "New enquiry"
+  );
+
+  openModal("enquiryModal");
+}
+
+function openEditEnquiry(id) {
+  const enquiry = state.enquiries.find(
+    (item) => item.id === id
+  );
+
+  if (!enquiry) {
+    return;
+  }
+
+  setValue("enquiryId", enquiry.id);
+  setValue("enquiryName", enquiry.name);
+  setValue("enquiryStudentAge", enquiry.age);
+  setValue("enquiryPhone", enquiry.phone);
+  setValue("enquiryEmail", enquiry.email);
+  setValue("enquiryCourse", enquiry.course);
+  setValue("enquirySource", enquiry.source);
+  setValue("enquiryStatus", enquiry.status);
+  setValue("enquiryFollowup", enquiry.followup);
+  setValue("enquiryCreated", enquiry.created);
+  setValue("enquiryNotes", enquiry.notes);
+
+  text(
+    "enquiryModalTitle",
+    "Edit enquiry"
+  );
+
+  openModal("enquiryModal");
+}
+
+function saveEnquiryForm(event) {
+  event.preventDefault();
+
+  const id = value("enquiryId");
+
+  const record = {
+    id: id || makeId("enquiry"),
+    name: value("enquiryName").trim(),
+    age: value("enquiryStudentAge"),
+    phone: value("enquiryPhone").trim(),
+    email: value("enquiryEmail").trim(),
+    course: value("enquiryCourse").trim(),
+    source: value("enquirySource"),
+    status: value("enquiryStatus"),
+    followup: value("enquiryFollowup"),
+    created:
+      value("enquiryCreated") ||
+      isoDate(new Date()),
+    notes: value("enquiryNotes").trim()
+  };
+
+  if (!record.name || !record.course) {
+    showToast(
+      "Name and course interest are required.",
+      "error"
+    );
+    return;
+  }
+
+  if (id) {
+    state.enquiries = state.enquiries.map(
+      (enquiry) =>
+        enquiry.id === id
+          ? record
+          : enquiry
+    );
+  } else {
+    state.enquiries.push(record);
+  }
+
+  saveState();
+  closeModal("enquiryModal");
+  renderAll();
+
+  showToast(
+    id
+      ? "Enquiry updated."
+      : "Enquiry added.",
+    "success"
+  );
+}
+
+function deleteEnquiry(id) {
+  const enquiry = state.enquiries.find(
+    (item) => item.id === id
+  );
+
+  if (!enquiry) {
+    return;
+  }
+
+  openConfirm(
+    "Delete enquiry?",
+    `Delete the enquiry for ${enquiry.name}?`,
+    () => {
+      state.enquiries =
+        state.enquiries.filter(
+          (item) => item.id !== id
+        );
+
+      saveState();
+      renderAll();
+
+      showToast(
+        "Enquiry deleted.",
+        "success"
+      );
+    }
+  );
+}
+
+/* =========================================================
+   TEACHERS
+========================================================= */
+
+function renderTeachers() {
+  const container = byId("teacherGrid");
+
+  if (!state.teachers.length) {
+    container.innerHTML = emptyState(
+      "No teachers yet. Add your first teacher."
+    );
+    return;
+  }
+
+  container.innerHTML = [...state.teachers]
+    .sort((a, b) =>
+      a.name.localeCompare(b.name)
+    )
+    .map((teacher) => {
+      const classes = state.classes.filter(
+        (item) =>
+          item.teacherId === teacher.id
+      );
+
+      return `
+        <article class="teacher-card">
+          <div class="teacher-card-top">
+            <div class="teacher-identity">
+              <div class="teacher-avatar">
+                ${escapeHtml(getInitials(teacher.name))}
+              </div>
+
+              <div>
+                <strong>${escapeHtml(teacher.name)}</strong>
+                <span>${escapeHtml(teacher.role || "Teacher")}</span>
+              </div>
+            </div>
+
+            ${statusBadge(teacher.status)}
           </div>
 
-          <div class="form-field">
-            <label for="enquiryStudentAge">Student age</label>
-            <input id="enquiryStudentAge" type="number" min="3" max="100">
+          <div class="teacher-meta">
+            <div class="teacher-meta-row">
+              <span>Classes</span>
+              <strong>${classes.length}</strong>
+            </div>
+
+            <div class="teacher-meta-row">
+              <span>Email</span>
+              <strong>${escapeHtml(teacher.email || "—")}</strong>
+            </div>
+
+            <div class="teacher-meta-row">
+              <span>Telephone</span>
+              <strong>${escapeHtml(teacher.phone || "—")}</strong>
+            </div>
           </div>
 
-          <div class="form-field">
-            <label for="enquiryPhone">Telephone</label>
-            <input id="enquiryPhone" type="tel">
-          </div>
-
-          <div class="form-field">
-            <label for="enquiryEmail">Email</label>
-            <input id="enquiryEmail" type="email">
-          </div>
-
-          <div class="form-field">
-            <label for="enquiryCourse">Interested in *</label>
-            <input
-              id="enquiryCourse"
-              type="text"
-              placeholder="e.g. Cambridge B2"
-              required
+          <div class="modal-actions">
+            <button
+              class="row-action"
+              type="button"
+              data-edit-teacher="${teacher.id}"
             >
-          </div>
+              Edit
+            </button>
 
-          <div class="form-field">
-            <label for="enquirySource">Source</label>
-            <select id="enquirySource">
-              <option value="Walk-in">Walk-in</option>
-              <option value="WhatsApp">WhatsApp</option>
-              <option value="Facebook">Facebook</option>
-              <option value="Instagram">Instagram</option>
-              <option value="Google">Google</option>
-              <option value="Referral">Referral</option>
-              <option value="Website">Website</option>
-              <option value="School partnership">School partnership</option>
-              <option value="Other">Other</option>
-            </select>
+            <button
+              class="row-action delete"
+              type="button"
+              data-delete-teacher="${teacher.id}"
+            >
+              Delete
+            </button>
           </div>
+        </article>
+      `;
+    })
+    .join("");
 
-          <div class="form-field">
-            <label for="enquiryStatus">Stage</label>
-            <select id="enquiryStatus">
-              <option value="New">New</option>
-              <option value="Contacted">Contacted</option>
-              <option value="Trial/Assessment Booked">Trial/Assessment Booked</option>
-              <option value="Trial/Assessment Completed">Trial/Assessment Completed</option>
-              <option value="Course Offered">Course Offered</option>
-              <option value="Enrolled">Enrolled</option>
-              <option value="Lost">Lost</option>
-            </select>
-          </div>
+  container
+    .querySelectorAll("[data-edit-teacher]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        openEditTeacher(
+          button.dataset.editTeacher
+        );
+      });
+    });
 
-          <div class="form-field">
-            <label for="enquiryFollowup">Next follow-up</label>
-            <input id="enquiryFollowup" type="date">
-          </div>
+  container
+    .querySelectorAll("[data-delete-teacher]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        deleteTeacher(
+          button.dataset.deleteTeacher
+        );
+      });
+    });
+}
 
-          <div class="form-field">
-            <label for="enquiryCreated">Enquiry date</label>
-            <input id="enquiryCreated" type="date">
-          </div>
+function openNewTeacher() {
+  byId("teacherForm").reset();
 
-          <div class="form-field">
-            <label for="enquiryLevelResult">Website level result</label>
-            <input id="enquiryLevelResult" type="text" readonly placeholder="e.g. B1">
-          </div>
+  setValue("teacherId", "");
+  setValue(
+    "teacherRole",
+    "English Teacher"
+  );
+  setValue(
+    "teacherStatus",
+    "Active"
+  );
 
-          <div class="form-field">
-            <label for="enquiryTrialDate">Trial / assessment date</label>
-            <input id="enquiryTrialDate" type="datetime-local">
-          </div>
+  text(
+    "teacherModalTitle",
+    "Add teacher"
+  );
 
-          <div class="form-field">
-            <label for="enquiryTeacherLevel">Teacher assessed level</label>
-            <select id="enquiryTeacherLevel">
-              <option value="">Not assessed</option>
-              <option value="Young Learners">Young Learners</option>
-              <option value="A1">A1</option><option value="A2">A2</option>
-              <option value="B1">B1</option><option value="B2">B2</option>
-              <option value="C1">C1</option><option value="C2">C2</option>
-            </select>
-          </div>
+  openModal("teacherModal");
+}
 
-          <div class="form-field">
-            <label for="enquiryCourseOffered">Course / class offered</label>
-            <input id="enquiryCourseOffered" type="text" placeholder="e.g. B1 Adults Tue/Thu">
-          </div>
+function openEditTeacher(id) {
+  const teacher =
+    getTeacher(id);
 
-          <div class="form-field form-field-wide">
-            <label for="enquiryAssessmentNotes">Teacher assessment</label>
-            <textarea id="enquiryAssessmentNotes" rows="3" placeholder="Speaking, listening, grammar, fluency, confidence..."></textarea>
-          </div>
+  if (!teacher) {
+    return;
+  }
 
-          <div class="form-field form-field-wide">
-            <label for="enquiryNotes">Notes</label>
-            <textarea id="enquiryNotes" rows="4"></textarea>
-          </div>
+  setValue("teacherId", teacher.id);
+  setValue("teacherName", teacher.name);
+  setValue("teacherEmail", teacher.email);
+  setValue("teacherPhone", teacher.phone);
+  setValue("teacherRole", teacher.role);
+  setValue("teacherStatus", teacher.status);
+  setValue("teacherNotes", teacher.notes);
+
+  text(
+    "teacherModalTitle",
+    "Edit teacher"
+  );
+
+  openModal("teacherModal");
+}
+
+function saveTeacherForm(event) {
+  event.preventDefault();
+
+  const id = value("teacherId");
+
+  const record = {
+    id: id || makeId("teacher"),
+    name: value("teacherName").trim(),
+    email: value("teacherEmail").trim(),
+    phone: value("teacherPhone").trim(),
+    role: value("teacherRole").trim(),
+    status: value("teacherStatus"),
+    notes: value("teacherNotes").trim()
+  };
+
+  if (!record.name) {
+    showToast(
+      "Teacher name is required.",
+      "error"
+    );
+    return;
+  }
+
+  if (id) {
+    state.teachers = state.teachers.map(
+      (teacher) =>
+        teacher.id === id
+          ? record
+          : teacher
+    );
+  } else {
+    state.teachers.push(record);
+  }
+
+  saveState();
+  closeModal("teacherModal");
+  renderAll();
+
+  showToast(
+    id
+      ? "Teacher updated."
+      : "Teacher added.",
+    "success"
+  );
+}
+
+function deleteTeacher(id) {
+  const teacher =
+    getTeacher(id);
+
+  if (!teacher) {
+    return;
+  }
+
+  const assignedClasses =
+    state.classes.filter(
+      (item) =>
+        item.teacherId === id
+    ).length;
+
+  openConfirm(
+    "Delete teacher?",
+    assignedClasses
+      ? `${teacher.name} is assigned to ${assignedClasses} class${assignedClasses === 1 ? "" : "es"}. Those classes will remain but will no longer have a teacher assigned.`
+      : `Delete ${teacher.name}?`,
+    () => {
+      state.teachers =
+        state.teachers.filter(
+          (item) => item.id !== id
+        );
+
+      state.classes =
+        state.classes.map((item) => ({
+          ...item,
+          teacherId:
+            item.teacherId === id
+              ? ""
+              : item.teacherId
+        }));
+
+      saveState();
+      renderAll();
+
+      showToast(
+        "Teacher deleted.",
+        "success"
+      );
+    }
+  );
+}
+
+/* =========================================================
+   REPORTS
+========================================================= */
+
+function renderReports() {
+  const activeStudents =
+    state.students.filter(
+      (student) =>
+        student.status === "Active"
+    );
+
+  const totalFees = sum(
+    state.payments.map((item) =>
+      number(item.fee)
+    )
+  );
+
+  const collected = sum(
+    state.payments.map((item) =>
+      number(item.paid)
+    )
+  );
+
+  const outstanding =
+    Math.max(0, totalFees - collected);
+
+  const collectionRate =
+    totalFees > 0
+      ? Math.round(
+          Math.min(
+            100,
+            (collected / totalFees) * 100
+          )
+        )
+      : 0;
+
+  const enrolledLeads =
+    state.enquiries.filter(
+      (item) =>
+        item.status === "Enrolled"
+    ).length;
+
+  const conversionRate =
+    state.enquiries.length > 0
+      ? Math.round(
+          (enrolledLeads /
+            state.enquiries.length) *
+            100
+        )
+      : 0;
+
+  const averageClass =
+    state.classes.length > 0
+      ? (
+          activeStudents.length /
+          state.classes.length
+        ).toFixed(1)
+      : "0";
+
+  text(
+    "reportActiveStudents",
+    activeStudents.length
+  );
+
+  text(
+    "reportAverageClass",
+    averageClass
+  );
+
+  text(
+    "reportCollectionRate",
+    `${collectionRate}%`
+  );
+
+  text(
+    "reportConversionRate",
+    `${conversionRate}%`
+  );
+
+  text(
+    "reportFees",
+    formatMoney(totalFees)
+  );
+
+  text(
+    "reportCollected",
+    formatMoney(collected)
+  );
+
+  text(
+    "reportOutstanding",
+    formatMoney(outstanding)
+  );
+
+  renderLevelReport();
+  renderSourceReport();
+  renderFollowupHealth();
+}
+
+function renderLevelReport() {
+  const container =
+    byId("levelReportBars");
+
+  const activeStudents =
+    state.students.filter(
+      (student) =>
+        student.status === "Active"
+    );
+
+  const counts = LEVELS.map(
+    (level) => ({
+      level,
+      count: activeStudents.filter(
+        (student) =>
+          student.level === level
+      ).length
+    })
+  );
+
+  const maximum =
+    Math.max(
+      1,
+      ...counts.map(
+        (item) => item.count
+      )
+    );
+
+  container.innerHTML = counts
+    .map((item) => `
+      <div class="bar-row">
+        <div class="bar-row-label">
+          ${escapeHtml(item.level)}
         </div>
 
-        <div class="modal-actions">
-          <button class="button button-secondary" type="button" data-close-modal="enquiryModal">
-            Cancel
-          </button>
-          <button class="button button-primary" type="submit">
-            Save enquiry
-          </button>
+        <div class="bar-track">
+          <div
+            class="bar-value"
+            style="width:${(item.count / maximum) * 100}%"
+          ></div>
         </div>
-      </form>
+
+        <div class="bar-number">
+          ${item.count}
+        </div>
+      </div>
+    `)
+    .join("");
+}
+
+function renderSourceReport() {
+  const container =
+    byId("sourceReportList");
+
+  const sourceCounts = {};
+
+  state.enquiries.forEach((enquiry) => {
+    const source =
+      enquiry.source || "Unknown";
+
+    sourceCounts[source] =
+      (sourceCounts[source] || 0) + 1;
+  });
+
+  const entries =
+    Object.entries(sourceCounts)
+      .sort((a, b) => b[1] - a[1]);
+
+  if (!entries.length) {
+    container.innerHTML = emptyState(
+      "No enquiry source data yet."
+    );
+    return;
+  }
+
+  container.innerHTML = entries
+    .map(([source, count]) => `
+      <div class="metric-row">
+        <span>${escapeHtml(source)}</span>
+        <strong>${count}</strong>
+      </div>
+    `)
+    .join("");
+}
+
+function renderFollowupHealth() {
+  const container =
+    byId("followupHealth");
+
+  const open = state.enquiries.filter(
+    (item) =>
+      !["Enrolled", "Lost"].includes(item.status)
+  );
+
+  const overdue =
+    open.filter(
+      (item) =>
+        item.followup &&
+        isPastDate(item.followup)
+    ).length;
+
+  const scheduled =
+    open.filter(
+      (item) =>
+        item.followup &&
+        !isPastDate(item.followup)
+    ).length;
+
+  const missing =
+    open.filter(
+      (item) =>
+        !item.followup
+    ).length;
+
+  container.innerHTML = `
+    <div class="metric-row">
+      <span>Open opportunities</span>
+      <strong>${open.length}</strong>
     </div>
-  </div>
 
-  <!-- =========================
-       TEACHER MODAL
-  ========================== -->
-  <div class="modal-backdrop" id="teacherModal">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="teacherModalTitle">
-      <div class="modal-header">
+    <div class="metric-row">
+      <span>Follow-ups scheduled</span>
+      <strong>${scheduled}</strong>
+    </div>
+
+    <div class="metric-row">
+      <span>Overdue follow-ups</span>
+      <strong>${overdue}</strong>
+    </div>
+
+    <div class="metric-row">
+      <span>No follow-up date</span>
+      <strong>${missing}</strong>
+    </div>
+  `;
+}
+
+/* =========================================================
+   SETTINGS
+========================================================= */
+
+function renderSettings() {
+  setValue(
+    "schoolName",
+    state.settings.schoolName
+  );
+
+  setValue(
+    "schoolPhone",
+    state.settings.phone
+  );
+
+  setValue(
+    "schoolEmail",
+    state.settings.email
+  );
+
+  setValue(
+    "schoolAddress",
+    state.settings.address
+  );
+}
+
+function saveSettingsForm(event) {
+  event.preventDefault();
+
+  state.settings = {
+    schoolName:
+      value("schoolName").trim() ||
+      "London Language School",
+    phone:
+      value("schoolPhone").trim(),
+    email:
+      value("schoolEmail").trim(),
+    address:
+      value("schoolAddress").trim()
+  };
+
+  saveState();
+
+  showToast(
+    "Settings saved.",
+    "success"
+  );
+}
+
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+function renderNotifications() {
+  const list =
+    byId("notificationList");
+
+  const notifications = [];
+
+  state.enquiries
+    .filter(
+      (enquiry) =>
+        !["Enrolled", "Lost"].includes(
+          enquiry.status
+        ) &&
+        enquiry.followup &&
+        isPastDate(enquiry.followup)
+    )
+    .forEach((enquiry) => {
+      notifications.push({
+        icon: "!",
+        title: "Enquiry follow-up overdue",
+        message:
+          `${enquiry.name} · ${enquiry.course}`
+      });
+    });
+
+  state.payments
+    .filter(
+      (payment) =>
+        paymentStatus(payment) !== "Paid"
+    )
+    .forEach((payment) => {
+      const student =
+        getStudent(payment.studentId);
+
+      notifications.push({
+        icon: "€",
+        title: "Outstanding balance",
+        message:
+          `${getStudentName(student) || "Student"} · ${formatMoney(Math.max(0, number(payment.fee) - number(payment.paid)))} due`
+      });
+    });
+
+  byId("notificationDot").classList.toggle(
+    "visible",
+    notifications.length > 0
+  );
+
+  if (!notifications.length) {
+    list.innerHTML = emptyState(
+      "You're up to date. No portal alerts."
+    );
+    return;
+  }
+
+  list.innerHTML = notifications
+    .slice(0, 20)
+    .map((item) => `
+      <div class="notification-item">
+        <div class="notification-item-icon">
+          ${escapeHtml(item.icon)}
+        </div>
+
         <div>
-          <p class="section-label">Team record</p>
-          <h2 id="teacherModalTitle">Add teacher</h2>
+          <strong>${escapeHtml(item.title)}</strong>
+          <span>${escapeHtml(item.message)}</span>
         </div>
-        <button class="modal-close" type="button" data-close-modal="teacherModal">×</button>
       </div>
+    `)
+    .join("");
+}
 
-      <form id="teacherForm">
-        <input id="teacherId" type="hidden">
+/* =========================================================
+   GLOBAL SEARCH
+========================================================= */
 
-        <div class="form-grid">
-          <div class="form-field form-field-wide">
-            <label for="teacherName">Name *</label>
-            <input id="teacherName" type="text" required>
-          </div>
+function renderGlobalSearch() {
+  const input =
+    byId("globalSearchInput");
 
-          <div class="form-field">
-            <label for="teacherEmail">Email</label>
-            <input id="teacherEmail" type="email">
-          </div>
+  const resultsContainer =
+    byId("globalSearchResults");
 
-          <div class="form-field">
-            <label for="teacherPhone">Telephone</label>
-            <input id="teacherPhone" type="tel">
-          </div>
+  const query =
+    input.value
+      .trim()
+      .toLowerCase();
 
-          <div class="form-field">
-            <label for="teacherRole">Role</label>
-            <input id="teacherRole" type="text" placeholder="English Teacher">
-          </div>
+  if (query.length < 2) {
+    closeGlobalSearch();
+    return;
+  }
 
-          <div class="form-field">
-            <label for="teacherStatus">Status</label>
-            <select id="teacherStatus">
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-          </div>
+  const results = [];
 
-          <div class="form-field form-field-wide">
-            <label for="teacherNotes">Notes</label>
-            <textarea id="teacherNotes" rows="3"></textarea>
-          </div>
-        </div>
+  state.students.forEach((student) => {
+    const name =
+      `${student.firstName} ${student.lastName}`;
 
-        <div class="modal-actions">
-          <button class="button button-secondary" type="button" data-close-modal="teacherModal">
-            Cancel
+    const haystack = [
+      name,
+      student.email,
+      student.phone,
+      student.level
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    if (haystack.includes(query)) {
+      results.push({
+        type: "Student",
+        title: name,
+        subtitle:
+          `${student.level || "No level"} · ${student.status}`,
+        page: "students",
+        icon: "S"
+      });
+    }
+  });
+
+  state.classes.forEach((item) => {
+    const haystack = [
+      item.name,
+      item.level,
+      item.day,
+      item.room
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    if (haystack.includes(query)) {
+      results.push({
+        type: "Class",
+        title: item.name,
+        subtitle:
+          `${item.level} · ${item.day} ${formatTime(item.time)}`,
+        page: "classes",
+        icon: "C"
+      });
+    }
+  });
+
+  state.enquiries.forEach((enquiry) => {
+    const haystack = [
+      enquiry.name,
+      enquiry.course,
+      enquiry.phone,
+      enquiry.email
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    if (haystack.includes(query)) {
+      results.push({
+        type: "Enquiry",
+        title: enquiry.name,
+        subtitle:
+          `${enquiry.course} · ${enquiry.status}`,
+        page: "enquiries",
+        icon: "E"
+      });
+    }
+  });
+
+  if (!results.length) {
+    resultsContainer.innerHTML =
+      `<div class="search-empty">No results found.</div>`;
+  } else {
+    resultsContainer.innerHTML =
+      results
+        .slice(0, 12)
+        .map((result) => `
+          <button
+            class="search-result"
+            type="button"
+            data-search-page="${result.page}"
+          >
+            <div class="search-result-icon">
+              ${escapeHtml(result.icon)}
+            </div>
+
+            <div>
+              <strong>
+                ${escapeHtml(result.title)}
+              </strong>
+              <span>
+                ${escapeHtml(result.type)}
+                ·
+                ${escapeHtml(result.subtitle)}
+              </span>
+            </div>
           </button>
-          <button class="button button-primary" type="submit">
-            Save teacher
-          </button>
+        `)
+        .join("");
+
+    resultsContainer
+      .querySelectorAll("[data-search-page]")
+      .forEach((button) => {
+        button.addEventListener("click", () => {
+          navigateTo(
+            button.dataset.searchPage
+          );
+
+          input.value = "";
+          closeGlobalSearch();
+        });
+      });
+  }
+
+  resultsContainer.classList.add("visible");
+}
+
+function closeGlobalSearch() {
+  byId("globalSearchResults")
+    .classList.remove("visible");
+}
+
+function closeUserDropdown() {
+  byId("userDropdown")
+    .classList.remove("visible");
+}
+
+/* =========================================================
+   SELECT POPULATION
+========================================================= */
+
+function populateSelects() {
+  populateStudentClassSelect();
+  populateTeacherSelect();
+  populatePaymentStudentSelect();
+  populateAttendanceClassSelect();
+}
+
+function populateStudentClassSelect() {
+  const select = byId("studentClass");
+
+  if (!select) {
+    return;
+  }
+
+  const current = select.value;
+
+  select.innerHTML =
+    `<option value="">Not assigned</option>` +
+    state.classes
+      .sort((a, b) =>
+        a.name.localeCompare(b.name)
+      )
+      .map((item) => `
+        <option value="${escapeAttribute(item.id)}">
+          ${escapeHtml(item.name)} — ${escapeHtml(item.level)}
+        </option>
+      `)
+      .join("");
+
+  if (
+    current &&
+    state.classes.some(
+      (item) => item.id === current
+    )
+  ) {
+    select.value = current;
+  }
+}
+
+function populateTeacherSelect() {
+  const select = byId("classTeacher");
+
+  if (!select) {
+    return;
+  }
+
+  const current = select.value;
+
+  select.innerHTML =
+    `<option value="">Not assigned</option>` +
+    state.teachers
+      .filter(
+        (teacher) =>
+          teacher.status === "Active"
+      )
+      .sort((a, b) =>
+        a.name.localeCompare(b.name)
+      )
+      .map((teacher) => `
+        <option value="${escapeAttribute(teacher.id)}">
+          ${escapeHtml(teacher.name)}
+        </option>
+      `)
+      .join("");
+
+  if (
+    current &&
+    state.teachers.some(
+      (teacher) =>
+        teacher.id === current
+    )
+  ) {
+    select.value = current;
+  }
+}
+
+function populatePaymentStudentSelect() {
+  const select =
+    byId("paymentStudent");
+
+  if (!select) {
+    return;
+  }
+
+  const current =
+    select.value;
+
+  select.innerHTML =
+    `<option value="">Select student</option>` +
+    [...state.students]
+      .sort((a, b) =>
+        a.lastName.localeCompare(b.lastName)
+      )
+      .map((student) => `
+        <option value="${escapeAttribute(student.id)}">
+          ${escapeHtml(student.firstName)}
+          ${escapeHtml(student.lastName)}
+        </option>
+      `)
+      .join("");
+
+  if (
+    current &&
+    state.students.some(
+      (student) =>
+        student.id === current
+    )
+  ) {
+    select.value = current;
+  }
+}
+
+/* =========================================================
+   CSV EXPORTS
+========================================================= */
+
+function exportStudentsCsv() {
+  const rows = [
+    [
+      "First name",
+      "Surname",
+      "Email",
+      "Telephone",
+      "Date of birth",
+      "Level",
+      "Class",
+      "Status",
+      "Joined",
+      "Parent / Guardian",
+      "Notes"
+    ],
+    ...state.students.map((student) => [
+      student.firstName,
+      student.lastName,
+      student.email,
+      student.phone,
+      student.dob,
+      student.level,
+      getClass(student.classId)?.name || "",
+      student.status,
+      student.joined,
+      student.parent,
+      student.notes
+    ])
+  ];
+
+  downloadCsv(
+    `lls-students-${isoDate(new Date())}.csv`,
+    rows
+  );
+}
+
+function exportPaymentsCsv() {
+  const rows = [
+    [
+      "Student",
+      "Description",
+      "Total fee",
+      "Paid",
+      "Balance",
+      "Payment date",
+      "Method",
+      "Status",
+      "Notes"
+    ],
+    ...state.payments.map((payment) => {
+      const student =
+        getStudent(payment.studentId);
+
+      const fee =
+        number(payment.fee);
+
+      const paid =
+        number(payment.paid);
+
+      return [
+        getStudentName(student),
+        payment.description,
+        fee,
+        paid,
+        Math.max(0, fee - paid),
+        payment.date,
+        payment.method,
+        paymentStatus(payment),
+        payment.notes
+      ];
+    })
+  ];
+
+  downloadCsv(
+    `lls-payments-${isoDate(new Date())}.csv`,
+    rows
+  );
+}
+
+function exportEnquiriesCsv() {
+  const rows = [
+    [
+      "Name",
+      "Age",
+      "Telephone",
+      "Email",
+      "Interested in",
+      "Source",
+      "Stage",
+      "Follow-up",
+      "Created",
+      "Notes"
+    ],
+    ...state.enquiries.map((enquiry) => [
+      enquiry.name,
+      enquiry.age,
+      enquiry.phone,
+      enquiry.email,
+      enquiry.course,
+      enquiry.source,
+      enquiry.status,
+      enquiry.followup,
+      enquiry.created,
+      enquiry.notes
+    ])
+  ];
+
+  downloadCsv(
+    `lls-enquiries-${isoDate(new Date())}.csv`,
+    rows
+  );
+}
+
+function exportAttendanceCsv() {
+  const classId =
+    value("attendanceClassSelect");
+
+  const date =
+    value("attendanceDate");
+
+  const classRecord =
+    getClass(classId);
+
+  if (!classRecord || !date) {
+    showToast(
+      "Choose an attendance class and date first.",
+      "error"
+    );
+    return;
+  }
+
+  const key =
+    attendanceKey(classId, date);
+
+  const saved =
+    state.attendance[key] ||
+    attendanceDraft;
+
+  const students =
+    getClassStudents(classId);
+
+  const rows = [
+    [
+      "Class",
+      "Date",
+      "Student",
+      "Level",
+      "Status"
+    ],
+    ...students.map((student) => [
+      classRecord.name,
+      date,
+      `${student.firstName} ${student.lastName}`,
+      student.level,
+      saved[student.id] || ""
+    ])
+  ];
+
+  downloadCsv(
+    `lls-attendance-${slug(classRecord.name)}-${date}.csv`,
+    rows
+  );
+}
+
+function exportFullReport() {
+  const activeStudents =
+    state.students.filter(
+      (item) => item.status === "Active"
+    ).length;
+
+  const fees = sum(
+    state.payments.map(
+      (item) => number(item.fee)
+    )
+  );
+
+  const collected = sum(
+    state.payments.map(
+      (item) => number(item.paid)
+    )
+  );
+
+  const enrolled = state.enquiries.filter(
+    (item) => item.status === "Enrolled"
+  ).length;
+
+  const rows = [
+    ["London Language School Portal Report"],
+    ["Generated", new Date().toLocaleString("en-GB")],
+    [],
+    ["Metric", "Value"],
+    ["Active students", activeStudents],
+    ["Classes", state.classes.length],
+    ["Teachers", state.teachers.length],
+    ["Enquiries", state.enquiries.length],
+    ["Enrolled enquiries", enrolled],
+    ["Fees recorded", fees],
+    ["Collected", collected],
+    ["Outstanding", Math.max(0, fees - collected)],
+    [],
+    ["Student levels"],
+    ...LEVELS.map((level) => [
+      level,
+      state.students.filter(
+        (student) =>
+          student.status === "Active" &&
+          student.level === level
+      ).length
+    ])
+  ];
+
+  downloadCsv(
+    `lls-report-${isoDate(new Date())}.csv`,
+    rows
+  );
+}
+
+function downloadCsv(filename, rows) {
+  const csv = rows
+    .map((row) =>
+      row
+        .map(csvEscape)
+        .join(",")
+    )
+    .join("\r\n");
+
+  downloadFile(
+    filename,
+    "\uFEFF" + csv,
+    "text/csv;charset=utf-8"
+  );
+
+  showToast(
+    "CSV export created.",
+    "success"
+  );
+}
+
+function csvEscape(valueToEscape) {
+  const stringValue =
+    valueToEscape === null ||
+    valueToEscape === undefined
+      ? ""
+      : String(valueToEscape);
+
+  return `"${stringValue.replace(/"/g, '""')}"`;
+}
+
+/* =========================================================
+   BACKUP
+========================================================= */
+
+function exportBackup() {
+  const backup = {
+    app: "London Language School Portal",
+    version: 1,
+    exportedAt:
+      new Date().toISOString(),
+    data: state
+  };
+
+  downloadFile(
+    `lls-portal-backup-${isoDate(new Date())}.json`,
+    JSON.stringify(backup, null, 2),
+    "application/json"
+  );
+
+  showToast(
+    "Portal backup exported.",
+    "success"
+  );
+}
+
+function importBackup(event) {
+  const file =
+    event.target.files?.[0];
+
+  event.target.value = "";
+
+  if (!file) {
+    return;
+  }
+
+  const reader =
+    new FileReader();
+
+  reader.onload = () => {
+    try {
+      const parsed =
+        JSON.parse(reader.result);
+
+      const importedState =
+        parsed.data || parsed;
+
+      if (
+        !importedState ||
+        typeof importedState !== "object"
+      ) {
+        throw new Error(
+          "Invalid backup format"
+        );
+      }
+
+      openConfirm(
+        "Import backup?",
+        "The imported backup will replace the portal data currently stored in this browser.",
+        () => {
+          state = importedState;
+          ensureStateStructure();
+          saveState();
+          renderAll();
+
+          showToast(
+            "Backup imported successfully.",
+            "success"
+          );
+        },
+        "Import"
+      );
+    } catch (error) {
+      console.error(error);
+
+      showToast(
+        "The selected file is not a valid LLS portal backup.",
+        "error"
+      );
+    }
+  };
+
+  reader.readAsText(file);
+}
+
+/* =========================================================
+   MODALS
+========================================================= */
+
+function openModal(id) {
+  const modal = byId(id);
+
+  if (!modal) {
+    return;
+  }
+
+  modal.classList.add("open");
+  document.body.style.overflow = "hidden";
+
+  setTimeout(() => {
+    const focusTarget =
+      modal.querySelector(
+        "input:not([type='hidden']), select, textarea, button"
+      );
+
+    focusTarget?.focus();
+  }, 30);
+}
+
+function closeModal(id) {
+  const modal = byId(id);
+
+  if (!modal) {
+    return;
+  }
+
+  modal.classList.remove("open");
+
+  if (
+    !document.querySelector(
+      ".modal-backdrop.open"
+    )
+  ) {
+    document.body.style.overflow = "";
+  }
+
+  if (id === "confirmModal") {
+    confirmCallback = null;
+  }
+}
+
+function closeAllModals() {
+  document
+    .querySelectorAll(".modal-backdrop.open")
+    .forEach((modal) => {
+      modal.classList.remove("open");
+    });
+
+  confirmCallback = null;
+  document.body.style.overflow = "";
+}
+
+function openConfirm(
+  title,
+  message,
+  callback,
+  actionLabel = "Delete"
+) {
+  text(
+    "confirmModalTitle",
+    title
+  );
+
+  text(
+    "confirmModalMessage",
+    message
+  );
+
+  text(
+    "confirmActionButton",
+    actionLabel
+  );
+
+  confirmCallback =
+    callback;
+
+  openModal("confirmModal");
+}
+
+function executeConfirmAction() {
+  if (
+    typeof confirmCallback === "function"
+  ) {
+    const callback =
+      confirmCallback;
+
+    confirmCallback = null;
+    closeModal("confirmModal");
+    callback();
+  }
+}
+
+/* =========================================================
+   TOASTS
+========================================================= */
+
+function showToast(
+  message,
+  type = "success"
+) {
+  const region =
+    byId("toastRegion");
+
+  const toast =
+    document.createElement("div");
+
+  toast.className =
+    `toast ${type}`;
+
+  toast.innerHTML = `
+    <div>
+      <strong>
+        ${type === "error" ? "Action needed" : "LLS Portal"}
+      </strong>
+      <span>${escapeHtml(message)}</span>
+    </div>
+  `;
+
+  region.appendChild(toast);
+
+  setTimeout(() => {
+    toast.remove();
+  }, 3500);
+}
+
+/* =========================================================
+   DATA HELPERS
+========================================================= */
+
+function getStudent(id) {
+  return state.students.find(
+    (student) =>
+      student.id === id
+  );
+}
+
+function getStudentName(student) {
+  if (!student) {
+    return "";
+  }
+
+  return `${student.firstName} ${student.lastName}`.trim();
+}
+
+function getClass(id) {
+  return state.classes.find(
+    (item) =>
+      item.id === id
+  );
+}
+
+function getTeacher(id) {
+  return state.teachers.find(
+    (teacher) =>
+      teacher.id === id
+  );
+}
+
+function getClassStudents(classId) {
+  return state.students.filter(
+    (student) =>
+      student.classId === classId
+  );
+}
+
+function attendanceKey(
+  classId,
+  date
+) {
+  return `${date}__${classId}`;
+}
+
+/* =========================================================
+   FORM / DOM HELPERS
+========================================================= */
+
+function byId(id) {
+  return document.getElementById(id);
+}
+
+function text(id, content) {
+  const element =
+    byId(id);
+
+  if (element) {
+    element.textContent =
+      content ?? "";
+  }
+}
+
+function value(id) {
+  return byId(id)?.value ?? "";
+}
+
+function setValue(id, newValue) {
+  const element =
+    byId(id);
+
+  if (element) {
+    element.value =
+      newValue ?? "";
+  }
+}
+
+/* =========================================================
+   GENERAL HELPERS
+========================================================= */
+
+function makeId(prefix = "item") {
+  if (
+    window.crypto &&
+    typeof window.crypto.randomUUID === "function"
+  ) {
+    return `${prefix}_${crypto.randomUUID()}`;
+  }
+
+  return `${prefix}_${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2, 9)}`;
+}
+
+function number(valueToConvert) {
+  const parsed =
+    Number(valueToConvert);
+
+  return Number.isFinite(parsed)
+    ? parsed
+    : 0;
+}
+
+function sum(values) {
+  return values.reduce(
+    (total, item) =>
+      total + number(item),
+    0
+  );
+}
+
+function formatMoney(amount) {
+  return new Intl.NumberFormat(
+    "it-IT",
+    {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }
+  ).format(number(amount));
+}
+
+function formatDate(dateString) {
+  if (!dateString) {
+    return "";
+  }
+
+  const date =
+    parseIsoLocal(dateString);
+
+  if (
+    Number.isNaN(date.getTime())
+  ) {
+    return dateString;
+  }
+
+  return new Intl.DateTimeFormat(
+    "en-GB",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }
+  ).format(date);
+}
+
+function formatTime(time) {
+  if (!time) {
+    return "—";
+  }
+
+  return time.slice(0, 5);
+}
+
+function isoDate(date) {
+  const year =
+    date.getFullYear();
+
+  const month =
+    String(date.getMonth() + 1)
+      .padStart(2, "0");
+
+  const day =
+    String(date.getDate())
+      .padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function parseIsoLocal(dateString) {
+  const parts =
+    String(dateString)
+      .split("-")
+      .map(Number);
+
+  if (parts.length !== 3) {
+    return new Date(dateString);
+  }
+
+  return new Date(
+    parts[0],
+    parts[1] - 1,
+    parts[2]
+  );
+}
+
+function addDays(date, days) {
+  const result =
+    new Date(date);
+
+  result.setDate(
+    result.getDate() + days
+  );
+
+  return result;
+}
+
+function isPastDate(dateString) {
+  if (!dateString) {
+    return false;
+  }
+
+  const target =
+    parseIsoLocal(dateString);
+
+  const today =
+    parseIsoLocal(
+      isoDate(new Date())
+    );
+
+  return target < today;
+}
+
+function isCurrentMonth(dateString) {
+  if (!dateString) {
+    return false;
+  }
+
+  const date =
+    parseIsoLocal(dateString);
+
+  const today =
+    new Date();
+
+  return (
+    date.getFullYear() ===
+      today.getFullYear() &&
+    date.getMonth() ===
+      today.getMonth()
+  );
+}
+
+function dayIndex(day) {
+  const days = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday"
+  ];
+
+  const index =
+    days.indexOf(day);
+
+  return index === -1
+    ? 99
+    : index;
+}
+
+function getInitials(name) {
+  return String(name || "?")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) =>
+      part.charAt(0).toUpperCase()
+    )
+    .join("");
+}
+
+function slug(valueToSlug) {
+  return String(valueToSlug)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function statusBadge(status) {
+  const safeStatus =
+    status || "Unknown";
+
+  return `
+    <span class="status-badge status-${slug(safeStatus)}">
+      ${escapeHtml(safeStatus)}
+    </span>
+  `;
+}
+
+function emptyState(message) {
+  return `
+    <div class="empty-state">
+      ${escapeHtml(message)}
+    </div>
+  `;
+}
+
+function tableEmptyRow(
+  columns,
+  message
+) {
+  return `
+    <tr>
+      <td colspan="${columns}">
+        <div class="empty-state">
+          ${escapeHtml(message)}
         </div>
-      </form>
-    </div>
-  </div>
+      </td>
+    </tr>
+  `;
+}
 
-  <!-- =========================
-       CONFIRM MODAL
-  ========================== -->
-  <div class="modal-backdrop" id="confirmModal">
-    <div class="modal modal-small" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
-      <div class="modal-header">
-        <div>
-          <p class="section-label">Confirm action</p>
-          <h2 id="confirmModalTitle">Are you sure?</h2>
-        </div>
-        <button class="modal-close" type="button" data-close-modal="confirmModal">×</button>
-      </div>
+function escapeHtml(valueToEscape) {
+  return String(
+    valueToEscape ?? ""
+  )
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
-      <p id="confirmModalMessage" class="confirm-copy"></p>
+function escapeAttribute(valueToEscape) {
+  return escapeHtml(
+    valueToEscape
+  );
+}
 
-      <div class="modal-actions">
-        <button class="button button-secondary" type="button" data-close-modal="confirmModal">
-          Cancel
-        </button>
-        <button class="button button-danger" id="confirmActionButton" type="button">
-          Delete
-        </button>
-      </div>
-    </div>
-  </div>
+function cssEscape(valueToEscape) {
+  if (
+    window.CSS &&
+    typeof window.CSS.escape === "function"
+  ) {
+    return CSS.escape(
+      valueToEscape
+    );
+  }
 
-  <!-- =========================
-       NOTIFICATIONS
-  ========================== -->
-  <aside class="notification-panel" id="notificationPanel">
-    <div class="notification-panel-header">
-      <div>
-        <p class="section-label">Portal</p>
-        <h3>Notifications</h3>
-      </div>
-      <button class="modal-close" id="closeNotificationPanel" type="button">×</button>
-    </div>
+  return String(valueToEscape)
+    .replace(
+      /["\\]/g,
+      "\\$&"
+    );
+}
 
-    <div id="notificationList"></div>
-  </aside>
+function downloadFile(
+  filename,
+  content,
+  mimeType
+) {
+  const blob =
+    new Blob(
+      [content],
+      { type: mimeType }
+    );
 
-  <!-- =========================
-       TOAST
-  ========================== -->
-  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+  const url =
+    URL.createObjectURL(blob);
 
-  <script src="portal.js"></script>
-</body>
-</html>
+  const link =
+    document.createElement("a");
+
+  link.href = url;
+  link.download = filename;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
