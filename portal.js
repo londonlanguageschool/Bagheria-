@@ -2069,6 +2069,15 @@ function renderEnquiries() {
                 Edit
               </button>
 
+              ${["Placement/Trial Completed", "Course Offered", "Enrolled"].includes(enquiry.status) ? `
+              <button
+                class="row-action"
+                type="button"
+                data-convert-enquiry="${enquiry.id}"
+              >
+                Convert to Student
+              </button>` : ""}
+
               <button
                 class="row-action delete"
                 type="button"
@@ -2089,6 +2098,14 @@ function renderEnquiries() {
           openEditEnquiry(
             button.dataset.editEnquiry
           );
+        });
+      });
+
+    body
+      .querySelectorAll("[data-convert-enquiry]")
+      .forEach((button) => {
+        button.addEventListener("click", () => {
+          convertEnquiryToStudent(button.dataset.convertEnquiry);
         });
       });
 
@@ -2166,6 +2183,9 @@ function openNewEnquiry() {
     "enquiryCreated",
     isoDate(new Date())
   );
+  setValue("enquiryTrialDate", "");
+  setValue("enquiryFinalLevel", "");
+  setValue("enquiryAssessment", "");
 
   text(
     "enquiryModalTitle",
@@ -2194,6 +2214,9 @@ function openEditEnquiry(id) {
   setValue("enquiryStatus", enquiry.status);
   setValue("enquiryFollowup", enquiry.followup);
   setValue("enquiryCreated", enquiry.created);
+  setValue("enquiryTrialDate", enquiry.trialDate || "");
+  setValue("enquiryFinalLevel", enquiry.finalLevel || enquiry.levelResult || "");
+  setValue("enquiryAssessment", enquiry.assessment || "");
   setValue("enquiryNotes", enquiry.notes);
 
   text(
@@ -2243,6 +2266,9 @@ async function saveEnquiryForm(event) {
     status: value("enquiryStatus"),
     followup: value("enquiryFollowup"),
     created: value("enquiryCreated") || isoDate(new Date()),
+    trialDate: value("enquiryTrialDate"),
+    finalLevel: value("enquiryFinalLevel"),
+    assessment: value("enquiryAssessment").trim(),
     notes: value("enquiryNotes").trim()
   };
 
@@ -2270,7 +2296,13 @@ async function saveEnquiryForm(event) {
     "Stage": record.status,
     "Follow-up": record.followup,
     "Enquiry Date": record.created,
-    "Notes": record.notes
+    "Level Result": record.finalLevel,
+    "Trial Requested": record.trialDate ? "Yes" : "",
+    "Notes": [
+      record.notes,
+      record.trialDate ? `Placement/Trial date: ${record.trialDate}` : "",
+      record.assessment ? `Teacher assessment: ${record.assessment}` : ""
+    ].filter(Boolean).join("\n")
   };
 
   try {
@@ -2326,6 +2358,44 @@ function deleteEnquiry(id) {
         );
       }
     }
+  );
+}
+
+
+function convertEnquiryToStudent(id) {
+  const enquiry = state.enquiries.find((item) => item.id === id);
+  if (!enquiry) return;
+
+  const parts = String(enquiry.name || "").trim().split(/\s+/);
+  const firstName = parts.shift() || "";
+  const lastName = parts.join(" ");
+
+  populateStudentClassSelect();
+  byId("studentForm").reset();
+  setValue("studentId", "");
+  setValue("studentFirstName", firstName);
+  setValue("studentLastName", lastName);
+  setValue("studentEmail", enquiry.email || "");
+  setValue("studentPhone", enquiry.phone || "");
+  setValue("studentLevel", enquiry.finalLevel || enquiry.levelResult || "");
+  setValue("studentStatus", "Active");
+  setValue("studentJoined", isoDate(new Date()));
+  setValue(
+    "studentNotes",
+    [
+      `Converted from enquiry ${enquiry.id}.`,
+      enquiry.course ? `Course interest: ${enquiry.course}.` : "",
+      enquiry.assessment ? `Teacher assessment: ${enquiry.assessment}` : "",
+      enquiry.notes || ""
+    ].filter(Boolean).join("\n")
+  );
+
+  text("studentModalTitle", "Convert enquiry to student");
+  openModal("studentModal");
+
+  showToast(
+    "Student form prepared from the enquiry. Check the details, choose a class if appropriate, then Save student.",
+    "success"
   );
 }
 
@@ -4103,7 +4173,16 @@ async function llsLoadEnquiriesFromSheets() {
       ),
       notes: r["Notes"] || r.notes || "",
       levelResult: r["Level Result"] || r.levelResult || "",
-      trialRequested: r["Trial Requested"] || r.trialRequested || ""
+      finalLevel: r["Level Result"] || r.levelResult || "",
+      trialRequested: r["Trial Requested"] || r.trialRequested || "",
+      trialDate: (() => {
+        const m = String(r["Notes"] || r.notes || "").match(/Placement\/Trial date:\s*(\d{4}-\d{2}-\d{2})/i);
+        return m ? m[1] : "";
+      })(),
+      assessment: (() => {
+        const m = String(r["Notes"] || r.notes || "").match(/Teacher assessment:\s*([^\n\r]+)/i);
+        return m ? m[1].trim() : "";
+      })()
     }));
 
     saveState();
