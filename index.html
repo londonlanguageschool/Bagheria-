@@ -2256,9 +2256,9 @@
       </div>
 
       <div id="leadStep2" hidden>
-        <div class="lead-kicker">Richiesta ricevuta ✓</div>
-        <h2>Cosa vuoi fare adesso?</h2>
-        <p class="lead-intro">Scegli una sola opzione oppure chiudi: la tua richiesta è già stata registrata.</p>
+        <div class="lead-kicker">Inizia da qui</div>
+        <h2>Come vuoi iniziare?</h2>
+        <p class="lead-intro">Puoi fare subito il test senza lasciare i tuoi dati. Te li chiederemo solo dopo, se vorrai continuare.</p>
         <div class="journey-options">
           <button class="journey-option" type="button" onclick="showLevelChecker(false)"><div>📊</div><strong>Test ragazzi e adulti</strong><span>CEFR / QCER · circa 10 minuti. Puoi fermarti quando vuoi.</span></button>
           <button class="journey-option" type="button" onclick="showYoungLevelChecker()"><div>🐶</div><strong>Test bambini 6–12</strong><span>Breve, semplice e divertente.</span></button>
@@ -2587,8 +2587,16 @@
   
     const LLS_ENQUIRY_API = "https://script.google.com/macros/s/AKfycbyHbfFoaiMOT1rpY2DcbXAkuNwMoOHVdLlG2aQLgPgCe5gqPuyk8VYm7i4eGQRm8iqi/exec";
     let currentLeadId = "";
+    let pendingLevelResult = "";
+    let pendingAction = "";
 
     function openLeadJourney() {
+      pendingLevelResult = "";
+      pendingAction = "";
+      document.getElementById("leadStep1").hidden = true;
+      document.getElementById("leadStep2").hidden = false;
+      document.getElementById("leadLevel").hidden = true;
+
       document.getElementById("leadModal").classList.add("open");
       document.getElementById("leadModal").setAttribute("aria-hidden", "false");
       document.body.style.overflow = "hidden";
@@ -2631,7 +2639,7 @@
         "Stage": "New",
         "Follow-up": "",
         "Notes": [who, notes].filter(Boolean).join(" — "),
-        "Level Result": "",
+        "Level Result": pendingLevelResult,
         "Trial Requested": "No"
       };
 
@@ -2655,10 +2663,29 @@
       button.textContent = "Salvato ✓";
 
       setTimeout(() => {
-        document.getElementById("leadStep1").hidden = true;
-        document.getElementById("leadStep2").hidden = false;
+        if (pendingAction === "trial") {
+          window.open("https://cal.com/londonlanguageschoolbagheria/prova", "_blank", "noopener");
+        }
+        document.getElementById("leadStep1").innerHTML =
+          '<div class="lead-kicker">Perfetto ✓</div><h2>Grazie!</h2><p class="lead-intro">Abbiamo ricevuto i tuoi dati e il risultato del test. Ti aiuteremo a scegliere il percorso più adatto.</p><button class="button button-red" type="button" onclick="closeLeadJourney()">Chiudi</button>';
       }, 250);
     });
+
+    function collectDetailsAfterTest(levelResult, action = "") {
+      pendingLevelResult = levelResult || "";
+      pendingAction = action;
+
+      document.getElementById("leadLevel").hidden = true;
+      document.getElementById("leadStep2").hidden = true;
+      document.getElementById("leadStep1").hidden = false;
+
+      document.getElementById("leadTitle").textContent = "Ultimo passo";
+      document.querySelector("#leadStep1 .lead-intro").textContent =
+        "Hai completato il test. Lasciaci i tuoi dati solo se vuoi ricevere informazioni o prenotare una prova gratuita.";
+
+      const saveButton = document.getElementById("leadSaveButton");
+      if (saveButton) saveButton.textContent = action === "trial" ? "Continua alla prenotazione" : "Invia";
+    }
 
     async function updateCurrentLead(fields) {
       if (!currentLeadId) return;
@@ -2670,14 +2697,20 @@
     }
 
     async function bookTrial() {
+      if (!currentLeadId) {
+        collectDetailsAfterTest(pendingLevelResult, "trial");
+        return;
+      }
       await updateCurrentLead({ "Trial Requested": "Yes" });
       window.open("https://cal.com/londonlanguageschoolbagheria/prova", "_blank", "noopener");
     }
 
     async function requestInfo() {
+      if (!currentLeadId) {
+        collectDetailsAfterTest(pendingLevelResult, "info");
+        return;
+      }
       await updateCurrentLead({ "Notes": "Richiesta informazioni dal sito" });
-      document.getElementById("leadStep2").innerHTML =
-        '<div class="lead-kicker">Perfetto ✓</div><h2>Ti contatteremo presto.</h2><p class="lead-intro">La tua richiesta è già nel nostro sistema. London Language School ti ricontatterà per aiutarti a scegliere il corso più adatto.</p><button class="button button-red" type="button" onclick="closeLeadJourney()">Chiudi</button>';
     }
 
     const levelQuestions = [
@@ -2770,7 +2803,7 @@
       "B1": "Riesce a capire i punti principali di un inglese chiaro e a parlare in modo semplice di esperienze, interessi, programmi e situazioni quotidiane."
     };
 
-    async function finishYoungTest() {
+    async async function finishYoungTest() {
       let highest = "Pre-A1 iniziale";
       let totalAttempted = 0;
       const summary = [];
@@ -2795,8 +2828,7 @@
         return;
       }
 
-      try { await updateCurrentLead({"Level Result":`Young Learner ${highest}`}); }
-      catch(e) { console.error("Young level save warning:",e); }
+      pendingLevelResult = `Young Learner ${highest}`;
 
       document.getElementById("levelForm").innerHTML = "";
       document.getElementById("levelResult").innerHTML = `
@@ -2813,8 +2845,8 @@
           <div style="margin-top:24px;padding-top:20px;border-top:1px solid #d7e6f3">
             <p><strong>Vuoi continuare?</strong> È completamente facoltativo.</p>
             <div class="lead-actions" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
-              <button class="button button-red" type="button" onclick="bookTrial()">Prenota test + prova gratuita</button>
-              <button class="button button-outline" type="button" onclick="requestInfo()">Vorrei essere contattato</button>
+              <button class="button button-red" type="button" onclick="collectDetailsAfterTest(pendingLevelResult, 'trial')">Prenota test + prova gratuita</button>
+              <button class="button button-outline" type="button" onclick="collectDetailsAfterTest(pendingLevelResult, 'info')">Vorrei essere contattato</button>
               <button class="button button-outline" type="button" onclick="showYoungLevelChecker()">Rifai il test</button>
               <button class="button button-outline" type="button" onclick="closeLeadJourney()">Chiudi</button>
             </div>
@@ -2858,7 +2890,7 @@
       "C2": { title:"Proficiency", text:"A questo livello riesci a capire praticamente tutto ciò che ascolti o leggi e a esprimerti con grande fluidità, precisione e naturalezza." }
     };
 
-    async function scoreLevelChecker() {
+    async async function scoreLevelChecker() {
       let highest = "A1 iniziale";
       let totalAttempted = 0;
       const summary = [];
@@ -2885,8 +2917,7 @@
         return;
       }
 
-      try { await updateCurrentLead({"Level Result":highest}); }
-      catch(error) { console.error("Level result save warning:",error); }
+      pendingLevelResult = highest;
 
       const cleanLevel = highest.substring(0,2);
       const cefrInfo = cefrDescriptions[cleanLevel] || cefrDescriptions["A1"];
@@ -2905,8 +2936,8 @@
           <div style="margin-top:24px;padding-top:20px;border-top:1px solid #d7e6f3">
             <p><strong>Vuoi continuare?</strong> È completamente facoltativo.</p>
             <div class="lead-actions" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
-              <button class="button button-red" type="button" onclick="bookTrial()">Prenota test + prova gratuita</button>
-              <button class="button button-outline" type="button" onclick="requestInfo()">Vorrei essere contattato</button>
+              <button class="button button-red" type="button" onclick="collectDetailsAfterTest(pendingLevelResult, 'trial')">Prenota test + prova gratuita</button>
+              <button class="button button-outline" type="button" onclick="collectDetailsAfterTest(pendingLevelResult, 'info')">Vorrei essere contattato</button>
               <button class="button button-outline" type="button" onclick="showLevelChecker()">Rifai il test</button>
               <button class="button button-outline" type="button" onclick="closeLeadJourney()">Chiudi</button>
             </div>
