@@ -1282,8 +1282,6 @@ function openNewClass() {
   setValue("classId", "");
   setValue("classSchoolYear", "2026-27");
   setValue("classCapacity", "10");
-  setValue("classDay2", "");
-  setValue("classTime2", "");
   setValue("classStatus", "Active");
   text("classModalTitle", "Create class");
   openModal("classModal");
@@ -1324,61 +1322,58 @@ async function saveClassForm(event) {
     return;
   }
 
-  const record = {
-    id: id || uid("class"),
-    name: className,
-    schoolYear,
-    level: value("classLevel"),
-    teacherId: value("classTeacher").trim(),
-    teacherName: value("classTeacher").trim(),
-    day: value("classDay"),
-    time: value("classTime"),
-    day2: value("classDay2"),
-    time2: value("classTime2"),
-    room: value("classRoom").trim(),
-    capacity,
-    registerSheet: value("classRegisterSheet").trim(),
-    status: value("classStatus") || "Active",
-    notes: ""
-  };
+  if (capacity < 1) {
+    showToast("Class capacity must be at least 1.", "error");
+    return;
+  }
 
-  const existingIndex = state.classes.findIndex((entry) => entry.id === record.id);
-  if (existingIndex >= 0) state.classes[existingIndex] = record;
-  else state.classes.push(record);
+  const submitButton = byId("classForm")?.querySelector('button[type="submit"]');
+  const oldLabel = submitButton?.textContent || "Save class";
 
-  saveState();
-  populateStudentClassSelect();
-  populateAttendanceClassSelect();
-  renderAll();
-  closeModal("classModal");
-  showToast(id ? "Class updated." : "Class created.", "success");
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Saving…";
+  }
 
-  // Google sync is attempted in the background. Local V2 remains usable
-  // even if Apps Script is temporarily unavailable.
   const fields = {
-    "Class Name": record.name,
-    "School Year": record.schoolYear,
-    "Level": record.level,
-    "Teacher": record.teacherName,
-    "Day": record.day,
-    "Time": record.time,
-    "Day 2": record.day2,
-    "Time 2": record.time2,
-    "Room": record.room,
-    "Capacity": record.capacity,
-    "Register Sheet": record.registerSheet,
-    "Status": record.status
+    "Class Name": className,
+    "School Year": schoolYear,
+    "Level": value("classLevel"),
+    "Teacher": value("classTeacher").trim(),
+    "Day": value("classDay"),
+    "Time": value("classTime"),
+    "Room": value("classRoom").trim(),
+    "Capacity": capacity,
+    "Register Sheet": value("classRegisterSheet").trim(),
+    "Status": value("classStatus") || "Active"
   };
 
   try {
     await llsApiPost(
       id
-        ? { action: "updateClass", classId: record.id, fields }
-        : { action: "createClass", classId: record.id, fields }
+        ? { action: "updateClass", classId: id, fields }
+        : { action: "createClass", fields }
     );
-    console.info("LLS: class synced to Google Sheets.");
+
+    closeModal("classModal");
+    await llsLoadClassesFromSheets();
+    renderAll();
+
+    showToast(
+      id ? "Class updated in Google Sheets." : "Class created in Google Sheets.",
+      "success"
+    );
   } catch (error) {
-    console.warn("LLS: Google class sync unavailable; class retained in V2 local storage.", error);
+    console.error("LLS class save failed:", error);
+    showToast(
+      "Could not save the class. Nothing was changed.",
+      "error"
+    );
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = oldLabel;
+    }
   }
 }
 
@@ -4257,7 +4252,10 @@ async function llsLoadStudentsFromSheets() {
     return state.students;
   } catch (error) {
     console.error("LLS: could not load students from Google Sheets:", error);
-    console.warn("LLS: student refresh unavailable; keeping last available V2 data.");
+    showToast(
+      "Could not refresh students from Google Sheets. Showing the last available data.",
+      "error"
+    );
     return null;
   }
 }
@@ -4284,7 +4282,7 @@ async function llsLoadClassesFromSheets() {
       : (Array.isArray(payload.data) ? payload.data : []);
 
     if (!rows.length) {
-      console.info("LLS: no remote classes returned; keeping V2 local classes.");
+      console.info("LLS V2: no remote class rows returned; retaining current classes.");
       return state.classes;
     }
 
@@ -4316,7 +4314,7 @@ async function llsLoadClassesFromSheets() {
     return state.classes;
   } catch (error) {
     console.error("LLS: could not load classes from Google Sheets:", error);
-    console.warn("LLS: class refresh unavailable; keeping last available V2 data.");
+    console.warn("LLS V2: Google class refresh unavailable; retaining current class data.");
     return null;
   }
 }
@@ -4384,7 +4382,10 @@ async function llsLoadEnquiriesFromSheets() {
     return state.enquiries;
   } catch (error) {
     console.error("LLS: could not load enquiries from Google Sheets:", error);
-    console.warn("LLS: enquiry refresh unavailable; keeping last available V2 data.");
+    showToast(
+      "Could not refresh enquiries from Google Sheets. Showing the last available data.",
+      "error"
+    );
     return null;
   }
 }
