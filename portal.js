@@ -20,8 +20,9 @@ const LEVELS = [
 const ENQUIRY_STAGES = [
   "New",
   "Contacted",
-  "Trial booked",
-  "Interested",
+  "Placement/Trial Booked",
+  "Placement/Trial Completed",
+  "Course Offered",
   "Enrolled",
   "Lost"
 ];
@@ -2203,13 +2204,36 @@ function openEditEnquiry(id) {
   openModal("enquiryModal");
 }
 
-function saveEnquiryForm(event) {
+async function llsApiPost(body) {
+  const response = await fetch(LLS_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const result = await response.json();
+
+  if (!result || result.success === false) {
+    throw new Error(
+      (result && (result.error || result.message)) ||
+      "The server did not confirm the change."
+    );
+  }
+
+  return result;
+}
+
+async function saveEnquiryForm(event) {
   event.preventDefault();
 
-  const id = value("enquiryId");
+  const id = value("enquiryId").trim();
 
   const record = {
-    id: id || makeId("enquiry"),
+    id,
     name: value("enquiryName").trim(),
     age: value("enquiryStudentAge"),
     phone: value("enquiryPhone").trim(),
@@ -2218,68 +2242,89 @@ function saveEnquiryForm(event) {
     source: value("enquirySource"),
     status: value("enquiryStatus"),
     followup: value("enquiryFollowup"),
-    created:
-      value("enquiryCreated") ||
-      isoDate(new Date()),
+    created: value("enquiryCreated") || isoDate(new Date()),
     notes: value("enquiryNotes").trim()
   };
 
   if (!record.name || !record.course) {
-    showToast(
-      "Name and course interest are required.",
-      "error"
-    );
+    showToast("Name and course interest are required.", "error");
     return;
   }
 
-  if (id) {
-    state.enquiries = state.enquiries.map(
-      (enquiry) =>
-        enquiry.id === id
-          ? record
-          : enquiry
-    );
-  } else {
-    state.enquiries.push(record);
+  const submitButton = byId("enquiryForm")
+    ?.querySelector('button[type="submit"]');
+  const oldLabel = submitButton?.textContent;
+
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Saving…";
   }
 
-  saveState();
-  closeModal("enquiryModal");
-  renderAll();
+  const fields = {
+    "Name": record.name,
+    "Age": record.age,
+    "Phone": record.phone,
+    "Email": record.email,
+    "Course": record.course,
+    "Source": record.source,
+    "Stage": record.status,
+    "Follow-up": record.followup,
+    "Enquiry Date": record.created,
+    "Notes": record.notes
+  };
 
-  showToast(
-    id
-      ? "Enquiry updated."
-      : "Enquiry added.",
-    "success"
-  );
+  try {
+    await llsApiPost(
+      id
+        ? { action: "updateEnquiry", enquiryId: id, fields }
+        : { action: "createEnquiry", fields }
+    );
+
+    await llsLoadEnquiriesFromSheets();
+    closeModal("enquiryModal");
+
+    showToast(
+      id ? "Enquiry updated in Google Sheets." : "Enquiry added to Google Sheets.",
+      "success"
+    );
+  } catch (error) {
+    console.error("LLS enquiry save failed:", error);
+    showToast(
+      "Could not save the enquiry. Nothing was changed. Please try again.",
+      "error"
+    );
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = oldLabel || "Save enquiry";
+    }
+  }
 }
 
 function deleteEnquiry(id) {
-  const enquiry = state.enquiries.find(
-    (item) => item.id === id
-  );
+  const enquiry = state.enquiries.find((item) => item.id === id);
 
-  if (!enquiry) {
-    return;
-  }
+  if (!enquiry) return;
 
   openConfirm(
     "Delete enquiry?",
     `Delete the enquiry for ${enquiry.name}?`,
-    () => {
-      state.enquiries =
-        state.enquiries.filter(
-          (item) => item.id !== id
+    async () => {
+      try {
+        await llsApiPost({
+          action: "deleteEnquiry",
+          enquiryId: id
+        });
+
+        await llsLoadEnquiriesFromSheets();
+        showToast("Enquiry deleted from Google Sheets.", "success");
+      } catch (error) {
+        console.error("LLS enquiry delete failed:", error);
+        showToast(
+          "Could not delete the enquiry. Nothing was changed.",
+          "error"
         );
-
-      saveState();
-      renderAll();
-
-      showToast(
-        "Enquiry deleted.",
-        "success"
-      );
+      }
     }
   );
 }
@@ -3985,19 +4030,49 @@ function downloadFile(
 
 /* ============================================================
    LLS V2 — GOOGLE SHEETS ENQUIRY API BRIDGE
-   Restores Enquiries from Apps Script without replacing the
-   portal's existing local state architecture.
+   Google Sheets is the source of truth for enquiries.
    ============================================================ */
 const LLS_API_URL = "https://script.google.com/macros/s/AKfycbyHbfFoaiMOT1rpY2DcbXAkuNwMoOHVdLlG2aQLgPgCe5gqPuyk8VYm7i4eGQRm8iqi/exec";
 
+function llsDateOnly(valueToNormalise) {
+  if (!valueToNormalise) return "";
+  const raw = String(valueToNormalise).trim();
+  const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (match) return match[1];
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+
+  return [
+    parsed.getFullYear(),
+    String(parsed.getMonth() + 1).padStart(2, "0"),
+    String(parsed.getDate()).padStart(2, "0")
+  ].join("-");
+}
+
+function llsNormaliseStage(stage) {
+  const raw = String(stage || "New").trim();
+  const aliases = {
+    "Trial booked": "Placement/Trial Booked",
+    "Trial Booked": "Placement/Trial Booked",
+    "Trial completed": "Placement/Trial Completed",
+    "Trial Completed": "Placement/Trial Completed",
+    "Interested": "Course Offered"
+  };
+  return aliases[raw] || raw || "New";
+}
+
 async function llsLoadEnquiriesFromSheets() {
   try {
-    const response = await fetch(`${LLS_API_URL}?action=getEnquiries`, {
+    const response = await fetch(`${LLS_API_URL}?action=getEnquiries&_=${Date.now()}`, {
       method: "GET",
       cache: "no-store"
     });
+
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
     const payload = await response.json();
+
     if (payload && payload.success === false) {
       throw new Error(payload.error || payload.message || "API returned an error");
     }
@@ -4006,39 +4081,47 @@ async function llsLoadEnquiriesFromSheets() {
       ? payload
       : (payload.enquiries || payload.data || []);
 
-    if (!Array.isArray(rows)) throw new Error("No enquiry array returned by API");
+    if (!Array.isArray(rows)) {
+      throw new Error("No enquiry array returned by API");
+    }
 
-    // Merge into the current portal state rather than disturbing other modules.
     state.enquiries = rows.map((r, i) => ({
-      ...r,
-      id: r.id || r["Enquiry ID"] || r.enquiryId || r.enquiryID || `ENQ${String(i + 1).padStart(4, "0")}`,
-      name: r.name || r.Name || "",
-      age: r.age || r.Age || "",
-      phone: r.phone || r.Phone || "",
-      email: r.email || r.Email || "",
-      course: r.course || r.Course || r.interestedIn || "",
-      source: r.source || r.Source || "",
-      stage: r.stage || r.Stage || "New",
-      followUp: r.followUp || r["Follow-up"] || r["Follow Up"] || "",
-      enquiryDate: r.enquiryDate || r["Enquiry Date"] || r.created || "",
-      notes: r.notes || r.Notes || "",
-      levelResult: r.levelResult || r["Level Result"] || "",
-      trialRequested: r.trialRequested || r["Trial Requested"] || ""
+      id: r["Enquiry ID"] || r.id || r.enquiryId || r.enquiryID ||
+        `ENQ${String(i + 1).padStart(4, "0")}`,
+      name: r["Name"] || r.name || "",
+      age: r["Age"] || r.age || "",
+      phone: r["Phone"] || r.phone || "",
+      email: r["Email"] || r.email || "",
+      course: r["Course"] || r.course || r.interestedIn || "",
+      source: r["Source"] || r.source || "",
+      status: llsNormaliseStage(r["Stage"] || r.stage || r.status || "New"),
+      followup: llsDateOnly(
+        r["Follow-up"] || r["Follow Up"] || r.followUp || r.followup || ""
+      ),
+      created: llsDateOnly(
+        r["Enquiry Date"] || r.enquiryDate || r.created || ""
+      ),
+      notes: r["Notes"] || r.notes || "",
+      levelResult: r["Level Result"] || r.levelResult || "",
+      trialRequested: r["Trial Requested"] || r.trialRequested || ""
     }));
 
-    if (typeof saveState === "function") saveState();
-    if (typeof render === "function") render();
-    else if (typeof renderApp === "function") renderApp();
+    saveState();
+    renderAll();
 
-    console.info(`LLS: loaded ${state.enquiries.length} enquiries from Google Sheets.`);
+    console.info(
+      `LLS: loaded ${state.enquiries.length} enquiries from Google Sheets.`
+    );
+
     return state.enquiries;
-  } catch (err) {
-    console.error("LLS: could not load enquiries from Google Sheets:", err);
+  } catch (error) {
+    console.error("LLS: could not load enquiries from Google Sheets:", error);
+    showToast(
+      "Could not refresh enquiries from Google Sheets. Showing the last available data.",
+      "error"
+    );
     return null;
   }
 }
 
-window.addEventListener("load", () => {
-  llsLoadEnquiriesFromSheets();
-});
-
+window.addEventListener("load", llsLoadEnquiriesFromSheets);
