@@ -658,7 +658,7 @@ function renderTodayClasses() {
   container.innerHTML = classes
     .map((item) => {
       const enrolled = getClassStudents(item.id).length;
-      const teacher = getTeacher(item.teacherId);
+      const teacher = getTeacher(item.teacherId) || (item.teacherName ? { name: item.teacherName } : null);
 
       return `
         <div class="schedule-item">
@@ -1135,7 +1135,7 @@ function renderClasses() {
 
   const classes = [...state.classes]
     .filter((item) => {
-      const teacher = getTeacher(item.teacherId);
+      const teacher = getTeacher(item.teacherId) || (item.teacherName ? { name: item.teacherName } : null);
 
       const haystack = [
         item.name,
@@ -1174,7 +1174,7 @@ function renderClasses() {
 
   container.innerHTML = classes
     .map((item) => {
-      const teacher = getTeacher(item.teacherId);
+      const teacher = getTeacher(item.teacherId) || (item.teacherName ? { name: item.teacherName } : null);
       const students = getClassStudents(item.id);
       const capacity = Math.max(
         1,
@@ -1280,85 +1280,99 @@ function renderClasses() {
 function openNewClass() {
   byId("classForm").reset();
   setValue("classId", "");
-  setValue("classDuration", "90");
+  setValue("classSchoolYear", "2026-27");
   setValue("classCapacity", "10");
-  setValue("classDay", "Monday");
-
-  populateTeacherSelect();
-
+  setValue("classStatus", "Active");
   text("classModalTitle", "Create class");
   openModal("classModal");
 }
 
 function openEditClass(id) {
-  const item = getClass(id);
-
-  if (!item) {
-    return;
-  }
-
-  populateTeacherSelect();
+  const item = state.classes.find((entry) => entry.id === id);
+  if (!item) return;
 
   setValue("classId", item.id);
   setValue("className", item.name);
+  setValue("classSchoolYear", item.schoolYear || "2026-27");
   setValue("classLevel", item.level);
-  setValue("classTeacher", item.teacherId);
+  setValue("classTeacher", item.teacherName || item.teacherId || "");
   setValue("classDay", item.day);
   setValue("classTime", item.time);
-  setValue("classDuration", item.duration);
   setValue("classRoom", item.room);
-  setValue("classCapacity", item.capacity);
-  setValue("classNotes", item.notes);
+  setValue("classCapacity", item.capacity || 10);
+  setValue("classRegisterSheet", item.registerSheet || "");
+  setValue("classStatus", item.status || "Active");
 
   text("classModalTitle", "Edit class");
   openModal("classModal");
 }
 
-function saveClassForm(event) {
+async function saveClassForm(event) {
   event.preventDefault();
 
-  const id = value("classId");
+  const id = value("classId").trim();
+  const className = value("className").trim();
+  const schoolYear = value("classSchoolYear").trim() || "2026-27";
+  const capacity = Number(value("classCapacity") || 10);
 
-  const record = {
-    id: id || makeId("class"),
-    name: value("className").trim(),
-    level: value("classLevel"),
-    teacherId: value("classTeacher"),
-    day: value("classDay"),
-    time: value("classTime"),
-    duration: number(value("classDuration")) || 90,
-    room: value("classRoom").trim(),
-    capacity: number(value("classCapacity")) || 10,
-    notes: value("classNotes").trim()
-  };
-
-  if (!record.name || !record.level || !record.time) {
-    showToast(
-      "Class name, level and time are required.",
-      "error"
-    );
+  if (!className) {
+    showToast("Class name is required.", "error");
     return;
   }
 
-  if (id) {
-    state.classes = state.classes.map(
-      (item) =>
-        item.id === id
-          ? record
-          : item
-    );
-  } else {
-    state.classes.push(record);
+  if (capacity < 1) {
+    showToast("Class capacity must be at least 1.", "error");
+    return;
   }
 
-  saveState();
-  closeModal("classModal");
-  renderAll();
+  const submitButton = byId("classForm")?.querySelector('button[type="submit"]');
+  const oldLabel = submitButton?.textContent || "Save class";
 
-  showToast(
-    id ? "Class updated." : "Class created.",
-    "success"
-  );
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Saving…";
+  }
+
+  const fields = {
+    "Class Name": className,
+    "School Year": schoolYear,
+    "Level": value("classLevel"),
+    "Teacher": value("classTeacher").trim(),
+    "Day": value("classDay"),
+    "Time": value("classTime"),
+    "Room": value("classRoom").trim(),
+    "Capacity": capacity,
+    "Register Sheet": value("classRegisterSheet").trim(),
+    "Status": value("classStatus") || "Active"
+  };
+
+  try {
+    await llsApiPost(
+      id
+        ? { action: "updateClass", classId: id, fields }
+        : { action: "createClass", fields }
+    );
+
+    closeModal("classModal");
+    await llsLoadClassesFromSheets();
+    renderAll();
+
+    showToast(
+      id ? "Class updated in Google Sheets." : "Class created in Google Sheets.",
+      "success"
+    );
+  } catch (error) {
+    console.error("LLS class save failed:", error);
+    showToast(
+      "Could not save the class. Nothing was changed.",
+      "error"
+    );
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = oldLabel;
+    }
+  }
 }
 
 function deleteClass(id) {
@@ -4244,6 +4258,61 @@ async function llsLoadStudentsFromSheets() {
   }
 }
 
+async function llsLoadClassesFromSheets() {
+  try {
+    const response = await fetch(`${LLS_API_URL}?action=getClasses&_=${Date.now()}`, {
+      method: "GET",
+      cache: "no-store"
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const payload = await response.json();
+    if (!payload || payload.success === false) {
+      throw new Error(
+        (payload && (payload.error || payload.message)) ||
+        "The server did not return classes."
+      );
+    }
+
+    const rows = Array.isArray(payload.classes)
+      ? payload.classes
+      : (Array.isArray(payload.data) ? payload.data : []);
+
+    state.classes = rows.map((r) => ({
+      id: String(r["Class ID"] || r.id || ""),
+      name: String(r["Class Name"] || r.name || ""),
+      schoolYear: String(r["School Year"] || r.schoolYear || "2026-27"),
+      level: String(r["Level"] || r.level || ""),
+      teacherId: String(r["Teacher"] || r.teacher || ""),
+      teacherName: String(r["Teacher"] || r.teacher || ""),
+      day: String(r["Day"] || r.day || ""),
+      time: String(r["Time"] || r.time || "").slice(0, 5),
+      duration: Number(r["Duration"] || r.duration || 90),
+      room: String(r["Room"] || r.room || ""),
+      capacity: Number(r["Capacity"] || r.capacity || 10),
+      registerSheet: String(r["Register Sheet"] || r.registerSheet || ""),
+      status: String(r["Status"] || r.status || "Active"),
+      notes: String(r["Notes"] || r.notes || "")
+    })).filter((item) => item.id || item.name);
+
+    saveState();
+    populateStudentClassSelect();
+    populateAttendanceClassSelect();
+    renderAll();
+
+    console.info(`LLS: loaded ${state.classes.length} classes from Google Sheets.`);
+    return state.classes;
+  } catch (error) {
+    console.error("LLS: could not load classes from Google Sheets:", error);
+    showToast(
+      "Could not refresh classes from Google Sheets. Showing the last available data.",
+      "error"
+    );
+    return null;
+  }
+}
+
 async function llsLoadEnquiriesFromSheets() {
   try {
     const response = await fetch(`${LLS_API_URL}?action=getEnquiries&_=${Date.now()}`, {
@@ -4318,4 +4387,5 @@ async function llsLoadEnquiriesFromSheets() {
 window.addEventListener("load", () => {
   llsLoadEnquiriesFromSheets();
   llsLoadStudentsFromSheets();
+  llsLoadClassesFromSheets();
 });
