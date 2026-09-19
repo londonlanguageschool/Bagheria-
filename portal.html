@@ -1395,5 +1395,24 @@
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
   <script src="portal.js"></script>
+
+<div class="modal-backdrop" id="classWorkspaceModal" aria-hidden="true">
+  <div class="modal-card class-workspace-card" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <div class="eyebrow">CLASS MANAGEMENT</div>
+        <h2 id="classWorkspaceTitle">Class</h2>
+        <p id="classWorkspaceMeta" class="muted"></p>
+      </div>
+      <button type="button" class="modal-close" onclick="closeClassWorkspace()" aria-label="Close">×</button>
+    </div>
+    <div class="class-workspace-toolbar">
+      <div><strong>Students</strong><div class="muted">Students currently assigned to this class.</div></div>
+      <button type="button" id="classWorkspaceAttendance" class="primary-button" onclick="goToClassAttendance()">Take attendance</button>
+    </div>
+    <div id="classWorkspaceStudents" class="class-workspace-students"></div>
+  </div>
+</div>
+
 </body>
 </html>

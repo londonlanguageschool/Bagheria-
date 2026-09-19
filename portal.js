@@ -4395,3 +4395,70 @@ window.addEventListener("load", () => {
   llsLoadStudentsFromSheets();
   llsLoadClassesFromSheets();
 });
+
+
+/* V2 CLASS OPERATIONS */
+function v2StudentClassValue(s) {
+  return String(s.classId || s.classID || s.class || s.className || s["Class ID"] || s["Class"] || "").trim();
+}
+function v2StudentsForClass(c) {
+  const id = String(c.id || "").trim(), name = String(c.name || "").trim().toLowerCase();
+  return (state.students || []).filter(s => {
+    const x = v2StudentClassValue(s);
+    return x === id || x.toLowerCase() === name;
+  });
+}
+function openClassWorkspace(classId) {
+  const c = (state.classes || []).find(x => String(x.id) === String(classId));
+  if (!c) return;
+  const modal = document.getElementById("classWorkspaceModal");
+  document.getElementById("classWorkspaceTitle").textContent = c.name || "Class";
+  document.getElementById("classWorkspaceMeta").textContent =
+    [c.level, c.teacherName || c.teacherId,
+     c.day && c.time ? `${c.day} ${c.time}` : "",
+     c.day2 && c.time2 ? `${c.day2} ${c.time2}` : ""].filter(Boolean).join(" · ");
+  const students = v2StudentsForClass(c);
+  document.getElementById("classWorkspaceStudents").innerHTML = students.length
+    ? students.map(s => {
+        const n = [s.firstName,s.surname].filter(Boolean).join(" ") || s.name || "Student";
+        return `<div class="class-student-row"><div><strong>${escapeHtml(n)}</strong><span>${escapeHtml(s.level || "—")}</span></div><div>${escapeHtml(s.email || s.phone || "—")}</div></div>`;
+      }).join("")
+    : `<div class="empty-state">No students assigned to this class yet.</div>`;
+  document.getElementById("classWorkspaceAttendance").dataset.classId = c.id;
+  modal.classList.add("is-open"); modal.setAttribute("aria-hidden","false");
+}
+function closeClassWorkspace() {
+  const m=document.getElementById("classWorkspaceModal");
+  if(m){m.classList.remove("is-open");m.setAttribute("aria-hidden","true");}
+}
+function goToClassAttendance() {
+  const id=document.getElementById("classWorkspaceAttendance").dataset.classId;
+  closeClassWorkspace(); location.hash="#attendance";
+  setTimeout(()=>{
+    const s=document.getElementById("attendanceClass");
+    if(s){s.value=id;s.dispatchEvent(new Event("change",{bubbles:true}));}
+  },150);
+}
+function enhanceV2ClassActions() {
+  const classes=state.classes||[];
+  const buttons=[...document.querySelectorAll("button")];
+  classes.forEach(c=>{
+    if(document.querySelector(`[data-v2-open-class="${CSS.escape(String(c.id))}"]`)) return;
+    const edit=buttons.find(b=>{
+      const t=(b.textContent||"").trim().toLowerCase(), oc=b.getAttribute("onclick")||"";
+      return t==="edit" && oc.includes(String(c.id));
+    });
+    if(!edit||!edit.parentElement)return;
+    const b=document.createElement("button");
+    b.type="button"; b.className=edit.className; b.textContent="Open class";
+    b.dataset.v2OpenClass=String(c.id); b.onclick=()=>openClassWorkspace(c.id);
+    edit.parentElement.insertBefore(b,edit);
+  });
+}
+if(typeof renderAll==="function"){
+  const _renderAll=renderAll;
+  renderAll=function(...a){const r=_renderAll.apply(this,a);setTimeout(enhanceV2ClassActions,0);return r;};
+}
+window.addEventListener("hashchange",()=>setTimeout(enhanceV2ClassActions,80));
+setTimeout(enhanceV2ClassActions,150);
+
