@@ -988,55 +988,111 @@ function openEditStudent(id) {
   openModal("studentModal");
 }
 
-function saveStudentForm(event) {
+async function saveStudentForm(event) {
   event.preventDefault();
 
-  const id = value("studentId");
+  const id = value("studentId").trim();
   const firstName = value("studentFirstName").trim();
   const lastName = value("studentLastName").trim();
 
   if (!firstName || !lastName) {
-    showToast(
-      "First name and surname are required.",
-      "error"
-    );
+    showToast("First name and surname are required.", "error");
     return;
   }
 
-  const record = {
-    id: id || makeId("student"),
-    firstName,
-    lastName,
-    email: value("studentEmail").trim(),
-    phone: value("studentPhone").trim(),
-    dob: value("studentDob"),
-    level: value("studentLevel"),
-    classId: value("studentClass"),
-    status: value("studentStatus"),
-    joined: value("studentJoined"),
-    parent: value("studentParent").trim(),
-    notes: value("studentNotes").trim()
-  };
+  const submitButton = byId("studentForm")
+    ?.querySelector('button[type="submit"]');
+  const oldLabel = submitButton?.textContent || (id ? "Save changes" : "Save student");
 
-  if (id) {
-    state.students = state.students.map(
-      (student) =>
-        student.id === id
-          ? record
-          : student
-    );
-  } else {
-    state.students.push(record);
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Saving…";
   }
 
-  saveState();
-  closeModal("studentModal");
-  renderAll();
+  const fields = {
+    "First Name": firstName,
+    "Surname": lastName,
+    "Email": value("studentEmail").trim(),
+    "Phone": value("studentPhone").trim(),
+    "Date of Birth": value("studentDob"),
+    "Level": value("studentLevel"),
+    "Class": value("studentClass"),
+    "Status": value("studentStatus") || "Active",
+    "Joined": value("studentJoined") || isoDate(new Date()),
+    "Parent / Guardian": value("studentParent").trim(),
+    "Notes": value("studentNotes").trim()
+  };
 
-  showToast(
-    id ? "Student updated." : "Student added.",
-    "success"
-  );
+  try {
+    const result = await llsApiPost(
+      id
+        ? { action: "updateStudent", studentId: id, fields }
+        : { action: "createStudent", fields }
+    );
+
+    // If this student came from an enquiry, mark that enquiry as enrolled.
+    if (!id && pendingConversionEnquiryId) {
+      const enquiry = state.enquiries.find(
+        (item) => item.id === pendingConversionEnquiryId
+      );
+
+      if (enquiry) {
+        const enquiryFields = {
+          "Name": enquiry.name,
+          "Age": enquiry.age,
+          "Phone": enquiry.phone,
+          "Email": enquiry.email,
+          "Course": enquiry.course,
+          "Source": enquiry.source,
+          "Stage": "Enrolled",
+          "Follow-up": enquiry.followup,
+          "Enquiry Date": enquiry.created,
+          "Level Result": enquiry.finalLevel || enquiry.levelResult || "",
+          "Trial Requested": enquiry.trialDate ? "Yes" : (enquiry.trialRequested || ""),
+          "Notes": [
+            enquiry.notes || "",
+            enquiry.trialDate ? `Placement/Trial date: ${enquiry.trialDate}` : "",
+            enquiry.assessment ? `Teacher assessment: ${enquiry.assessment}` : "",
+            result.studentId ? `Student created: ${result.studentId}` : "Student created"
+          ].filter(Boolean).join("\n")
+        };
+
+        await llsApiPost({
+          action: "updateEnquiry",
+          enquiryId: enquiry.id,
+          fields: enquiryFields
+        });
+      }
+    }
+
+    pendingConversionEnquiryId = "";
+    closeModal("studentModal");
+
+    await Promise.all([
+      llsLoadStudentsFromSheets(),
+      llsLoadEnquiriesFromSheets()
+    ]);
+
+    renderAll();
+
+    showToast(
+      id
+        ? "Student updated in Google Sheets."
+        : `Student ${result.studentId || ""} created in Google Sheets.`.trim(),
+      "success"
+    );
+  } catch (error) {
+    console.error("LLS student save failed:", error);
+    showToast(
+      "Could not save the student. Nothing was changed. Please try again.",
+      "error"
+    );
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = oldLabel;
+    }
+  }
 }
 
 function deleteStudent(id) {
@@ -2069,7 +2125,10 @@ function renderEnquiries() {
                 Edit
               </button>
 
-              ${["Placement/Trial Completed", "Course Offered", "Enrolled"].includes(enquiry.status) ? `
+              ${enquiry.status === "Enrolled" ? `
+              <span class="row-action" style="cursor:default; opacity:.75;">
+                ✓ Student created
+              </span>` : ["Placement/Trial Completed", "Course Offered"].includes(enquiry.status) ? `
               <button
                 class="row-action"
                 type="button"
@@ -2362,9 +2421,13 @@ function deleteEnquiry(id) {
 }
 
 
+let pendingConversionEnquiryId = "";
+
 function convertEnquiryToStudent(id) {
   const enquiry = state.enquiries.find((item) => item.id === id);
   if (!enquiry) return;
+
+  pendingConversionEnquiryId = id;
 
   const parts = String(enquiry.name || "").trim().split(/\s+/);
   const firstName = parts.shift() || "";
@@ -4132,6 +4195,55 @@ function llsNormaliseStage(stage) {
   return aliases[raw] || raw || "New";
 }
 
+async function llsLoadStudentsFromSheets() {
+  try {
+    const response = await fetch(`${LLS_API_URL}?action=getStudents&_=${Date.now()}`, {
+      method: "GET",
+      cache: "no-store"
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const payload = await response.json();
+    if (!payload || payload.success === false) {
+      throw new Error(
+        (payload && (payload.error || payload.message)) ||
+        "The server did not return students."
+      );
+    }
+
+    const rows = Array.isArray(payload.students) ? payload.students : [];
+
+    state.students = rows.map((r) => ({
+      id: r["Student ID"] || r.id || "",
+      firstName: r["First Name"] || r.firstName || "",
+      lastName: r["Surname"] || r.lastName || "",
+      email: r["Email"] || r.email || "",
+      phone: r["Phone"] || r.phone || "",
+      dob: llsDateOnly(r["Date of Birth"] || r.dob || ""),
+      level: r["Level"] || r.level || "",
+      classId: r["Class"] || r.classId || "",
+      status: r["Status"] || r.status || "Active",
+      joined: llsDateOnly(r["Joined"] || r.joined || ""),
+      parent: r["Parent / Guardian"] || r.parent || "",
+      notes: r["Notes"] || r.notes || ""
+    })).filter((student) => student.id);
+
+    saveState();
+    renderAll();
+
+    console.info(`LLS: loaded ${state.students.length} students from Google Sheets.`);
+    return state.students;
+  } catch (error) {
+    console.error("LLS: could not load students from Google Sheets:", error);
+    showToast(
+      "Could not refresh students from Google Sheets. Showing the last available data.",
+      "error"
+    );
+    return null;
+  }
+}
+
 async function llsLoadEnquiriesFromSheets() {
   try {
     const response = await fetch(`${LLS_API_URL}?action=getEnquiries&_=${Date.now()}`, {
@@ -4203,4 +4315,7 @@ async function llsLoadEnquiriesFromSheets() {
   }
 }
 
-window.addEventListener("load", llsLoadEnquiriesFromSheets);
+window.addEventListener("load", () => {
+  llsLoadEnquiriesFromSheets();
+  llsLoadStudentsFromSheets();
+});
