@@ -3201,30 +3201,30 @@ function populateStudentClassSelect(selectedId = "") {
   const select = byId("studentClass");
   if (!select) return;
 
-  const activeClasses = (state.classes || []).filter((item) => {
+  const availableClasses = (state.classes || []).filter((item) => {
     const status = String(item.status || "").trim().toLowerCase();
-    return !status || status === "active";
+    return status !== "inactive" && status !== "archived";
   });
 
-  select.innerHTML = `
-    <option value="">Not assigned</option>
-    ${activeClasses.map((item) => {
-      const id = String(item.id || "");
-      const name = String(item.name || item.className || id || "Class");
-      const day1 = String(item.day || "");
-      const time1 = String(item.time || "");
-      const day2 = String(item.day2 || "");
-      const time2 = String(item.time2 || "");
-      const schedule = [
-        [day1, time1].filter(Boolean).join(" "),
-        [day2, time2].filter(Boolean).join(" ")
-      ].filter(Boolean).join(" / ");
-      const label = schedule ? `${name} — ${schedule}` : name;
-      return `<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`;
-    }).join("")}
-  `;
+  select.innerHTML =
+    `<option value="">Not assigned</option>` +
+    availableClasses
+      .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")))
+      .map((item) => {
+        const id = String(item.id || "");
+        const name = String(item.name || item.className || id || "Class");
+        const schedule = [
+          [item.day, item.time].filter(Boolean).join(" "),
+          [item.day2, item.time2].filter(Boolean).join(" ")
+        ].filter(Boolean).join(" / ");
+        const label = schedule ? `${name} — ${schedule}` : name;
+        return `<option value="${escapeAttribute(id)}">${escapeHtml(label)}</option>`;
+      })
+      .join("");
 
-  if (selectedId) select.value = String(selectedId);
+  if (selectedId && availableClasses.some((item) => String(item.id) === String(selectedId))) {
+    select.value = String(selectedId);
+  }
 }
 
 function populateTeacherSelect() {
