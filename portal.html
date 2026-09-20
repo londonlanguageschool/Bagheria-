@@ -931,38 +931,15 @@
             <select id="studentClass"></select>
           </div>
 
-          <div id="conversionEnrolmentFields" class="form-field full-width" hidden>
+          <div id="conversionEnrolmentFields" class="form-field form-field-wide" hidden>
             <div style="border:1px solid #dce2ea;border-radius:12px;padding:16px;background:#f7f9fc;">
-              <p class="section-label" style="margin-bottom:10px;">Enrolment setup</p>
+              <p class="section-label" style="margin-bottom:10px;">Complete enrolment</p>
               <div class="form-grid">
-                <div class="form-field">
-                  <label for="conversionSchoolYear">School year *</label>
-                  <input id="conversionSchoolYear" type="text" value="2026-27">
-                </div>
-
-                <div class="form-field">
-                  <label for="conversionCourseFee">Agreed course fee (€) *</label>
-                  <input id="conversionCourseFee" type="number" min="0.01" step="0.01" placeholder="e.g. 650">
-                </div>
-
-                <div class="form-field">
-                  <label for="conversionDiscount">Discount (€)</label>
-                  <input id="conversionDiscount" type="number" min="0" step="0.01" value="0">
-                </div>
-
-                <div class="form-field">
-                  <label for="conversionPaymentPlan">Payment plan</label>
-                  <select id="conversionPaymentPlan">
-                    <option value="Full payment">Full payment</option>
-                    <option value="2 instalments">2 instalments</option>
-                    <option value="3 instalments" selected>3 instalments</option>
-                    <option value="Custom">Custom</option>
-                  </select>
-                </div>
+                <div class="form-field"><label for="conversionSchoolYear">School year *</label><input id="conversionSchoolYear" type="text" value="2026-27"></div>
+                <div class="form-field"><label for="conversionCourseFee">Agreed course fee (€) *</label><input id="conversionCourseFee" type="number" min="0.01" step="0.01" placeholder="e.g. 650"></div>
+                <div class="form-field"><label for="conversionDiscount">Discount (€)</label><input id="conversionDiscount" type="number" min="0" step="0.01" value="0"></div>
+                <div class="form-field"><label for="conversionPaymentPlan">Payment plan</label><select id="conversionPaymentPlan"><option value="Full payment">Full payment</option><option value="2 instalments">2 instalments</option><option value="3 instalments" selected>3 instalments</option><option value="Custom">Custom</option></select></div>
               </div>
-              <p class="muted" style="margin:8px 0 0;">
-                Saving this conversion will create the student, class enrolment and fee account, then mark the enquiry Enrolled.
-              </p>
             </div>
           </div>
 
