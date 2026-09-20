@@ -949,6 +949,9 @@ function renderStudents() {
 }
 
 function openNewStudent() {
+  pendingConversionEnquiryId = "";
+  const conversionFields = byId("conversionEnrolmentFields");
+  if (conversionFields) conversionFields.hidden = true;
   byId("studentForm").reset();
   setValue("studentId", "");
   setValue("studentJoined", isoDate(new Date()));
@@ -961,6 +964,9 @@ function openNewStudent() {
 }
 
 function openEditStudent(id) {
+  pendingConversionEnquiryId = "";
+  const conversionFields = byId("conversionEnrolmentFields");
+  if (conversionFields) conversionFields.hidden = true;
   const student = state.students.find(
     (item) => item.id === id
   );
@@ -994,19 +1000,49 @@ async function saveStudentForm(event) {
   const id = value("studentId").trim();
   const firstName = value("studentFirstName").trim();
   const lastName = value("studentLastName").trim();
+  const isConversion = !id && Boolean(pendingConversionEnquiryId);
+  const selectedClassId = value("studentClass");
 
   if (!firstName || !lastName) {
     showToast("First name and surname are required.", "error");
     return;
   }
 
+  if (isConversion && !selectedClassId) {
+    showToast("Choose the class before enrolling this student.", "error");
+    return;
+  }
+
+  const conversionSchoolYear =
+    (byId("conversionSchoolYear")?.value || "").trim() || "2026-27";
+  const conversionCourseFee =
+    Number(byId("conversionCourseFee")?.value || 0);
+  const conversionDiscount =
+    Number(byId("conversionDiscount")?.value || 0);
+  const conversionPaymentPlan =
+    byId("conversionPaymentPlan")?.value || "3 instalments";
+
+  if (isConversion && conversionCourseFee <= 0) {
+    showToast("Enter the agreed course fee before completing enrolment.", "error");
+    return;
+  }
+
+  if (
+    isConversion &&
+    (conversionDiscount < 0 || conversionDiscount > conversionCourseFee)
+  ) {
+    showToast("Check the discount amount.", "error");
+    return;
+  }
+
   const submitButton = byId("studentForm")
     ?.querySelector('button[type="submit"]');
-  const oldLabel = submitButton?.textContent || (id ? "Save changes" : "Save student");
+  const oldLabel =
+    submitButton?.textContent || (id ? "Save changes" : "Save student");
 
   if (submitButton) {
     submitButton.disabled = true;
-    submitButton.textContent = "Saving…";
+    submitButton.textContent = isConversion ? "Enrolling…" : "Saving…";
   }
 
   const fields = {
@@ -1016,7 +1052,7 @@ async function saveStudentForm(event) {
     "Phone": value("studentPhone").trim(),
     "Date of Birth": value("studentDob"),
     "Level": value("studentLevel"),
-    "Class": value("studentClass"),
+    "Class": selectedClassId,
     "Status": value("studentStatus") || "Active",
     "Joined": value("studentJoined") || isoDate(new Date()),
     "Parent / Guardian": value("studentParent").trim(),
@@ -1030,39 +1066,90 @@ async function saveStudentForm(event) {
         : { action: "createStudent", fields }
     );
 
-    // If this student came from an enquiry, mark that enquiry as enrolled.
-    if (!id && pendingConversionEnquiryId) {
+    const savedStudentId = String(result.studentId || id || "").trim();
+
+    if (!savedStudentId) {
+      throw new Error("The student was saved but no Student ID was returned.");
+    }
+
+    let enrolmentResult = null;
+
+    // Launch-critical conversion:
+    // Enquiry -> Student -> Enrolment -> Fee -> Enquiry marked Enrolled.
+    if (isConversion) {
       const enquiry = state.enquiries.find(
         (item) => item.id === pendingConversionEnquiryId
       );
 
-      if (enquiry) {
-        const enquiryFields = {
-          "Name": enquiry.name,
-          "Age": enquiry.age,
-          "Phone": enquiry.phone,
-          "Email": enquiry.email,
-          "Course": enquiry.course,
-          "Source": enquiry.source,
-          "Stage": "Enrolled",
-          "Follow-up": enquiry.followup,
-          "Enquiry Date": enquiry.created,
-          "Level Result": enquiry.finalLevel || enquiry.levelResult || "",
-          "Trial Requested": enquiry.trialDate ? "Yes" : (enquiry.trialRequested || ""),
-          "Notes": [
-            enquiry.notes || "",
-            enquiry.trialDate ? `Placement/Trial date: ${enquiry.trialDate}` : "",
-            enquiry.assessment ? `Teacher assessment: ${enquiry.assessment}` : "",
-            result.studentId ? `Student created: ${result.studentId}` : "Student created"
-          ].filter(Boolean).join("\n")
-        };
-
-        await llsApiPost({
-          action: "updateEnquiry",
-          enquiryId: enquiry.id,
-          fields: enquiryFields
-        });
+      if (!enquiry) {
+        throw new Error("The original enquiry could not be found.");
       }
+
+      enrolmentResult = await llsApiPost({
+        action: "createEnrolment",
+        studentId: savedStudentId,
+        classId: selectedClassId,
+        schoolYear: conversionSchoolYear,
+        startDate: value("studentJoined") || isoDate(new Date())
+      });
+
+      const amountDue = Math.max(
+        0,
+        conversionCourseFee - conversionDiscount
+      );
+
+      await llsApiPost({
+        action: "createFee",
+        fields: {
+          "Student ID": savedStudentId,
+          "Enrolment ID": enrolmentResult.enrolmentId || "",
+          "School Year": conversionSchoolYear,
+          "Course Fee": conversionCourseFee,
+          "Discount": conversionDiscount,
+          "Amount Due": amountDue,
+          "Payment Plan": conversionPaymentPlan,
+          "Status": "Open",
+          "Notes": `Created automatically from enquiry ${enquiry.id}.`
+        }
+      });
+
+      const enquiryFields = {
+        "Name": enquiry.name,
+        "Age": enquiry.age,
+        "Phone": enquiry.phone,
+        "Email": enquiry.email,
+        "Course": enquiry.course,
+        "Source": enquiry.source,
+        "Stage": "Enrolled",
+        "Follow-up": "",
+        "Enquiry Date": enquiry.created,
+        "Level Result": enquiry.finalLevel || enquiry.levelResult || "",
+        "Trial Requested":
+          enquiry.trialDate ? "Yes" : (enquiry.trialRequested || ""),
+        "Notes": [
+          enquiry.notes || "",
+          enquiry.trialDate
+            ? `Placement/Trial date: ${enquiry.trialDate}`
+            : "",
+          enquiry.assessment
+            ? `Teacher assessment: ${enquiry.assessment}`
+            : "",
+          `Student created: ${savedStudentId}`,
+          enrolmentResult.enrolmentId
+            ? `Enrolment created: ${enrolmentResult.enrolmentId}`
+            : "",
+          `Course fee: €${conversionCourseFee.toFixed(2)}`,
+          conversionDiscount
+            ? `Discount: €${conversionDiscount.toFixed(2)}`
+            : ""
+        ].filter(Boolean).join("\n")
+      };
+
+      await llsApiPost({
+        action: "updateEnquiry",
+        enquiryId: enquiry.id,
+        fields: enquiryFields
+      });
     }
 
     pendingConversionEnquiryId = "";
@@ -1070,21 +1157,27 @@ async function saveStudentForm(event) {
 
     await Promise.all([
       llsLoadStudentsFromSheets(),
-      llsLoadEnquiriesFromSheets()
+      llsLoadEnquiriesFromSheets(),
+      typeof llsLoadClassesFromSheets === "function"
+        ? llsLoadClassesFromSheets()
+        : Promise.resolve()
     ]);
 
     renderAll();
 
     showToast(
-      id
-        ? "Student updated in Google Sheets."
-        : `Student ${result.studentId || ""} created in Google Sheets.`.trim(),
+      isConversion
+        ? `Enrolment complete. Student ${savedStudentId}, class enrolment and fee account created.`
+        : id
+          ? "Student updated in Google Sheets."
+          : `Student ${savedStudentId} created in Google Sheets.`,
       "success"
     );
   } catch (error) {
-    console.error("LLS student save failed:", error);
+    console.error("LLS student/enrolment save failed:", error);
     showToast(
-      "Could not save the student. Nothing was changed. Please try again.",
+      error?.message ||
+        "Could not complete the enrolment. Please try again.",
       "error"
     );
   } finally {
@@ -1342,6 +1435,8 @@ async function saveClassForm(event) {
     "Teacher": value("classTeacher").trim(),
     "Day": value("classDay"),
     "Time": value("classTime"),
+    "Day 2": value("classDay2"),
+    "Time 2": value("classTime2"),
     "Room": value("classRoom").trim(),
     "Capacity": capacity,
     "Register Sheet": value("classRegisterSheet").trim(),
@@ -2451,6 +2546,10 @@ function convertEnquiryToStudent(id) {
 
   populateStudentClassSelect();
   byId("studentForm").reset();
+
+  const conversionFields = byId("conversionEnrolmentFields");
+  if (conversionFields) conversionFields.hidden = false;
+
   setValue("studentId", "");
   setValue("studentFirstName", firstName);
   setValue("studentLastName", lastName);
@@ -2459,24 +2558,48 @@ function convertEnquiryToStudent(id) {
   setValue("studentLevel", enquiry.finalLevel || enquiry.levelResult || "");
   setValue("studentStatus", "Active");
   setValue("studentJoined", isoDate(new Date()));
+  setValue("conversionSchoolYear", "2026-27");
+  setValue("conversionCourseFee", "");
+  setValue("conversionDiscount", "0");
+  setValue("conversionPaymentPlan", "3 instalments");
+
   setValue(
     "studentNotes",
     [
       `Converted from enquiry ${enquiry.id}.`,
+      enquiry.age ? `Age at enquiry: ${enquiry.age}.` : "",
       enquiry.course ? `Course interest: ${enquiry.course}.` : "",
+      enquiry.source ? `Enquiry source: ${enquiry.source}.` : "",
+      (enquiry.finalLevel || enquiry.levelResult)
+        ? `Level Guide / assessed level: ${enquiry.finalLevel || enquiry.levelResult}.`
+        : "",
+      enquiry.trialDate ? `Placement/Trial date: ${enquiry.trialDate}.` : "",
       enquiry.assessment ? `Teacher assessment: ${enquiry.assessment}` : "",
       enquiry.notes || ""
     ].filter(Boolean).join("\n")
   );
 
-  text("studentModalTitle", "Convert enquiry to student");
+  text("studentModalTitle", "Enrol enquiry as student");
   openModal("studentModal");
 
   showToast(
-    "Student form prepared from the enquiry. Check the details, choose a class if appropriate, then Save student.",
+    "Details carried forward. Choose the class, confirm the fee, then complete enrolment.",
     "success"
   );
 }
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  byId("studentClass")?.addEventListener("change", () => {
+    if (!pendingConversionEnquiryId) return;
+    const selectedClass = state.classes.find(
+      (item) => String(item.id) === String(value("studentClass"))
+    );
+    if (selectedClass?.schoolYear) {
+      setValue("conversionSchoolYear", selectedClass.schoolYear);
+    }
+  });
+});
 
 /* =========================================================
    TEACHERS
