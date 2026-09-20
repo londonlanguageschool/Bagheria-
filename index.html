@@ -1312,7 +1312,12 @@
 
     .lead-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
     .lead-message { margin-top: 12px; font-weight: 800; }
-    .lead-message.success {\n      color: #177b52;\n      font-weight: 800;\n    }\n\n    .lead-message.error { color: var(--red-dark); }
+    .lead-message.success {
+      color: #177b52;
+      font-weight: 800;
+    }
+
+    .lead-message.error { color: var(--red-dark); }
 
     .journey-options {
       display: grid;
@@ -2224,10 +2229,10 @@
     <div class="lead-card" role="dialog" aria-modal="true" aria-labelledby="leadTitle">
       <button class="lead-close" type="button" onclick="closeLeadJourney()" aria-label="Chiudi">×</button>
 
-      <div id="leadStep1">
-        <div class="lead-kicker">London Language School</div>
-        <h2 id="leadTitle">Inizia da qui</h2>
-        <p class="lead-intro">Lasciaci i tuoi dati e scegli come vuoi continuare. Non devi completare tutti i passaggi.</p>
+      <div id="leadStep1" hidden>
+        <div class="lead-kicker">Continua con London Language School</div>
+        <h2 id="leadTitle">Lasciaci i tuoi dati</h2>
+        <p class="lead-intro">Inserisci i tuoi dati solo ora, dopo il test. Li useremo per ricontattarti e aiutarti a scegliere il percorso più adatto.</p>
 
         <form id="leadForm">
           <div class="lead-grid">
@@ -2255,7 +2260,7 @@
         </form>
       </div>
 
-      <div id="leadStep2" hidden>
+      <div id="leadStep2">
         <div class="lead-kicker">Inizia da qui</div>
         <h2>Come vuoi iniziare?</h2>
         <p class="lead-intro">Puoi fare subito il test senza lasciare i tuoi dati. Te li chiederemo solo dopo, se vorrai continuare.</p>
@@ -2303,6 +2308,8 @@
   </footer>
 
   <script>
+    let pendingLeadIntent = "info";
+
     function toggleMenu() {
       document.getElementById("nav").classList.toggle("open");
     }
@@ -2591,14 +2598,15 @@
     let pendingAction = "";
 
     function openLeadJourney() {
-      pendingLevelResult = "";
-      pendingAction = "";
-      document.getElementById("leadStep1").hidden = true;
-      document.getElementById("leadStep2").hidden = false;
-      document.getElementById("leadLevel").hidden = true;
+      const modal = document.getElementById("leadModal");
+      const step1 = document.getElementById("leadStep1");
+      const step2 = document.getElementById("leadStep2");
 
-      document.getElementById("leadModal").classList.add("open");
-      document.getElementById("leadModal").setAttribute("aria-hidden", "false");
+      if (step1) step1.hidden = true;
+      if (step2) step2.hidden = false;
+
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
       document.body.style.overflow = "hidden";
     }
 
@@ -2671,20 +2679,34 @@
       }, 250);
     });
 
-    function collectDetailsAfterTest(levelResult, action = "") {
-      pendingLevelResult = levelResult || "";
-      pendingAction = action;
+    function collectDetailsAfterTest(levelResult, intent) {
+      pendingLevelResult = levelResult || pendingLevelResult || "";
+      pendingLeadIntent = intent || "info";
 
-      document.getElementById("leadLevel").hidden = true;
-      document.getElementById("leadStep2").hidden = true;
-      document.getElementById("leadStep1").hidden = false;
+      const step1 = document.getElementById("leadStep1");
+      const step2 = document.getElementById("leadStep2");
 
-      document.getElementById("leadTitle").textContent = "Ultimo passo";
-      document.querySelector("#leadStep1 .lead-intro").textContent =
-        "Hai completato il test. Lasciaci i tuoi dati solo se vuoi ricevere informazioni o prenotare una prova gratuita.";
+      if (step2) step2.hidden = true;
+      if (step1) step1.hidden = false;
 
-      const saveButton = document.getElementById("leadSaveButton");
-      if (saveButton) saveButton.textContent = action === "trial" ? "Continua alla prenotazione" : "Invia";
+      const course = document.getElementById("leadCourse");
+      const notes = document.getElementById("leadNotes");
+
+      if (course && !course.value) {
+        course.value = "Non sono sicuro/a – vorrei un consiglio";
+      }
+
+      if (notes) {
+        const resultText = pendingLevelResult ? `Risultato test: ${pendingLevelResult}. ` : "";
+        const actionText = pendingLeadIntent === "trial"
+          ? "Richiesta: test + prova gratuita."
+          : "Richiesta: vorrei essere contattato/a.";
+        notes.value = `${resultText}${actionText}`;
+      }
+
+      const card = document.querySelector("#leadModal .lead-card");
+      if (card) card.scrollTop = 0;
+      setTimeout(() => document.getElementById("leadName")?.focus(), 50);
     }
 
     async function updateCurrentLead(fields) {
