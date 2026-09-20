@@ -2389,7 +2389,7 @@ function deleteEnquiry(id) {
 
 let pendingConversionEnquiryId = "";
 
-function convertEnquiryToStudent(id) {
+async function convertEnquiryToStudent(id) {
   const enquiry = state.enquiries.find((item) => item.id === id);
   if (!enquiry) return;
 
@@ -2399,6 +2399,11 @@ function convertEnquiryToStudent(id) {
   const firstName = parts.shift() || "";
   const lastName = parts.join(" ");
 
+  try {
+    await llsLoadClassesFromSheets();
+  } catch (error) {
+    console.error("Could not refresh classes before enrolment:", error);
+  }
   populateStudentClassSelect();
   byId("studentForm").reset();
   setValue("studentId", "");
@@ -3192,36 +3197,34 @@ function populateSelects() {
   populateAttendanceClassSelect();
 }
 
-function populateStudentClassSelect() {
+function populateStudentClassSelect(selectedId = "") {
   const select = byId("studentClass");
+  if (!select) return;
 
-  if (!select) {
-    return;
-  }
+  const activeClasses = (state.classes || []).filter((item) => {
+    const status = String(item.status || "").trim().toLowerCase();
+    return !status || status === "active";
+  });
 
-  const current = select.value;
+  select.innerHTML = `
+    <option value="">Not assigned</option>
+    ${activeClasses.map((item) => {
+      const id = String(item.id || "");
+      const name = String(item.name || item.className || id || "Class");
+      const day1 = String(item.day || "");
+      const time1 = String(item.time || "");
+      const day2 = String(item.day2 || "");
+      const time2 = String(item.time2 || "");
+      const schedule = [
+        [day1, time1].filter(Boolean).join(" "),
+        [day2, time2].filter(Boolean).join(" ")
+      ].filter(Boolean).join(" / ");
+      const label = schedule ? `${name} — ${schedule}` : name;
+      return `<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`;
+    }).join("")}
+  `;
 
-  select.innerHTML =
-    `<option value="">Not assigned</option>` +
-    state.classes
-      .sort((a, b) =>
-        a.name.localeCompare(b.name)
-      )
-      .map((item) => `
-        <option value="${escapeAttribute(item.id)}">
-          ${escapeHtml(item.name)} — ${escapeHtml(item.level)}
-        </option>
-      `)
-      .join("");
-
-  if (
-    current &&
-    state.classes.some(
-      (item) => item.id === current
-    )
-  ) {
-    select.value = current;
-  }
+  if (selectedId) select.value = String(selectedId);
 }
 
 function populateTeacherSelect() {
