@@ -3210,3 +3210,14 @@ input[readonly] {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* V2.5 NEXT BUILD — live attendance */
+.live-attendance-status,
+.live-attendance-note {
+  min-width: 130px;
+}
+#saveAttendanceButton:disabled {
+  opacity: .65;
+  cursor: wait;
+}

@@ -1,4424 +1,3200 @@
-"use strict";
 
-/* =========================================================
-   LONDON LANGUAGE SCHOOL PORTAL
-   Browser-based production front end
-========================================================= */
 
-const STORAGE_KEY = "lls_portal_v1";
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-const LEVELS = [
-  "Young Learners",
-  "A1",
-  "A2",
-  "B1",
-  "B2",
-  "C1",
-  "C2"
-];
+  <title>London Language School | Scuola di Inglese a Bagheria</title>
+  <meta
+    name="description"
+    content="London Language School a Bagheria: corsi di inglese per bambini, ragazzi e adulti, lezioni di gruppo e individuali, preparazione Cambridge English e soggiorni studio."
+  >
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://londonlanguageschool.github.io/Bagheria-/">
 
-const ENQUIRY_STAGES = [
-  "New",
-  "Contacted",
-  "Placement/Trial Booked",
-  "Placement/Trial Completed",
-  "Course Offered",
-  "Enrolled",
-  "Lost"
-];
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="it_IT">
+  <meta property="og:title" content="London Language School | Scuola di Inglese a Bagheria">
+  <meta property="og:description" content="Corsi di inglese a Bagheria per bambini, ragazzi e adulti. Preparazione Cambridge English, lezioni di gruppo e individuali.">
+  <meta property="og:url" content="https://londonlanguageschool.github.io/Bagheria-/">
+  <meta property="og:image" content="https://londonlanguageschool.github.io/Bagheria-/hero.jpg">
 
-const PAGE_TITLES = {
-  dashboard: "Dashboard",
-  students: "Students",
-  classes: "Classes",
-  attendance: "Attendance",
-  fees: "Fees & Payments",
-  enquiries: "Enquiries",
-  teachers: "Teachers",
-  reports: "Reports",
-  settings: "Settings"
-};
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="London Language School | Scuola di Inglese a Bagheria">
+  <meta name="twitter:description" content="Corsi di inglese a Bagheria per bambini, ragazzi e adulti. We make English fun!">
+  <meta name="twitter:image" content="https://londonlanguageschool.github.io/Bagheria-/hero.jpg">
 
-const CHART_COLOURS = [
-  "#0b3b78",
-  "#ee3124",
-  "#177b52",
-  "#b76811",
-  "#6d55a3",
-  "#3b7da7",
-  "#8d4050"
-];
-
-let state = loadState();
-let confirmCallback = null;
-let attendanceDraft = {};
-
-/* =========================================================
-   DEFAULT DATA
-========================================================= */
-
-function getDefaultState() {
-  const today = isoDate(new Date());
-  const followUpDate = isoDate(addDays(new Date(), 2));
-
-  return {
-    settings: {
-      schoolName: "London Language School",
-      phone: "",
-      email: "",
-      address: "Bagheria, Sicily, Italy"
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["LocalBusiness", "EducationalOrganization"],
+    "name": "London Language School",
+    "url": "https://londonlanguageschool.github.io/Bagheria-/",
+    "logo": "https://londonlanguageschool.github.io/Bagheria-/logo.png",
+    "image": "https://londonlanguageschool.github.io/Bagheria-/hero.jpg",
+    "description": "Scuola di inglese a Bagheria con corsi per bambini, ragazzi e adulti, lezioni di gruppo e individuali e preparazione agli esami Cambridge English.",
+    "telephone": "+39 379 153 3754",
+    "email": "londonlanguageschoolbagheria@gmail.com",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Via Bernardo Mattarella, 167/1 Piano",
+      "postalCode": "90011",
+      "addressLocality": "Bagheria",
+      "addressRegion": "PA",
+      "addressCountry": "IT"
     },
-
-    teachers: [
+    "openingHoursSpecification": [
       {
-        id: makeId("teacher"),
-        name: "Anna Romano",
-        email: "",
-        phone: "",
-        role: "English Teacher",
-        status: "Active",
-        notes: ""
-      },
-      {
-        id: makeId("teacher"),
-        name: "James Taylor",
-        email: "",
-        phone: "",
-        role: "English Teacher",
-        status: "Active",
-        notes: ""
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "15:00",
+        "closes": "20:00"
       }
     ],
+    "sameAs": [
+      "https://www.instagram.com/londonlanguageschoolbagheria/",
+      "https://www.facebook.com/profile.php?id=61591857424469"
+    ]
+  }
+  </script>
 
-    classes: [],
+  <style> 
+    :root {
+      --navy: #062f67;
+      --navy-2: #0a4c8f;
+      --blue: #48bdf2;
+      --blue-soft: #eaf7ff;
+      --red: #ef2f2f;
+      --red-dark: #cf2222; 
+      --yellow: #ffd84d;
+      --cream: #f8fafc;
+      --white: #ffffff;
+      --text: #172033;
+      --muted: #64748b;
+      --green: #25d366;
+      --line: #e6edf5;
+      --shadow: 0 18px 50px rgba(6, 47, 103, 0.12);
+      --shadow-soft: 0 10px 30px rgba(6, 47, 103, 0.08);
+      --radius: 24px;
+    }
 
-    students: [],
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-    payments: [],
+    html {
+      scroll-behavior: smooth;
+    }
 
-    enquiries: [
-      {
-        id: makeId("enquiry"),
-        name: "Sample Enquiry",
-        age: "",
-        phone: "",
-        email: "",
-        course: "Cambridge English",
-        source: "WhatsApp",
-        status: "New",
-        followup: followUpDate,
-        created: today,
-        notes: "Example enquiry — edit or delete this record."
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      color: var(--text);
+      background: var(--white);
+      line-height: 1.6;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    .container {
+      width: min(1180px, 92%);
+      margin: 0 auto;
+    }
+
+    section {
+      padding: 88px 0;
+      scroll-margin-top: 84px;
+    }
+
+    /* HEADER */
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(230, 237, 245, 0.9);
+    }
+
+    .navbar {
+      min-height: 82px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 220px;
+    }
+
+    .brand img {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+    }
+
+    .brand span {
+      color: var(--navy);
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      font-size: 1.02rem;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+    }
+
+    nav > a:not(.nav-cta) {
+      color: var(--navy);
+      font-weight: 750;
+      font-size: 0.95rem;
+      position: relative;
+      padding: 8px 0;
+    }
+
+    nav > a:not(.nav-cta)::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: 2px;
+      width: 0;
+      height: 2px;
+      background: var(--red);
+      transition: width 0.2s ease;
+    }
+
+    nav > a:not(.nav-cta):hover::after {
+      width: 100%;
+    }
+
+    .language-switcher {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 999px;
+    }
+
+    .lang-btn {
+      border: 0;
+      background: transparent;
+      color: var(--navy);
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .lang-btn.active {
+      background: var(--navy);
+      color: white;
+      box-shadow: 0 3px 10px rgba(6, 47, 103, 0.2);
+    }
+
+    .nav-cta {
+      background: var(--red);
+      color: white;
+      padding: 12px 18px;
+      border-radius: 999px;
+      font-weight: 900;
+      white-space: nowrap;
+      box-shadow: 0 8px 20px rgba(239, 47, 47, 0.18);
+    }
+
+    .nav-cta:hover {
+      background: var(--red-dark);
+      transform: translateY(-1px);
+    }
+
+    .menu-button {
+      display: none;
+      border: 0;
+      background: transparent;
+      color: var(--navy);
+      font-size: 1.9rem;
+      cursor: pointer;
+    }
+
+    /* HERO */
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 8% 14%, rgba(72, 189, 242, 0.24), transparent 30%),
+        radial-gradient(circle at 86% 18%, rgba(72, 189, 242, 0.22), transparent 28%),
+        linear-gradient(135deg, #ffffff 0%, #f7fbff 55%, #edf8ff 100%);
+      padding: 72px 0 42px;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      width: 340px;
+      height: 340px;
+      background: var(--blue);
+      opacity: 0.12;
+      border-radius: 50%;
+      left: -140px;
+      bottom: -190px;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      border: 34px solid rgba(239, 47, 47, 0.06);
+      border-radius: 50%;
+      right: -90px;
+      top: 80px;
+    }
+
+    .hero-grid {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 0.92fr 1.08fr;
+      align-items: center;
+      gap: 42px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--navy);
+      font-size: 0.78rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 28px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--red);
+    }
+
+    .hero h1 {
+      color: var(--navy);
+      font-size: clamp(3.2rem, 6vw, 5.8rem);
+      line-height: 0.94;
+      letter-spacing: -0.055em;
+      margin-bottom: 22px;
+      max-width: 620px;
+    }
+
+    .hero h1 span {
+      color: var(--red);
+    }
+
+    .hero-copy {
+      max-width: 640px;
+      font-size: 1.12rem;
+      color: #425066;
+      margin-bottom: 26px;
+    }
+
+    .hero-copy strong {
+      color: var(--navy);
+    }
+
+    .tagline {
+      font-style: italic;
+      font-weight: 900;
+      color: var(--navy);
+    }
+
+    .hero-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .hero-buttons-primary {
+      align-items: center;
+    }
+
+    .hero-start-button {
+      min-width: 230px;
+      min-height: 54px;
+      padding: 15px 30px;
+      font-size: 1rem;
+      letter-spacing: 0.035em;
+      box-shadow: 0 14px 30px rgba(239, 47, 47, 0.24);
+    }
+
+    .button {
+      display: inline-flex;
+      border: 0;
+      cursor: pointer;
+      font: inherit;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 22px;
+      border-radius: 999px;
+      font-weight: 900;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+    }
+
+    .button-red {
+      background: var(--red);
+      color: white;
+      box-shadow: 0 12px 24px rgba(239, 47, 47, 0.18);
+    }
+
+    .button-red:hover {
+      background: var(--red-dark);
+    }
+
+    .button-outline {
+      background: white;
+      color: var(--navy);
+      border: 1px solid #bfd3e7;
+    }
+
+    .button-outline:hover {
+      box-shadow: var(--shadow-soft);
+    }
+
+    .button-white {
+      background: white;
+      color: var(--navy);
+    }
+
+    .hero-proof {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .proof-chip {
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid #dfeaf4;
+      border-radius: 18px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-height: 62px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .proof-stars {
+      color: #fbbc04;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    .proof-chip strong {
+      color: var(--navy);
+      display: block;
+      font-size: 0.95rem;
+    }
+
+    .proof-chip span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .cambridge-mini img {
+      width: 220px;
+      max-height: 90px;
+      object-fit: contain;
+    }
+
+    .hero-visual {
+      position: relative;
+      min-height: 570px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .hero-visual::before {
+      content: "";
+      position: absolute;
+      inset: 42px 18px 14px 54px;
+      border-radius: 44% 56% 48% 52% / 38% 35% 65% 62%;
+      background:
+        linear-gradient(145deg, rgba(72, 189, 242, 0.9), rgba(6, 47, 103, 0.92));
+      transform: rotate(-2deg);
+      box-shadow: 0 28px 70px rgba(6, 47, 103, 0.18);
+    }
+
+    .hero-photo {
+      position: relative;
+      z-index: 2;
+      width: min(100%, 620px);
+      height: 530px;
+      object-fit: cover;
+      object-position: center;
+      border-radius: 36px 36px 90px 36px;
+      box-shadow: 0 26px 70px rgba(6, 47, 103, 0.18);
+      border: 8px solid rgba(255, 255, 255, 0.9);
+    }
+
+    .hero-note {
+      position: absolute;
+      z-index: 3;
+      right: -6px;
+      top: 52px;
+      background: var(--yellow);
+      color: var(--navy);
+      padding: 16px 18px;
+      border-radius: 16px;
+      font-weight: 900;
+      line-height: 1.2;
+      transform: rotate(3deg);
+      box-shadow: 0 14px 30px rgba(6, 47, 103, 0.14);
+    }
+
+    .hero-note::after {
+      content: "";
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 9px;
+      height: 4px;
+      background: var(--red);
+      border-radius: 999px;
+    }
+
+    .hero-tag {
+      position: absolute;
+      z-index: 3;
+      left: 18px;
+      bottom: 22px;
+      background: rgba(6, 47, 103, 0.92);
+      color: white;
+      padding: 13px 17px;
+      border-radius: 16px;
+      font-weight: 900;
+      box-shadow: 0 10px 24px rgba(6, 47, 103, 0.18);
+    }
+
+    /* SHARED SECTION HEADING */
+
+    .section-heading {
+      text-align: center;
+      max-width: 760px;
+      margin: 0 auto 44px;
+    }
+
+    .section-heading small {
+      color: var(--red);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.78rem;
+    }
+
+    .section-heading h2 {
+      margin-top: 8px;
+      color: var(--navy);
+      font-size: clamp(2.2rem, 4vw, 3.4rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+    }
+
+    .section-heading p {
+      color: var(--muted);
+      margin-top: 14px;
+      font-size: 1.03rem;
+    }
+
+    /* BENEFITS */
+
+    .benefits {
+      background: white;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+    }
+
+    .card {
+      background: white;
+      padding: 28px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+      transition: transform 0.22s ease, box-shadow 0.22s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      margin-bottom: 18px;
+      font-size: 1.45rem;
+      background: var(--blue-soft);
+      color: var(--navy);
+    }
+
+    .benefits .card:nth-child(2) .card-icon {
+      background: #fff8cf;
+    }
+
+    .benefits .card:nth-child(3) .card-icon {
+      background: #ffe8e8;
+    }
+
+    .card h3 {
+      color: var(--navy);
+      font-size: 1.25rem;
+      margin-bottom: 9px;
+    }
+
+    .card p {
+      color: var(--muted);
+    }
+
+    /* COURSES */
+
+    .courses {
+      background: #f8fbfe;
+    }
+
+    .courses .card {
+      min-height: 260px;
+    }
+
+    .courses .card:nth-child(1) {
+      border-top: 5px solid var(--yellow);
+    }
+
+    .courses .card:nth-child(2) {
+      border-top: 5px solid var(--blue);
+    }
+
+    .courses .card:nth-child(3) {
+      border-top: 5px solid var(--red);
+    }
+
+    /* FLEXIBLE PAYMENTS */
+
+    .flexible-payments {
+      background: white;
+    }
+
+    .payments-box {
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 90% 20%, rgba(255, 216, 77, 0.5), transparent 24%),
+        linear-gradient(135deg, #eef8ff 0%, #ffffff 100%);
+      border: 1px solid #dcecf7;
+      border-radius: 30px;
+      padding: 42px;
+      display: grid;
+      grid-template-columns: 1.35fr 0.65fr;
+      gap: 34px;
+      align-items: center;
+      box-shadow: var(--shadow);
+    }
+
+    .payments-kicker {
+      display: inline-flex;
+      background: var(--yellow);
+      color: var(--navy);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-weight: 900;
+      font-size: 0.82rem;
+      margin-bottom: 14px;
+    }
+
+    .payments-content h3 {
+      color: var(--navy);
+      font-size: clamp(1.8rem, 3vw, 2.4rem);
+      line-height: 1.08;
+      margin-bottom: 12px;
+    }
+
+    .payments-content p {
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    .payment-points {
+      display: grid;
+      gap: 10px;
+      color: var(--navy);
+      font-weight: 800;
+    }
+
+    .payments-action {
+      display: flex;
+      justify-content: center;
+    }
+/* SCHOOLS */
+
+.schools-section {
+  background: #f8fbfe;
+}
+
+.schools-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.school-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 25px 20px;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.school-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow);
+}
+
+.school-icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: var(--blue-soft);
+  font-size: 1.4rem;
+  margin-bottom: 17px;
+}
+
+.school-card:nth-child(2) .school-icon {
+  background: #fff5c7;
+}
+
+.school-card:nth-child(3) .school-icon {
+  background: #e5f7ff;
+}
+
+.school-card:nth-child(4) .school-icon {
+  background: #ffe8e8;
+}
+
+.school-card:nth-child(5) .school-icon {
+  background: #edf4ff;
+}
+
+.school-card h3 {
+  color: var(--navy);
+  font-size: 1.15rem;
+  line-height: 1.2;
+  margin-bottom: 9px;
+}
+
+.school-card p {
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+.schools-cta {
+  background:
+    radial-gradient(circle at 90% 20%, rgba(72, 189, 242, 0.28), transparent 25%),
+    linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
+  color: white;
+  border-radius: 28px;
+  padding: 34px 38px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 35px;
+  align-items: center;
+  box-shadow: var(--shadow);
+}
+
+.schools-kicker {
+  display: inline-block;
+  color: #9fe3ff;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 7px;
+}
+
+.schools-cta h3 {
+  font-size: 1.65rem;
+  line-height: 1.15;
+  margin-bottom: 8px;
+}
+
+.schools-cta p {
+  color: #dceaf6;
+  max-width: 700px;
+}
+
+@media (max-width: 1050px) {
+  .schools-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .schools-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .schools-cta {
+    grid-template-columns: 1fr;
+    padding: 28px;
+  }
+
+  .schools-cta .button {
+    width: 100%;
+  }
+}
+    /* STUDY ABROAD */
+
+    .study-abroad {
+      background:
+        radial-gradient(circle at 88% 18%, rgba(72, 189, 242, 0.28), transparent 28%),
+        linear-gradient(135deg, #062f67 0%, #0a4c8f 100%);
+      color: white;
+    }
+
+    .study-abroad-grid {
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 42px;
+      align-items: center;
+    }
+
+    .study-abroad small {
+      color: #aee8ff;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.78rem;
+    }
+
+    .study-abroad h2 {
+      font-size: clamp(2.2rem, 4vw, 3.5rem);
+      line-height: 1.06;
+      letter-spacing: -0.04em;
+      margin: 10px 0 18px;
+    }
+
+    .study-abroad p {
+      color: #e8f3fb;
+      margin-bottom: 18px;
+      max-width: 720px;
+    }
+
+    .study-points {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .study-point {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 15px 16px;
+      border-radius: 16px;
+      font-weight: 800;
+    }
+
+    .study-abroad-card {
+      background: white;
+      color: var(--navy);
+      padding: 34px;
+      border-radius: 28px;
+      box-shadow: 0 26px 60px rgba(0, 0, 0, 0.18);
+    }
+
+    .study-abroad-card h3 {
+      font-size: 1.6rem;
+      margin-bottom: 10px;
+    }
+
+    .study-abroad-card p {
+      color: var(--muted);
+    }
+
+    /* ABOUT */
+
+    #about {
+      background: white;
+    }
+
+    .about-gallery {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 30px 0 42px;
+    }
+
+    .about-gallery img {
+      width: 100%;
+      height: 290px;
+      object-fit: cover;
+      border-radius: 24px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      gap: 42px;
+      align-items: start;
+    }
+
+    .about-box {
+      background:
+        radial-gradient(circle at 88% 20%, rgba(72, 189, 242, 0.25), transparent 26%),
+        var(--navy);
+      color: white;
+      padding: 38px;
+      border-radius: 28px;
+      position: sticky;
+      top: 110px;
+    }
+
+    .about-box h3 {
+      font-size: 2rem;
+      margin-bottom: 15px;
+    }
+
+    .about-box strong {
+      color: #aee8ff;
+    }
+
+    .about-text h2 {
+      color: var(--navy);
+      font-size: clamp(2rem, 3vw, 2.7rem);
+      line-height: 1.08;
+      margin-bottom: 18px;
+    }
+
+    .about-text p {
+      color: var(--muted);
+      margin-bottom: 17px;
+    }
+
+    .ticks {
+      margin-top: 22px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .tick {
+      font-weight: 800;
+      color: var(--navy);
+    }
+
+    .tick::before {
+      content: "✓";
+      display: inline-grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: var(--blue-soft);
+      color: var(--navy);
+      font-size: 0.82rem;
+      font-weight: 900;
+    }
+
+    /* GALLERY */
+
+    .gallery {
+      background: #f8fbfe;
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .gallery-video,
+    .gallery-item {
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .gallery-video {
+      background: white;
+      height: 380px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .gallery-video iframe {
+      display: block;
+      width: 100%;
+      height: 318px;
+      flex: 1 1 auto;
+      border: 0;
+      background: #000;
+    }
+
+    .video-caption {
+      min-height: 62px;
+      padding: 14px 18px;
+      color: var(--navy);
+      font-weight: 900;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gallery-item {
+      height: 380px;
+      min-height: 380px;
+      display: flex;
+      align-items: flex-end;
+      padding: 22px;
+      color: white;
+      font-size: 1.25rem;
+      font-weight: 900;
+      background-size: cover !important;
+      background-position: center !important;
+    }
+
+    /* REVIEWS */
+
+    .reviews {
+      background: white;
+    }
+
+    .reviews-panel {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr;
+      gap: 24px;
+    }
+
+    .reviews-score {
+      background:
+        radial-gradient(circle at 82% 18%, rgba(72, 189, 242, 0.24), transparent 28%),
+        var(--navy);
+      color: white;
+      padding: 34px;
+      border-radius: 26px;
+    }
+
+    .big-score {
+      font-size: 4rem;
+      font-weight: 950;
+      line-height: 1;
+    }
+
+    .reviews-score .stars,
+    .review-stars {
+      color: #fbbc04;
+      letter-spacing: 2px;
+      font-size: 1.3rem;
+      margin: 10px 0;
+    }
+
+    .reviews-score p {
+      color: #dce7f4;
+      margin-bottom: 18px;
+    }
+
+    .reviews-message {
+      background: #f8fbfe;
+      border: 1px solid #e5eef6;
+      border-radius: 26px;
+      padding: 34px;
+    }
+
+    .review-quote {
+      color: var(--navy);
+      font-size: 1.18rem;
+      line-height: 1.7;
+      font-style: italic;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .review-author {
+      color: var(--muted);
+      font-weight: 800;
+      margin-bottom: 18px;
+    }
+
+    .review-link {
+      color: var(--red);
+      font-weight: 900;
+    }
+
+    /* CTA */
+
+    .cta {
+      padding: 64px 0;
+      background:
+        radial-gradient(circle at 10% 20%, rgba(255,255,255,0.15), transparent 20%),
+        linear-gradient(135deg, #ef2f2f 0%, #d92222 100%);
+      color: white;
+    }
+
+    .cta-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 30px;
+    }
+
+    .cta h2 {
+      font-size: clamp(2rem, 4vw, 3.1rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      margin-bottom: 8px;
+    }
+
+    /* CONTACT */
+
+    #contact {
+      background: white;
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 28px;
+    }
+
+    .contact-card,
+    .social-box {
+      border-radius: 26px;
+      padding: 34px;
+    }
+
+    .contact-card {
+      background: var(--navy);
+      color: white;
+    }
+
+    .contact-card h3,
+    .social-box h3 {
+      font-size: 1.6rem;
+      margin-bottom: 18px;
+    }
+
+    .contact-row {
+      margin-bottom: 18px;
+    }
+
+    .contact-row strong {
+      display: block;
+      color: #8fdfff;
+      margin-bottom: 4px;
+    }
+
+    .social-box {
+      background: #f8fbfe;
+      border: 1px solid #e5eef6;
+    }
+
+    .social-box h3 {
+      color: var(--navy);
+    }
+
+    .social-box p {
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .social-links {
+      display: grid;
+      gap: 11px;
+    }
+
+    .social-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 11px;
+      padding: 14px 18px;
+      border-radius: 14px;
+      font-weight: 900;
+      color: white;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .social-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+    }
+
+    .social-link svg {
+      width: 25px;
+      height: 25px;
+      fill: currentColor;
+    }
+
+    .instagram {
+      background: linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5);
+    }
+
+    .facebook {
+      background: #1877f2;
+    }
+
+    .whatsapp-link {
+      background: #25d366;
+    }
+
+    .email-link {
+      background: var(--navy);
+    }
+
+    /* FLOATING WHATSAPP */
+
+    .whatsapp {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--green);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 1.55rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      z-index: 999;
+      transition: transform 0.2s ease;
+    }
+
+    .whatsapp:hover {
+      transform: scale(1.06);
+    }
+
+    /* FOOTER */
+
+    footer {
+      background: #02162f;
+      color: #cbd5e1;
+      padding: 34px 0;
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    footer strong {
+      color: white;
+    }
+
+    footer a:hover {
+      color: white;
+    }
+
+
+    /* PROSPECTIVE CLIENT JOURNEY */
+
+    .lead-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 3000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(2, 22, 47, 0.72);
+      backdrop-filter: blur(8px);
+    }
+
+    .lead-modal.open { display: flex; }
+
+    .lead-card {
+      width: min(760px, 100%);
+      max-height: 92vh;
+      overflow-y: auto;
+      background: white;
+      border-radius: 28px;
+      padding: 32px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.28);
+      position: relative;
+    }
+
+    .lead-close {
+      position: absolute;
+      top: 16px;
+      right: 18px;
+      border: 0;
+      background: #eef4f9;
+      color: var(--navy);
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      font-size: 1.35rem;
+      cursor: pointer;
+    }
+
+    .lead-kicker {
+      color: var(--red);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .11em;
+      font-size: .76rem;
+      margin-bottom: 7px;
+    }
+
+    .lead-card h2, .lead-card h3 { color: var(--navy); }
+    .lead-card h2 { font-size: 2rem; line-height: 1.1; margin-bottom: 8px; }
+    .lead-intro { color: var(--muted); margin-bottom: 24px; }
+
+    .lead-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .lead-field { display: grid; gap: 6px; margin-bottom: 16px; }
+    .lead-field label { color: var(--navy); font-weight: 850; font-size: .9rem; }
+    .lead-field input, .lead-field select, .lead-field textarea {
+      width: 100%;
+      border: 1px solid #cfdce8;
+      border-radius: 13px;
+      padding: 12px 13px;
+      font: inherit;
+      color: var(--text);
+      background: white;
+    }
+
+    .lead-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+    .lead-message { margin-top: 12px; font-weight: 800; }
+    .lead-message.success {
+      color: #177b52;
+      font-weight: 800;
+    }
+
+    .lead-message.error { color: var(--red-dark); }
+
+    .journey-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 22px;
+    }
+
+    .journey-option {
+      min-height: 150px;
+      border: 1px solid #dbe7f1;
+      border-radius: 20px;
+      padding: 20px;
+      background: #f8fbfe;
+      color: var(--navy);
+      text-align: left;
+      cursor: pointer;
+      font: inherit;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+    .journey-option:hover { transform: translateY(-3px); box-shadow: var(--shadow-soft); }
+    .journey-option strong { display: block; font-size: 1.05rem; margin: 8px 0 5px; }
+    .journey-option span { color: var(--muted); font-size: .9rem; }
+
+    .level-question {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .level-question p { color: var(--navy); font-weight: 850; margin-bottom: 9px; }
+    .level-question label { display: block; padding: 5px 0; cursor: pointer; }
+    .level-result {
+      background: var(--blue-soft);
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+      margin-top: 18px;
+    }
+
+    @media (max-width: 680px) {
+      .lead-card { padding: 26px 20px; }
+      .lead-grid, .journey-options { grid-template-columns: 1fr; }
+      .gallery-video, .gallery-item { height: 340px; min-height: 340px; }
+    }
+
+    /* MOBILE */
+
+    @media (max-width: 980px) {
+      .menu-button {
+        display: block;
       }
-    ],
 
-    attendance: {}
-  };
-}
-
-/* =========================================================
-   INITIALISATION
-========================================================= */
-
-document.addEventListener("DOMContentLoaded", initialisePortal);
-
-function initialisePortal() {
-  ensureStateStructure();
-  bindNavigation();
-  bindGlobalControls();
-  bindForms();
-  bindFilters();
-  initialiseDates();
-  populateSelects();
-  renderAll();
-  navigateTo(readPageFromHash() || "dashboard", false);
-}
-
-function ensureStateStructure() {
-  const defaults = getDefaultState();
-
-  state.settings = {
-    ...defaults.settings,
-    ...(state.settings || {})
-  };
-
-  state.teachers = Array.isArray(state.teachers)
-    ? state.teachers
-    : [];
-
-  state.classes = Array.isArray(state.classes)
-    ? state.classes
-    : [];
-
-  state.students = Array.isArray(state.students)
-    ? state.students
-    : [];
-
-  state.payments = Array.isArray(state.payments)
-    ? state.payments
-    : [];
-
-  state.enquiries = Array.isArray(state.enquiries)
-    ? state.enquiries
-    : [];
-
-  state.attendance =
-    state.attendance && typeof state.attendance === "object"
-      ? state.attendance
-      : {};
-
-  saveState();
-}
-
-function initialiseDates() {
-  const today = new Date();
-
-  setValue("attendanceDate", isoDate(today));
-  setValue("studentJoined", isoDate(today));
-  setValue("paymentDate", isoDate(today));
-  setValue("enquiryCreated", isoDate(today));
-
-  const formatted = new Intl.DateTimeFormat("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  }).format(today);
-
-  text("todayLabel", formatted);
-}
-
-/* =========================================================
-   STORAGE
-========================================================= */
-
-function loadState() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-
-    if (!saved) {
-      const defaults = getDefaultState();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults));
-      return defaults;
-    }
-
-    return JSON.parse(saved);
-  } catch (error) {
-    console.error("Unable to load portal data:", error);
-    return getDefaultState();
-  }
-}
-
-function saveState() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (error) {
-    console.error("Unable to save portal data:", error);
-    showToast("Could not save data in this browser.", "error");
-  }
-}
-
-/* =========================================================
-   NAVIGATION
-========================================================= */
-
-function bindNavigation() {
-  document.querySelectorAll("[data-page]").forEach((button) => {
-    button.addEventListener("click", () => {
-      navigateTo(button.dataset.page);
-    });
-  });
-
-  document.querySelectorAll("[data-page-target]").forEach((button) => {
-    button.addEventListener("click", () => {
-      navigateTo(button.dataset.pageTarget);
-      closeUserDropdown();
-    });
-  });
-
-  window.addEventListener("hashchange", () => {
-    const page = readPageFromHash();
-
-    if (page && PAGE_TITLES[page]) {
-      navigateTo(page, false);
-    }
-  });
-}
-
-function navigateTo(page, updateHash = true) {
-  if (!PAGE_TITLES[page]) {
-    page = "dashboard";
-  }
-
-  document.querySelectorAll(".page").forEach((section) => {
-    section.classList.toggle(
-      "active",
-      section.id === `page-${page}`
-    );
-  });
-
-  document.querySelectorAll(".nav-item[data-page]").forEach((button) => {
-    button.classList.toggle(
-      "active",
-      button.dataset.page === page
-    );
-  });
-
-  text("pageTitle", PAGE_TITLES[page]);
-
-  if (updateHash) {
-    history.replaceState(null, "", `#${page}`);
-  }
-
-  document.body.classList.remove("sidebar-open");
-  closeGlobalSearch();
-  closeUserDropdown();
-
-  if (page === "attendance") {
-    populateAttendanceClassSelect();
-    renderAttendance();
-  }
-
-  if (page === "reports") {
-    renderReports();
-  }
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
-}
-
-function readPageFromHash() {
-  return location.hash.replace("#", "").trim();
-}
-
-/* =========================================================
-   GLOBAL CONTROLS
-========================================================= */
-
-function bindGlobalControls() {
-  const mobileMenuButton = byId("mobileMenuButton");
-  const sidebarOverlay = byId("sidebarOverlay");
-  const userMenuButton = byId("userMenuButton");
-  const notificationButton = byId("notificationButton");
-  const closeNotificationButton = byId("closeNotificationPanel");
-
-  mobileMenuButton.addEventListener("click", () => {
-    document.body.classList.add("sidebar-open");
-  });
-
-  sidebarOverlay.addEventListener("click", () => {
-    document.body.classList.remove("sidebar-open");
-  });
-
-  userMenuButton.addEventListener("click", (event) => {
-    event.stopPropagation();
-    byId("userDropdown").classList.toggle("visible");
-  });
-
-  notificationButton.addEventListener("click", () => {
-    byId("notificationPanel").classList.add("open");
-  });
-
-  closeNotificationButton.addEventListener("click", () => {
-    byId("notificationPanel").classList.remove("open");
-  });
-
-  document.addEventListener("click", (event) => {
-    if (!event.target.closest(".user-menu-wrap")) {
-      closeUserDropdown();
-    }
-
-    if (
-      !event.target.closest(".global-search") &&
-      !event.target.closest(".global-search-results")
-    ) {
-      closeGlobalSearch();
-    }
-  });
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      closeAllModals();
-      closeGlobalSearch();
-      closeUserDropdown();
-      byId("notificationPanel").classList.remove("open");
-      document.body.classList.remove("sidebar-open");
-    }
-  });
-
-  document.querySelectorAll("[data-close-modal]").forEach((button) => {
-    button.addEventListener("click", () => {
-      closeModal(button.dataset.closeModal);
-    });
-  });
-
-  document.querySelectorAll(".modal-backdrop").forEach((backdrop) => {
-    backdrop.addEventListener("mousedown", (event) => {
-      if (event.target === backdrop) {
-        closeModal(backdrop.id);
-      }
-    });
-  });
-
-  byId("quickStudentButton").addEventListener("click", openNewStudent);
-  byId("quickEnquiryButton").addEventListener("click", openNewEnquiry);
-  byId("addStudentButton").addEventListener("click", openNewStudent);
-  byId("addClassButton").addEventListener("click", openNewClass);
-  byId("addPaymentButton").addEventListener("click", openNewPayment);
-  byId("addEnquiryButton").addEventListener("click", openNewEnquiry);
-  byId("addTeacherButton").addEventListener("click", openNewTeacher);
-
-  byId("exportStudentsButton").addEventListener(
-    "click",
-    exportStudentsCsv
-  );
-
-  byId("exportPaymentsButton").addEventListener(
-    "click",
-    exportPaymentsCsv
-  );
-
-  byId("exportEnquiriesButton").addEventListener(
-    "click",
-    exportEnquiriesCsv
-  );
-
-  byId("exportAttendanceButton").addEventListener(
-    "click",
-    exportAttendanceCsv
-  );
-
-  byId("exportFullReportButton").addEventListener(
-    "click",
-    exportFullReport
-  );
-
-  byId("backupDataButton").addEventListener(
-    "click",
-    exportBackup
-  );
-
-  byId("settingsExportBackup").addEventListener(
-    "click",
-    exportBackup
-  );
-
-  byId("backupImportInput").addEventListener(
-    "change",
-    importBackup
-  );
-
-  byId("resetPortalButton").addEventListener("click", () => {
-    openConfirm(
-      "Reset portal data?",
-      "This will remove the current portal records stored in this browser and restore the original starter data.",
-      () => {
-        state = getDefaultState();
-        saveState();
-        populateSelects();
-        renderAll();
-        showToast("Portal data reset.", "success");
-      },
-      "Reset"
-    );
-  });
-
-  byId("globalSearchInput").addEventListener(
-    "input",
-    renderGlobalSearch
-  );
-}
-
-/* =========================================================
-   FILTERS
-========================================================= */
-
-function bindFilters() {
-  [
-    "studentSearch",
-    "studentStatusFilter",
-    "studentLevelFilter"
-  ].forEach((id) => {
-    byId(id).addEventListener("input", renderStudents);
-    byId(id).addEventListener("change", renderStudents);
-  });
-
-  [
-    "classSearch",
-    "classDayFilter"
-  ].forEach((id) => {
-    byId(id).addEventListener("input", renderClasses);
-    byId(id).addEventListener("change", renderClasses);
-  });
-
-  [
-    "paymentSearch",
-    "paymentStatusFilter"
-  ].forEach((id) => {
-    byId(id).addEventListener("input", renderPayments);
-    byId(id).addEventListener("change", renderPayments);
-  });
-
-  [
-    "enquirySearch",
-    "enquiryStatusFilter"
-  ].forEach((id) => {
-    byId(id).addEventListener("input", renderEnquiries);
-    byId(id).addEventListener("change", renderEnquiries);
-  });
-
-  byId("attendanceClassSelect").addEventListener(
-    "change",
-    renderAttendance
-  );
-
-  byId("attendanceDate").addEventListener(
-    "change",
-    renderAttendance
-  );
-
-  byId("saveAttendanceButton").addEventListener(
-    "click",
-    saveAttendance
-  );
-}
-
-/* =========================================================
-   FORMS
-========================================================= */
-
-function bindForms() {
-  byId("studentForm").addEventListener(
-    "submit",
-    saveStudentForm
-  );
-
-  byId("classForm").addEventListener(
-    "submit",
-    saveClassForm
-  );
-
-  byId("paymentForm").addEventListener(
-    "submit",
-    savePaymentForm
-  );
-
-  byId("enquiryForm").addEventListener(
-    "submit",
-    saveEnquiryForm
-  );
-
-  byId("teacherForm").addEventListener(
-    "submit",
-    saveTeacherForm
-  );
-
-  byId("settingsForm").addEventListener(
-    "submit",
-    saveSettingsForm
-  );
-
-  byId("confirmActionButton").addEventListener(
-    "click",
-    executeConfirmAction
-  );
-}
-
-/* =========================================================
-   MASTER RENDER
-========================================================= */
-
-function renderAll() {
-  populateSelects();
-  renderDashboard();
-  renderStudents();
-  renderClasses();
-  renderAttendance();
-  renderPayments();
-  renderEnquiries();
-  renderTeachers();
-  renderReports();
-  renderSettings();
-  renderNotifications();
-}
-
-/* =========================================================
-   DASHBOARD
-========================================================= */
-
-function renderDashboard() {
-  const activeStudents = state.students.filter(
-    (student) => student.status === "Active"
-  );
-
-  const totalCollected = sum(
-    state.payments.map((payment) => number(payment.paid))
-  );
-
-  const currentMonthCollected = sum(
-    state.payments
-      .filter((payment) => isCurrentMonth(payment.date))
-      .map((payment) => number(payment.paid))
-  );
-
-  const totalFees = sum(
-    state.payments.map((payment) => number(payment.fee))
-  );
-
-  const outstanding = Math.max(
-    0,
-    totalFees - totalCollected
-  );
-
-  const openEnquiries = state.enquiries.filter(
-    (enquiry) =>
-      !["Enrolled", "Lost"].includes(enquiry.status)
-  );
-
-  text("statStudents", activeStudents.length);
-  text(
-    "statStudentsSub",
-    `${state.students.length} total student record${state.students.length === 1 ? "" : "s"}`
-  );
-
-  text("statClasses", state.classes.length);
-  text(
-    "statClassesSub",
-    `${state.teachers.filter((teacher) => teacher.status === "Active").length} active teacher${state.teachers.filter((teacher) => teacher.status === "Active").length === 1 ? "" : "s"}`
-  );
-
-  text(
-    "statCollected",
-    formatMoney(currentMonthCollected)
-  );
-
-  text(
-    "statCollectedSub",
-    "Payments dated this month"
-  );
-
-  text("statEnquiries", openEnquiries.length);
-  text(
-    "statEnquiriesSub",
-    openEnquiries.length
-      ? "Active sales opportunities"
-      : "Nothing waiting"
-  );
-
-  renderTodayClasses();
-  renderStudentBreakdown();
-  renderRecentEnquiries();
-
-  text(
-    "dashboardPaidAmount",
-    formatMoney(totalCollected)
-  );
-
-  text(
-    "dashboardDueAmount",
-    formatMoney(outstanding)
-  );
-
-  const collectionRate =
-    totalFees > 0
-      ? Math.min(100, (totalCollected / totalFees) * 100)
-      : 0;
-
-  byId("paymentProgressBar").style.width =
-    `${collectionRate}%`;
-
-  text(
-    "paymentProgressText",
-    totalFees
-      ? `${Math.round(collectionRate)}% of recorded fees have been collected.`
-      : "No payment data yet."
-  );
-}
-
-function renderTodayClasses() {
-  const container = byId("todayClassesList");
-  const todayName = new Intl.DateTimeFormat(
-    "en-GB",
-    { weekday: "long" }
-  ).format(new Date());
-
-  const classes = state.classes
-    .filter((item) => item.day === todayName)
-    .sort((a, b) => a.time.localeCompare(b.time));
-
-  if (!classes.length) {
-    container.innerHTML = emptyState(
-      `No classes scheduled for ${todayName}.`
-    );
-    return;
-  }
-
-  container.innerHTML = classes
-    .map((item) => {
-      const enrolled = getClassStudents(item.id).length;
-      const teacher = getTeacher(item.teacherId) || (item.teacherName ? { name: item.teacherName } : null);
-
-      return `
-        <div class="schedule-item">
-          <div class="schedule-time">${escapeHtml(formatTime(item.time))}</div>
-
-          <div class="schedule-info">
-            <strong>${escapeHtml(item.name)}</strong>
-            <span>
-              ${escapeHtml(item.level)}
-              · ${escapeHtml(teacher?.name || "Teacher not assigned")}
-              ${item.room ? ` · ${escapeHtml(item.room)}` : ""}
-            </span>
-          </div>
-
-          <div class="schedule-count">
-            ${enrolled} student${enrolled === 1 ? "" : "s"}
-          </div>
-        </div>
-      `;
-    })
-    .join("");
-}
-
-function renderStudentBreakdown() {
-  const activeStudents = state.students.filter(
-    (student) => student.status === "Active"
-  );
-
-  const counts = LEVELS
-    .map((level) => ({
-      level,
-      count: activeStudents.filter(
-        (student) => student.level === level
-      ).length
-    }))
-    .filter((item) => item.count > 0);
-
-  text("donutTotal", activeStudents.length);
-
-  const donut = byId("studentDonut");
-  const legend = byId("studentBreakdownLegend");
-
-  if (!activeStudents.length) {
-    donut.style.background = "var(--ink-100)";
-    legend.innerHTML = `
-      <p class="muted">Add active students to see the level breakdown.</p>
-    `;
-    return;
-  }
-
-  let angle = 0;
-  const segments = [];
-
-  counts.forEach((item, index) => {
-    const degrees =
-      (item.count / activeStudents.length) * 360;
-
-    const start = angle;
-    const end = angle + degrees;
-    const colour =
-      CHART_COLOURS[index % CHART_COLOURS.length];
-
-    segments.push(
-      `${colour} ${start}deg ${end}deg`
-    );
-
-    angle = end;
-  });
-
-  donut.style.background =
-    `conic-gradient(${segments.join(",")})`;
-
-  legend.innerHTML = counts
-    .map((item, index) => `
-      <div class="legend-row">
-        <span
-          class="legend-dot"
-          style="background:${CHART_COLOURS[index % CHART_COLOURS.length]}"
-        ></span>
-        <span>${escapeHtml(item.level)}</span>
-        <strong>${item.count}</strong>
-      </div>
-    `)
-    .join("");
-}
-
-function renderRecentEnquiries() {
-  const container = byId("recentEnquiriesList");
-
-  const enquiries = [...state.enquiries]
-    .filter(
-      (enquiry) =>
-        !["Enrolled", "Lost"].includes(enquiry.status)
-    )
-    .sort((a, b) =>
-      String(b.created).localeCompare(String(a.created))
-    )
-    .slice(0, 5);
-
-  if (!enquiries.length) {
-    container.innerHTML = emptyState(
-      "No active enquiries."
-    );
-    return;
-  }
-
-  container.innerHTML = enquiries
-    .map((enquiry) => `
-      <div class="compact-item">
-        <div class="compact-avatar">
-          ${escapeHtml(getInitials(enquiry.name))}
-        </div>
-
-        <div class="compact-copy">
-          <strong>${escapeHtml(enquiry.name)}</strong>
-          <span>${escapeHtml(enquiry.course || "Course not specified")}</span>
-        </div>
-
-        ${statusBadge(enquiry.status)}
-      </div>
-    `)
-    .join("");
-}
-
-/* =========================================================
-   STUDENTS
-========================================================= */
-
-function renderStudents() {
-  const body = byId("studentsTableBody");
-
-  const query =
-    byId("studentSearch").value
-      .trim()
-      .toLowerCase();
-
-  const status =
-    byId("studentStatusFilter").value;
-
-  const level =
-    byId("studentLevelFilter").value;
-
-  const students = [...state.students]
-    .filter((student) => {
-      const haystack = [
-        student.firstName,
-        student.lastName,
-        student.email,
-        student.phone,
-        student.level,
-        getClass(student.classId)?.name
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      const matchesSearch =
-        !query || haystack.includes(query);
-
-      const matchesStatus =
-        status === "all" ||
-        student.status === status;
-
-      const matchesLevel =
-        level === "all" ||
-        student.level === level;
-
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesLevel
-      );
-    })
-    .sort((a, b) =>
-      `${a.lastName} ${a.firstName}`.localeCompare(
-        `${b.lastName} ${b.firstName}`
-      )
-    );
-
-  text(
-    "studentsTableCount",
-    `${students.length} student${students.length === 1 ? "" : "s"}`
-  );
-
-  if (!students.length) {
-    body.innerHTML = tableEmptyRow(
-      7,
-      query || status !== "all" || level !== "all"
-        ? "No students match these filters."
-        : "No students yet. Add your first student."
-    );
-    return;
-  }
-
-  body.innerHTML = students
-    .map((student) => {
-      const classRecord = getClass(student.classId);
-
-      return `
-        <tr>
-          <td>
-            <div class="student-cell">
-              <div class="student-avatar">
-                ${escapeHtml(
-                  getInitials(
-                    `${student.firstName} ${student.lastName}`
-                  )
-                )}
-              </div>
-
-              <div>
-                <strong>
-                  ${escapeHtml(student.firstName)}
-                  ${escapeHtml(student.lastName)}
-                </strong>
-                <span>
-                  ${student.dob
-                    ? `DOB ${escapeHtml(formatDate(student.dob))}`
-                    : "Date of birth not set"}
-                </span>
-              </div>
-            </div>
-          </td>
-
-          <td>
-            ${classRecord
-              ? escapeHtml(classRecord.name)
-              : '<span class="muted">Not assigned</span>'}
-          </td>
-
-          <td>
-            <strong>${escapeHtml(student.level || "—")}</strong>
-          </td>
-
-          <td>
-            <div class="contact-cell">
-              <span>${escapeHtml(student.phone || "—")}</span>
-              <span>${escapeHtml(student.email || "—")}</span>
-            </div>
-          </td>
-
-          <td>${statusBadge(student.status)}</td>
-
-          <td>
-            ${student.joined
-              ? escapeHtml(formatDate(student.joined))
-              : "—"}
-          </td>
-
-          <td class="table-actions-cell">
-            <div class="row-actions">
-              <button
-                class="row-action"
-                type="button"
-                data-edit-student="${student.id}"
-              >
-                Edit
-              </button>
-
-              <button
-                class="row-action delete"
-                type="button"
-                data-delete-student="${student.id}"
-              >
-                Delete
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
-
-  body
-    .querySelectorAll("[data-edit-student]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        openEditStudent(button.dataset.editStudent);
-      });
-    });
-
-  body
-    .querySelectorAll("[data-delete-student]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        deleteStudent(button.dataset.deleteStudent);
-      });
-    });
-}
-
-function openNewStudent() {
-  pendingConversionEnquiryId = "";
-  const conversionFields = byId("conversionEnrolmentFields");
-  if (conversionFields) conversionFields.hidden = true;
-  byId("studentForm").reset();
-  setValue("studentId", "");
-  setValue("studentJoined", isoDate(new Date()));
-  setValue("studentStatus", "Active");
-
-  populateStudentClassSelect();
-
-  text("studentModalTitle", "Add student");
-  openModal("studentModal");
-}
-
-function openEditStudent(id) {
-  pendingConversionEnquiryId = "";
-  const conversionFields = byId("conversionEnrolmentFields");
-  if (conversionFields) conversionFields.hidden = true;
-  const student = state.students.find(
-    (item) => item.id === id
-  );
-
-  if (!student) {
-    return;
-  }
-
-  populateStudentClassSelect();
-
-  setValue("studentId", student.id);
-  setValue("studentFirstName", student.firstName);
-  setValue("studentLastName", student.lastName);
-  setValue("studentEmail", student.email);
-  setValue("studentPhone", student.phone);
-  setValue("studentDob", student.dob);
-  setValue("studentLevel", student.level);
-  setValue("studentClass", student.classId);
-  setValue("studentStatus", student.status);
-  setValue("studentJoined", student.joined);
-  setValue("studentParent", student.parent);
-  setValue("studentNotes", student.notes);
-
-  text("studentModalTitle", "Edit student");
-  openModal("studentModal");
-}
-
-async function saveStudentForm(event) {
-  event.preventDefault();
-  const id=value("studentId").trim();
-  const firstName=value("studentFirstName").trim();
-  const lastName=value("studentLastName").trim();
-  const isConversion=!id && Boolean(pendingConversionEnquiryId);
-  const classId=value("studentClass");
-  if(!firstName||!lastName){showToast("First name and surname are required.","error");return;}
-  if(isConversion&&!classId){showToast("Choose a class before completing enrolment.","error");return;}
-
-  const schoolYear=String(byId("conversionSchoolYear")?.value||"2026-27").trim();
-  const courseFee=Number(byId("conversionCourseFee")?.value||0);
-  const discount=Number(byId("conversionDiscount")?.value||0);
-  const paymentPlan=String(byId("conversionPaymentPlan")?.value||"3 instalments");
-  if(isConversion&&courseFee<=0){showToast("Enter the agreed course fee.","error");return;}
-  if(isConversion&&(discount<0||discount>courseFee)){showToast("Check the discount amount.","error");return;}
-
-  const button=byId("studentForm")?.querySelector('button[type="submit"]');
-  const oldLabel=button?.textContent||(id?"Save changes":"Save student");
-  if(button){button.disabled=true;button.textContent=isConversion?"Completing enrolment…":"Saving…";}
-
-  const fields={"First Name":firstName,"Surname":lastName,"Email":value("studentEmail").trim(),"Phone":value("studentPhone").trim(),"Date of Birth":value("studentDob"),"Level":value("studentLevel"),"Class":classId,"Status":value("studentStatus")||"Active","Joined":value("studentJoined")||isoDate(new Date()),"Parent / Guardian":value("studentParent").trim(),"Notes":value("studentNotes").trim()};
-
-  try{
-    const result=await llsApiPost(id?{action:"updateStudent",studentId:id,fields}:{action:"createStudent",fields});
-    const studentId=String(result.studentId||id||"").trim();
-    if(!studentId) throw new Error("Student saved but no Student ID was returned.");
-
-    if(isConversion){
-      const enquiry=state.enquiries.find(item=>item.id===pendingConversionEnquiryId);
-      if(!enquiry) throw new Error("Original enquiry could not be found.");
-
-      const enrolment=await llsApiPost({action:"createEnrolment",studentId,classId,schoolYear,startDate:value("studentJoined")||isoDate(new Date())});
-      await llsApiPost({action:"createFee",fields:{"Student ID":studentId,"Enrolment ID":enrolment.enrolmentId||"","School Year":schoolYear,"Course Fee":courseFee,"Discount":discount,"Amount Due":Math.max(0,courseFee-discount),"Payment Plan":paymentPlan,"Status":"Open","Notes":`Created from enquiry ${enquiry.id}.`}});
-
-      await llsApiPost({action:"updateEnquiry",enquiryId:enquiry.id,fields:{"Name":enquiry.name,"Age":enquiry.age,"Phone":enquiry.phone,"Email":enquiry.email,"Course":enquiry.course,"Source":enquiry.source,"Stage":"Enrolled","Follow-up":"","Enquiry Date":enquiry.created,"Level Result":enquiry.finalLevel||enquiry.levelResult||"","Trial Requested":enquiry.trialDate?"Yes":(enquiry.trialRequested||""),"Notes":[enquiry.notes||"",enquiry.trialDate?`Placement/Trial date: ${enquiry.trialDate}`:"",enquiry.assessment?`Teacher assessment: ${enquiry.assessment}`:"",`Student created: ${studentId}`,enrolment.enrolmentId?`Enrolment created: ${enrolment.enrolmentId}`:""].filter(Boolean).join("\n")}});
-    }
-
-    pendingConversionEnquiryId="";
-    closeModal("studentModal");
-    await Promise.all([llsLoadStudentsFromSheets(),llsLoadEnquiriesFromSheets()]);
-    renderAll();
-    showToast(isConversion?"Student enrolled: class enrolment and fee account created.":id?"Student updated in Google Sheets.":`Student ${studentId} created in Google Sheets.`,"success");
-  }catch(error){
-    console.error("LLS student/enrolment save failed:",error);
-    showToast(error?.message||"Could not complete enrolment.","error");
-  }finally{
-    if(button){button.disabled=false;button.textContent=oldLabel;}
-  }
-}
-
-function deleteStudent(id) {
-  const student = state.students.find(
-    (item) => item.id === id
-  );
-
-  if (!student) {
-    return;
-  }
-
-  openConfirm(
-    "Delete student?",
-    `Delete ${student.firstName} ${student.lastName}? The student record will be removed from this browser.`,
-    () => {
-      state.students = state.students.filter(
-        (item) => item.id !== id
-      );
-
-      saveState();
-      renderAll();
-      showToast("Student deleted.", "success");
-    }
-  );
-}
-
-/* =========================================================
-   CLASSES
-========================================================= */
-
-function renderClasses() {
-  const container = byId("classGrid");
-
-  const query =
-    byId("classSearch").value
-      .trim()
-      .toLowerCase();
-
-  const day = byId("classDayFilter").value;
-
-  const classes = [...state.classes]
-    .filter((item) => {
-      const teacher = getTeacher(item.teacherId) || (item.teacherName ? { name: item.teacherName } : null);
-
-      const haystack = [
-        item.name,
-        item.level,
-        item.day,
-        item.room,
-        teacher?.name
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return (
-        (!query || haystack.includes(query)) &&
-        (day === "all" || item.day === day)
-      );
-    })
-    .sort((a, b) => {
-      const dayDiff =
-        dayIndex(a.day) - dayIndex(b.day);
-
-      if (dayDiff !== 0) {
-        return dayDiff;
+      nav {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 82px;
+        background: white;
+        padding: 20px 5%;
+        flex-direction: column;
+        align-items: stretch;
+        border-bottom: 1px solid var(--line);
+        display: none;
       }
 
-      return a.time.localeCompare(b.time);
-    });
+      nav.open {
+        display: flex;
+      }
 
-  if (!classes.length) {
-    container.innerHTML = emptyState(
-      query || day !== "all"
-        ? "No classes match these filters."
-        : "No classes yet. Create your first class."
-    );
-    return;
-  }
+      .brand {
+        min-width: auto;
+      }
 
-  container.innerHTML = classes
-    .map((item) => {
-      const teacher = getTeacher(item.teacherId) || (item.teacherName ? { name: item.teacherName } : null);
-      const students = getClassStudents(item.id);
-      const capacity = Math.max(
-        1,
-        number(item.capacity) || 1
-      );
+      .hero-grid,
+      .about-grid,
+      .study-abroad-grid,
+      .reviews-panel,
+      .contact-grid,
+      .payments-box {
+        grid-template-columns: 1fr;
+      }
 
-      const capacityPercentage = Math.min(
-        100,
-        (students.length / capacity) * 100
-      );
+      .hero-visual {
+        min-height: 500px;
+      }
 
-      return `
-        <article class="class-card">
-          <div class="class-card-top">
-            <span class="class-level">
-              ${escapeHtml(item.level)}
-            </span>
+      .about-box {
+        position: static;
+      }
 
-            <div class="card-action-menu">
-              <button
-                class="row-action"
-                type="button"
-                data-edit-class="${item.id}"
-              >
-                Edit
-              </button>
+      .cards,
+      .gallery-grid {
+        grid-template-columns: 1fr;
+      }
 
-              <button
-                class="row-action delete"
-                type="button"
-                data-delete-class="${item.id}"
-              >
-                ×
-              </button>
-            </div>
-          </div>
+      .study-points {
+        grid-template-columns: 1fr;
+      }
 
-          <h3>${escapeHtml(item.name)}</h3>
+      .payments-action {
+        justify-content: flex-start;
+      }
 
-          <div class="class-teacher">
-            ${escapeHtml(
-              teacher?.name ||
-              "Teacher not assigned"
-            )}
-          </div>
-
-          <div class="class-details">
-            <div class="class-detail">
-              <span>Day</span>
-              <strong>${escapeHtml(item.day)}</strong>
-            </div>
-
-            <div class="class-detail">
-              <span>Time</span>
-              <strong>${escapeHtml(formatTime(item.time))}</strong>
-            </div>
-
-            <div class="class-detail">
-              <span>Duration</span>
-              <strong>${number(item.duration) || 0} min</strong>
-            </div>
-
-            <div class="class-detail">
-              <span>Room</span>
-              <strong>${escapeHtml(item.room || "—")}</strong>
-            </div>
-          </div>
-
-          <div class="capacity-wrap">
-            <div class="capacity-label">
-              <span>Class capacity</span>
-              <strong>
-                ${students.length} / ${capacity}
-              </strong>
-            </div>
-
-            <div class="capacity-bar">
-              <div style="width:${capacityPercentage}%"></div>
-            </div>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
-
-  container
-    .querySelectorAll("[data-edit-class]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        openEditClass(button.dataset.editClass);
-      });
-    });
-
-  container
-    .querySelectorAll("[data-delete-class]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        deleteClass(button.dataset.deleteClass);
-      });
-    });
-}
-
-function openNewClass() {
-  byId("classForm").reset();
-  setValue("classId", "");
-  setValue("classSchoolYear", "2026-27");
-  setValue("classCapacity", "10");
-  setValue("classStatus", "Active");
-  text("classModalTitle", "Create class");
-  openModal("classModal");
-}
-
-function openEditClass(id) {
-  const item = state.classes.find((entry) => entry.id === id);
-  if (!item) return;
-
-  setValue("classId", item.id);
-  setValue("className", item.name);
-  setValue("classSchoolYear", item.schoolYear || "2026-27");
-  setValue("classLevel", item.level);
-  setValue("classTeacher", item.teacherName || item.teacherId || "");
-  setValue("classDay", item.day);
-  setValue("classTime", item.time);
-  setValue("classDay2", item.day2 || "");
-  setValue("classTime2", item.time2 || "");
-  setValue("classRoom", item.room);
-  setValue("classCapacity", item.capacity || 10);
-  setValue("classRegisterSheet", item.registerSheet || "");
-  setValue("classStatus", item.status || "Active");
-
-  text("classModalTitle", "Edit class");
-  openModal("classModal");
-}
-
-async function saveClassForm(event) {
-  event.preventDefault();
-
-  const id = value("classId").trim();
-  const className = value("className").trim();
-  const schoolYear = value("classSchoolYear").trim() || "2026-27";
-  const capacity = Number(value("classCapacity") || 10);
-
-  if (!className) {
-    showToast("Class name is required.", "error");
-    return;
-  }
-
-  if (capacity < 1) {
-    showToast("Class capacity must be at least 1.", "error");
-    return;
-  }
-
-  const submitButton = byId("classForm")?.querySelector('button[type="submit"]');
-  const oldLabel = submitButton?.textContent || "Save class";
-
-  if (submitButton) {
-    submitButton.disabled = true;
-    submitButton.textContent = "Saving…";
-  }
-
-  const fields = {
-    "Class Name": className,
-    "School Year": schoolYear,
-    "Level": value("classLevel"),
-    "Teacher": value("classTeacher").trim(),
-    "Day": value("classDay"),
-    "Time": value("classTime"),
-    "Room": value("classRoom").trim(),
-    "Capacity": capacity,
-    "Register Sheet": value("classRegisterSheet").trim(),
-    "Status": value("classStatus") || "Active"
-  };
-
-  try {
-    await llsApiPost(
-      id
-        ? { action: "updateClass", classId: id, fields }
-        : { action: "createClass", fields }
-    );
-
-    closeModal("classModal");
-    await llsLoadClassesFromSheets();
-    renderAll();
-
-    showToast(
-      id ? "Class updated in Google Sheets." : "Class created in Google Sheets.",
-      "success"
-    );
-  } catch (error) {
-    console.error("LLS class save failed:", error);
-    showToast(
-      "Could not save the class. Nothing was changed.",
-      "error"
-    );
-  } finally {
-    if (submitButton) {
-      submitButton.disabled = false;
-      submitButton.textContent = oldLabel;
+      .cta-inner,
+      .footer-inner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
-  }
-}
 
-function deleteClass(id) {
-  const item = getClass(id);
+    @media (max-width: 680px) {
+      section {
+        padding: 68px 0;
+      }
 
-  if (!item) {
-    return;
-  }
+      .navbar {
+        min-height: 74px;
+      }
 
-  const studentCount =
-    getClassStudents(id).length;
+      nav {
+        top: 74px;
+      }
 
-  openConfirm(
-    "Delete class?",
-    studentCount
-      ? `${item.name} currently has ${studentCount} student record${studentCount === 1 ? "" : "s"} assigned. Deleting the class will leave those students unassigned.`
-      : `Delete ${item.name}?`,
-    () => {
-      state.classes = state.classes.filter(
-        (record) => record.id !== id
-      );
+      .brand span {
+        display: none;
+      }
 
-      state.students = state.students.map(
-        (student) => ({
-          ...student,
-          classId:
-            student.classId === id
-              ? ""
-              : student.classId
-        })
-      );
+      .brand img {
+        width: 54px;
+        height: 54px;
+      }
 
-      saveState();
-      renderAll();
-      showToast("Class deleted.", "success");
+      .hero {
+        padding: 54px 0 28px;
+      }
+
+      .hero h1 {
+        font-size: clamp(3rem, 15vw, 4.5rem);
+      }
+
+      .hero-visual {
+        min-height: 420px;
+      }
+
+      .hero-photo {
+        height: 400px;
+        border-radius: 28px 28px 64px 28px;
+      }
+
+      .hero-note {
+        right: 2px;
+        top: 30px;
+        font-size: 0.9rem;
+      }
+
+      .hero-tag {
+        left: 8px;
+        bottom: 12px;
+        font-size: 0.88rem;
+      }
+
+      .hero-buttons .button {
+        width: 100%;
+      }
+
+      .hero-start-button {
+        min-width: 0;
+        min-height: 56px;
+        font-size: 1rem;
+      }
+
+      .hero-proof {
+        display: grid;
+      }
+
+      .about-gallery {
+        grid-template-columns: 1fr;
+      }
+
+      .about-gallery img {
+        height: 260px;
+      }
+
+      .payments-box,
+      .study-abroad-card,
+      .contact-card,
+      .social-box,
+      .reviews-score,
+      .reviews-message {
+        padding: 26px;
+      }
     }
-  );
-}
+  </style>
+</head>
 
-/* =========================================================
-   ATTENDANCE
-========================================================= */
+<body>
 
-function populateAttendanceClassSelect() {
-  const select = byId("attendanceClassSelect");
-  const current = select.value;
+  <header>
+    <div class="container navbar">
 
-  if (!state.classes.length) {
-    select.innerHTML =
-      `<option value="">No classes available</option>`;
-    return;
-  }
+      <a href="#home" class="brand">
+        <img src="logo.png" alt="London Language School logo">
+        <span>London Language School</span>
+      </a>
 
-  select.innerHTML = state.classes
-    .map((item) => `
-      <option value="${escapeAttribute(item.id)}">
-        ${escapeHtml(item.name)} — ${escapeHtml(item.level)}
-      </option>
-    `)
-    .join("");
+      <button class="menu-button" onclick="toggleMenu()" aria-label="Open menu">
+        ☰
+      </button>
 
-  if (
-    current &&
-    state.classes.some((item) => item.id === current)
-  ) {
-    select.value = current;
-  }
-}
+      <nav id="nav">
+        <a href="#home">Home</a>
+        <a href="#courses">Corsi</a> <a href="#schools">Scuole</a>
+        <a href="#about">Chi siamo</a>
+        <a href="#gallery">Galleria</a>
+        <a href="portal.html">⭐ My LLS Student Portal</a>
+        <a href="#contact">Contatti</a>
 
-function renderAttendance() {
-  populateAttendanceClassSelect();
+        <div class="language-switcher">
+          <button type="button" class="lang-btn active" data-lang="it">IT</button>
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        </div>
 
-  const classId =
-    value("attendanceClassSelect");
+        <a
+          class="nav-cta"
+          href="https://wa.me/393791533754?text=Ciao%20London%20Language%20School%2C%20vorrei%20informazioni%20sui%20vostri%20corsi."
+          target="_blank"
+          rel="noopener"
+        >
+          Scrivici su WhatsApp
+        </a>
+      </nav>
+    </div>
+  </header>
 
-  const date =
-    value("attendanceDate");
+  <main>
 
-  const body =
-    byId("attendanceTableBody");
+    <!-- HERO -->
+    <section class="hero" id="home">
+      <div class="container hero-grid">
 
-  if (!classId) {
-    body.innerHTML = tableEmptyRow(
-      4,
-      "Create a class before recording attendance."
-    );
+        <div>
+          <div class="eyebrow">London Language School · Scuola di inglese a Bagheria</div>
 
-    updateAttendanceSummary([]);
-    return;
-  }
+          <h1>
+            L’inglese prende <span>vita.</span>
+          </h1>
 
-  const students = getClassStudents(classId)
-    .filter((student) => student.status === "Active")
-    .sort((a, b) =>
-      a.lastName.localeCompare(b.lastName)
-    );
+          <p class="hero-copy">
+            Corsi coinvolgenti per bambini, ragazzi e adulti.
+            <strong>Impara. Parla. Cresci.</strong>
+            <span class="tagline">We make English fun!</span>
+          </p>
 
-  const key = attendanceKey(classId, date);
-  const savedAttendance =
-    state.attendance[key] || {};
-
-  attendanceDraft = {};
-
-  students.forEach((student) => {
-    attendanceDraft[student.id] =
-      savedAttendance[student.id] || "Present";
-  });
-
-  if (!students.length) {
-    body.innerHTML = tableEmptyRow(
-      4,
-      "No active students are assigned to this class."
-    );
-
-    updateAttendanceSummary([]);
-    return;
-  }
-
-  body.innerHTML = students
-    .map((student) => {
-      const current =
-        attendanceDraft[student.id];
-
-      return `
-        <tr>
-          <td>
-            <div class="student-cell">
-              <div class="student-avatar">
-                ${escapeHtml(
-                  getInitials(
-                    `${student.firstName} ${student.lastName}`
-                  )
-                )}
-              </div>
-
-              <div>
-                <strong>
-                  ${escapeHtml(student.firstName)}
-                  ${escapeHtml(student.lastName)}
-                </strong>
-              </div>
-            </div>
-          </td>
-
-          <td>
-            <strong>${escapeHtml(student.level)}</strong>
-          </td>
-
-          <td>
-            <div class="attendance-choice">
-              ${attendanceButton(
-                student.id,
-                "Present",
-                current
-              )}
-              ${attendanceButton(
-                student.id,
-                "Absent",
-                current
-              )}
-              ${attendanceButton(
-                student.id,
-                "Late",
-                current
-              )}
-            </div>
-          </td>
-
-          <td>
-            <span
-              id="attendance-status-${student.id}"
+          <div class="hero-buttons hero-buttons-primary">
+            <button
+              class="button button-red hero-start-button"
+              type="button"
+              id="startJourneyButton"
+              onclick="openLeadJourney()"
             >
-              ${statusBadge(current)}
-            </span>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
-
-  body
-    .querySelectorAll("[data-attendance-student]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        const studentId =
-          button.dataset.attendanceStudent;
-
-        const status =
-          button.dataset.attendanceStatus;
-
-        attendanceDraft[studentId] = status;
-
-        renderAttendanceChoiceState(
-          studentId,
-          status
-        );
-
-        updateAttendanceSummary(students);
-      });
-    });
-
-  updateAttendanceSummary(students);
-}
-
-function attendanceButton(studentId, status, current) {
-  const selectedClass =
-    current === status
-      ? `selected-${slug(status)}`
-      : "";
-
-  return `
-    <button
-      class="${selectedClass}"
-      type="button"
-      data-attendance-student="${escapeAttribute(studentId)}"
-      data-attendance-status="${escapeAttribute(status)}"
-    >
-      ${escapeHtml(status)}
-    </button>
-  `;
-}
-
-function renderAttendanceChoiceState(studentId, status) {
-  document
-    .querySelectorAll(
-      `[data-attendance-student="${cssEscape(studentId)}"]`
-    )
-    .forEach((button) => {
-      button.classList.remove(
-        "selected-present",
-        "selected-absent",
-        "selected-late"
-      );
-
-      if (
-        button.dataset.attendanceStatus === status
-      ) {
-        button.classList.add(
-          `selected-${slug(status)}`
-        );
-      }
-    });
-
-  const badge = byId(
-    `attendance-status-${studentId}`
-  );
-
-  if (badge) {
-    badge.innerHTML = statusBadge(status);
-  }
-}
-
-function updateAttendanceSummary(students) {
-  const total = students.length;
-
-  const statuses = students.map(
-    (student) =>
-      attendanceDraft[student.id] || "Present"
-  );
-
-  const present = statuses.filter(
-    (status) =>
-      status === "Present" ||
-      status === "Late"
-  ).length;
-
-  const absent = statuses.filter(
-    (status) => status === "Absent"
-  ).length;
-
-  const rate =
-    total > 0
-      ? Math.round((present / total) * 100)
-      : 0;
-
-  text("attendanceTotal", total);
-  text("attendancePresent", present);
-  text("attendanceAbsent", absent);
-  text("attendanceRate", `${rate}%`);
-}
-
-function saveAttendance() {
-  const classId =
-    value("attendanceClassSelect");
-
-  const date =
-    value("attendanceDate");
-
-  if (!classId || !date) {
-    showToast(
-      "Choose a class and lesson date.",
-      "error"
-    );
-    return;
-  }
-
-  const key =
-    attendanceKey(classId, date);
-
-  state.attendance[key] = {
-    ...attendanceDraft
-  };
-
-  saveState();
-  renderNotifications();
-
-  showToast(
-    "Attendance saved.",
-    "success"
-  );
-}
-
-/* =========================================================
-   PAYMENTS
-========================================================= */
-
-function renderPayments() {
-  const body = byId("paymentsTableBody");
-
-  const query =
-    value("paymentSearch")
-      .trim()
-      .toLowerCase();
-
-  const filterStatus =
-    value("paymentStatusFilter");
-
-  const payments = [...state.payments]
-    .filter((payment) => {
-      const student =
-        getStudent(payment.studentId);
-
-      const status =
-        paymentStatus(payment);
-
-      const haystack = [
-        getStudentName(student),
-        payment.description,
-        payment.method,
-        status
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return (
-        (!query || haystack.includes(query)) &&
-        (filterStatus === "all" ||
-          status === filterStatus)
-      );
-    })
-    .sort((a, b) =>
-      String(b.date).localeCompare(String(a.date))
-    );
-
-  updateFinanceStats();
-
-  if (!payments.length) {
-    body.innerHTML = tableEmptyRow(
-      8,
-      query || filterStatus !== "all"
-        ? "No payments match these filters."
-        : "No payment records yet."
-    );
-    return;
-  }
-
-  body.innerHTML = payments
-    .map((payment) => {
-      const student =
-        getStudent(payment.studentId);
-
-      const fee = number(payment.fee);
-      const paid = number(payment.paid);
-      const balance = Math.max(
-        0,
-        fee - paid
-      );
-
-      const status =
-        paymentStatus(payment);
-
-      return `
-        <tr>
-          <td>
-            <strong>
-              ${escapeHtml(
-                getStudentName(student) ||
-                "Student removed"
-              )}
-            </strong>
-          </td>
-
-          <td>${escapeHtml(payment.description || "—")}</td>
-
-          <td>${formatMoney(fee)}</td>
-
-          <td>
-            <strong>${formatMoney(paid)}</strong>
-          </td>
-
-          <td>
-            ${formatMoney(balance)}
-          </td>
-
-          <td>
-            ${payment.date
-              ? escapeHtml(formatDate(payment.date))
-              : "—"}
-          </td>
-
-          <td>
-            ${statusBadge(status)}
-          </td>
-
-          <td class="table-actions-cell">
-            <div class="row-actions">
-              <button
-                class="row-action"
-                type="button"
-                data-edit-payment="${payment.id}"
-              >
-                Edit
-              </button>
-
-              <button
-                class="row-action delete"
-                type="button"
-                data-delete-payment="${payment.id}"
-              >
-                Delete
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
-
-  body
-    .querySelectorAll("[data-edit-payment]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        openEditPayment(button.dataset.editPayment);
-      });
-    });
-
-  body
-    .querySelectorAll("[data-delete-payment]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        deletePayment(button.dataset.deletePayment);
-      });
-    });
-}
-
-function updateFinanceStats() {
-  const totalFees = sum(
-    state.payments.map((payment) =>
-      number(payment.fee)
-    )
-  );
-
-  const collected = sum(
-    state.payments.map((payment) =>
-      number(payment.paid)
-    )
-  );
-
-  const outstanding =
-    Math.max(0, totalFees - collected);
-
-  const rate =
-    totalFees > 0
-      ? Math.round(
-          Math.min(
-            100,
-            (collected / totalFees) * 100
-          )
-        )
-      : 0;
-
-  text(
-    "financeTotalFees",
-    formatMoney(totalFees)
-  );
-
-  text(
-    "financeCollected",
-    formatMoney(collected)
-  );
-
-  text(
-    "financeOutstanding",
-    formatMoney(outstanding)
-  );
-
-  text(
-    "financeRate",
-    `${rate}%`
-  );
-}
-
-function openNewPayment() {
-  if (!state.students.length) {
-    showToast(
-      "Add a student before recording a payment.",
-      "error"
-    );
-
-    navigateTo("students");
-    return;
-  }
-
-  byId("paymentForm").reset();
-
-  setValue("paymentId", "");
-  setValue("paymentDate", isoDate(new Date()));
-  setValue("paymentMethod", "Cash");
-
-  populatePaymentStudentSelect();
-
-  text(
-    "paymentModalTitle",
-    "Record payment"
-  );
-
-  openModal("paymentModal");
-}
-
-function openEditPayment(id) {
-  const payment = state.payments.find(
-    (item) => item.id === id
-  );
-
-  if (!payment) {
-    return;
-  }
-
-  populatePaymentStudentSelect();
-
-  setValue("paymentId", payment.id);
-  setValue("paymentStudent", payment.studentId);
-  setValue("paymentDescription", payment.description);
-  setValue("paymentFee", payment.fee);
-  setValue("paymentPaid", payment.paid);
-  setValue("paymentDate", payment.date);
-  setValue("paymentMethod", payment.method);
-  setValue("paymentNotes", payment.notes);
-
-  text(
-    "paymentModalTitle",
-    "Edit payment"
-  );
-
-  openModal("paymentModal");
-}
-
-function savePaymentForm(event) {
-  event.preventDefault();
-
-  const id = value("paymentId");
-  const fee = number(value("paymentFee"));
-  const paid = number(value("paymentPaid"));
-
-  if (!value("paymentStudent")) {
-    showToast(
-      "Select a student.",
-      "error"
-    );
-    return;
-  }
-
-  if (fee < 0 || paid < 0) {
-    showToast(
-      "Payment amounts cannot be negative.",
-      "error"
-    );
-    return;
-  }
-
-  const record = {
-    id: id || makeId("payment"),
-    studentId: value("paymentStudent"),
-    description:
-      value("paymentDescription").trim(),
-    fee,
-    paid,
-    date: value("paymentDate"),
-    method: value("paymentMethod"),
-    notes: value("paymentNotes").trim()
-  };
-
-  if (id) {
-    state.payments = state.payments.map(
-      (payment) =>
-        payment.id === id
-          ? record
-          : payment
-    );
-  } else {
-    state.payments.push(record);
-  }
-
-  saveState();
-  closeModal("paymentModal");
-  renderAll();
-
-  showToast(
-    id
-      ? "Payment updated."
-      : "Payment recorded.",
-    "success"
-  );
-}
-
-function deletePayment(id) {
-  const payment = state.payments.find(
-    (item) => item.id === id
-  );
-
-  if (!payment) {
-    return;
-  }
-
-  openConfirm(
-    "Delete payment record?",
-    "This payment record will be permanently removed from the portal data stored in this browser.",
-    () => {
-      state.payments = state.payments.filter(
-        (item) => item.id !== id
-      );
-
-      saveState();
-      renderAll();
-      showToast(
-        "Payment deleted.",
-        "success"
-      );
-    }
-  );
-}
-
-function paymentStatus(payment) {
-  const fee = number(payment.fee);
-  const paid = number(payment.paid);
-
-  if (fee <= 0 || paid >= fee) {
-    return "Paid";
-  }
-
-  if (paid > 0) {
-    return "Part-paid";
-  }
-
-  return "Due";
-}
-
-/* =========================================================
-   ENQUIRIES
-========================================================= */
-
-function renderEnquiries() {
-  const body = byId("enquiriesTableBody");
-
-  const query =
-    value("enquirySearch")
-      .trim()
-      .toLowerCase();
-
-  const statusFilter =
-    value("enquiryStatusFilter");
-
-  const enquiries = [...state.enquiries]
-    .filter((enquiry) => {
-      const haystack = [
-        enquiry.name,
-        enquiry.phone,
-        enquiry.email,
-        enquiry.course,
-        enquiry.source,
-        enquiry.status
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return (
-        (!query || haystack.includes(query)) &&
-        (statusFilter === "all" ||
-          enquiry.status === statusFilter)
-      );
-    })
-    .sort((a, b) =>
-      String(b.created).localeCompare(String(a.created))
-    );
-
-  renderPipeline();
-
-  if (!enquiries.length) {
-    body.innerHTML = tableEmptyRow(
-      8,
-      query || statusFilter !== "all"
-        ? "No enquiries match these filters."
-        : "No enquiries yet."
-    );
-  } else {
-    body.innerHTML = enquiries
-      .map((enquiry) => `
-        <tr>
-          <td>
-            <div class="student-cell">
-              <div class="student-avatar">
-                ${escapeHtml(getInitials(enquiry.name))}
-              </div>
-
+              INIZIA DA QUI
+            </button>
+          </div>
+
+          <div class="hero-proof">
+            <a
+              class="proof-chip"
+              href="https://www.google.com/maps/search/?api=1&query=London+Language+School+Via+Bernardo+Mattarella+167%2F1+Bagheria"
+              target="_blank"
+              rel="noopener"
+            >
               <div>
-                <strong>${escapeHtml(enquiry.name)}</strong>
-                <span>
-                  ${enquiry.age
-                    ? `Age ${escapeHtml(enquiry.age)}`
-                    : "Age not recorded"}
-                </span>
+                <div class="proof-stars">★★★★★</div>
+                <strong>5.0 su Google</strong>
+                <span>40 recensioni</span>
               </div>
-            </div>
-          </td>
+            </a>
 
-          <td>
-            ${escapeHtml(enquiry.course || "—")}
-          </td>
-
-          <td>
-            <div class="contact-cell">
-              <span>${escapeHtml(enquiry.phone || "—")}</span>
-              <span>${escapeHtml(enquiry.email || "—")}</span>
-            </div>
-          </td>
-
-          <td>
-            ${escapeHtml(enquiry.source || "—")}
-          </td>
-
-          <td>
-            ${statusBadge(enquiry.status)}
-          </td>
-
-          <td>
-            ${enquiry.followup
-              ? followUpCell(enquiry.followup)
-              : '<span class="muted">Not set</span>'}
-          </td>
-
-          <td>
-            ${enquiry.created
-              ? escapeHtml(formatDate(enquiry.created))
-              : "—"}
-          </td>
-
-          <td class="table-actions-cell">
-            <div class="row-actions">
-              <button
-                class="row-action"
-                type="button"
-                data-edit-enquiry="${enquiry.id}"
+            <div class="proof-chip cambridge-mini">
+              <img
+                src="cambridge.jpg"
+                alt="Cambridge English Preparation Centre"
               >
-                Edit
-              </button>
-
-              ${enquiry.status === "Enrolled" ? `
-              <span class="row-action" style="cursor:default; opacity:.75;">
-                ✓ Student created
-              </span>` : ["Placement/Trial Completed", "Course Offered"].includes(enquiry.status) ? `
-              <button
-                class="row-action"
-                type="button"
-                data-convert-enquiry="${enquiry.id}"
-              >
-                Convert to Student
-              </button>` : ""}
-
-              <button
-                class="row-action delete"
-                type="button"
-                data-delete-enquiry="${enquiry.id}"
-              >
-                Delete
-              </button>
             </div>
-          </td>
-        </tr>
-      `)
-      .join("");
-
-    body
-      .querySelectorAll("[data-edit-enquiry]")
-      .forEach((button) => {
-        button.addEventListener("click", () => {
-          openEditEnquiry(
-            button.dataset.editEnquiry
-          );
-        });
-      });
-
-    body
-      .querySelectorAll("[data-convert-enquiry]")
-      .forEach((button) => {
-        button.addEventListener("click", () => {
-          convertEnquiryToStudent(button.dataset.convertEnquiry);
-        });
-      });
-
-    body
-      .querySelectorAll("[data-delete-enquiry]")
-      .forEach((button) => {
-        button.addEventListener("click", () => {
-          deleteEnquiry(
-            button.dataset.deleteEnquiry
-          );
-        });
-      });
-  }
-
-  updateEnquiryBadge();
-}
-
-function renderPipeline() {
-  const container = byId("enquiryPipeline");
-
-  container.innerHTML = ENQUIRY_STAGES
-    .map((stage) => {
-      const count = state.enquiries.filter(
-        (enquiry) => enquiry.status === stage
-      ).length;
-
-      return `
-        <div class="pipeline-step">
-          <span>${escapeHtml(stage)}</span>
-          <strong>${count}</strong>
+          </div>
         </div>
-      `;
-    })
-    .join("");
+
+        <div class="hero-visual">
+          <img
+            class="hero-photo"
+          src="hero.jpg"
+            alt="Studenti alla London Language School Bagheria"
+          >
+          <div class="hero-note">Real English.<br>Real confidence.</div>
+          <div class="hero-tag">English comes alive.</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- BENEFITS -->
+    <section class="benefits">
+      <div class="container">
+
+        <div class="section-heading">
+          <small>Non solo lezioni di inglese</small>
+          <h2>Imparare l’inglese deve fare la differenza.</h2>
+          <p>
+            Il nostro obiettivo non è solo studiare l’inglese,
+            ma aiutare ogni studente a usarlo con sicurezza nella vita reale.
+          </p>
+        </div>
+
+        <div class="cards">
+          <article class="card">
+            <div class="card-icon">💬</div>
+            <h3>Parla con più sicurezza</h3>
+            <p>
+              Più conversazione e comunicazione reale per superare
+              la paura di parlare inglese.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon">🚀</div>
+            <h3>Fai progressi reali</h3>
+            <p>
+              Un percorso coinvolgente che aiuta a trasformare
+              quello che impari in qualcosa che sai davvero usare.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon">❤️</div>
+            <h3>Impara con piacere</h3>
+            <p>
+              Lezioni dinamiche e coinvolgenti per rendere
+              l’inglese qualcosa da vivere, non solo da studiare.
+            </p>
+          </article>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- COURSES -->
+    <section class="courses" id="courses">
+      <div class="container">
+
+        <div class="section-heading">
+          <small>I nostri corsi</small>
+          <h2>Inglese per ogni età.</h2>
+          <p>
+            Percorsi pensati per aiutare bambini, ragazzi e adulti a comunicare
+            con sicurezza e a usare davvero l’inglese.
+          </p>
+        </div>
+
+        <div class="cards">
+          <article class="card">
+            <div class="card-icon">★</div>
+            <h3>Bambini</h3>
+            <p>
+              Inglese attraverso giochi, movimento e comunicazione reale.
+              Lezioni coinvolgenti per imparare con naturalezza e sicurezza.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon">🎓</div>
+            <h3>Ragazzi</h3>
+            <p>
+              Più sicurezza nel parlare, supporto per la scuola e inglese utile
+              nella vita reale, con un approccio pratico e comunicativo.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon">💬</div>
+            <h3>Adulti</h3>
+            <p>
+              Corsi pratici per comunicazione, lavoro, viaggi e vita quotidiana,
+              con particolare attenzione alla sicurezza nel parlare.
+            </p>
+          </article>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FLEXIBLE PAYMENTS -->
+    <section class="flexible-payments" id="payments">
+      <div class="container">
+
+        <div class="payments-box">
+
+          <div class="payments-content">
+            <span class="payments-kicker">Pagamenti flessibili</span>
+            <h3>Più semplice iniziare. Più facile organizzarsi.</h3>
+            <p>
+              Per i nostri corsi di inglese a Bagheria sono disponibili
+              soluzioni di pagamento flessibili, anche in comode rate.
+            </p>
+
+            <div class="payment-points">
+              <div>✓ Pagamenti distribuiti nel tempo</div>
+              <div>✓ Soluzioni disponibili per diversi corsi</div>
+              <div>✓ Informazioni chiare prima dell’iscrizione</div>
+            </div>
+          </div>
+
+          <div class="payments-action">
+            <a
+              class="button button-red"
+              href="https://wa.me/393791533754?text=Ciao%20London%20Language%20School%2C%20vorrei%20informazioni%20sui%20pagamenti%20flessibili%20per%20i%20vostri%20corsi."
+              target="_blank"
+              rel="noopener"
+            >
+              Chiedi informazioni
+            </a>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+<!-- SCHOOLS -->
+<section class="schools-section" id="schools">
+  <div class="container">
+
+    <div class="section-heading">
+      <small>Per le scuole</small>
+      <h2>Collaboriamo con le scuole del territorio.</h2>
+      <p>
+        Percorsi di inglese progettati su misura per studenti, docenti
+        e istituti scolastici, in base agli obiettivi e alle esigenze
+        della scuola.
+      </p>
+    </div>
+
+    <div class="schools-grid">
+
+      <article class="school-card">
+        <div class="school-icon">💬</div>
+        <h3>General English</h3>
+        <p>
+          Percorsi pratici e comunicativi per sviluppare sicurezza,
+          comprensione e uso reale della lingua inglese.
+        </p>
+      </article>
+
+      <article class="school-card">
+        <div class="school-icon">🎓</div>
+        <h3>Preparazione esami</h3>
+        <p>
+          Preparazione Cambridge English e percorsi mirati per aiutare
+          gli studenti a raggiungere obiettivi linguistici concreti.
+        </p>
+      </article>
+
+      <article class="school-card">
+        <div class="school-icon">🌍</div>
+        <h3>CLIL</h3>
+        <p>
+          Attività e moduli in inglese collegati a discipline come
+          scienze, geografia, educazione fisica e altre materie.
+        </p>
+      </article>
+
+      <article class="school-card">
+        <div class="school-icon">👩‍🏫</div>
+        <h3>Formazione docenti</h3>
+        <p>
+          Percorsi linguistici e metodologici per insegnanti,
+          incluso supporto per attività CLIL e aggiornamento.
+        </p>
+      </article>
+
+      <article class="school-card">
+        <div class="school-icon">🏃</div>
+        <h3>English Through Sport</h3>
+        <p>
+          Progetti che uniscono inglese e attività motoria per
+          motivare, coinvolgere e far comunicare gli studenti.
+        </p>
+      </article>
+
+    </div>
+
+    <div class="schools-cta">
+      <div>
+        <span class="schools-kicker">Un partner locale per la vostra scuola</span>
+        <h3>State progettando un’attività in inglese?</h3>
+        <p>
+          Contattateci per ricevere maggiori informazioni o per
+          organizzare un incontro e valutare insieme il percorso
+          più adatto al vostro istituto.
+        </p>
+      </div>
+
+      <a
+        class="button button-red"
+        href="https://wa.me/393791533754?text=Buongiorno%20London%20Language%20School%2C%20vorremmo%20ricevere%20informazioni%20sui%20percorsi%20per%20le%20scuole."
+        target="_blank"
+        rel="noopener"
+      >
+        Richiedi informazioni
+      </a>
+    </div>
+
+  </div>
+</section>
+    <!-- STUDY ABROAD -->
+    <section class="study-abroad" id="study-abroad">
+      <div class="container study-abroad-grid">
+
+        <div>
+          <small>English beyond the classroom</small>
+          <h2 class="study-abroad-title">Vivi l’inglese nel Regno Unito.</h2>
+
+          <p class="study-abroad-text">
+            Grazie alla nostra collaborazione con ELAC Study Vacations,
+            possiamo offrire opportunità di soggiorno studio nel Regno Unito:
+            lezioni di inglese, attività, escursioni e un ambiente internazionale
+            per usare la lingua anche fuori dall’aula.
+          </p>
+
+          <div class="study-points">
+            <div class="study-point">🇬🇧 Esperienza nel Regno Unito</div>
+            <div class="study-point">💬 Inglese in situazioni reali</div>
+            <div class="study-point">🌍 Ambiente internazionale</div>
+            <div class="study-point">🎓 ELAC accreditata British Council</div>
+          </div>
+        </div>
+
+        <div class="study-abroad-card">
+          <h3 class="study-card-title">Porta il tuo inglese fuori dall’aula.</h3>
+          <p class="study-card-text">
+            Un soggiorno studio può trasformare l’inglese in un’esperienza reale:
+            nuove persone, nuovi luoghi e tante occasioni per comunicare.
+          </p>
+
+          <a
+            class="button button-red study-card-button"
+            href="https://elac.co.uk/"
+            target="_blank"
+            rel="noopener"
+          >
+            Scopri ELAC Study Vacations
+          </a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section id="about">
+      <div class="container">
+
+        <div class="section-heading">
+          <small>London Language School</small>
+          <h2>Chi siamo</h2>
+          <p>
+            Un approccio moderno, efficace e coinvolgente
+            all’apprendimento dell’inglese.
+          </p>
+        </div>
+
+        <div class="about-gallery">
+          <img
+            src="WhatsApp Image 2026-08-27 at 09.27.39.jpeg"
+            alt="London Language School Bagheria"
+          >
+          <img
+            src="WhatsApp Image 2026-08-27 at 09.31.33 (1).jpeg"
+            alt="Attività di inglese alla London Language School"
+          >
+          <img
+            src="hero.jpg"
+            alt="Studenti della London Language School Bagheria"
+          >
+        </div>
+
+        <div class="about-grid">
+
+          <div class="about-box">
+            <h3>Imparare, usare, ricordare.</h3>
+
+            <p>
+              Crediamo che l’inglese si impari davvero quando gli studenti
+              <strong>lo usano, lo ascoltano e lo incontrano più volte</strong>
+              in contesti diversi.
+            </p>
+
+            <br>
+
+            <p>
+              Per questo creiamo lezioni dinamiche in cui comunicazione,
+              ripetizione, tecnologia e divertimento lavorano insieme.
+            </p>
+          </div>
+
+          <div class="about-text">
+            <h2>Il nostro metodo</h2>
+
+            <p>
+              Il nostro metodo dà particolare importanza alla
+              <strong>ripetizione e al consolidamento di parole,
+              espressioni e strutture linguistiche chiave</strong>.
+              Attraverso attività diverse, gli studenti ritrovano e riutilizzano
+              la lingua appresa fino a renderla sempre più familiare e naturale.
+            </p>
+
+            <p>
+              Utilizziamo <strong>video, audio, immagini, giochi, storie,
+              conversazione e contenuti multimediali</strong> per presentare e
+              ripassare l’inglese in modi diversi, mantenendo alta l’attenzione.
+            </p>
+
+            <p>
+              Le nostre lezioni si basano su metodologie consolidate, tra cui
+              <strong>approccio comunicativo, retrieval practice, spaced repetition,
+              scaffolding, modelling e apprendimento attivo</strong>.
+            </p>
+
+            <p>
+              Stiamo inoltre introducendo gradualmente
+              <strong>strumenti di Intelligenza Artificiale a supporto
+              dell’apprendimento</strong>, sempre all’interno di un percorso
+              guidato dall’insegnante.
+            </p>
+
+            <p>
+              Per noi la tecnologia deve
+              <strong>supportare il lavoro dell’insegnante, non sostituirlo</strong>.
+              Al centro della lezione rimangono la relazione con gli studenti,
+              l’esperienza del docente e una didattica efficace.
+            </p>
+
+            <div class="ticks">
+              <div class="tick">Comunicazione reale in inglese</div>
+              <div class="tick">Ripetizione e consolidamento</div>
+              <div class="tick">Preparazione agli esami Cambridge English</div>
+              <div class="tick">Lezioni divertenti e coinvolgenti</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- GALLERY -->
+    <section class="gallery" id="gallery">
+      <div class="container">
+
+        <div class="section-heading">
+          <small>La vita alla London</small>
+          <h2>Imparare deve lasciare il segno.</h2>
+          <p>
+            Uno sguardo alle lezioni, alle attività e ai momenti speciali
+            della London Language School.
+          </p>
+        </div>
+
+        <div class="gallery-grid">
+
+          <div class="gallery-video">
+            <iframe
+              src="https://www.youtube.com/embed/vXC_BOFhgFk"
+              title="Kids Having Fun in Lesson - London Language School"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+            ></iframe>
+            <div class="video-caption">Bambini che si divertono durante la lezione 🎉</div>
+          </div>
+
+          <div
+            class="gallery-item"
+            style="background-image:
+              linear-gradient(to top, rgba(2,29,66,0.84), rgba(2,29,66,0.10)),
+              url('WhatsApp Image 2026-08-27 at 09.27.39.jpeg');"
+          >
+            <span>Le nostre lezioni</span>
+          </div>
+
+          <div
+            class="gallery-item"
+            style="background-image:
+              linear-gradient(to top, rgba(2,29,66,0.84), rgba(2,29,66,0.10)),
+              url('hero.jpg');"
+          >
+            <span>Attività coinvolgenti</span>
+          </div>
+
+          <div
+            class="gallery-item"
+            style="background-image:
+              linear-gradient(to top, rgba(2,29,66,0.84), rgba(2,29,66,0.10)),
+              url('WhatsApp Image 2026-08-27 at 09.31.33 (1).jpeg');"
+          >
+            <span>Imparare insieme</span>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- REVIEWS -->
+    <section class="reviews" id="reviews">
+      <div class="container">
+
+        <div class="section-heading">
+          <small class="reviews-small">Le opinioni dei nostri studenti</small>
+          <h2 class="reviews-title">Cosa dicono di noi</h2>
+          <p class="reviews-intro">
+            La fiducia delle famiglie e degli studenti è una delle cose più importanti per noi.
+          </p>
+        </div>
+
+        <div class="reviews-panel">
+
+          <div class="reviews-score">
+            <div class="big-score">5.0</div>
+            <div class="stars">★★★★★</div>
+            <p class="reviews-score-text">40 recensioni su Google</p>
+
+            <a
+              class="button button-red reviews-button"
+              href="https://www.google.com/maps/search/?api=1&query=London+Language+School+Via+Bernardo+Mattarella+167%2F1+Bagheria"
+              target="_blank"
+              rel="noopener"
+            >
+              Leggi tutte le recensioni
+            </a>
+          </div>
+
+          <div class="reviews-message">
+            <div class="review-stars">★★★★★</div>
+
+            <p class="review-quote">
+              “La migliore scuola di sempre! Gli insegnanti sono molto competenti
+              ed è perfetta se vuoi imparare l’inglese, ma allo stesso tempo divertirti 💞✨”
+            </p>
+
+            <p class="review-author">
+              — Mariantonietta Lo Bue Trisciuzzi, recensione Google
+            </p>
+
+            <a
+              class="review-link"
+              href="https://www.google.com/maps/search/?api=1&query=London+Language+School+Via+Bernardo+Mattarella+167%2F1+Bagheria"
+              target="_blank"
+              rel="noopener"
+            >
+              Leggi tutte le recensioni →
+            </a>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta">
+      <div class="container cta-inner">
+
+        <div>
+          <h2>Pronto a parlare inglese davvero?</h2>
+          <p>Contattaci e scopri il corso più adatto a te.</p>
+        </div>
+
+        <a
+          class="button button-white"
+          href="https://wa.me/393791533754?text=Ciao%20London%20Language%20School%2C%20vorrei%20informazioni%20sui%20vostri%20corsi."
+          target="_blank"
+          rel="noopener"
+        >
+          Scrivici su WhatsApp
+        </a>
+
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact">
+      <div class="container">
+
+        <div class="section-heading">
+          <small>Contattaci</small>
+          <h2>Vieni a trovarci.</h2>
+          <p>
+            Contattaci per informazioni sui corsi, iscrizioni e lezioni di prova.
+          </p>
+        </div>
+
+        <div class="contact-grid">
+
+          <div class="contact-card">
+            <h3>London Language School</h3>
+
+            <div class="contact-row">
+              <strong>Indirizzo</strong>
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=Via+Bernardo+Mattarella+167+Bagheria"
+                target="_blank"
+                rel="noopener"
+              >
+                Via Bernardo Mattarella, 167/1 Piano<br>
+                90011 Bagheria PA
+              </a>
+            </div>
+
+            <div class="contact-row">
+              <strong>Telefono / WhatsApp</strong>
+              <a href="tel:+393791533754">+39 379 153 3754</a>
+            </div>
+
+            <div class="contact-row">
+              <strong>Email</strong>
+              <a href="mailto:londonlanguageschoolbagheria@gmail.com">
+                londonlanguageschoolbagheria@gmail.com
+              </a>
+            </div>
+          </div>
+
+          <div class="social-box">
+            <h3>Seguici</h3>
+            <p>
+              Segui London Language School online per novità, attività,
+              eventi e aggiornamenti.
+            </p>
+
+            <div class="social-links">
+
+              <a
+                class="social-link instagram"
+                href="https://www.instagram.com/londonlanguageschoolbagheria/"
+                target="_blank"
+                rel="noopener"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7zm5 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm5.5-3.5a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"/>
+                </svg>
+                <span>Instagram</span>
+              </a>
+
+              <a
+                class="social-link facebook"
+                href="https://www.facebook.com/profile.php?id=61591857424469"
+                target="_blank"
+                rel="noopener"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M14 8h3V4h-3c-3.3 0-5 2-5 5v2H6v4h3v7h4v-7h3.2l.8-4H13V9c0-.7.3-1 1-1z"/>
+                </svg>
+                <span>Facebook</span>
+              </a>
+
+              <a
+                class="social-link whatsapp-link"
+                href="https://wa.me/393791533754"
+                target="_blank"
+                rel="noopener"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2a9.8 9.8 0 0 0-8.4 14.9L2 22l5.3-1.5A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3.1.9.9-3-.2-.3A8 8 0 1 1 12 20z"/>
+                </svg>
+                <span>WhatsApp</span>
+              </a>
+
+              <a
+                class="social-link email-link"
+                href="mailto:londonlanguageschoolbagheria@gmail.com"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 5h18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm9 7L3.5 7h17L12 12zm0 2.3L3 9v8h18V9l-9 5.3z"/>
+                </svg>
+                <span>Email</span>
+              </a>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FLOATING WHATSAPP -->
+  <a
+    class="whatsapp"
+    href="https://wa.me/393791533754?text=Ciao%20London%20Language%20School!"
+    target="_blank"
+    rel="noopener"
+    aria-label="Contatta London Language School su WhatsApp"
+    title="WhatsApp"
+  >
+    ☎
+  </a>
+
+
+  <!-- SINGLE PROSPECTIVE-CLIENT JOURNEY -->
+  <div class="lead-modal" id="leadModal" aria-hidden="true">
+    <div class="lead-card" role="dialog" aria-modal="true" aria-labelledby="leadTitle">
+      <button class="lead-close" type="button" onclick="closeLeadJourney()" aria-label="Chiudi">×</button>
+
+      <div id="leadStep1" hidden>
+        <div class="lead-kicker">Continua con London Language School</div>
+        <h2 id="leadTitle">Lasciaci i tuoi dati</h2>
+        <p class="lead-intro">Inserisci i tuoi dati solo ora, dopo il test. Li useremo per ricontattarti e aiutarti a scegliere il percorso più adatto.</p>
+
+        <form id="leadForm">
+          <div class="lead-grid">
+            <div class="lead-field"><label for="leadName">Nome e cognome *</label><input id="leadName" required autocomplete="name"></div>
+            <div class="lead-field"><label for="leadPhone">Telefono / WhatsApp *</label><input id="leadPhone" required autocomplete="tel" inputmode="tel" placeholder="+39 ..."></div>
+            <div class="lead-field"><label for="leadEmail">Email</label><input id="leadEmail" type="email" autocomplete="email"></div>
+            <div class="lead-field"><label for="leadWho">Per chi è il corso? *</label>
+              <select id="leadWho" required>
+                <option value="">Seleziona…</option><option>Per me</option><option>Per mio/a figlio/a</option>
+                <option>Per la mia azienda</option><option>Per la mia scuola / istituto</option>
+              </select>
+            </div>
+            <div class="lead-field"><label for="leadAge">Età dello studente</label><input id="leadAge" inputmode="numeric"></div>
+            <div class="lead-field"><label for="leadCourse">Corso di interesse *</label>
+              <select id="leadCourse" required>
+                <option value="">Seleziona…</option><option>Inglese per bambini</option><option>Inglese per ragazzi</option>
+                <option>Inglese per adulti</option><option>Preparazione Cambridge</option><option>Lezioni individuali</option>
+                <option>Corsi aziendali</option><option>Corsi per scuole</option><option>Non sono sicuro/a – vorrei un consiglio</option>
+              </select>
+            </div>
+          </div>
+          <div class="lead-field"><label for="leadNotes">Come possiamo aiutarti?</label><textarea id="leadNotes" rows="3"></textarea></div>
+          <div class="lead-actions"><button class="button button-red" id="leadSaveButton" type="submit">Continua</button></div>
+          <div class="lead-message" id="leadMessage" aria-live="polite"></div>
+        </form>
+      </div>
+
+      <div id="leadStep2">
+        <div class="lead-kicker">Inizia da qui</div>
+        <h2>Come vuoi iniziare?</h2>
+        <p class="lead-intro">Puoi fare subito il test senza lasciare i tuoi dati. Te li chiederemo solo dopo, se vorrai continuare.</p>
+        <div class="journey-options">
+          <button class="journey-option" type="button" onclick="showLevelChecker(false)"><div>📊</div><strong>Test ragazzi e adulti</strong><span>CEFR / QCER · circa 10 minuti. Puoi fermarti quando vuoi.</span></button>
+          <button class="journey-option" type="button" onclick="showYoungLevelChecker()"><div>🐶</div><strong>Test bambini 6–12</strong><span>Breve, semplice e divertente.</span></button>
+          <button class="journey-option" type="button" onclick="bookTrial()"><div>📅</div><strong>Prenota una prova</strong><span>Scegli giorno e orario su Cal.com.</span></button>
+          <button class="journey-option" type="button" onclick="requestInfo()"><div>💬</div><strong>Vorrei informazioni</strong><span>Ti contatteremo noi.</span></button>
+        </div>
+      </div>
+
+      <div id="leadLevel" hidden>
+        <div class="lead-kicker">Quick Level Checker</div>
+        <h2>Qual è il tuo livello?</h2>
+        <p class="lead-intro">10 domande rapide. Il risultato è indicativo e potrà essere confermato con un insegnante.</p>
+        <form id="levelForm"></form>
+        <div class="lead-actions"><span></span></div>
+        <div id="levelResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container footer-inner">
+
+      <p>
+        <strong>London Language School</strong><br>
+        Via Bernardo Mattarella, 167/1 Piano<br>
+        90011 Bagheria (PA), Italia<br>
+        P. IVA: IT07339590825
+      </p>
+
+      <p>
+        <a href="privacy.html">Privacy</a> ·
+        <a href="cookies.html">Cookies</a>
+      </p>
+
+      <p>
+        © <span id="year"></span> London Language School<br>
+        We make English fun! 🇬🇧
+      </p>
+
+    </div>
+  </footer>
+
+  <script>
+    let pendingLeadIntent = "info";
+
+    function toggleMenu() {
+      document.getElementById("nav").classList.toggle("open");
+    }
+
+    document.querySelectorAll("#nav a").forEach(link => {
+      link.addEventListener("click", () => {
+        document.getElementById("nav").classList.remove("open");
+      });
+    });
+
+    const translations = {
+      it: {
+        nav: ["Home", "Corsi", "Scuole", "Chi siamo", "Galleria", "⭐ My LLS Student Portal", "Contatti"],
+        whatsappNav: "Scrivici su WhatsApp",
+        eyebrow: "London Language School · Scuola di inglese a Bagheria",
+        heroTitle: 'L’inglese prende <span>vita.</span>',
+        heroText:
+          'Corsi coinvolgenti per bambini, ragazzi e adulti. <strong>Impara. Parla. Cresci.</strong> <span class="tagline">We make English fun!</span>',
+        start: "INIZIA DA QUI",
+        trial: "Prenota una prova",
+        info: "Richiedi informazioni",
+        discover: "Scopri i corsi",
+
+        benefitsSmall: "Non solo lezioni di inglese",
+        benefitsTitle: "Imparare l’inglese deve fare la differenza.",
+        benefitsText:
+          "Il nostro obiettivo non è solo studiare l’inglese, ma aiutare ogni studente a usarlo con sicurezza nella vita reale.",
+
+        coursesSmall: "I nostri corsi",
+        coursesTitle: "Inglese per ogni età.",
+        coursesText:
+          "Percorsi pensati per aiutare bambini, ragazzi e adulti a comunicare con sicurezza e a usare davvero l’inglese.",
+
+        childrenTitle: "Bambini",
+        childrenText:
+          "Inglese attraverso giochi, movimento e comunicazione reale. Lezioni coinvolgenti per imparare con naturalezza e sicurezza.",
+        teensTitle: "Ragazzi",
+        teensText:
+          "Più sicurezza nel parlare, supporto per la scuola e inglese utile nella vita reale, con un approccio pratico e comunicativo.",
+        adultsTitle: "Adulti",
+        adultsText:
+          "Corsi pratici per comunicazione, lavoro, viaggi e vita quotidiana, con particolare attenzione alla sicurezza nel parlare.",
+
+        paymentsKicker: "Pagamenti flessibili",
+        paymentsTitle: "Più semplice iniziare. Più facile organizzarsi.",
+        paymentsText:
+          "Per i nostri corsi di inglese a Bagheria sono disponibili soluzioni di pagamento flessibili, anche in comode rate.",
+        paymentsPoints: [
+          "✓ Pagamenti distribuiti nel tempo",
+          "✓ Soluzioni disponibili per diversi corsi",
+          "✓ Informazioni chiare prima dell’iscrizione"
+        ],
+        paymentsButton: "Chiedi informazioni",
+
+        studyTitle: "Vivi l’inglese nel Regno Unito.",
+        studyText:
+          "Grazie alla nostra collaborazione con ELAC Study Vacations, possiamo offrire opportunità di soggiorno studio nel Regno Unito: lezioni di inglese, attività, escursioni e un ambiente internazionale per usare la lingua anche fuori dall’aula.",
+        studyPoints: [
+          "🇬🇧 Esperienza nel Regno Unito",
+          "💬 Inglese in situazioni reali",
+          "🌍 Ambiente internazionale",
+          "🎓 ELAC accreditata British Council"
+        ],
+        studyCardTitle: "Porta il tuo inglese fuori dall’aula.",
+        studyCardText:
+          "Un soggiorno studio può trasformare l’inglese in un’esperienza reale: nuove persone, nuovi luoghi e tante occasioni per comunicare.",
+        studyCardButton: "Scopri ELAC Study Vacations",
+
+        gallerySmall: "La vita alla London",
+        galleryTitle: "Imparare deve lasciare il segno.",
+        galleryText:
+          "Uno sguardo alle lezioni, alle attività e ai momenti speciali della London Language School.",
+        galleryCaption: "Bambini che si divertono durante la lezione 🎉",
+        galleryItems: ["Le nostre lezioni", "Attività coinvolgenti", "Imparare insieme"],
+
+        reviewsSmall: "Le opinioni dei nostri studenti",
+        reviewsTitle: "Cosa dicono di noi",
+        reviewsIntro:
+          "La fiducia delle famiglie e degli studenti è una delle cose più importanti per noi.",
+        reviewsScoreText: "40 recensioni su Google",
+        reviewsButton: "Leggi tutte le recensioni",
+
+        ctaTitle: "Pronto a parlare inglese davvero?",
+        ctaText: "Contattaci e scopri il corso più adatto a te.",
+        ctaButton: "Scrivici su WhatsApp",
+
+        contactSmall: "Contattaci",
+        contactTitle: "Vieni a trovarci.",
+        contactText:
+          "Contattaci per informazioni sui corsi, iscrizioni e lezioni di prova.",
+        socialTitle: "Seguici",
+        socialText:
+          "Segui London Language School online per novità, attività, eventi e aggiornamenti."
+      },
+
+      en: {
+        nav: ["Home", "Courses", "Schools", "About us", "Gallery", "⭐ My LLS Student Portal", "Contact"],
+        whatsappNav: "WhatsApp us",
+        eyebrow: "London Language School · English school in Bagheria",
+        heroTitle: 'English comes <span>alive.</span>',
+        heroText:
+          'Engaging English courses for children, teenagers and adults. <strong>Learn. Speak. Grow.</strong> <span class="tagline">We make English fun!</span>',
+        start: "START HERE",
+        trial: "Book a trial lesson",
+        info: "Request information",
+        discover: "Discover our courses",
+
+        benefitsSmall: "More than English lessons",
+        benefitsTitle: "Learning English should make a real difference.",
+        benefitsText:
+          "Our goal is not simply to study English, but to help every student use it confidently in real life.",
+
+        coursesSmall: "Our courses",
+        coursesTitle: "English for every age.",
+        coursesText:
+          "Courses designed to help children, teenagers and adults communicate confidently and really use English.",
+
+        childrenTitle: "Children",
+        childrenText:
+          "English through games, movement and real communication. Engaging lessons that help children learn naturally and confidently.",
+        teensTitle: "Teenagers",
+        teensText:
+          "Greater confidence speaking, support for school and useful English for real life through a practical, communicative approach.",
+        adultsTitle: "Adults",
+        adultsText:
+          "Practical English for communication, work, travel and everyday life, with a strong focus on speaking confidence.",
+
+        paymentsKicker: "Flexible payments",
+        paymentsTitle: "Easier to start. Easier to manage.",
+        paymentsText:
+          "Flexible payment options, including instalments, are available for our English courses in Bagheria.",
+        paymentsPoints: [
+          "✓ Spread payments over time",
+          "✓ Options available for different courses",
+          "✓ Clear information before enrolment"
+        ],
+        paymentsButton: "Ask for information",
+
+        studyTitle: "Live English in the UK.",
+        studyText:
+          "Through our collaboration with ELAC Study Vacations, we can offer UK study-vacation opportunities combining English lessons, activities, excursions and an international environment where students can use English beyond the classroom.",
+        studyPoints: [
+          "🇬🇧 Experience life in the UK",
+          "💬 Use English in real situations",
+          "🌍 International environment",
+          "🎓 British Council-accredited ELAC"
+        ],
+        studyCardTitle: "Take your English beyond the classroom.",
+        studyCardText:
+          "A study vacation can turn English into a real experience: new people, new places and many opportunities to communicate.",
+        studyCardButton: "Discover ELAC Study Vacations",
+
+        gallerySmall: "Life at London",
+        galleryTitle: "Learning should be memorable.",
+        galleryText:
+          "A look at lessons, activities and special moments from London Language School.",
+        galleryCaption: "Kids having fun in class 🎉",
+        galleryItems: ["Our lessons", "Engaging activities", "Learning together"],
+
+        reviewsSmall: "What our students say",
+        reviewsTitle: "Our Google reviews",
+        reviewsIntro:
+          "The trust of our students and families is one of the things we value most.",
+        reviewsScoreText: "40 Google reviews",
+        reviewsButton: "Read all reviews",
+
+        ctaTitle: "Ready to start speaking English?",
+        ctaText: "Contact us and discover the right course for you.",
+        ctaButton: "Message us on WhatsApp",
+
+        contactSmall: "Contact us",
+        contactTitle: "Come and say hello.",
+        contactText:
+          "Contact us for information about courses, enrolment and trial lessons.",
+        socialTitle: "Follow the school",
+        socialText:
+          "Follow London Language School online for news, activities, events and updates."
+      }
+    };
+
+    function setLanguage(lang) {
+      const t = translations[lang];
+      document.documentElement.lang = lang;
+
+      const navLinks = document.querySelectorAll("#nav > a:not(.nav-cta)");
+      t.nav.forEach((text, i) => {
+        if (navLinks[i]) navLinks[i].textContent = text;
+      });
+
+      const navCTA = document.querySelector(".nav-cta");
+      if (navCTA) navCTA.textContent = t.whatsappNav;
+
+      document.querySelector(".eyebrow").textContent = t.eyebrow;
+      document.querySelector(".hero h1").innerHTML = t.heroTitle;
+      document.querySelector(".hero-copy").innerHTML = t.heroText;
+
+      const startJourneyButton = document.getElementById("startJourneyButton");
+      if (startJourneyButton) startJourneyButton.textContent = t.start;
+
+      const benefitHeading = document.querySelector(".benefits .section-heading");
+      benefitHeading.querySelector("small").textContent = t.benefitsSmall;
+      benefitHeading.querySelector("h2").textContent = t.benefitsTitle;
+      benefitHeading.querySelector("p").textContent = t.benefitsText;
+
+      const coursesHeading = document.querySelector("#courses .section-heading");
+      coursesHeading.querySelector("small").textContent = t.coursesSmall;
+      coursesHeading.querySelector("h2").textContent = t.coursesTitle;
+      coursesHeading.querySelector("p").textContent = t.coursesText;
+
+      const courseCards = document.querySelectorAll(".courses .card");
+      courseCards[0].querySelector("h3").textContent = t.childrenTitle;
+      courseCards[0].querySelector("p").textContent = t.childrenText;
+      courseCards[1].querySelector("h3").textContent = t.teensTitle;
+      courseCards[1].querySelector("p").textContent = t.teensText;
+      courseCards[2].querySelector("h3").textContent = t.adultsTitle;
+      courseCards[2].querySelector("p").textContent = t.adultsText;
+
+      document.querySelector(".payments-kicker").textContent = t.paymentsKicker;
+      document.querySelector(".payments-content h3").textContent = t.paymentsTitle;
+      document.querySelector(".payments-content p").textContent = t.paymentsText;
+
+      document.querySelectorAll(".payment-points div").forEach((el, i) => {
+        if (t.paymentsPoints[i]) el.textContent = t.paymentsPoints[i];
+      });
+
+      document.querySelector(".payments-action .button").textContent = t.paymentsButton;
+
+      document.querySelector(".study-abroad-title").textContent = t.studyTitle;
+      document.querySelector(".study-abroad-text").textContent = t.studyText;
+
+      document.querySelectorAll(".study-point").forEach((el, i) => {
+        if (t.studyPoints[i]) el.textContent = t.studyPoints[i];
+      });
+
+      document.querySelector(".study-card-title").textContent = t.studyCardTitle;
+      document.querySelector(".study-card-text").textContent = t.studyCardText;
+      document.querySelector(".study-card-button").textContent = t.studyCardButton;
+
+      const galleryHeading = document.querySelector("#gallery .section-heading");
+      galleryHeading.querySelector("small").textContent = t.gallerySmall;
+      galleryHeading.querySelector("h2").textContent = t.galleryTitle;
+      galleryHeading.querySelector("p").textContent = t.galleryText;
+      document.querySelector(".video-caption").textContent = t.galleryCaption;
+
+      document.querySelectorAll(".gallery-item span").forEach((el, i) => {
+        if (t.galleryItems[i]) el.textContent = t.galleryItems[i];
+      });
+
+      document.querySelector(".reviews-small").textContent = t.reviewsSmall;
+      document.querySelector(".reviews-title").textContent = t.reviewsTitle;
+      document.querySelector(".reviews-intro").textContent = t.reviewsIntro;
+      document.querySelector(".reviews-score-text").textContent = t.reviewsScoreText;
+      document.querySelector(".reviews-button").textContent = t.reviewsButton;
+
+      document.querySelector(".cta h2").textContent = t.ctaTitle;
+      document.querySelector(".cta p").textContent = t.ctaText;
+      document.querySelector(".cta .button").textContent = t.ctaButton;
+
+      const contactHeading = document.querySelector("#contact .section-heading");
+      contactHeading.querySelector("small").textContent = t.contactSmall;
+      contactHeading.querySelector("h2").textContent = t.contactTitle;
+      contactHeading.querySelector("p").textContent = t.contactText;
+
+      document.querySelector(".social-box h3").textContent = t.socialTitle;
+      document.querySelector(".social-box p").textContent = t.socialText;
+
+      document.querySelectorAll(".lang-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.lang === lang);
+      });
+
+      localStorage.setItem("lls-language", lang);
+    }
+
+    document.querySelectorAll(".lang-btn").forEach(btn => {
+      btn.addEventListener("click", () => setLanguage(btn.dataset.lang));
+    });
+
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    const savedLanguage = localStorage.getItem("lls-language");
+    setLanguage(savedLanguage === "en" ? "en" : "it");
+  
+    const LLS_ENQUIRY_API = "https://script.google.com/macros/s/AKfycbyHbfFoaiMOT1rpY2DcbXAkuNwMoOHVdLlG2aQLgPgCe5gqPuyk8VYm7i4eGQRm8iqi/exec";
+    let currentLeadId = "";
+    let pendingLevelResult = "";
+    let pendingAction = "";
+
+    function openLeadJourney() {
+      const modal = document.getElementById("leadModal");
+      const step1 = document.getElementById("leadStep1");
+      const step2 = document.getElementById("leadStep2");
+
+      if (step1) step1.hidden = true;
+      if (step2) step2.hidden = false;
+
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeLeadJourney() {
+      document.getElementById("leadModal").classList.remove("open");
+      document.getElementById("leadModal").setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
+
+    async function enquiryPost(payload) {
+      fetch(LLS_ENQUIRY_API, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload),
+        cache: "no-store",
+        redirect: "follow"
+      }).catch(error => console.error("Enquiry dispatch warning:", error));
+      return { success: true, enquiryId: "" };
+    }
+
+    const submittedLeadKeys = new Set();
+
+    document.getElementById("leadForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = event.submitter || event.target.querySelector('button[type="submit"]');
+      const message = document.getElementById("leadMessage");
+      const who = document.getElementById("leadWho").value;
+      const age = document.getElementById("leadAge").value.trim();
+      const notes = document.getElementById("leadNotes").value.trim();
+
+      const fields = {
+        "Name": document.getElementById("leadName").value.trim(),
+        "Age": age || who,
+        "Phone": document.getElementById("leadPhone").value.trim(),
+        "Email": document.getElementById("leadEmail").value.trim(),
+        "Course": document.getElementById("leadCourse").value,
+        "Source": "Website",
+        "Stage": "New",
+        "Follow-up": "",
+        "Notes": [who, notes].filter(Boolean).join(" — "),
+        "Level Result": pendingLevelResult,
+        "Trial Requested": "No"
+      };
+
+      const key = [fields["Name"].toLowerCase(), fields["Phone"].replace(/\s+/g,""),
+                   fields["Email"].toLowerCase(), fields["Course"].toLowerCase()].join("|");
+
+      if (submittedLeadKeys.has(key)) {
+        document.getElementById("leadStep1").hidden = true;
+        document.getElementById("leadStep2").hidden = false;
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = "Salvataggio…";
+      message.textContent = "";
+      submittedLeadKeys.add(key);
+      await enquiryPost({ action: "createEnquiry", fields });
+
+      message.textContent = "✓ Richiesta ricevuta.";
+      message.className = "lead-message success";
+      button.textContent = "Salvato ✓";
+
+      setTimeout(() => {
+        if (pendingAction === "trial") {
+          window.open("https://cal.com/londonlanguageschoolbagheria/prova", "_blank", "noopener");
+        }
+        document.getElementById("leadStep1").innerHTML =
+          '<div class="lead-kicker">Perfetto ✓</div><h2>Grazie!</h2><p class="lead-intro">Abbiamo ricevuto i tuoi dati e il risultato del test. Ti aiuteremo a scegliere il percorso più adatto.</p><button class="button button-red" type="button" onclick="closeLeadJourney()">Chiudi</button>';
+      }, 250);
+    });
+
+    function collectDetailsAfterTest(levelResult, intent) {
+      pendingLevelResult = levelResult || pendingLevelResult || "";
+      pendingLeadIntent = intent || "info";
+
+      const step1 = document.getElementById("leadStep1");
+      const step2 = document.getElementById("leadStep2");
+
+      if (step2) step2.hidden = true;
+      if (step1) step1.hidden = false;
+
+      const course = document.getElementById("leadCourse");
+      const notes = document.getElementById("leadNotes");
+
+      if (course && !course.value) {
+        course.value = "Non sono sicuro/a – vorrei un consiglio";
+      }
+
+      if (notes) {
+        const resultText = pendingLevelResult ? `Risultato test: ${pendingLevelResult}. ` : "";
+        const actionText = pendingLeadIntent === "trial"
+          ? "Richiesta: test + prova gratuita."
+          : "Richiesta: vorrei essere contattato/a.";
+        notes.value = `${resultText}${actionText}`;
+      }
+
+      const card = document.querySelector("#leadModal .lead-card");
+      if (card) card.scrollTop = 0;
+      setTimeout(() => document.getElementById("leadName")?.focus(), 50);
+    }
+
+    async function updateCurrentLead(fields) {
+      if (!currentLeadId) return;
+      try {
+        await enquiryPost({ action: "updateEnquiry", enquiryId: currentLeadId, fields });
+      } catch (error) {
+        console.error("Lead update failed", error);
+      }
+    }
+
+    async function bookTrial() {
+      if (!currentLeadId) {
+        collectDetailsAfterTest(pendingLevelResult, "trial");
+        return;
+      }
+      await updateCurrentLead({ "Trial Requested": "Yes" });
+      window.open("https://cal.com/londonlanguageschoolbagheria/prova", "_blank", "noopener");
+    }
+
+    async function requestInfo() {
+      if (!currentLeadId) {
+        collectDetailsAfterTest(pendingLevelResult, "info");
+        return;
+      }
+      await updateCurrentLead({ "Notes": "Richiesta informazioni dal sito" });
+    }
+
+    const levelQuestions = [
+      {band:"A1",q:"My name ___ Anna.",o:["am","is","are","be"],a:1},
+      {band:"A1",q:"We ___ from Italy.",o:["is","are","am","be"],a:1},
+      {band:"A1",q:"I ___ coffee every morning.",o:["drink","drinks","drinking","am drink"],a:0},
+      {band:"A1",q:"There ___ two books on the table.",o:["is","are","am","be"],a:1},
+      {band:"A1",q:"Choose the best reply: “How are you?”",o:["I'm fine, thanks.","I'm 25 years.","At home.","Yes, I am."],a:0},
+
+      {band:"A2",q:"Yesterday we ___ to Palermo.",o:["go","went","gone","going"],a:1},
+      {band:"A2",q:"She is ___ than her sister.",o:["tall","taller","more tall","tallest"],a:1},
+      {band:"A2",q:"I haven't got ___ milk.",o:["some","any","many","a"],a:1},
+      {band:"A2",q:"What ___ you doing when I called?",o:["was","were","did","are"],a:1},
+      {band:"A2",q:"Choose the best reply: “Would you like to come to dinner?”",o:["Yes, I'd love to.","Yes, I like.","No, I wouldn't like dinner.","I come yesterday."],a:0},
+
+      {band:"B1",q:"If it ___ tomorrow, we'll stay at home.",o:["rains","will rain","rained","would rain"],a:0},
+      {band:"B1",q:"I've lived here ___ 2020.",o:["for","since","from","during"],a:1},
+      {band:"B1",q:"The film ___ by millions of people last year.",o:["saw","was seen","has seen","is seeing"],a:1},
+      {band:"B1",q:"I wish I ___ more free time.",o:["have","had","will have","am having"],a:1},
+      {band:"B1",q:"Maria missed the bus, so she arrived late. Why was Maria late?",o:["She left work late.","The bus arrived late.","She didn't catch the bus.","She forgot the time."],a:2},
+
+      {band:"B2",q:"If I ___ about the problem, I would have helped.",o:["knew","had known","would know","have known"],a:1},
+      {band:"B2",q:"By next June, she ___ here for ten years.",o:["will work","will have worked","has worked","would work"],a:1},
+      {band:"B2",q:"He denied ___ the confidential document.",o:["to copy","copy","having copied","to have copy"],a:2},
+      {band:"B2",q:"The meeting was ___ because the manager was ill.",o:["put off","put out","put up","put through"],a:0},
+      {band:"B2",q:"“The proposal is unlikely to go ahead” means:",o:["It will probably be approved.","It probably will not happen.","It has already started.","Nobody discussed it."],a:1},
+
+      {band:"C1",q:"Hardly ___ the meeting started when the fire alarm went off.",o:["had","has","did","was"],a:0},
+      {band:"C1",q:"Were the company ___ the offer, we would reconsider our position.",o:["accept","to accept","accepted","accepting"],a:1},
+      {band:"C1",q:"Her explanation was so ___ that even the experts struggled to follow it.",o:["straightforward","convoluted","mundane","tentative"],a:1},
+      {band:"C1",q:"Not until the figures were published ___ the scale of the problem.",o:["we realised","did we realise","we had realised","had we realise"],a:1},
+      {band:"C1",q:"“His apology did little to allay their concerns” means:",o:["It reassured them.","It caused new concerns.","It did little to reduce their worries.","It explained their worries."],a:2},
+
+      {band:"C2",q:"The minister's response was deliberately ___, allowing both sides to interpret it favourably.",o:["unequivocal","ambiguous","redundant","sporadic"],a:1},
+      {band:"C2",q:"So compelling ___ that even the sceptics changed their minds.",o:["the evidence was","was the evidence","did the evidence","the evidence did"],a:1},
+      {band:"C2",q:"His argument rests on a rather ___ distinction that may not withstand close scrutiny.",o:["tenuous","lavish","docile","blunt"],a:0},
+      {band:"C2",q:"“She was at pains to distance herself from the decision” means:",o:["She reluctantly accepted it.","She made a strong effort to show she was not associated with it.","The decision hurt her.","She tried to reverse it."],a:1},
+      {band:"C2",q:"The findings should be treated with caution, ___ the relatively small sample size.",o:["notwithstanding","given","whereas","lest"],a:1}
+    ];
+
+
+    const youngQuestions = [
+      {band:"Pre-A1", icon:"🐶", q:"What animal is this?", o:["🐱 Cat","🐶 Dog","🐰 Rabbit"], a:1},
+      {band:"Pre-A1", icon:"🍎", q:"What is this?", o:["🍌 Banana","🍎 Apple","🍓 Strawberry"], a:1},
+      {band:"Pre-A1", icon:"⭐⭐⭐", q:"How many stars?", o:["Two","Three","Five"], a:1},
+
+      {band:"A1", icon:"🐱🪑", q:"The cat is ___ the chair.", o:["on","swim","blue"], a:0},
+      {band:"A1", icon:"👧📖", q:"What is she doing?", o:["She is reading.","She is running.","She is sleeping."], a:0},
+      {band:"A1", icon:"🐘🐭", q:"The elephant is ___ than the mouse.", o:["smaller","bigger","younger"], a:1},
+
+      {band:"A2", icon:"🌧️☂️", q:"It is raining. What do you need?", o:["Sunglasses","An umbrella","A football"], a:1},
+      {band:"A2", icon:"🚌🏫", q:"Yesterday Tom ___ the bus to school.", o:["takes","took","taking"], a:1},
+
+      {band:"B1", icon:"📱💬", q:"Mia says: “I can't play today because I have homework.” Why can't Mia play?", o:["She is tired.","She has homework.","She is at school."], a:1},
+      {band:"B1", icon:"🌧️🏠🎬", q:"If it rains tomorrow, we ___ a film at home.", o:["watch","watched","will watch"], a:2}
+    ];
+
+    const youngBands = ["Pre-A1","A1","A2","B1"];
+
+    function showYoungLevelChecker() {
+      document.getElementById("leadStep2").hidden = true;
+      document.getElementById("leadLevel").hidden = false;
+      document.getElementById("leadLevel").querySelector("h2").textContent = "Young Learners English Challenge 🐶⭐";
+      document.getElementById("leadLevel").querySelector(".lead-intro").innerHTML =
+        "<strong>10 domande, dalle più facili alle più difficili.</strong> Prova tutte quelle che riesci. Se diventano difficili, puoi fermarti e vedere il risultato in qualsiasi momento. Non devi rispondere a tutto. 🐶⭐";
+
+      document.getElementById("levelForm").innerHTML = youngBands.map(band => {
+        const qs = youngQuestions.filter(x => x.band === band);
+        return `<section class="young-band" style="margin:18px 0 28px">
+          <div style="text-align:center;font-size:40px">${band==="Pre-A1"?"🐱 🍌 🌈":band==="A1"?"🐶 📚 ⚽":band==="A2"?"🐘 🚌 🍎":"⭐ 💬 📖"}</div>
+          <h3 style="text-align:center">${band}</h3>
+          ${qs.map((x,i)=>`
+            <div class="level-question" style="background:#f7fbff;border-radius:22px;padding:18px;margin:12px 0">
+              <div style="font-size:52px;text-align:center">${x.icon}</div>
+              <p><strong>${x.q}</strong></p>
+              ${x.o.map((a,j)=>`<label style="display:block;background:white;border:2px solid #dceafa;border-radius:15px;padding:12px;margin:8px 0;cursor:pointer"><input type="radio" name="y_${band}_${i}" value="${j}"> ${a}</label>`).join("")}
+            </div>`).join("")}
+        </section>`;
+      }).join("");
+
+      document.getElementById("levelResult").innerHTML =
+        `<p style="text-align:center"><strong>Non preoccuparti se non sai tutto 😊</strong><br>Fai quello che riesci e premi il pulsante quando vuoi.</p>
+         <div class="lead-actions"><button class="button button-red" type="button" onclick="finishYoungTest()">Ho finito · Vedi il risultato</button></div>`;
+    }
+
+    const youngLevelDescriptions = {
+      "Pre-A1": "Sta iniziando a riconoscere parole ed espressioni inglesi molto semplici, soprattutto con immagini, giochi e situazioni familiari.",
+      "A1": "Riesce a capire e usare parole e frasi semplici su argomenti familiari come famiglia, scuola, animali, colori e attività quotidiane.",
+      "A2": "Riesce a capire semplici messaggi e brevi testi e a comunicare su argomenti familiari usando frasi semplici.",
+      "B1": "Riesce a capire i punti principali di un inglese chiaro e a parlare in modo semplice di esperienze, interessi, programmi e situazioni quotidiane."
+    };
+
+    async function finishYoungTest() {
+      let highest = "Pre-A1 iniziale";
+      let totalAttempted = 0;
+      const summary = [];
+
+      youngBands.forEach(band => {
+        const qs = youngQuestions.filter(x => x.band === band);
+        let attempted = 0, correct = 0;
+        qs.forEach((q,i) => {
+          const a = document.querySelector(`input[name="y_${band}_${i}"]:checked`);
+          if (a) { attempted++; totalAttempted++; if (Number(a.value) === q.a) correct++; }
+        });
+        if (attempted) summary.push(`${band}: ${correct}/${attempted}`);
+        const needed = qs.length === 2 ? 2 : 2;
+        const minAttempts = qs.length === 2 ? 2 : 2;
+        if (attempted >= minAttempts && correct >= needed && correct / attempted >= 0.66) highest = band;
+      });
+
+      if (!totalAttempted) {
+        document.getElementById("levelResult").innerHTML =
+          `<p class="lead-message error">Prova almeno qualche domanda prima di vedere il risultato 😊</p>
+           <div class="lead-actions"><button class="button button-red" type="button" onclick="finishYoungTest()">Ho finito · Vedi il risultato</button></div>`;
+        return;
+      }
+
+      pendingLevelResult = `Young Learner ${highest}`;
+
+      document.getElementById("levelForm").innerHTML = "";
+      document.getElementById("levelResult").innerHTML = `
+        <div class="level-result" style="text-align:center;background:#f5fbff;border-radius:24px;padding:24px">
+          <div style="font-size:64px">🐶🎉⭐</div>
+          <div class="lead-kicker">WELL DONE! · BRAVISSIMO!</div>
+          <h3>Livello indicativo: ${highest}</h3>
+          <div style="max-width:700px;margin:16px auto 20px;padding:18px 20px;background:#fff;border-radius:18px;text-align:left">
+            <strong>Cosa riesce a fare a questo livello?</strong>
+            <p style="margin:8px 0 0">${youngLevelDescriptions[highest] || youngLevelDescriptions["Pre-A1"]}</p>
+          </div>
+          <p>${summary.join(" · ")}</p>
+          <p>Questo è solo un piccolo test online. Il livello definitivo viene stabilito gratuitamente a scuola, dove un insegnante parlerà e giocherà in inglese con il bambino.</p>
+          <div style="margin-top:24px;padding-top:20px;border-top:1px solid #d7e6f3">
+            <p><strong>Vuoi continuare?</strong> È completamente facoltativo.</p>
+            <div class="lead-actions" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+              <button class="button button-red" type="button" onclick="collectDetailsAfterTest(pendingLevelResult, 'trial')">Prenota test + prova gratuita</button>
+              <button class="button button-outline" type="button" onclick="collectDetailsAfterTest(pendingLevelResult, 'info')">Vorrei essere contattato</button>
+              <button class="button button-outline" type="button" onclick="showYoungLevelChecker()">Rifai il test</button>
+              <button class="button button-outline" type="button" onclick="closeLeadJourney()">Chiudi</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    const levelBands = ["A1","A2","B1","B2","C1","C2"];
+
+    function showLevelChecker() {
+      document.getElementById("leadStep2").hidden = true;
+      document.getElementById("leadLevel").hidden = false;
+      document.getElementById("leadLevel").querySelector("h2").textContent = "Qual è il tuo livello?";
+      document.getElementById("leadLevel").querySelector(".lead-intro").innerHTML =
+        "<strong>Inizia dalle domande più semplici e continua finché riesci.</strong> Le domande diventano progressivamente più difficili. Puoi fermarti e vedere il risultato in qualsiasi momento: non devi completarle tutte.";
+
+      document.getElementById("levelForm").innerHTML = levelBands.map(band => {
+        const qs = levelQuestions.filter(x => x.band === band);
+        return `<section style="margin:18px 0 30px">
+          <div class="lead-kicker">CEFR / QCER · ${band}</div>
+          <h3>${band}</h3>
+          ${qs.map((x,i)=>`
+            <div class="level-question">
+              <p><strong>${x.q}</strong></p>
+              ${x.o.map((answer,j)=>`<label><input type="radio" name="a_${band}_${i}" value="${j}"> ${answer}</label>`).join("")}
+            </div>`).join("")}
+        </section>`;
+      }).join("");
+
+      document.getElementById("levelResult").innerHTML =
+        `<p><strong>Non sai più le risposte?</strong> Va bene: fermati qui. Le domande non risposte non impediscono di ottenere il risultato.</p>
+         <div class="lead-actions"><button class="button button-red" type="button" onclick="scoreLevelChecker()">Ho finito · Vedi il risultato</button></div>`;
+    }
+
+    const cefrDescriptions = {
+      "A1": { title:"Beginner", text:"A questo livello riesci a capire e usare espressioni quotidiane molto comuni, presentarti e rispondere a semplici domande personali." },
+      "A2": { title:"Elementary", text:"A questo livello riesci a comunicare in situazioni quotidiane semplici e a capire frasi frequenti su famiglia, lavoro, acquisti e vita di tutti i giorni." },
+      "B1": { title:"Intermediate", text:"A questo livello riesci a gestire molte situazioni quotidiane, capire i punti principali di un inglese chiaro e parlare di esperienze, programmi e opinioni." },
+      "B2": { title:"Upper-Intermediate", text:"A questo livello riesci a comunicare con una buona naturalezza, capire testi e conversazioni più complessi e spiegare chiaramente idee e opinioni." },
+      "C1": { title:"Advanced", text:"A questo livello riesci a usare l’inglese in modo fluente e flessibile in situazioni sociali, accademiche e professionali e a capire un linguaggio complesso." },
+      "C2": { title:"Proficiency", text:"A questo livello riesci a capire praticamente tutto ciò che ascolti o leggi e a esprimerti con grande fluidità, precisione e naturalezza." }
+    };
+
+    async function scoreLevelChecker() {
+      let highest = "A1 iniziale";
+      let totalAttempted = 0;
+      const summary = [];
+
+      levelBands.forEach(band => {
+        const qs = levelQuestions.filter(x => x.band === band);
+        let attempted = 0, correct = 0;
+        qs.forEach((q,i) => {
+          const selected = document.querySelector(`input[name="a_${band}_${i}"]:checked`);
+          if (selected) {
+            attempted++; totalAttempted++;
+            if (Number(selected.value) === q.a) correct++;
+          }
+        });
+        if (attempted) summary.push(`${band}: ${correct}/${attempted}`);
+        // Require enough evidence in a band before awarding that CEFR level.
+        if (attempted >= 4 && correct / attempted >= 0.75) highest = band;
+      });
+
+      if (!totalAttempted) {
+        document.getElementById("levelResult").innerHTML =
+          `<p class="lead-message error">Rispondi ad alcune domande prima di vedere il risultato.</p>
+           <div class="lead-actions"><button class="button button-red" type="button" onclick="scoreLevelChecker()">Ho finito · Vedi il risultato</button></div>`;
+        return;
+      }
+
+      pendingLevelResult = highest;
+
+      const cleanLevel = highest.substring(0,2);
+      const cefrInfo = cefrDescriptions[cleanLevel] || cefrDescriptions["A1"];
+      document.getElementById("levelForm").innerHTML = "";
+      document.getElementById("levelResult").innerHTML = `
+        <div class="level-result">
+          <div class="lead-kicker">RISULTATO INDICATIVO CEFR / QCER</div>
+          <h3>${cleanLevel} – ${cefrInfo.title} 🎯</h3>
+          <div style="max-width:720px;margin:16px auto 20px;padding:18px 20px;background:#fff;border-radius:18px;text-align:left">
+            <strong>Cosa significa?</strong>
+            <p style="margin:8px 0 0">${cefrInfo.text}</p>
+          </div>
+          <p><strong>${summary.join(" · ")}</strong></p>
+          <p>Questo test online è una guida, non un test di piazzamento completo.</p>
+          <p>Per scegliere la classe giusta dobbiamo valutare anche conversazione, ascolto, pronuncia, fluidità, sicurezza e uso spontaneo dell'inglese.</p>
+          <div style="margin-top:24px;padding-top:20px;border-top:1px solid #d7e6f3">
+            <p><strong>Vuoi continuare?</strong> È completamente facoltativo.</p>
+            <div class="lead-actions" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+              <button class="button button-red" type="button" onclick="collectDetailsAfterTest(pendingLevelResult, 'trial')">Prenota test + prova gratuita</button>
+              <button class="button button-outline" type="button" onclick="collectDetailsAfterTest(pendingLevelResult, 'info')">Vorrei essere contattato</button>
+              <button class="button button-outline" type="button" onclick="showLevelChecker()">Rifai il test</button>
+              <button class="button button-outline" type="button" onclick="closeLeadJourney()">Chiudi</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    document.getElementById("leadModal").addEventListener("click", (event) => {
+      if (event.target.id === "leadModal") closeLeadJourney();
+    });
+
+  </script>
+
+</body>
+</html>
+
+
+/* =========================================================
+   V2.5 NEXT BUILD — LIVE TEACHER ATTENDANCE
+   Google Sheets backed. Existing portal UI is retained.
+========================================================= */
+
+let llsLivePortalData = { students: [], classes: [], enrolments: [] };
+let llsLiveAttendance = [];
+let llsAttendanceLoadedKey = "";
+
+async function llsApiGet(action, params = {}) {
+  const url = new URL(LLS_API_URL);
+  url.searchParams.set("action", action);
+  url.searchParams.set("t", Date.now());
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value) !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  });
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    cache: "no-store",
+    redirect: "follow"
+  });
+  const raw = await response.text();
+  let data;
+  try { data = JSON.parse(raw); }
+  catch (_) { throw new Error("Apps Script did not return JSON."); }
+  if (!data || data.success !== true) throw new Error(data?.error || "API request failed.");
+  return data;
 }
 
-function updateEnquiryBadge() {
-  const openCount = state.enquiries.filter(
-    (enquiry) =>
-      !["Enrolled", "Lost"].includes(enquiry.status)
-  ).length;
-
-  const badge = byId("enquiryNavBadge");
-
-  text("enquiryNavBadge", openCount);
-
-  badge.classList.toggle(
-    "visible",
-    openCount > 0
-  );
-}
-
-function followUpCell(date) {
-  const overdue =
-    isPastDate(date);
-
-  return `
-    <span class="status-badge ${
-      overdue
-        ? "status-paused"
-        : "status-completed"
-    }">
-      ${overdue ? "Overdue · " : ""}
-      ${escapeHtml(formatDate(date))}
-    </span>
-  `;
-}
-
-function openNewEnquiry() {
-  byId("enquiryForm").reset();
-
-  setValue("enquiryId", "");
-  setValue("enquiryStatus", "New");
-  setValue(
-    "enquiryCreated",
-    isoDate(new Date())
-  );
-  setValue("enquiryTrialDate", "");
-  setValue("enquiryFinalLevel", "");
-  setValue("enquiryAssessment", "");
-
-  text(
-    "enquiryModalTitle",
-    "New enquiry"
-  );
-
-  openModal("enquiryModal");
-}
-
-function openEditEnquiry(id) {
-  const enquiry = state.enquiries.find(
-    (item) => item.id === id
-  );
-
-  if (!enquiry) {
-    return;
-  }
-
-  setValue("enquiryId", enquiry.id);
-  setValue("enquiryName", enquiry.name);
-  setValue("enquiryStudentAge", enquiry.age);
-  setValue("enquiryPhone", enquiry.phone);
-  setValue("enquiryEmail", enquiry.email);
-  setValue("enquiryCourse", enquiry.course);
-  setValue("enquirySource", enquiry.source);
-  setValue("enquiryStatus", enquiry.status);
-  setValue("enquiryFollowup", enquiry.followup);
-  setValue("enquiryCreated", enquiry.created);
-  setValue("enquiryTrialDate", enquiry.trialDate || "");
-  setValue("enquiryFinalLevel", enquiry.finalLevel || enquiry.levelResult || "");
-  setValue("enquiryAssessment", enquiry.assessment || "");
-  setValue("enquiryNotes", enquiry.notes);
-
-  text(
-    "enquiryModalTitle",
-    "Edit enquiry"
-  );
-
-  openModal("enquiryModal");
-}
-
-async function llsApiPost(body) {
+async function llsApiPost(payload) {
   const response = await fetch(LLS_API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(body)
+    body: JSON.stringify(payload),
+    redirect: "follow"
   });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const result = await response.json();
-
-  if (!result || result.success === false) {
-    throw new Error(
-      (result && (result.error || result.message)) ||
-      "The server did not confirm the change."
-    );
-  }
-
-  return result;
+  const raw = await response.text();
+  let data;
+  try { data = JSON.parse(raw); }
+  catch (_) { throw new Error("Apps Script did not return JSON."); }
+  if (!data || data.success !== true) throw new Error(data?.error || "API request failed.");
+  return data;
 }
 
-async function saveEnquiryForm(event) {
-  event.preventDefault();
+function llsStudentName(student) {
+  return [student["First Name"] || "", student["Surname"] || ""].join(" ").trim() || student["Student ID"] || "Student";
+}
 
-  const id = value("enquiryId").trim();
+function llsActiveEnrolmentsForClass(classId) {
+  return (llsLivePortalData.enrolments || []).filter(item =>
+    String(item["Class ID"] || "").trim() === String(classId || "").trim() &&
+    String(item["Status"] || "").trim().toLowerCase() === "active"
+  );
+}
 
-  const record = {
-    id,
-    name: value("enquiryName").trim(),
-    age: value("enquiryStudentAge"),
-    phone: value("enquiryPhone").trim(),
-    email: value("enquiryEmail").trim(),
-    course: value("enquiryCourse").trim(),
-    source: value("enquirySource"),
-    status: value("enquiryStatus"),
-    followup: value("enquiryFollowup"),
-    created: value("enquiryCreated") || isoDate(new Date()),
-    trialDate: value("enquiryTrialDate"),
-    finalLevel: value("enquiryFinalLevel"),
-    assessment: value("enquiryAssessment").trim(),
-    notes: value("enquiryNotes").trim()
+function llsStudentsForClass(classId) {
+  const ids = new Set(llsActiveEnrolmentsForClass(classId).map(item => String(item["Student ID"] || "").trim()));
+  return (llsLivePortalData.students || []).filter(student => ids.has(String(student["Student ID"] || "").trim()));
+}
+
+async function loadLiveAttendanceFoundation(force = false) {
+  if (!force && llsLivePortalData.classes.length) return llsLivePortalData;
+  const data = await llsApiGet("getPortalData");
+  llsLivePortalData = {
+    students: Array.isArray(data.students) ? data.students : [],
+    classes: Array.isArray(data.classes) ? data.classes : [],
+    enrolments: Array.isArray(data.enrolments) ? data.enrolments : []
   };
-
-  if (!record.name || !record.course) {
-    showToast("Name and course interest are required.", "error");
-    return;
-  }
-
-  const submitButton = byId("enquiryForm")
-    ?.querySelector('button[type="submit"]');
-  const oldLabel = submitButton?.textContent;
-
-  if (submitButton) {
-    submitButton.disabled = true;
-    submitButton.textContent = "Saving…";
-  }
-
-  const fields = {
-    "Name": record.name,
-    "Age": record.age,
-    "Phone": record.phone,
-    "Email": record.email,
-    "Course": record.course,
-    "Source": record.source,
-    "Stage": record.status,
-    "Follow-up": record.followup,
-    "Enquiry Date": record.created,
-    "Level Result": record.finalLevel,
-    "Trial Requested": record.trialDate ? "Yes" : "",
-    "Notes": [
-      record.notes,
-      record.trialDate ? `Placement/Trial date: ${record.trialDate}` : "",
-      record.assessment ? `Teacher assessment: ${record.assessment}` : ""
-    ].filter(Boolean).join("\n")
-  };
-
-  try {
-    await llsApiPost(
-      id
-        ? { action: "updateEnquiry", enquiryId: id, fields }
-        : { action: "createEnquiry", fields }
-    );
-
-    await llsLoadEnquiriesFromSheets();
-    closeModal("enquiryModal");
-
-    showToast(
-      id ? "Enquiry updated in Google Sheets." : "Enquiry added to Google Sheets.",
-      "success"
-    );
-  } catch (error) {
-    console.error("LLS enquiry save failed:", error);
-    showToast(
-      "Could not save the enquiry. Nothing was changed. Please try again.",
-      "error"
-    );
-  } finally {
-    if (submitButton) {
-      submitButton.disabled = false;
-      submitButton.textContent = oldLabel || "Save enquiry";
-    }
-  }
+  populateLiveAttendanceClasses();
+  return llsLivePortalData;
 }
 
-function deleteEnquiry(id) {
-  const enquiry = state.enquiries.find((item) => item.id === id);
-
-  if (!enquiry) return;
-
-  openConfirm(
-    "Delete enquiry?",
-    `Delete the enquiry for ${enquiry.name}?`,
-    async () => {
-      try {
-        await llsApiPost({
-          action: "deleteEnquiry",
-          enquiryId: id
-        });
-
-        await llsLoadEnquiriesFromSheets();
-        showToast("Enquiry deleted from Google Sheets.", "success");
-      } catch (error) {
-        console.error("LLS enquiry delete failed:", error);
-        showToast(
-          "Could not delete the enquiry. Nothing was changed.",
-          "error"
-        );
-      }
-    }
-  );
-}
-
-
-let pendingConversionEnquiryId = "";
-
-async function convertEnquiryToStudent(id) {
-  const enquiry = state.enquiries.find((item) => item.id === id);
-  if (!enquiry) return;
-
-  pendingConversionEnquiryId = id;
-
-  const parts = String(enquiry.name || "").trim().split(/\s+/);
-  const firstName = parts.shift() || "";
-  const lastName = parts.join(" ");
-
-  try {
-    await llsLoadClassesFromSheets();
-  } catch (error) {
-    console.error("Could not refresh classes before enrolment:", error);
-  }
-  populateStudentClassSelect();
-  byId("studentForm").reset();
-  setValue("studentId", "");
-  setValue("studentFirstName", firstName);
-  setValue("studentLastName", lastName);
-  setValue("studentEmail", enquiry.email || "");
-  setValue("studentPhone", enquiry.phone || "");
-  setValue("studentLevel", enquiry.finalLevel || enquiry.levelResult || "");
-  setValue("studentStatus", "Active");
-  setValue("studentJoined", isoDate(new Date()));
-  setValue(
-    "studentNotes",
-    [
-      `Converted from enquiry ${enquiry.id}.`,
-      enquiry.course ? `Course interest: ${enquiry.course}.` : "",
-      enquiry.assessment ? `Teacher assessment: ${enquiry.assessment}` : "",
-      enquiry.notes || ""
-    ].filter(Boolean).join("\n")
-  );
-
-  text("studentModalTitle", "Convert enquiry to student");
-  const conversionFields = byId("conversionEnrolmentFields");
-  if (conversionFields) conversionFields.hidden = false;
-  setValue("conversionSchoolYear", "2026-27");
-  setValue("conversionCourseFee", "");
-  setValue("conversionDiscount", "0");
-  setValue("conversionPaymentPlan", "3 instalments");
-
-  openModal("studentModal");
-
-  showToast(
-    "Student form prepared from the enquiry. Check the details, choose a class if appropriate, then Save student.",
-    "success"
-  );
-}
-
-/* =========================================================
-   TEACHERS
-========================================================= */
-
-function renderTeachers() {
-  const container = byId("teacherGrid");
-
-  if (!state.teachers.length) {
-    container.innerHTML = emptyState(
-      "No teachers yet. Add your first teacher."
-    );
-    return;
-  }
-
-  container.innerHTML = [...state.teachers]
-    .sort((a, b) =>
-      a.name.localeCompare(b.name)
-    )
-    .map((teacher) => {
-      const classes = state.classes.filter(
-        (item) =>
-          item.teacherId === teacher.id
-      );
-
-      return `
-        <article class="teacher-card">
-          <div class="teacher-card-top">
-            <div class="teacher-identity">
-              <div class="teacher-avatar">
-                ${escapeHtml(getInitials(teacher.name))}
-              </div>
-
-              <div>
-                <strong>${escapeHtml(teacher.name)}</strong>
-                <span>${escapeHtml(teacher.role || "Teacher")}</span>
-              </div>
-            </div>
-
-            ${statusBadge(teacher.status)}
-          </div>
-
-          <div class="teacher-meta">
-            <div class="teacher-meta-row">
-              <span>Classes</span>
-              <strong>${classes.length}</strong>
-            </div>
-
-            <div class="teacher-meta-row">
-              <span>Email</span>
-              <strong>${escapeHtml(teacher.email || "—")}</strong>
-            </div>
-
-            <div class="teacher-meta-row">
-              <span>Telephone</span>
-              <strong>${escapeHtml(teacher.phone || "—")}</strong>
-            </div>
-          </div>
-
-          <div class="modal-actions">
-            <button
-              class="row-action"
-              type="button"
-              data-edit-teacher="${teacher.id}"
-            >
-              Edit
-            </button>
-
-            <button
-              class="row-action delete"
-              type="button"
-              data-delete-teacher="${teacher.id}"
-            >
-              Delete
-            </button>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
-
-  container
-    .querySelectorAll("[data-edit-teacher]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        openEditTeacher(
-          button.dataset.editTeacher
-        );
-      });
-    });
-
-  container
-    .querySelectorAll("[data-delete-teacher]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        deleteTeacher(
-          button.dataset.deleteTeacher
-        );
-      });
-    });
-}
-
-function openNewTeacher() {
-  byId("teacherForm").reset();
-
-  setValue("teacherId", "");
-  setValue(
-    "teacherRole",
-    "English Teacher"
-  );
-  setValue(
-    "teacherStatus",
-    "Active"
-  );
-
-  text(
-    "teacherModalTitle",
-    "Add teacher"
-  );
-
-  openModal("teacherModal");
-}
-
-function openEditTeacher(id) {
-  const teacher =
-    getTeacher(id);
-
-  if (!teacher) {
-    return;
-  }
-
-  setValue("teacherId", teacher.id);
-  setValue("teacherName", teacher.name);
-  setValue("teacherEmail", teacher.email);
-  setValue("teacherPhone", teacher.phone);
-  setValue("teacherRole", teacher.role);
-  setValue("teacherStatus", teacher.status);
-  setValue("teacherNotes", teacher.notes);
-
-  text(
-    "teacherModalTitle",
-    "Edit teacher"
-  );
-
-  openModal("teacherModal");
-}
-
-function saveTeacherForm(event) {
-  event.preventDefault();
-
-  const id = value("teacherId");
-
-  const record = {
-    id: id || makeId("teacher"),
-    name: value("teacherName").trim(),
-    email: value("teacherEmail").trim(),
-    phone: value("teacherPhone").trim(),
-    role: value("teacherRole").trim(),
-    status: value("teacherStatus"),
-    notes: value("teacherNotes").trim()
-  };
-
-  if (!record.name) {
-    showToast(
-      "Teacher name is required.",
-      "error"
-    );
-    return;
-  }
-
-  if (id) {
-    state.teachers = state.teachers.map(
-      (teacher) =>
-        teacher.id === id
-          ? record
-          : teacher
-    );
-  } else {
-    state.teachers.push(record);
-  }
-
-  saveState();
-  closeModal("teacherModal");
-  renderAll();
-
-  showToast(
-    id
-      ? "Teacher updated."
-      : "Teacher added.",
-    "success"
-  );
-}
-
-function deleteTeacher(id) {
-  const teacher =
-    getTeacher(id);
-
-  if (!teacher) {
-    return;
-  }
-
-  const assignedClasses =
-    state.classes.filter(
-      (item) =>
-        item.teacherId === id
-    ).length;
-
-  openConfirm(
-    "Delete teacher?",
-    assignedClasses
-      ? `${teacher.name} is assigned to ${assignedClasses} class${assignedClasses === 1 ? "" : "es"}. Those classes will remain but will no longer have a teacher assigned.`
-      : `Delete ${teacher.name}?`,
-    () => {
-      state.teachers =
-        state.teachers.filter(
-          (item) => item.id !== id
-        );
-
-      state.classes =
-        state.classes.map((item) => ({
-          ...item,
-          teacherId:
-            item.teacherId === id
-              ? ""
-              : item.teacherId
-        }));
-
-      saveState();
-      renderAll();
-
-      showToast(
-        "Teacher deleted.",
-        "success"
-      );
-    }
-  );
-}
-
-/* =========================================================
-   REPORTS
-========================================================= */
-
-function renderReports() {
-  const activeStudents =
-    state.students.filter(
-      (student) =>
-        student.status === "Active"
-    );
-
-  const totalFees = sum(
-    state.payments.map((item) =>
-      number(item.fee)
-    )
-  );
-
-  const collected = sum(
-    state.payments.map((item) =>
-      number(item.paid)
-    )
-  );
-
-  const outstanding =
-    Math.max(0, totalFees - collected);
-
-  const collectionRate =
-    totalFees > 0
-      ? Math.round(
-          Math.min(
-            100,
-            (collected / totalFees) * 100
-          )
-        )
-      : 0;
-
-  const enrolledLeads =
-    state.enquiries.filter(
-      (item) =>
-        item.status === "Enrolled"
-    ).length;
-
-  const conversionRate =
-    state.enquiries.length > 0
-      ? Math.round(
-          (enrolledLeads /
-            state.enquiries.length) *
-            100
-        )
-      : 0;
-
-  const averageClass =
-    state.classes.length > 0
-      ? (
-          activeStudents.length /
-          state.classes.length
-        ).toFixed(1)
-      : "0";
-
-  text(
-    "reportActiveStudents",
-    activeStudents.length
-  );
-
-  text(
-    "reportAverageClass",
-    averageClass
-  );
-
-  text(
-    "reportCollectionRate",
-    `${collectionRate}%`
-  );
-
-  text(
-    "reportConversionRate",
-    `${conversionRate}%`
-  );
-
-  text(
-    "reportFees",
-    formatMoney(totalFees)
-  );
-
-  text(
-    "reportCollected",
-    formatMoney(collected)
-  );
-
-  text(
-    "reportOutstanding",
-    formatMoney(outstanding)
-  );
-
-  renderLevelReport();
-  renderSourceReport();
-  renderFollowupHealth();
-}
-
-function renderLevelReport() {
-  const container =
-    byId("levelReportBars");
-
-  const activeStudents =
-    state.students.filter(
-      (student) =>
-        student.status === "Active"
-    );
-
-  const counts = LEVELS.map(
-    (level) => ({
-      level,
-      count: activeStudents.filter(
-        (student) =>
-          student.level === level
-      ).length
-    })
-  );
-
-  const maximum =
-    Math.max(
-      1,
-      ...counts.map(
-        (item) => item.count
-      )
-    );
-
-  container.innerHTML = counts
-    .map((item) => `
-      <div class="bar-row">
-        <div class="bar-row-label">
-          ${escapeHtml(item.level)}
-        </div>
-
-        <div class="bar-track">
-          <div
-            class="bar-value"
-            style="width:${(item.count / maximum) * 100}%"
-          ></div>
-        </div>
-
-        <div class="bar-number">
-          ${item.count}
-        </div>
-      </div>
-    `)
-    .join("");
-}
-
-function renderSourceReport() {
-  const container =
-    byId("sourceReportList");
-
-  const sourceCounts = {};
-
-  state.enquiries.forEach((enquiry) => {
-    const source =
-      enquiry.source || "Unknown";
-
-    sourceCounts[source] =
-      (sourceCounts[source] || 0) + 1;
-  });
-
-  const entries =
-    Object.entries(sourceCounts)
-      .sort((a, b) => b[1] - a[1]);
-
-  if (!entries.length) {
-    container.innerHTML = emptyState(
-      "No enquiry source data yet."
-    );
-    return;
-  }
-
-  container.innerHTML = entries
-    .map(([source, count]) => `
-      <div class="metric-row">
-        <span>${escapeHtml(source)}</span>
-        <strong>${count}</strong>
-      </div>
-    `)
-    .join("");
-}
-
-function renderFollowupHealth() {
-  const container =
-    byId("followupHealth");
-
-  const open = state.enquiries.filter(
-    (item) =>
-      !["Enrolled", "Lost"].includes(item.status)
-  );
-
-  const overdue =
-    open.filter(
-      (item) =>
-        item.followup &&
-        isPastDate(item.followup)
-    ).length;
-
-  const scheduled =
-    open.filter(
-      (item) =>
-        item.followup &&
-        !isPastDate(item.followup)
-    ).length;
-
-  const missing =
-    open.filter(
-      (item) =>
-        !item.followup
-    ).length;
-
-  container.innerHTML = `
-    <div class="metric-row">
-      <span>Open opportunities</span>
-      <strong>${open.length}</strong>
-    </div>
-
-    <div class="metric-row">
-      <span>Follow-ups scheduled</span>
-      <strong>${scheduled}</strong>
-    </div>
-
-    <div class="metric-row">
-      <span>Overdue follow-ups</span>
-      <strong>${overdue}</strong>
-    </div>
-
-    <div class="metric-row">
-      <span>No follow-up date</span>
-      <strong>${missing}</strong>
-    </div>
-  `;
-}
-
-/* =========================================================
-   SETTINGS
-========================================================= */
-
-function renderSettings() {
-  setValue(
-    "schoolName",
-    state.settings.schoolName
-  );
-
-  setValue(
-    "schoolPhone",
-    state.settings.phone
-  );
-
-  setValue(
-    "schoolEmail",
-    state.settings.email
-  );
-
-  setValue(
-    "schoolAddress",
-    state.settings.address
-  );
-}
-
-function saveSettingsForm(event) {
-  event.preventDefault();
-
-  state.settings = {
-    schoolName:
-      value("schoolName").trim() ||
-      "London Language School",
-    phone:
-      value("schoolPhone").trim(),
-    email:
-      value("schoolEmail").trim(),
-    address:
-      value("schoolAddress").trim()
-  };
-
-  saveState();
-
-  showToast(
-    "Settings saved.",
-    "success"
-  );
-}
-
-/* =========================================================
-   NOTIFICATIONS
-========================================================= */
-
-function renderNotifications() {
-  const list =
-    byId("notificationList");
-
-  const notifications = [];
-
-  state.enquiries
-    .filter(
-      (enquiry) =>
-        !["Enrolled", "Lost"].includes(
-          enquiry.status
-        ) &&
-        enquiry.followup &&
-        isPastDate(enquiry.followup)
-    )
-    .forEach((enquiry) => {
-      notifications.push({
-        icon: "!",
-        title: "Enquiry follow-up overdue",
-        message:
-          `${enquiry.name} · ${enquiry.course}`
-      });
-    });
-
-  state.payments
-    .filter(
-      (payment) =>
-        paymentStatus(payment) !== "Paid"
-    )
-    .forEach((payment) => {
-      const student =
-        getStudent(payment.studentId);
-
-      notifications.push({
-        icon: "€",
-        title: "Outstanding balance",
-        message:
-          `${getStudentName(student) || "Student"} · ${formatMoney(Math.max(0, number(payment.fee) - number(payment.paid)))} due`
-      });
-    });
-
-  byId("notificationDot").classList.toggle(
-    "visible",
-    notifications.length > 0
-  );
-
-  if (!notifications.length) {
-    list.innerHTML = emptyState(
-      "You're up to date. No portal alerts."
-    );
-    return;
-  }
-
-  list.innerHTML = notifications
-    .slice(0, 20)
-    .map((item) => `
-      <div class="notification-item">
-        <div class="notification-item-icon">
-          ${escapeHtml(item.icon)}
-        </div>
-
-        <div>
-          <strong>${escapeHtml(item.title)}</strong>
-          <span>${escapeHtml(item.message)}</span>
-        </div>
-      </div>
-    `)
-    .join("");
-}
-
-/* =========================================================
-   GLOBAL SEARCH
-========================================================= */
-
-function renderGlobalSearch() {
-  const input =
-    byId("globalSearchInput");
-
-  const resultsContainer =
-    byId("globalSearchResults");
-
-  const query =
-    input.value
-      .trim()
-      .toLowerCase();
-
-  if (query.length < 2) {
-    closeGlobalSearch();
-    return;
-  }
-
-  const results = [];
-
-  state.students.forEach((student) => {
-    const name =
-      `${student.firstName} ${student.lastName}`;
-
-    const haystack = [
-      name,
-      student.email,
-      student.phone,
-      student.level
-    ]
-      .join(" ")
-      .toLowerCase();
-
-    if (haystack.includes(query)) {
-      results.push({
-        type: "Student",
-        title: name,
-        subtitle:
-          `${student.level || "No level"} · ${student.status}`,
-        page: "students",
-        icon: "S"
-      });
-    }
-  });
-
-  state.classes.forEach((item) => {
-    const haystack = [
-      item.name,
-      item.level,
-      item.day,
-      item.room
-    ]
-      .join(" ")
-      .toLowerCase();
-
-    if (haystack.includes(query)) {
-      results.push({
-        type: "Class",
-        title: item.name,
-        subtitle:
-          `${item.level} · ${item.day} ${formatTime(item.time)}`,
-        page: "classes",
-        icon: "C"
-      });
-    }
-  });
-
-  state.enquiries.forEach((enquiry) => {
-    const haystack = [
-      enquiry.name,
-      enquiry.course,
-      enquiry.phone,
-      enquiry.email
-    ]
-      .join(" ")
-      .toLowerCase();
-
-    if (haystack.includes(query)) {
-      results.push({
-        type: "Enquiry",
-        title: enquiry.name,
-        subtitle:
-          `${enquiry.course} · ${enquiry.status}`,
-        page: "enquiries",
-        icon: "E"
-      });
-    }
-  });
-
-  if (!results.length) {
-    resultsContainer.innerHTML =
-      `<div class="search-empty">No results found.</div>`;
-  } else {
-    resultsContainer.innerHTML =
-      results
-        .slice(0, 12)
-        .map((result) => `
-          <button
-            class="search-result"
-            type="button"
-            data-search-page="${result.page}"
-          >
-            <div class="search-result-icon">
-              ${escapeHtml(result.icon)}
-            </div>
-
-            <div>
-              <strong>
-                ${escapeHtml(result.title)}
-              </strong>
-              <span>
-                ${escapeHtml(result.type)}
-                ·
-                ${escapeHtml(result.subtitle)}
-              </span>
-            </div>
-          </button>
-        `)
-        .join("");
-
-    resultsContainer
-      .querySelectorAll("[data-search-page]")
-      .forEach((button) => {
-        button.addEventListener("click", () => {
-          navigateTo(
-            button.dataset.searchPage
-          );
-
-          input.value = "";
-          closeGlobalSearch();
-        });
-      });
-  }
-
-  resultsContainer.classList.add("visible");
-}
-
-function closeGlobalSearch() {
-  byId("globalSearchResults")
-    .classList.remove("visible");
-}
-
-function closeUserDropdown() {
-  byId("userDropdown")
-    .classList.remove("visible");
-}
-
-/* =========================================================
-   SELECT POPULATION
-========================================================= */
-
-function populateSelects() {
-  populateStudentClassSelect();
-  populateTeacherSelect();
-  populatePaymentStudentSelect();
-  populateAttendanceClassSelect();
-}
-
-function populateStudentClassSelect(selectedId = "") {
-  const select = byId("studentClass");
+function populateLiveAttendanceClasses() {
+  const select = document.getElementById("attendanceClassSelect");
   if (!select) return;
+  const previous = select.value;
+  const classes = (llsLivePortalData.classes || []).filter(item =>
+    !item["Status"] || String(item["Status"]).trim().toLowerCase() === "active"
+  );
+  select.innerHTML = classes.length
+    ? classes.map(item => `<option value="${escapeHtml(String(item["Class ID"] || ""))}">${escapeHtml(String(item["Class Name"] || item["Class ID"] || "Class"))}</option>`).join("")
+    : `<option value="">No active classes</option>`;
+  if (classes.some(item => String(item["Class ID"] || "") === previous)) select.value = previous;
+}
 
-  const availableClasses = (state.classes || []).filter((item) => {
-    const status = String(item.status || "").trim().toLowerCase();
-    return status !== "inactive" && status !== "archived";
+async function renderLiveAttendance() {
+  const body = document.getElementById("attendanceTableBody");
+  if (!body) return;
+
+  try {
+    await loadLiveAttendanceFoundation();
+    const classId = document.getElementById("attendanceClassSelect")?.value || "";
+    const lessonDate = document.getElementById("attendanceDate")?.value || "";
+    const students = llsStudentsForClass(classId);
+
+    if (!classId) {
+      body.innerHTML = `<tr><td colspan="4"><div class="empty-state">Choose a class.</div></td></tr>`;
+      llsSetAttendanceStats(0,0,0);
+      return;
+    }
+
+    const key = `${classId}|${lessonDate}`;
+    if (llsAttendanceLoadedKey !== key) {
+      const data = await llsApiGet("getAttendance", { classId, lessonDate });
+      llsLiveAttendance = Array.isArray(data.attendance) ? data.attendance : [];
+      llsAttendanceLoadedKey = key;
+    }
+
+    const byStudent = new Map(llsLiveAttendance.map(item => [String(item["Student ID"] || "").trim(), item]));
+
+    body.innerHTML = students.length ? students.map(student => {
+      const studentId = String(student["Student ID"] || "").trim();
+      const existing = byStudent.get(studentId) || {};
+      const status = String(existing["Status"] || "Present");
+      return `
+        <tr data-live-attendance-row="${escapeHtml(studentId)}">
+          <td><strong>${escapeHtml(llsStudentName(student))}</strong><div class="muted">${escapeHtml(studentId)}</div></td>
+          <td>${escapeHtml(String(student["Level"] || "—"))}</td>
+          <td>
+            <select class="live-attendance-status" data-student-id="${escapeHtml(studentId)}">
+              <option value="Present"${status==="Present"?" selected":""}>Present</option>
+              <option value="Absent"${status==="Absent"?" selected":""}>Absent</option>
+              <option value="Late"${status==="Late"?" selected":""}>Late</option>
+              <option value="Excused"${status==="Excused"?" selected":""}>Excused</option>
+            </select>
+          </td>
+          <td><input class="live-attendance-note" data-student-id="${escapeHtml(studentId)}" value="${escapeHtml(String(existing["Notes"] || ""))}" placeholder="Optional note"></td>
+        </tr>`;
+    }).join("") : `<tr><td colspan="4"><div class="empty-state">No active students are enrolled in this class.</div></td></tr>`;
+
+    body.querySelectorAll(".live-attendance-status").forEach(el => el.addEventListener("change", llsRefreshAttendanceStats));
+    llsRefreshAttendanceStats();
+  } catch (error) {
+    console.error(error);
+    body.innerHTML = `<tr><td colspan="4"><div class="empty-state">Could not load live attendance: ${escapeHtml(error.message)}</div></td></tr>`;
+  }
+}
+
+function llsRefreshAttendanceStats() {
+  const controls = [...document.querySelectorAll(".live-attendance-status")];
+  const present = controls.filter(el => ["Present","Late"].includes(el.value)).length;
+  const absent = controls.filter(el => ["Absent","Excused"].includes(el.value)).length;
+  llsSetAttendanceStats(controls.length, present, absent);
+}
+
+function llsSetAttendanceStats(total, present, absent) {
+  if (document.getElementById("attendanceTotal")) document.getElementById("attendanceTotal").textContent = total;
+  if (document.getElementById("attendancePresent")) document.getElementById("attendancePresent").textContent = present;
+  if (document.getElementById("attendanceAbsent")) document.getElementById("attendanceAbsent").textContent = absent;
+  if (document.getElementById("attendanceRate")) document.getElementById("attendanceRate").textContent = total ? `${Math.round((present/total)*100)}%` : "0%";
+}
+
+async function saveLiveAttendance() {
+  const classId = document.getElementById("attendanceClassSelect")?.value || "";
+  const lessonDate = document.getElementById("attendanceDate")?.value || "";
+  if (!classId || !lessonDate) {
+    showToast("Choose a class and lesson date.", "error");
+    return;
+  }
+
+  const rows = [...document.querySelectorAll("[data-live-attendance-row]")].map(row => {
+    const studentId = row.dataset.liveAttendanceRow;
+    return {
+      studentId,
+      status: row.querySelector(".live-attendance-status")?.value || "Present",
+      notes: row.querySelector(".live-attendance-note")?.value || ""
+    };
   });
 
-  select.innerHTML =
-    `<option value="">Not assigned</option>` +
-    availableClasses
-      .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")))
-      .map((item) => {
-        const id = String(item.id || "");
-        const name = String(item.name || item.className || id || "Class");
-        const schedule = [
-          [item.day, item.time].filter(Boolean).join(" "),
-          [item.day2, item.time2].filter(Boolean).join(" ")
-        ].filter(Boolean).join(" / ");
-        const label = schedule ? `${name} — ${schedule}` : name;
-        return `<option value="${escapeAttribute(id)}">${escapeHtml(label)}</option>`;
-      })
-      .join("");
-
-  if (selectedId && availableClasses.some((item) => String(item.id) === String(selectedId))) {
-    select.value = String(selectedId);
-  }
-}
-
-function populateTeacherSelect() {
-  const select = byId("classTeacher");
-
-  if (!select) {
+  if (!rows.length) {
+    showToast("There are no students in this class.", "error");
     return;
   }
 
-  const current = select.value;
+  const button = document.getElementById("saveAttendanceButton");
+  if (button) { button.disabled = true; button.textContent = "Saving…"; }
 
-  select.innerHTML =
-    `<option value="">Not assigned</option>` +
-    state.teachers
-      .filter(
-        (teacher) =>
-          teacher.status === "Active"
-      )
-      .sort((a, b) =>
-        a.name.localeCompare(b.name)
-      )
-      .map((teacher) => `
-        <option value="${escapeAttribute(teacher.id)}">
-          ${escapeHtml(teacher.name)}
-        </option>
-      `)
-      .join("");
-
-  if (
-    current &&
-    state.teachers.some(
-      (teacher) =>
-        teacher.id === current
-    )
-  ) {
-    select.value = current;
-  }
-}
-
-function populatePaymentStudentSelect() {
-  const select =
-    byId("paymentStudent");
-
-  if (!select) {
-    return;
-  }
-
-  const current =
-    select.value;
-
-  select.innerHTML =
-    `<option value="">Select student</option>` +
-    [...state.students]
-      .sort((a, b) =>
-        a.lastName.localeCompare(b.lastName)
-      )
-      .map((student) => `
-        <option value="${escapeAttribute(student.id)}">
-          ${escapeHtml(student.firstName)}
-          ${escapeHtml(student.lastName)}
-        </option>
-      `)
-      .join("");
-
-  if (
-    current &&
-    state.students.some(
-      (student) =>
-        student.id === current
-    )
-  ) {
-    select.value = current;
-  }
-}
-
-/* =========================================================
-   CSV EXPORTS
-========================================================= */
-
-function exportStudentsCsv() {
-  const rows = [
-    [
-      "First name",
-      "Surname",
-      "Email",
-      "Telephone",
-      "Date of birth",
-      "Level",
-      "Class",
-      "Status",
-      "Joined",
-      "Parent / Guardian",
-      "Notes"
-    ],
-    ...state.students.map((student) => [
-      student.firstName,
-      student.lastName,
-      student.email,
-      student.phone,
-      student.dob,
-      student.level,
-      getClass(student.classId)?.name || "",
-      student.status,
-      student.joined,
-      student.parent,
-      student.notes
-    ])
-  ];
-
-  downloadCsv(
-    `lls-students-${isoDate(new Date())}.csv`,
-    rows
-  );
-}
-
-function exportPaymentsCsv() {
-  const rows = [
-    [
-      "Student",
-      "Description",
-      "Total fee",
-      "Paid",
-      "Balance",
-      "Payment date",
-      "Method",
-      "Status",
-      "Notes"
-    ],
-    ...state.payments.map((payment) => {
-      const student =
-        getStudent(payment.studentId);
-
-      const fee =
-        number(payment.fee);
-
-      const paid =
-        number(payment.paid);
-
-      return [
-        getStudentName(student),
-        payment.description,
-        fee,
-        paid,
-        Math.max(0, fee - paid),
-        payment.date,
-        payment.method,
-        paymentStatus(payment),
-        payment.notes
-      ];
-    })
-  ];
-
-  downloadCsv(
-    `lls-payments-${isoDate(new Date())}.csv`,
-    rows
-  );
-}
-
-function exportEnquiriesCsv() {
-  const rows = [
-    [
-      "Name",
-      "Age",
-      "Telephone",
-      "Email",
-      "Interested in",
-      "Source",
-      "Stage",
-      "Follow-up",
-      "Created",
-      "Notes"
-    ],
-    ...state.enquiries.map((enquiry) => [
-      enquiry.name,
-      enquiry.age,
-      enquiry.phone,
-      enquiry.email,
-      enquiry.course,
-      enquiry.source,
-      enquiry.status,
-      enquiry.followup,
-      enquiry.created,
-      enquiry.notes
-    ])
-  ];
-
-  downloadCsv(
-    `lls-enquiries-${isoDate(new Date())}.csv`,
-    rows
-  );
-}
-
-function exportAttendanceCsv() {
-  const classId =
-    value("attendanceClassSelect");
-
-  const date =
-    value("attendanceDate");
-
-  const classRecord =
-    getClass(classId);
-
-  if (!classRecord || !date) {
-    showToast(
-      "Choose an attendance class and date first.",
-      "error"
-    );
-    return;
-  }
-
-  const key =
-    attendanceKey(classId, date);
-
-  const saved =
-    state.attendance[key] ||
-    attendanceDraft;
-
-  const students =
-    getClassStudents(classId);
-
-  const rows = [
-    [
-      "Class",
-      "Date",
-      "Student",
-      "Level",
-      "Status"
-    ],
-    ...students.map((student) => [
-      classRecord.name,
-      date,
-      `${student.firstName} ${student.lastName}`,
-      student.level,
-      saved[student.id] || ""
-    ])
-  ];
-
-  downloadCsv(
-    `lls-attendance-${slug(classRecord.name)}-${date}.csv`,
-    rows
-  );
-}
-
-function exportFullReport() {
-  const activeStudents =
-    state.students.filter(
-      (item) => item.status === "Active"
-    ).length;
-
-  const fees = sum(
-    state.payments.map(
-      (item) => number(item.fee)
-    )
-  );
-
-  const collected = sum(
-    state.payments.map(
-      (item) => number(item.paid)
-    )
-  );
-
-  const enrolled = state.enquiries.filter(
-    (item) => item.status === "Enrolled"
-  ).length;
-
-  const rows = [
-    ["London Language School Portal Report"],
-    ["Generated", new Date().toLocaleString("en-GB")],
-    [],
-    ["Metric", "Value"],
-    ["Active students", activeStudents],
-    ["Classes", state.classes.length],
-    ["Teachers", state.teachers.length],
-    ["Enquiries", state.enquiries.length],
-    ["Enrolled enquiries", enrolled],
-    ["Fees recorded", fees],
-    ["Collected", collected],
-    ["Outstanding", Math.max(0, fees - collected)],
-    [],
-    ["Student levels"],
-    ...LEVELS.map((level) => [
-      level,
-      state.students.filter(
-        (student) =>
-          student.status === "Active" &&
-          student.level === level
-      ).length
-    ])
-  ];
-
-  downloadCsv(
-    `lls-report-${isoDate(new Date())}.csv`,
-    rows
-  );
-}
-
-function downloadCsv(filename, rows) {
-  const csv = rows
-    .map((row) =>
-      row
-        .map(csvEscape)
-        .join(",")
-    )
-    .join("\r\n");
-
-  downloadFile(
-    filename,
-    "\uFEFF" + csv,
-    "text/csv;charset=utf-8"
-  );
-
-  showToast(
-    "CSV export created.",
-    "success"
-  );
-}
-
-function csvEscape(valueToEscape) {
-  const stringValue =
-    valueToEscape === null ||
-    valueToEscape === undefined
-      ? ""
-      : String(valueToEscape);
-
-  return `"${stringValue.replace(/"/g, '""')}"`;
-}
-
-/* =========================================================
-   BACKUP
-========================================================= */
-
-function exportBackup() {
-  const backup = {
-    app: "London Language School Portal",
-    version: 1,
-    exportedAt:
-      new Date().toISOString(),
-    data: state
-  };
-
-  downloadFile(
-    `lls-portal-backup-${isoDate(new Date())}.json`,
-    JSON.stringify(backup, null, 2),
-    "application/json"
-  );
-
-  showToast(
-    "Portal backup exported.",
-    "success"
-  );
-}
-
-function importBackup(event) {
-  const file =
-    event.target.files?.[0];
-
-  event.target.value = "";
-
-  if (!file) {
-    return;
-  }
-
-  const reader =
-    new FileReader();
-
-  reader.onload = () => {
-    try {
-      const parsed =
-        JSON.parse(reader.result);
-
-      const importedState =
-        parsed.data || parsed;
-
-      if (
-        !importedState ||
-        typeof importedState !== "object"
-      ) {
-        throw new Error(
-          "Invalid backup format"
-        );
-      }
-
-      openConfirm(
-        "Import backup?",
-        "The imported backup will replace the portal data currently stored in this browser.",
-        () => {
-          state = importedState;
-          ensureStateStructure();
-          saveState();
-          renderAll();
-
-          showToast(
-            "Backup imported successfully.",
-            "success"
-          );
-        },
-        "Import"
-      );
-    } catch (error) {
-      console.error(error);
-
-      showToast(
-        "The selected file is not a valid LLS portal backup.",
-        "error"
-      );
-    }
-  };
-
-  reader.readAsText(file);
-}
-
-/* =========================================================
-   MODALS
-========================================================= */
-
-function openModal(id) {
-  const modal = byId(id);
-
-  if (!modal) {
-    return;
-  }
-
-  modal.classList.add("open");
-  document.body.style.overflow = "hidden";
-
-  setTimeout(() => {
-    const focusTarget =
-      modal.querySelector(
-        "input:not([type='hidden']), select, textarea, button"
-      );
-
-    focusTarget?.focus();
-  }, 30);
-}
-
-function closeModal(id) {
-  const modal = byId(id);
-
-  if (!modal) {
-    return;
-  }
-
-  modal.classList.remove("open");
-
-  if (
-    !document.querySelector(
-      ".modal-backdrop.open"
-    )
-  ) {
-    document.body.style.overflow = "";
-  }
-
-  if (id === "confirmModal") {
-    confirmCallback = null;
-  }
-}
-
-function closeAllModals() {
-  document
-    .querySelectorAll(".modal-backdrop.open")
-    .forEach((modal) => {
-      modal.classList.remove("open");
-    });
-
-  confirmCallback = null;
-  document.body.style.overflow = "";
-}
-
-function openConfirm(
-  title,
-  message,
-  callback,
-  actionLabel = "Delete"
-) {
-  text(
-    "confirmModalTitle",
-    title
-  );
-
-  text(
-    "confirmModalMessage",
-    message
-  );
-
-  text(
-    "confirmActionButton",
-    actionLabel
-  );
-
-  confirmCallback =
-    callback;
-
-  openModal("confirmModal");
-}
-
-function executeConfirmAction() {
-  if (
-    typeof confirmCallback === "function"
-  ) {
-    const callback =
-      confirmCallback;
-
-    confirmCallback = null;
-    closeModal("confirmModal");
-    callback();
-  }
-}
-
-/* =========================================================
-   TOASTS
-========================================================= */
-
-function showToast(
-  message,
-  type = "success"
-) {
-  const region =
-    byId("toastRegion");
-
-  const toast =
-    document.createElement("div");
-
-  toast.className =
-    `toast ${type}`;
-
-  toast.innerHTML = `
-    <div>
-      <strong>
-        ${type === "error" ? "Action needed" : "LLS Portal"}
-      </strong>
-      <span>${escapeHtml(message)}</span>
-    </div>
-  `;
-
-  region.appendChild(toast);
-
-  setTimeout(() => {
-    toast.remove();
-  }, 3500);
-}
-
-/* =========================================================
-   DATA HELPERS
-========================================================= */
-
-function getStudent(id) {
-  return state.students.find(
-    (student) =>
-      student.id === id
-  );
-}
-
-function getStudentName(student) {
-  if (!student) {
-    return "";
-  }
-
-  return `${student.firstName} ${student.lastName}`.trim();
-}
-
-function getClass(id) {
-  return state.classes.find(
-    (item) =>
-      item.id === id
-  );
-}
-
-function getTeacher(id) {
-  return state.teachers.find(
-    (teacher) =>
-      teacher.id === id
-  );
-}
-
-function getClassStudents(classId) {
-  return state.students.filter(
-    (student) =>
-      student.classId === classId
-  );
-}
-
-function attendanceKey(
-  classId,
-  date
-) {
-  return `${date}__${classId}`;
-}
-
-/* =========================================================
-   FORM / DOM HELPERS
-========================================================= */
-
-function byId(id) {
-  return document.getElementById(id);
-}
-
-function text(id, content) {
-  const element =
-    byId(id);
-
-  if (element) {
-    element.textContent =
-      content ?? "";
-  }
-}
-
-function value(id) {
-  return byId(id)?.value ?? "";
-}
-
-function setValue(id, newValue) {
-  const element =
-    byId(id);
-
-  if (element) {
-    element.value =
-      newValue ?? "";
-  }
-}
-
-/* =========================================================
-   GENERAL HELPERS
-========================================================= */
-
-function makeId(prefix = "item") {
-  if (
-    window.crypto &&
-    typeof window.crypto.randomUUID === "function"
-  ) {
-    return `${prefix}_${crypto.randomUUID()}`;
-  }
-
-  return `${prefix}_${Date.now()}_${Math.random()
-    .toString(36)
-    .slice(2, 9)}`;
-}
-
-function number(valueToConvert) {
-  const parsed =
-    Number(valueToConvert);
-
-  return Number.isFinite(parsed)
-    ? parsed
-    : 0;
-}
-
-function sum(values) {
-  return values.reduce(
-    (total, item) =>
-      total + number(item),
-    0
-  );
-}
-
-function formatMoney(amount) {
-  return new Intl.NumberFormat(
-    "it-IT",
-    {
-      style: "currency",
-      currency: "EUR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2
-    }
-  ).format(number(amount));
-}
-
-function formatDate(dateString) {
-  if (!dateString) {
-    return "";
-  }
-
-  const date =
-    parseIsoLocal(dateString);
-
-  if (
-    Number.isNaN(date.getTime())
-  ) {
-    return dateString;
-  }
-
-  return new Intl.DateTimeFormat(
-    "en-GB",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    }
-  ).format(date);
-}
-
-function formatTime(time) {
-  if (!time) {
-    return "—";
-  }
-
-  return time.slice(0, 5);
-}
-
-function isoDate(date) {
-  const year =
-    date.getFullYear();
-
-  const month =
-    String(date.getMonth() + 1)
-      .padStart(2, "0");
-
-  const day =
-    String(date.getDate())
-      .padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-function parseIsoLocal(dateString) {
-  const parts =
-    String(dateString)
-      .split("-")
-      .map(Number);
-
-  if (parts.length !== 3) {
-    return new Date(dateString);
-  }
-
-  return new Date(
-    parts[0],
-    parts[1] - 1,
-    parts[2]
-  );
-}
-
-function addDays(date, days) {
-  const result =
-    new Date(date);
-
-  result.setDate(
-    result.getDate() + days
-  );
-
-  return result;
-}
-
-function isPastDate(dateString) {
-  if (!dateString) {
-    return false;
-  }
-
-  const target =
-    parseIsoLocal(dateString);
-
-  const today =
-    parseIsoLocal(
-      isoDate(new Date())
-    );
-
-  return target < today;
-}
-
-function isCurrentMonth(dateString) {
-  if (!dateString) {
-    return false;
-  }
-
-  const date =
-    parseIsoLocal(dateString);
-
-  const today =
-    new Date();
-
-  return (
-    date.getFullYear() ===
-      today.getFullYear() &&
-    date.getMonth() ===
-      today.getMonth()
-  );
-}
-
-function dayIndex(day) {
-  const days = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday"
-  ];
-
-  const index =
-    days.indexOf(day);
-
-  return index === -1
-    ? 99
-    : index;
-}
-
-function getInitials(name) {
-  return String(name || "?")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) =>
-      part.charAt(0).toUpperCase()
-    )
-    .join("");
-}
-
-function slug(valueToSlug) {
-  return String(valueToSlug)
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function statusBadge(status) {
-  const safeStatus =
-    status || "Unknown";
-
-  return `
-    <span class="status-badge status-${slug(safeStatus)}">
-      ${escapeHtml(safeStatus)}
-    </span>
-  `;
-}
-
-function emptyState(message) {
-  return `
-    <div class="empty-state">
-      ${escapeHtml(message)}
-    </div>
-  `;
-}
-
-function tableEmptyRow(
-  columns,
-  message
-) {
-  return `
-    <tr>
-      <td colspan="${columns}">
-        <div class="empty-state">
-          ${escapeHtml(message)}
-        </div>
-      </td>
-    </tr>
-  `;
-}
-
-function escapeHtml(valueToEscape) {
-  return String(
-    valueToEscape ?? ""
-  )
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function escapeAttribute(valueToEscape) {
-  return escapeHtml(
-    valueToEscape
-  );
-}
-
-function cssEscape(valueToEscape) {
-  if (
-    window.CSS &&
-    typeof window.CSS.escape === "function"
-  ) {
-    return CSS.escape(
-      valueToEscape
-    );
-  }
-
-  return String(valueToEscape)
-    .replace(
-      /["\\]/g,
-      "\\$&"
-    );
-}
-
-function downloadFile(
-  filename,
-  content,
-  mimeType
-) {
-  const blob =
-    new Blob(
-      [content],
-      { type: mimeType }
-    );
-
-  const url =
-    URL.createObjectURL(blob);
-
-  const link =
-    document.createElement("a");
-
-  link.href = url;
-  link.download = filename;
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  setTimeout(() => {
-    URL.revokeObjectURL(url);
-  }, 1000);
-}
-
-/* ============================================================
-   LLS V2 — GOOGLE SHEETS ENQUIRY API BRIDGE
-   Google Sheets is the source of truth for enquiries.
-   ============================================================ */
-const LLS_API_URL = "https://script.google.com/macros/s/AKfycbyHbfFoaiMOT1rpY2DcbXAkuNwMoOHVdLlG2aQLgPgCe5gqPuyk8VYm7i4eGQRm8iqi/exec";
-
-function llsDateOnly(valueToNormalise) {
-  if (!valueToNormalise) return "";
-  const raw = String(valueToNormalise).trim();
-  const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
-  if (match) return match[1];
-
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) return raw;
-
-  return [
-    parsed.getFullYear(),
-    String(parsed.getMonth() + 1).padStart(2, "0"),
-    String(parsed.getDate()).padStart(2, "0")
-  ].join("-");
-}
-
-function llsNormaliseStage(stage) {
-  const raw = String(stage || "New").trim();
-  const aliases = {
-    "Trial booked": "Placement/Trial Booked",
-    "Trial Booked": "Placement/Trial Booked",
-    "Trial completed": "Placement/Trial Completed",
-    "Trial Completed": "Placement/Trial Completed",
-    "Interested": "Course Offered"
-  };
-  return aliases[raw] || raw || "New";
-}
-
-async function llsLoadStudentsFromSheets() {
   try {
-    const response = await fetch(`${LLS_API_URL}?action=getStudents&_=${Date.now()}`, {
-      method: "GET",
-      cache: "no-store"
-    });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const payload = await response.json();
-    if (!payload || payload.success === false) {
-      throw new Error(
-        (payload && (payload.error || payload.message)) ||
-        "The server did not return students."
-      );
-    }
-
-    const rows = Array.isArray(payload.students) ? payload.students : [];
-
-    state.students = rows.map((r) => ({
-      id: r["Student ID"] || r.id || "",
-      firstName: r["First Name"] || r.firstName || "",
-      lastName: r["Surname"] || r.lastName || "",
-      email: r["Email"] || r.email || "",
-      phone: r["Phone"] || r.phone || "",
-      dob: llsDateOnly(r["Date of Birth"] || r.dob || ""),
-      level: r["Level"] || r.level || "",
-      classId: r["Class"] || r.classId || "",
-      status: r["Status"] || r.status || "Active",
-      joined: llsDateOnly(r["Joined"] || r.joined || ""),
-      parent: r["Parent / Guardian"] || r.parent || "",
-      notes: r["Notes"] || r.notes || ""
-    })).filter((student) => student.id);
-
-    saveState();
-    renderAll();
-
-    console.info(`LLS: loaded ${state.students.length} students from Google Sheets.`);
-    return state.students;
+    await llsApiPost({ action: "saveAttendance", classId, lessonDate, rows });
+    llsAttendanceLoadedKey = "";
+    showToast("Attendance saved to Google Sheets.", "success");
+    await renderLiveAttendance();
   } catch (error) {
-    console.error("LLS: could not load students from Google Sheets:", error);
-    showToast(
-      "Could not refresh students from Google Sheets. Showing the last available data.",
-      "error"
-    );
-    return null;
+    console.error(error);
+    showToast(error.message || "Attendance could not be saved.", "error");
+  } finally {
+    if (button) { button.disabled = false; button.textContent = "Save attendance"; }
   }
 }
 
-async function llsLoadClassesFromSheets() {
-  try {
-    const response = await fetch(`${LLS_API_URL}?action=getClasses&_=${Date.now()}`, {
-      method: "GET",
-      cache: "no-store"
+document.addEventListener("DOMContentLoaded", () => {
+  const classSelect = document.getElementById("attendanceClassSelect");
+  const dateInput = document.getElementById("attendanceDate");
+  const saveButton = document.getElementById("saveAttendanceButton");
+
+  if (classSelect) {
+    classSelect.addEventListener("change", () => {
+      llsAttendanceLoadedKey = "";
+      renderLiveAttendance();
     });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const payload = await response.json();
-    if (!payload || payload.success === false) {
-      throw new Error(
-        (payload && (payload.error || payload.message)) ||
-        "The server did not return classes."
-      );
-    }
-
-    const rows = Array.isArray(payload.classes)
-      ? payload.classes
-      : (Array.isArray(payload.data) ? payload.data : []);
-
-    if (!rows.length) {
-      console.info("LLS V2: no remote class rows returned; retaining current classes.");
-      return state.classes;
-    }
-
-    state.classes = rows.map((r) => ({
-      id: String(r["Class ID"] || r.id || ""),
-      name: String(r["Class Name"] || r.name || ""),
-      schoolYear: String(r["School Year"] || r.schoolYear || "2026-27"),
-      level: String(r["Level"] || r.level || ""),
-      teacherId: String(r["Teacher"] || r.teacher || ""),
-      teacherName: String(r["Teacher"] || r.teacher || ""),
-      day: String(r["Day"] || r.day || ""),
-      time: String(r["Time"] || r.time || "").slice(0, 5),
-      day2: String(r["Day 2"] || r.day2 || ""),
-      time2: String(r["Time 2"] || r.time2 || "").slice(0, 5),
-      duration: Number(r["Duration"] || r.duration || 90),
-      room: String(r["Room"] || r.room || ""),
-      capacity: Number(r["Capacity"] || r.capacity || 10),
-      registerSheet: String(r["Register Sheet"] || r.registerSheet || ""),
-      status: String(r["Status"] || r.status || "Active"),
-      notes: String(r["Notes"] || r.notes || "")
-    })).filter((item) => item.id || item.name);
-
-    saveState();
-    populateStudentClassSelect();
-    populateAttendanceClassSelect();
-    renderAll();
-
-    console.info(`LLS: loaded ${state.classes.length} classes from Google Sheets.`);
-    return state.classes;
-  } catch (error) {
-    console.error("LLS: could not load classes from Google Sheets:", error);
-    console.warn("LLS V2: Google class refresh unavailable; retaining current class data.");
-    return null;
   }
-}
-
-async function llsLoadEnquiriesFromSheets() {
-  try {
-    const response = await fetch(`${LLS_API_URL}?action=getEnquiries&_=${Date.now()}`, {
-      method: "GET",
-      cache: "no-store"
+  if (dateInput) {
+    dateInput.addEventListener("change", () => {
+      llsAttendanceLoadedKey = "";
+      renderLiveAttendance();
     });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const payload = await response.json();
-
-    if (payload && payload.success === false) {
-      throw new Error(payload.error || payload.message || "API returned an error");
-    }
-
-    const rows = Array.isArray(payload)
-      ? payload
-      : (payload.enquiries || payload.data || []);
-
-    if (!Array.isArray(rows)) {
-      throw new Error("No enquiry array returned by API");
-    }
-
-    state.enquiries = rows.map((r, i) => ({
-      id: r["Enquiry ID"] || r.id || r.enquiryId || r.enquiryID ||
-        `ENQ${String(i + 1).padStart(4, "0")}`,
-      name: r["Name"] || r.name || "",
-      age: r["Age"] || r.age || "",
-      phone: r["Phone"] || r.phone || "",
-      email: r["Email"] || r.email || "",
-      course: r["Course"] || r.course || r.interestedIn || "",
-      source: r["Source"] || r.source || "",
-      status: llsNormaliseStage(r["Stage"] || r.stage || r.status || "New"),
-      followup: llsDateOnly(
-        r["Follow-up"] || r["Follow Up"] || r.followUp || r.followup || ""
-      ),
-      created: llsDateOnly(
-        r["Enquiry Date"] || r.enquiryDate || r.created || ""
-      ),
-      notes: r["Notes"] || r.notes || "",
-      levelResult: r["Level Result"] || r.levelResult || "",
-      finalLevel: r["Level Result"] || r.levelResult || "",
-      trialRequested: r["Trial Requested"] || r.trialRequested || "",
-      trialDate: (() => {
-        const m = String(r["Notes"] || r.notes || "").match(/Placement\/Trial date:\s*(\d{4}-\d{2}-\d{2})/i);
-        return m ? m[1] : "";
-      })(),
-      assessment: (() => {
-        const m = String(r["Notes"] || r.notes || "").match(/Teacher assessment:\s*([^\n\r]+)/i);
-        return m ? m[1].trim() : "";
-      })()
-    }));
-
-    saveState();
-    renderAll();
-
-    console.info(
-      `LLS: loaded ${state.enquiries.length} enquiries from Google Sheets.`
-    );
-
-    return state.enquiries;
-  } catch (error) {
-    console.error("LLS: could not load enquiries from Google Sheets:", error);
-    showToast(
-      "Could not refresh enquiries from Google Sheets. Showing the last available data.",
-      "error"
-    );
-    return null;
   }
-}
+  if (saveButton) {
+    // Capture phase prevents the old localStorage save handler from becoming the source of truth.
+    saveButton.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      saveLiveAttendance();
+    }, true);
+  }
 
-window.addEventListener("load", () => {
-  llsLoadEnquiriesFromSheets();
-  llsLoadStudentsFromSheets();
-  llsLoadClassesFromSheets();
+  loadLiveAttendanceFoundation(true).then(renderLiveAttendance).catch(console.error);
 });
-
-
-/* V2 CLASS OPERATIONS */
-function v2StudentClassValue(s) {
-  return String(s.classId || s.classID || s.class || s.className || s["Class ID"] || s["Class"] || "").trim();
-}
-function v2StudentsForClass(c) {
-  const id = String(c.id || "").trim(), name = String(c.name || "").trim().toLowerCase();
-  return (state.students || []).filter(s => {
-    const x = v2StudentClassValue(s);
-    return x === id || x.toLowerCase() === name;
-  });
-}
-function openClassWorkspace(classId) {
-  const c = (state.classes || []).find(x => String(x.id) === String(classId));
-  if (!c) return;
-  const modal = document.getElementById("classWorkspaceModal");
-  document.getElementById("classWorkspaceTitle").textContent = c.name || "Class";
-  document.getElementById("classWorkspaceMeta").textContent =
-    [c.level, c.teacherName || c.teacherId,
-     c.day && c.time ? `${c.day} ${c.time}` : "",
-     c.day2 && c.time2 ? `${c.day2} ${c.time2}` : ""].filter(Boolean).join(" · ");
-  const students = v2StudentsForClass(c);
-  document.getElementById("classWorkspaceStudents").innerHTML = students.length
-    ? students.map(s => {
-        const n = [s.firstName,s.surname].filter(Boolean).join(" ") || s.name || "Student";
-        return `<div class="class-student-row"><div><strong>${escapeHtml(n)}</strong><span>${escapeHtml(s.level || "—")}</span></div><div>${escapeHtml(s.email || s.phone || "—")}</div></div>`;
-      }).join("")
-    : `<div class="empty-state">No students assigned to this class yet.</div>`;
-  document.getElementById("classWorkspaceAttendance").dataset.classId = c.id;
-  modal.classList.add("is-open"); modal.setAttribute("aria-hidden","false");
-}
-function closeClassWorkspace() {
-  const m=document.getElementById("classWorkspaceModal");
-  if(m){m.classList.remove("is-open");m.setAttribute("aria-hidden","true");}
-}
-function goToClassAttendance() {
-  const id=document.getElementById("classWorkspaceAttendance").dataset.classId;
-  closeClassWorkspace(); location.hash="#attendance";
-  setTimeout(()=>{
-    const s=document.getElementById("attendanceClass");
-    if(s){s.value=id;s.dispatchEvent(new Event("change",{bubbles:true}));}
-  },150);
-}
-function enhanceV2ClassActions() {
-  const classes=state.classes||[];
-  const buttons=[...document.querySelectorAll("button")];
-  classes.forEach(c=>{
-    if(document.querySelector(`[data-v2-open-class="${CSS.escape(String(c.id))}"]`)) return;
-    const edit=buttons.find(b=>{
-      const t=(b.textContent||"").trim().toLowerCase(), oc=b.getAttribute("onclick")||"";
-      return t==="edit" && oc.includes(String(c.id));
-    });
-    if(!edit||!edit.parentElement)return;
-    const b=document.createElement("button");
-    b.type="button"; b.className=edit.className; b.textContent="Open class";
-    b.dataset.v2OpenClass=String(c.id); b.onclick=()=>openClassWorkspace(c.id);
-    edit.parentElement.insertBefore(b,edit);
-  });
-}
-if(typeof renderAll==="function"){
-  const _renderAll=renderAll;
-  renderAll=function(...a){const r=_renderAll.apply(this,a);setTimeout(enhanceV2ClassActions,0);return r;};
-}
-window.addEventListener("hashchange",()=>setTimeout(enhanceV2ClassActions,80));
-setTimeout(enhanceV2ClassActions,150);
-
