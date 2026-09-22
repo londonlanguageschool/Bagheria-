@@ -2433,17 +2433,34 @@ function openEditEnquiry(id) {
 }
 
 async function llsApiPost(body) {
-  const response = await fetch(LLS_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(body)
+  /*
+    V12.1: use the same GET transport that already works reliably for
+    getPortalData. Apps Script ContentService POST redirects were returning
+    googleusercontent 404 responses in the live portal.
+  */
+  const url = new URL(LLS_API_URL);
+  url.searchParams.set("action", "mutate");
+  url.searchParams.set("payload", JSON.stringify(body || {}));
+  url.searchParams.set("_", String(Date.now()));
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    cache: "no-store"
   });
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }
 
-  const result = await response.json();
+  const text = await response.text();
+  let result;
+
+  try {
+    result = JSON.parse(text);
+  } catch (error) {
+    console.error("LLS mutation returned non-JSON:", text.slice(0, 500));
+    throw new Error("Apps Script did not return JSON.");
+  }
 
   if (!result || result.success === false) {
     throw new Error(
