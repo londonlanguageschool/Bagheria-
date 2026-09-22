@@ -1198,10 +1198,8 @@ async function saveStudentForm(event) {
     pendingConversionEnquiryId = "";
     closeModal("studentModal");
 
-    await Promise.all([
-      llsLoadStudentsFromSheets(),
-      llsLoadEnquiriesFromSheets()
-    ]);
+    await llsLoadCoreFromSheets(true);
+    await llsLoadEnquiriesFromSheets();
 
     renderAll();
 
@@ -4353,26 +4351,39 @@ function llsNormaliseStage(stage) {
   return aliases[raw] || raw || "New";
 }
 
-async function llsLoadStudentsFromSheets() {
-  try {
-    const response = await fetch(`${LLS_API_URL}?action=getStudents&_=${Date.now()}`, {
-      method: "GET",
-      cache: "no-store"
-    });
+let llsCoreLoadPromise = null;
 
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+function llsApplyCorePortalData(payload) {
+  const studentRows = Array.isArray(payload.students) ? payload.students : [];
+  const classRows = Array.isArray(payload.classes) ? payload.classes : [];
 
-    const payload = await response.json();
-    if (!payload || payload.success === false) {
-      throw new Error(
-        (payload && (payload.error || payload.message)) ||
-        "The server did not return students."
-      );
-    }
+  state.classes = classRows.map((r) => ({
+    id: String(r["Class ID"] || r.id || ""),
+    name: String(r["Class Name"] || r.name || ""),
+    schoolYear: String(r["School Year"] || r.schoolYear || "2026-27"),
+    level: String(r["Level"] || r.level || ""),
+    teacherId: String(r["Teacher"] || r.teacher || ""),
+    teacherName: String(r["Teacher"] || r.teacher || ""),
+    day: String(r["Day"] || r.day || ""),
+    time: String(r["Time"] || r.time || "").slice(0, 5),
+    day2: String(r["Day 2"] || r.day2 || ""),
+    time2: String(r["Time 2"] || r.time2 || "").slice(0, 5),
+    duration: Number(r["Duration"] || r.duration || 90),
+    room: String(r["Room"] || r.room || ""),
+    capacity: Number(r["Capacity"] || r.capacity || 10),
+    registerSheet: String(r["Register Sheet"] || r.registerSheet || ""),
+    status: String(r["Status"] || r.status || "Active"),
+    notes: String(r["Notes"] || r.notes || "")
+  })).filter((item) => item.id || item.name);
 
-    const rows = Array.isArray(payload.students) ? payload.students : [];
+  state.students = studentRows.map((r) => {
+    const rawClass = String(r["Class"] || r.classId || "").trim();
+    const matchedClass = state.classes.find((c) =>
+      String(c.id || "").trim() === rawClass ||
+      String(c.name || "").trim().toLowerCase() === rawClass.toLowerCase()
+    );
 
-    state.students = rows.map((r) => ({
+    return {
       id: r["Student ID"] || r.id || "",
       firstName: r["First Name"] || r.firstName || "",
       lastName: r["Surname"] || r.lastName || "",
@@ -4380,85 +4391,59 @@ async function llsLoadStudentsFromSheets() {
       phone: r["Phone"] || r.phone || "",
       dob: llsDateOnly(r["Date of Birth"] || r.dob || ""),
       level: r["Level"] || r.level || "",
-      classId: r["Class"] || r.classId || "",
+      classId: matchedClass ? String(matchedClass.id || "") : rawClass,
       status: r["Status"] || r.status || "Active",
       joined: llsDateOnly(r["Joined"] || r.joined || ""),
       parent: r["Parent / Guardian"] || r.parent || "",
       notes: r["Notes"] || r.notes || ""
-    })).filter((student) => student.id);
+    };
+  }).filter((student) => student.id);
 
-    saveState();
-    renderAll();
+  saveState();
+  populateStudentClassSelect();
+  populateAttendanceClassSelect();
+  renderAll();
 
-    console.info(`LLS: loaded ${state.students.length} students from Google Sheets.`);
-    return state.students;
-  } catch (error) {
-    console.error("LLS: could not load students from Google Sheets:", error);
-    showToast(
-      "Could not refresh students from Google Sheets. Showing the last available data.",
-      "error"
-    );
-    return null;
-  }
+  console.info(
+    `LLS: loaded ${state.classes.length} classes and ${state.students.length} students from Google Sheets.`
+  );
+
+  return payload;
+}
+
+async function llsLoadCoreFromSheets(force = false) {
+  if (llsCoreLoadPromise && !force) return llsCoreLoadPromise;
+
+  llsCoreLoadPromise = (async () => {
+    try {
+      // One supported endpoint supplies Students + Classes + Enrolments.
+      // This replaces the competing getStudents/getClasses requests that
+      // were intermittently redirecting to googleusercontent 404 pages.
+      const payload = await llsApiGet("getPortalData");
+      return llsApplyCorePortalData(payload);
+    } catch (error) {
+      console.error("LLS: could not load core portal data from Google Sheets:", error);
+      showToast(
+        "Could not refresh school data from Google Sheets. Showing the last available data.",
+        "error"
+      );
+      return null;
+    } finally {
+      llsCoreLoadPromise = null;
+    }
+  })();
+
+  return llsCoreLoadPromise;
+}
+
+async function llsLoadStudentsFromSheets() {
+  const payload = await llsLoadCoreFromSheets();
+  return payload ? state.students : null;
 }
 
 async function llsLoadClassesFromSheets() {
-  try {
-    const response = await fetch(`${LLS_API_URL}?action=getClasses&_=${Date.now()}`, {
-      method: "GET",
-      cache: "no-store"
-    });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const payload = await response.json();
-    if (!payload || payload.success === false) {
-      throw new Error(
-        (payload && (payload.error || payload.message)) ||
-        "The server did not return classes."
-      );
-    }
-
-    const rows = Array.isArray(payload.classes)
-      ? payload.classes
-      : (Array.isArray(payload.data) ? payload.data : []);
-
-    if (!rows.length) {
-      console.info("LLS V2: no remote class rows returned; retaining current classes.");
-      return state.classes;
-    }
-
-    state.classes = rows.map((r) => ({
-      id: String(r["Class ID"] || r.id || ""),
-      name: String(r["Class Name"] || r.name || ""),
-      schoolYear: String(r["School Year"] || r.schoolYear || "2026-27"),
-      level: String(r["Level"] || r.level || ""),
-      teacherId: String(r["Teacher"] || r.teacher || ""),
-      teacherName: String(r["Teacher"] || r.teacher || ""),
-      day: String(r["Day"] || r.day || ""),
-      time: String(r["Time"] || r.time || "").slice(0, 5),
-      day2: String(r["Day 2"] || r.day2 || ""),
-      time2: String(r["Time 2"] || r.time2 || "").slice(0, 5),
-      duration: Number(r["Duration"] || r.duration || 90),
-      room: String(r["Room"] || r.room || ""),
-      capacity: Number(r["Capacity"] || r.capacity || 10),
-      registerSheet: String(r["Register Sheet"] || r.registerSheet || ""),
-      status: String(r["Status"] || r.status || "Active"),
-      notes: String(r["Notes"] || r.notes || "")
-    })).filter((item) => item.id || item.name);
-
-    saveState();
-    populateStudentClassSelect();
-    populateAttendanceClassSelect();
-    renderAll();
-
-    console.info(`LLS: loaded ${state.classes.length} classes from Google Sheets.`);
-    return state.classes;
-  } catch (error) {
-    console.error("LLS: could not load classes from Google Sheets:", error);
-    console.warn("LLS V2: Google class refresh unavailable; retaining current class data.");
-    return null;
-  }
+  const payload = await llsLoadCoreFromSheets();
+  return payload ? state.classes : null;
 }
 
 async function llsLoadEnquiriesFromSheets() {
@@ -4532,10 +4517,9 @@ async function llsLoadEnquiriesFromSheets() {
   }
 }
 
-window.addEventListener("load", () => {
-  llsLoadEnquiriesFromSheets();
-  llsLoadStudentsFromSheets();
-  llsLoadClassesFromSheets();
+window.addEventListener("load", async () => {
+  await llsLoadCoreFromSheets(true);
+  await llsLoadEnquiriesFromSheets();
 });
 
 
