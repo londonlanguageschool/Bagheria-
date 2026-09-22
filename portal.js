@@ -4623,17 +4623,53 @@ async function llsApiGet(action, params = {}) {
 }
 
 async function llsApiPost(payload) {
+  /*
+    Google Apps Script web apps may answer a cross-origin POST with a redirect
+    to script.googleusercontent.com. In this portal that redirected response
+    was intermittently becoming a 404/non-JSON response in the browser.
+
+    Send the action as URL-encoded form data to the stable /exec endpoint.
+    This avoids the JSON-body/redirect path while remaining compatible with
+    Apps Script e.parameter / e.postData handling.
+  */
+  const body = new URLSearchParams();
+
+  Object.entries(payload || {}).forEach(([key, value]) => {
+    if (key === "fields" && value && typeof value === "object") {
+      body.set("fields", JSON.stringify(value));
+    } else if (value !== undefined && value !== null) {
+      body.set(key, typeof value === "object" ? JSON.stringify(value) : String(value));
+    }
+  });
+
   const response = await fetch(LLS_API_URL, {
     method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload),
-    redirect: "follow"
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+    },
+    body: body.toString(),
+    redirect: "follow",
+    cache: "no-store"
   });
-  const raw = await response.text();
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
   let data;
-  try { data = JSON.parse(raw); }
-  catch (_) { throw new Error("Apps Script did not return JSON."); }
-  if (!data || data.success !== true) throw new Error(data?.error || "API request failed.");
+  try {
+    data = JSON.parse(text);
+  } catch (error) {
+    console.error("LLS: Apps Script POST returned non-JSON:", text.slice(0, 500));
+    throw new Error("Apps Script did not return JSON.");
+  }
+
+  if (!data || data.success !== true) {
+    throw new Error(data?.error || "Google Sheets update failed.");
+  }
+
   return data;
 }
 
