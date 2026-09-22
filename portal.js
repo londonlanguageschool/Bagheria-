@@ -1054,7 +1054,7 @@ async function saveStudentForm(event) {
     "Phone": value("studentPhone").trim(),
     "Date of Birth": value("studentDob"),
     "Level": value("studentLevel"),
-    "Class": classId,
+    "Class": "",
     "Status": value("studentStatus") || "Active",
     "Joined": value("studentJoined") || isoDate(new Date()),
     "Parent / Guardian": value("studentParent").trim(),
@@ -1082,7 +1082,7 @@ async function saveStudentForm(event) {
       for Attendance comes from the Enrolments sheet. Therefore selecting a
       class for ANY student must also create/maintain the active Enrolment.
     */
-    if (classId) {
+    {
       const portalData = await llsApiGet("getPortalData");
       const allEnrolments = Array.isArray(portalData.enrolments)
         ? portalData.enrolments
@@ -1101,12 +1101,19 @@ async function saveStudentForm(event) {
         selectedClass?.schoolYear || schoolYear || "2026-27"
       ).trim();
 
-      const sameClass = activeForStudent.find((item) =>
+      const sameClass = classId ? activeForStudent.find((item) =>
         String(item["Class ID"] || "").trim() === classId &&
         String(item["School Year"] || "").trim() === selectedSchoolYear
-      );
+      ) : null;
 
-      if (sameClass) {
+      if (!classId) {
+        for (const existing of activeForStudent) {
+          const existingId = String(existing["Enrolment ID"] || "").trim();
+          if (existingId) {
+            await llsApiPost({ action: "endEnrolment", enrolmentId: existingId });
+          }
+        }
+      } else if (sameClass) {
         enrolment = {
           success: true,
           enrolmentId: String(sameClass["Enrolment ID"] || "").trim()
@@ -2433,11 +2440,6 @@ function openEditEnquiry(id) {
 }
 
 async function llsApiPost(body) {
-  /*
-    V12.1: use the same GET transport that already works reliably for
-    getPortalData. Apps Script ContentService POST redirects were returning
-    googleusercontent 404 responses in the live portal.
-  */
   const url = new URL(LLS_API_URL);
   url.searchParams.set("action", "mutate");
   url.searchParams.set("payload", JSON.stringify(body || {}));
@@ -2445,30 +2447,24 @@ async function llsApiPost(body) {
 
   const response = await fetch(url.toString(), {
     method: "GET",
-    cache: "no-store"
+    cache: "no-store",
+    redirect: "follow"
   });
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
   const text = await response.text();
   let result;
-
   try {
     result = JSON.parse(text);
-  } catch (error) {
+  } catch (_) {
     console.error("LLS mutation returned non-JSON:", text.slice(0, 500));
     throw new Error("Apps Script did not return JSON.");
   }
 
-  if (!result || result.success === false) {
-    throw new Error(
-      (result && (result.error || result.message)) ||
-      "The server did not confirm the change."
-    );
+  if (!result || result.success !== true) {
+    throw new Error(result?.error || result?.message || "The server did not confirm the change.");
   }
-
   return result;
 }
 
@@ -4373,11 +4369,12 @@ let llsCoreLoadPromise = null;
 function llsApplyCorePortalData(payload) {
   const studentRows = Array.isArray(payload.students) ? payload.students : [];
   const classRows = Array.isArray(payload.classes) ? payload.classes : [];
+  const enrolmentRows = Array.isArray(payload.enrolments) ? payload.enrolments : [];
 
   state.classes = classRows.map((r) => ({
-    id: String(r["Class ID"] || r.id || ""),
-    name: String(r["Class Name"] || r.name || ""),
-    schoolYear: String(r["School Year"] || r.schoolYear || "2026-27"),
+    id: String(r["Class ID"] || r.id || "").trim(),
+    name: String(r["Class Name"] || r.name || "").trim(),
+    schoolYear: String(r["School Year"] || r.schoolYear || "2026-27").trim(),
     level: String(r["Level"] || r.level || ""),
     teacherId: String(r["Teacher"] || r.teacher || ""),
     teacherName: String(r["Teacher"] || r.teacher || ""),
@@ -4388,27 +4385,34 @@ function llsApplyCorePortalData(payload) {
     duration: Number(r["Duration"] || r.duration || 90),
     room: String(r["Room"] || r.room || ""),
     capacity: Number(r["Capacity"] || r.capacity || 10),
-    registerSheet: String(r["Register Sheet"] || r.registerSheet || ""),
+    registerSheet: "",
     status: String(r["Status"] || r.status || "Active"),
     notes: String(r["Notes"] || r.notes || "")
-  })).filter((item) => item.id || item.name);
+  })).filter((item) => item.id);
+
+  // Authoritative membership: ACTIVE Enrolments only.
+  // The legacy Students["Class"] cell is deliberately ignored.
+  const activeClassByStudent = new Map();
+  enrolmentRows.forEach((enrolment) => {
+    const status = String(enrolment["Status"] || "").trim().toLowerCase();
+    const studentId = String(enrolment["Student ID"] || "").trim();
+    const classId = String(enrolment["Class ID"] || "").trim();
+    if (status === "active" && studentId && classId) {
+      activeClassByStudent.set(studentId, classId);
+    }
+  });
 
   state.students = studentRows.map((r) => {
-    const rawClass = String(r["Class"] || r.classId || "").trim();
-    const matchedClass = state.classes.find((c) =>
-      String(c.id || "").trim() === rawClass ||
-      String(c.name || "").trim().toLowerCase() === rawClass.toLowerCase()
-    );
-
+    const studentId = String(r["Student ID"] || r.id || "").trim();
     return {
-      id: r["Student ID"] || r.id || "",
+      id: studentId,
       firstName: r["First Name"] || r.firstName || "",
       lastName: r["Surname"] || r.lastName || "",
       email: r["Email"] || r.email || "",
       phone: r["Phone"] || r.phone || "",
       dob: llsDateOnly(r["Date of Birth"] || r.dob || ""),
       level: r["Level"] || r.level || "",
-      classId: matchedClass ? String(matchedClass.id || "") : rawClass,
+      classId: activeClassByStudent.get(studentId) || "",
       status: r["Status"] || r.status || "Active",
       joined: llsDateOnly(r["Joined"] || r.joined || ""),
       parent: r["Parent / Guardian"] || r.parent || "",
@@ -4416,13 +4420,20 @@ function llsApplyCorePortalData(payload) {
     };
   }).filter((student) => student.id);
 
+  llsLivePortalData = {
+    students: studentRows,
+    classes: classRows,
+    enrolments: enrolmentRows
+  };
+
   saveState();
   populateStudentClassSelect();
   populateAttendanceClassSelect();
+  if (typeof populateLiveAttendanceClasses === "function") populateLiveAttendanceClasses();
   renderAll();
 
   console.info(
-    `LLS: loaded ${state.classes.length} classes and ${state.students.length} students from Google Sheets.`
+    `LLS: loaded ${state.classes.length} classes, ${state.students.length} students and ${enrolmentRows.length} enrolments from Google Sheets.`
   );
 
   return payload;
@@ -4639,55 +4650,33 @@ async function llsApiGet(action, params = {}) {
   return data;
 }
 
-async function llsApiPost(payload) {
-  /*
-    Google Apps Script web apps may answer a cross-origin POST with a redirect
-    to script.googleusercontent.com. In this portal that redirected response
-    was intermittently becoming a 404/non-JSON response in the browser.
+async function llsApiPost(body) {
+  const url = new URL(LLS_API_URL);
+  url.searchParams.set("action", "mutate");
+  url.searchParams.set("payload", JSON.stringify(body || {}));
+  url.searchParams.set("_", String(Date.now()));
 
-    Send the action as URL-encoded form data to the stable /exec endpoint.
-    This avoids the JSON-body/redirect path while remaining compatible with
-    Apps Script e.parameter / e.postData handling.
-  */
-  const body = new URLSearchParams();
-
-  Object.entries(payload || {}).forEach(([key, value]) => {
-    if (key === "fields" && value && typeof value === "object") {
-      body.set("fields", JSON.stringify(value));
-    } else if (value !== undefined && value !== null) {
-      body.set(key, typeof value === "object" ? JSON.stringify(value) : String(value));
-    }
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    cache: "no-store",
+    redirect: "follow"
   });
 
-  const response = await fetch(LLS_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
-    },
-    body: body.toString(),
-    redirect: "follow",
-    cache: "no-store"
-  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
   const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  let data;
+  let result;
   try {
-    data = JSON.parse(text);
-  } catch (error) {
-    console.error("LLS: Apps Script POST returned non-JSON:", text.slice(0, 500));
+    result = JSON.parse(text);
+  } catch (_) {
+    console.error("LLS mutation returned non-JSON:", text.slice(0, 500));
     throw new Error("Apps Script did not return JSON.");
   }
 
-  if (!data || data.success !== true) {
-    throw new Error(data?.error || "Google Sheets update failed.");
+  if (!result || result.success !== true) {
+    throw new Error(result?.error || result?.message || "The server did not confirm the change.");
   }
-
-  return data;
+  return result;
 }
 
 function llsStudentName(student) {
