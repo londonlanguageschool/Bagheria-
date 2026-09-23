@@ -994,6 +994,34 @@ function openEditStudent(id) {
   openModal("studentModal");
 }
 
+/*
+ * V12.6 — post-write refresh confirmation.
+ * Apps Script/ContentService can briefly return a redirect/404 immediately
+ * after a successful mutation. Retry the authoritative portal read quietly
+ * instead of showing a false failure after a successful save.
+ */
+async function llsGetPortalDataWithRetry(attempts = 5, delayMs = 1200) {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await llsApiGet("getPortalData");
+    } catch (error) {
+      lastError = error;
+      console.warn(
+        `LLS V12.6: portal refresh attempt ${attempt}/${attempts} failed.`,
+        error
+      );
+
+      if (attempt < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+      }
+    }
+  }
+
+  throw lastError || new Error("Could not confirm the saved change from Google Sheets.");
+}
+
 async function saveStudentForm(event) {
   event.preventDefault();
 
@@ -1083,7 +1111,7 @@ async function saveStudentForm(event) {
       class for ANY student must also create/maintain the active Enrolment.
     */
     {
-      const portalData = await llsApiGet("getPortalData");
+      const portalData = await llsGetPortalDataWithRetry();
       const allEnrolments = Array.isArray(portalData.enrolments)
         ? portalData.enrolments
         : [];
@@ -1202,20 +1230,47 @@ async function saveStudentForm(event) {
       });
     }
 
+    /*
+      V12.6
+      Confirm the mutation from a fresh Google Sheets read before reporting
+      success. This avoids the old false "Action needed" message caused by an
+      immediate post-write ContentService redirect/404.
+    */
+    const confirmedPortalData = await llsGetPortalDataWithRetry();
+    llsApplyCorePortalData(confirmedPortalData);
+
+    const confirmedStudent = state.students.find(
+      (item) => String(item.id || "").trim() === studentId
+    );
+
+    if (!confirmedStudent) {
+      throw new Error("The change was sent, but the student could not yet be confirmed from Google Sheets.");
+    }
+
+    const confirmedClassId = String(confirmedStudent.classId || "").trim();
+    if (confirmedClassId !== String(classId || "").trim()) {
+      throw new Error("The change was sent, but the class assignment has not yet been confirmed from Google Sheets.");
+    }
+
+    if (isConversion) {
+      // Enquiries only need refreshing when a conversion actually changed one.
+      try {
+        await llsLoadEnquiriesFromSheets();
+      } catch (error) {
+        console.warn("LLS V12.6: enquiry refresh deferred after successful enrolment.", error);
+      }
+    }
+
     pendingConversionEnquiryId = "";
     closeModal("studentModal");
-
-    await llsLoadCoreFromSheets(true);
-    await llsLoadEnquiriesFromSheets();
-
     renderAll();
 
     showToast(
       isConversion
-        ? "Student enrolled: class enrolment and fee account created."
+        ? "Student enrolled and confirmed in Google Sheets."
         : id
-          ? "Student and class assignment saved."
-          : `Student ${studentId} created in Google Sheets.`,
+          ? "Student and class assignment saved and confirmed."
+          : `Student ${studentId} created and confirmed in Google Sheets.`,
       "success"
     );
   } catch (error) {
