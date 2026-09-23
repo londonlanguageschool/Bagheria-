@@ -1556,24 +1556,72 @@ async function saveClassForm(event) {
   };
 
   try {
-    await llsApiPost(
+    const result = await llsApiPost(
       id
         ? { action: "updateClass", classId: id, fields }
         : { action: "createClass", fields }
     );
 
+    /*
+     * V12.9 — Classes now use the same stable save strategy as Students.
+     * Never hold the Save UI open while immediately re-reading Google Sheets.
+     */
+    const classId = String(result?.classId || id || "").trim();
+
+    if (id) {
+      const existing = state.classes.find(
+        (item) => String(item.id || "").trim() === id
+      );
+
+      if (existing) {
+        existing.name = className;
+        existing.schoolYear = schoolYear;
+        existing.level = fields["Level"];
+        existing.teacherName = fields["Teacher"];
+        existing.day = fields["Day"];
+        existing.time = fields["Time"];
+        existing.room = fields["Room"];
+        existing.capacity = capacity;
+        existing.registerSheet = fields["Register Sheet"];
+        existing.status = fields["Status"];
+      }
+    } else if (classId) {
+      state.classes.push({
+        id: classId,
+        name: className,
+        schoolYear,
+        level: fields["Level"],
+        teacherId: "",
+        teacherName: fields["Teacher"],
+        day: fields["Day"],
+        time: fields["Time"],
+        day2: "",
+        time2: "",
+        room: fields["Room"],
+        capacity,
+        registerSheet: fields["Register Sheet"],
+        status: fields["Status"]
+      });
+    }
+
+    saveState();
     closeModal("classModal");
-    await llsLoadClassesFromSheets();
     renderAll();
 
     showToast(
-      id ? "Class updated in Google Sheets." : "Class created in Google Sheets.",
+      id
+        ? "Class saved. Google Sheets is updating in the background."
+        : classId
+          ? `Class ${classId} created. Google Sheets is updating in the background.`
+          : "Class sent to Google Sheets. It will appear after verification.",
       "success"
     );
+
+    void llsRefreshCoreAfterSaveInBackground();
   } catch (error) {
     console.error("LLS class save failed:", error);
     showToast(
-      "Could not save the class. Nothing was changed.",
+      error?.message || "Could not save the class.",
       "error"
     );
   } finally {
