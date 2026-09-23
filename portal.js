@@ -2440,25 +2440,27 @@ function openEditEnquiry(id) {
 }
 
 async function llsApiPost(body) {
-  const url = new URL(LLS_API_URL);
-  url.searchParams.set("action", "mutate");
-  url.searchParams.set("payload", JSON.stringify(body || {}));
-  url.searchParams.set("_", String(Date.now()));
+  // V12.3: form POST avoids the intermittent Apps Script GET redirect/404.
+  const form = new URLSearchParams();
+  form.set("action", String((body || {}).action || ""));
+  form.set("payload", JSON.stringify(body || {}));
+  form.set("_", String(Date.now()));
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
+  const response = await fetch(LLS_API_URL, {
+    method: "POST",
+    body: form,
     cache: "no-store",
     redirect: "follow"
   });
 
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-  const text = await response.text();
+  const raw = await response.text();
   let result;
   try {
-    result = JSON.parse(text);
+    result = JSON.parse(raw);
   } catch (_) {
-    console.error("LLS mutation returned non-JSON:", text.slice(0, 500));
+    console.error("LLS mutation returned non-JSON:", raw.slice(0, 500));
     throw new Error("Apps Script did not return JSON.");
   }
 
@@ -4651,25 +4653,27 @@ async function llsApiGet(action, params = {}) {
 }
 
 async function llsApiPost(body) {
-  const url = new URL(LLS_API_URL);
-  url.searchParams.set("action", "mutate");
-  url.searchParams.set("payload", JSON.stringify(body || {}));
-  url.searchParams.set("_", String(Date.now()));
+  // V12.3: form POST avoids the intermittent Apps Script GET redirect/404.
+  const form = new URLSearchParams();
+  form.set("action", String((body || {}).action || ""));
+  form.set("payload", JSON.stringify(body || {}));
+  form.set("_", String(Date.now()));
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
+  const response = await fetch(LLS_API_URL, {
+    method: "POST",
+    body: form,
     cache: "no-store",
     redirect: "follow"
   });
 
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-  const text = await response.text();
+  const raw = await response.text();
   let result;
   try {
-    result = JSON.parse(text);
+    result = JSON.parse(raw);
   } catch (_) {
-    console.error("LLS mutation returned non-JSON:", text.slice(0, 500));
+    console.error("LLS mutation returned non-JSON:", raw.slice(0, 500));
     throw new Error("Apps Script did not return JSON.");
   }
 
