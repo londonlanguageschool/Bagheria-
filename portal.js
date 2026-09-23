@@ -995,27 +995,32 @@ function openEditStudent(id) {
 }
 
 /*
- * V12.7 — fast student saves.
+ * V12.8 — stable student save.
  *
- * The V12.5 mutation transport is proven to reach Google Sheets. Do not block
- * the Save button waiting for Sheets/ContentService to become readable.
- * Refresh in the background with bounded retries instead.
+ * IMPORTANT: no GET is allowed in the critical save path.
+ * Apps Script writes have been reaching Sheets; the repeated failure came
+ * from immediately following a write with getPortalData while Google's
+ * ContentService redirect was still unstable.
+ *
+ * This verifier runs later, silently, and never turns a successful write
+ * into a visible save error.
  */
 async function llsRefreshCoreAfterSaveInBackground() {
-  const delays = [1200, 2500, 4500];
+  const delays = [4000, 8000, 12000];
 
   for (const delay of delays) {
     await new Promise((resolve) => setTimeout(resolve, delay));
+
     try {
-      await llsLoadCoreFromSheets(true);
-      renderAll();
+      const payload = await llsApiGet("getPortalData");
+      llsApplyCorePortalData(payload);
       return true;
     } catch (error) {
-      console.warn("LLS V12.7: background core refresh deferred.", error);
+      console.warn("LLS V12.8: silent background verification deferred.", error);
     }
   }
 
-  console.warn("LLS V12.7: saved change was sent, but automatic refresh could not yet confirm it.");
+  console.warn("LLS V12.8: automatic verification deferred until the next normal refresh.");
   return false;
 }
 
@@ -1108,9 +1113,13 @@ async function saveStudentForm(event) {
       class for ANY student must also create/maintain the active Enrolment.
     */
     {
-      const portalData = await llsApiGet("getPortalData");
-      const allEnrolments = Array.isArray(portalData.enrolments)
-        ? portalData.enrolments
+      /*
+       * V12.8: use the last successfully loaded enrolment snapshot.
+       * DO NOT call getPortalData immediately after updateStudent.
+       * That immediate read-after-write was the recurring 404/refresh failure.
+       */
+      const allEnrolments = Array.isArray(llsLivePortalData?.enrolments)
+        ? llsLivePortalData.enrolments
         : [];
 
       const activeForStudent = allEnrolments.filter((item) =>
@@ -1227,21 +1236,45 @@ async function saveStudentForm(event) {
       });
     }
 
+    /*
+     * V12.8: update the visible student immediately from the user's confirmed
+     * selection. Google Sheets remains the source of truth; the silent
+     * background verifier reconciles later.
+     */
+    const localStudent = state.students.find(
+      (item) => String(item.id || "").trim() === studentId
+    );
+
+    if (localStudent) {
+      localStudent.firstName = firstName;
+      localStudent.lastName = lastName;
+      localStudent.email = fields["Email"];
+      localStudent.phone = fields["Phone"];
+      localStudent.dob = fields["Date of Birth"];
+      localStudent.level = fields["Level"];
+      localStudent.classId = classId;
+      localStudent.status = fields["Status"];
+      localStudent.joined = fields["Joined"];
+      localStudent.parent = fields["Parent / Guardian"];
+      localStudent.notes = fields["Notes"];
+      saveState();
+    }
+
     pendingConversionEnquiryId = "";
     closeModal("studentModal");
+    renderAll();
 
-    // V12.7: finish the user's save immediately. Do not make the interface
-    // wait for Google Sheets/ContentService read-back.
+    // V12.8: the save UI is complete now; verification is non-blocking.
     showToast(
       isConversion
-        ? "Student enrolment sent. Updating from Google Sheets…"
+        ? "Student enrolment saved. Google Sheets is updating in the background."
         : id
-          ? "Student saved. Updating from Google Sheets…"
-          : `Student ${studentId} created. Updating from Google Sheets…`,
+          ? "Student saved. Google Sheets is updating in the background."
+          : `Student ${studentId} created. Google Sheets is updating in the background.`,
       "success"
     );
 
-    // Fire-and-forget authoritative refresh. This must never hold the Save UI.
+    // V12.8 silent verification. This never holds the Save UI.
     void llsRefreshCoreAfterSaveInBackground();
 
     if (isConversion) {
