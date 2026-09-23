@@ -2441,92 +2441,30 @@ function openEditEnquiry(id) {
 
 async function llsApiPost(body) {
   /*
-   * V12.4 — Apps Script cross-origin write fix.
-   *
-   * Google Apps Script ContentService redirects POST responses through
-   * googleusercontent. In the live GitHub Pages portal that response path
-   * has repeatedly ended in HTTP 404 even though ordinary GET reads work.
-   *
-   * Writes therefore use a "no-cors" form POST. We do NOT trust the opaque
-   * POST response. Instead, after the write has had time to complete, we
-   * read getPortalData through the already-working GET channel and verify
-   * the requested mutation from Google Sheets itself.
+   * V12.5 — Apps Script write transport fix.
+   * Send the mutation without trying to read the cross-origin redirected
+   * ContentService response. The normal sheet refresh remains the source
+   * of truth after a save.
    */
-  const request = body || {};
   const form = new URLSearchParams();
-  form.set("action", String(request.action || ""));
-  form.set("payload", JSON.stringify(request));
+  form.set("action", String((body || {}).action || ""));
+  form.set("payload", JSON.stringify(body || {}));
   form.set("_", String(Date.now()));
 
-  await fetch(LLS_API_URL, {
-    method: "POST",
-    mode: "no-cors",
-    body: form,
-    cache: "no-store",
-    redirect: "follow"
-  });
-
-  // Give Apps Script/Sheets a moment to finish before verification.
-  await new Promise(resolve => setTimeout(resolve, 900));
-
-  const action = String(request.action || "");
-  const portal = await llsApiGet("getPortalData");
-
-  const students = Array.isArray(portal.students) ? portal.students : [];
-  const enrolments = Array.isArray(portal.enrolments) ? portal.enrolments : [];
-  const fees = Array.isArray(portal.fees) ? portal.fees : [];
-  const payments = Array.isArray(portal.payments) ? portal.payments : [];
-
-  if (action === "updateStudent") {
-    const studentId = String(request.studentId || "").trim();
-    const row = students.find(x => String(x["Student ID"] || "").trim() === studentId);
-    if (!row) throw new Error("Student update could not be verified.");
-    return { success: true, studentId };
+  try {
+    await fetch(LLS_API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      body: form,
+      cache: "no-store",
+      redirect: "follow"
+    });
+  } catch (_) {
+    throw new Error("Could not send the change to Apps Script.");
   }
 
-  if (action === "createStudent") {
-    const f = request.fields || {};
-    const first = String(f["First Name"] || "").trim().toLowerCase();
-    const sur = String(f["Surname"] || "").trim().toLowerCase();
-    const email = String(f["Email"] || "").trim().toLowerCase();
-    const matches = students.filter(x =>
-      String(x["First Name"] || "").trim().toLowerCase() === first &&
-      String(x["Surname"] || "").trim().toLowerCase() === sur &&
-      (!email || String(x["Email"] || "").trim().toLowerCase() === email)
-    );
-    const row = matches[matches.length - 1];
-    const studentId = String(row?.["Student ID"] || "").trim();
-    if (!studentId) throw new Error("New student could not be verified.");
-    return { success: true, studentId };
-  }
-
-  if (action === "createEnrolment") {
-    const studentId = String(request.studentId || "").trim();
-    const classId = String(request.classId || "").trim();
-    const row = enrolments.find(x =>
-      String(x["Student ID"] || "").trim() === studentId &&
-      String(x["Class ID"] || "").trim() === classId &&
-      String(x["Status"] || "").trim().toLowerCase() === "active"
-    );
-    const enrolmentId = String(row?.["Enrolment ID"] || "").trim();
-    if (!enrolmentId) throw new Error("Class enrolment could not be verified.");
-    return { success: true, enrolmentId };
-  }
-
-  if (action === "endEnrolment") {
-    const enrolmentId = String(request.enrolmentId || "").trim();
-    const row = enrolments.find(x =>
-      String(x["Enrolment ID"] || "").trim() === enrolmentId
-    );
-    if (!row || String(row["Status"] || "").trim().toLowerCase() === "active") {
-      throw new Error("Class removal could not be verified.");
-    }
-    return { success: true, enrolmentId };
-  }
-
-  // Other mutations are sent by the same reliable transport. Their detailed
-  // screens already refresh from Sheets after save, so return transport success.
-  return { success: true };
+  await new Promise((resolve) => setTimeout(resolve, 700));
+  return { success: true, transport: "opaque-no-cors" };
 }
 
 async function saveEnquiryForm(event) {
@@ -4712,93 +4650,34 @@ async function llsApiGet(action, params = {}) {
 }
 
 async function llsApiPost(body) {
-  /*
-   * V12.4 — Apps Script cross-origin write fix.
-   *
-   * Google Apps Script ContentService redirects POST responses through
-   * googleusercontent. In the live GitHub Pages portal that response path
-   * has repeatedly ended in HTTP 404 even though ordinary GET reads work.
-   *
-   * Writes therefore use a "no-cors" form POST. We do NOT trust the opaque
-   * POST response. Instead, after the write has had time to complete, we
-   * read getPortalData through the already-working GET channel and verify
-   * the requested mutation from Google Sheets itself.
-   */
-  const request = body || {};
+  // V12.3: form POST avoids the intermittent Apps Script GET redirect/404.
   const form = new URLSearchParams();
-  form.set("action", String(request.action || ""));
-  form.set("payload", JSON.stringify(request));
+  form.set("action", String((body || {}).action || ""));
+  form.set("payload", JSON.stringify(body || {}));
   form.set("_", String(Date.now()));
 
-  await fetch(LLS_API_URL, {
+  const response = await fetch(LLS_API_URL, {
     method: "POST",
-    mode: "no-cors",
     body: form,
     cache: "no-store",
     redirect: "follow"
   });
 
-  // Give Apps Script/Sheets a moment to finish before verification.
-  await new Promise(resolve => setTimeout(resolve, 900));
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-  const action = String(request.action || "");
-  const portal = await llsApiGet("getPortalData");
-
-  const students = Array.isArray(portal.students) ? portal.students : [];
-  const enrolments = Array.isArray(portal.enrolments) ? portal.enrolments : [];
-  const fees = Array.isArray(portal.fees) ? portal.fees : [];
-  const payments = Array.isArray(portal.payments) ? portal.payments : [];
-
-  if (action === "updateStudent") {
-    const studentId = String(request.studentId || "").trim();
-    const row = students.find(x => String(x["Student ID"] || "").trim() === studentId);
-    if (!row) throw new Error("Student update could not be verified.");
-    return { success: true, studentId };
+  const raw = await response.text();
+  let result;
+  try {
+    result = JSON.parse(raw);
+  } catch (_) {
+    console.error("LLS mutation returned non-JSON:", raw.slice(0, 500));
+    throw new Error("Apps Script did not return JSON.");
   }
 
-  if (action === "createStudent") {
-    const f = request.fields || {};
-    const first = String(f["First Name"] || "").trim().toLowerCase();
-    const sur = String(f["Surname"] || "").trim().toLowerCase();
-    const email = String(f["Email"] || "").trim().toLowerCase();
-    const matches = students.filter(x =>
-      String(x["First Name"] || "").trim().toLowerCase() === first &&
-      String(x["Surname"] || "").trim().toLowerCase() === sur &&
-      (!email || String(x["Email"] || "").trim().toLowerCase() === email)
-    );
-    const row = matches[matches.length - 1];
-    const studentId = String(row?.["Student ID"] || "").trim();
-    if (!studentId) throw new Error("New student could not be verified.");
-    return { success: true, studentId };
+  if (!result || result.success !== true) {
+    throw new Error(result?.error || result?.message || "The server did not confirm the change.");
   }
-
-  if (action === "createEnrolment") {
-    const studentId = String(request.studentId || "").trim();
-    const classId = String(request.classId || "").trim();
-    const row = enrolments.find(x =>
-      String(x["Student ID"] || "").trim() === studentId &&
-      String(x["Class ID"] || "").trim() === classId &&
-      String(x["Status"] || "").trim().toLowerCase() === "active"
-    );
-    const enrolmentId = String(row?.["Enrolment ID"] || "").trim();
-    if (!enrolmentId) throw new Error("Class enrolment could not be verified.");
-    return { success: true, enrolmentId };
-  }
-
-  if (action === "endEnrolment") {
-    const enrolmentId = String(request.enrolmentId || "").trim();
-    const row = enrolments.find(x =>
-      String(x["Enrolment ID"] || "").trim() === enrolmentId
-    );
-    if (!row || String(row["Status"] || "").trim().toLowerCase() === "active") {
-      throw new Error("Class removal could not be verified.");
-    }
-    return { success: true, enrolmentId };
-  }
-
-  // Other mutations are sent by the same reliable transport. Their detailed
-  // screens already refresh from Sheets after save, so return transport success.
-  return { success: true };
+  return result;
 }
 
 function llsStudentName(student) {
