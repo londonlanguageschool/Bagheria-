@@ -995,31 +995,28 @@ function openEditStudent(id) {
 }
 
 /*
- * V12.6 — post-write refresh confirmation.
- * Apps Script/ContentService can briefly return a redirect/404 immediately
- * after a successful mutation. Retry the authoritative portal read quietly
- * instead of showing a false failure after a successful save.
+ * V12.7 — fast student saves.
+ *
+ * The V12.5 mutation transport is proven to reach Google Sheets. Do not block
+ * the Save button waiting for Sheets/ContentService to become readable.
+ * Refresh in the background with bounded retries instead.
  */
-async function llsGetPortalDataWithRetry(attempts = 5, delayMs = 1200) {
-  let lastError = null;
+async function llsRefreshCoreAfterSaveInBackground() {
+  const delays = [1200, 2500, 4500];
 
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+  for (const delay of delays) {
+    await new Promise((resolve) => setTimeout(resolve, delay));
     try {
-      return await llsApiGet("getPortalData");
+      await llsLoadCoreFromSheets(true);
+      renderAll();
+      return true;
     } catch (error) {
-      lastError = error;
-      console.warn(
-        `LLS V12.6: portal refresh attempt ${attempt}/${attempts} failed.`,
-        error
-      );
-
-      if (attempt < attempts) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
-      }
+      console.warn("LLS V12.7: background core refresh deferred.", error);
     }
   }
 
-  throw lastError || new Error("Could not confirm the saved change from Google Sheets.");
+  console.warn("LLS V12.7: saved change was sent, but automatic refresh could not yet confirm it.");
+  return false;
 }
 
 async function saveStudentForm(event) {
@@ -1111,7 +1108,7 @@ async function saveStudentForm(event) {
       class for ANY student must also create/maintain the active Enrolment.
     */
     {
-      const portalData = await llsGetPortalDataWithRetry();
+      const portalData = await llsApiGet("getPortalData");
       const allEnrolments = Array.isArray(portalData.enrolments)
         ? portalData.enrolments
         : [];
@@ -1230,49 +1227,34 @@ async function saveStudentForm(event) {
       });
     }
 
-    /*
-      V12.6
-      Confirm the mutation from a fresh Google Sheets read before reporting
-      success. This avoids the old false "Action needed" message caused by an
-      immediate post-write ContentService redirect/404.
-    */
-    const confirmedPortalData = await llsGetPortalDataWithRetry();
-    llsApplyCorePortalData(confirmedPortalData);
-
-    const confirmedStudent = state.students.find(
-      (item) => String(item.id || "").trim() === studentId
-    );
-
-    if (!confirmedStudent) {
-      throw new Error("The change was sent, but the student could not yet be confirmed from Google Sheets.");
-    }
-
-    const confirmedClassId = String(confirmedStudent.classId || "").trim();
-    if (confirmedClassId !== String(classId || "").trim()) {
-      throw new Error("The change was sent, but the class assignment has not yet been confirmed from Google Sheets.");
-    }
-
-    if (isConversion) {
-      // Enquiries only need refreshing when a conversion actually changed one.
-      try {
-        await llsLoadEnquiriesFromSheets();
-      } catch (error) {
-        console.warn("LLS V12.6: enquiry refresh deferred after successful enrolment.", error);
-      }
-    }
-
     pendingConversionEnquiryId = "";
     closeModal("studentModal");
-    renderAll();
 
+    // V12.7: finish the user's save immediately. Do not make the interface
+    // wait for Google Sheets/ContentService read-back.
     showToast(
       isConversion
-        ? "Student enrolled and confirmed in Google Sheets."
+        ? "Student enrolment sent. Updating from Google Sheets…"
         : id
-          ? "Student and class assignment saved and confirmed."
-          : `Student ${studentId} created and confirmed in Google Sheets.`,
+          ? "Student saved. Updating from Google Sheets…"
+          : `Student ${studentId} created. Updating from Google Sheets…`,
       "success"
     );
+
+    // Fire-and-forget authoritative refresh. This must never hold the Save UI.
+    void llsRefreshCoreAfterSaveInBackground();
+
+    if (isConversion) {
+      // Enquiry refresh is also non-blocking after a successful conversion.
+      void (async () => {
+        try {
+          await llsLoadEnquiriesFromSheets();
+          renderAll();
+        } catch (error) {
+          console.warn("LLS V12.7: enquiry refresh deferred.", error);
+        }
+      })();
+    }
   } catch (error) {
     console.error("LLS student/enrolment save failed:", error);
     showToast(
@@ -2518,7 +2500,7 @@ async function llsApiPost(body) {
     throw new Error("Could not send the change to Apps Script.");
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  await new Promise((resolve) => setTimeout(resolve, 250));
   return { success: true, transport: "opaque-no-cors" };
 }
 
