@@ -3034,19 +3034,45 @@ async function saveTeacherForm(event) {
   }
 
   try {
-    await llsApiPost(
+    const result = await llsApiPost(
       id
         ? { action: "updateTeacher", teacherId: id, fields }
         : { action: "createTeacher", fields }
     );
 
-    await llsLoadTeachersFromSheets();
+    // Optimistic local update: reflect the save immediately using the
+    // data we already have, instead of blocking on a second Sheets
+    // round-trip. Mirrors the pattern used for Payments.
+    const teacherId = id || String(result.teacherId || "").trim();
+    const localRecord = {
+      id: teacherId,
+      name: fields["Name"],
+      email: fields["Email"],
+      phone: fields["Phone"],
+      role: fields["Role"],
+      status: fields["Status"],
+      notes: fields["Notes"]
+    };
+
+    if (!Array.isArray(state.teachers)) state.teachers = [];
+    const existingIndex = state.teachers.findIndex((t) => t.id === teacherId);
+    if (existingIndex >= 0) {
+      state.teachers[existingIndex] = { ...state.teachers[existingIndex], ...localRecord };
+    } else if (teacherId) {
+      state.teachers.push(localRecord);
+    }
+
+    saveState();
+    renderAll();
     closeModal("teacherModal");
 
     showToast(
       id ? "Teacher updated." : "Teacher added.",
       "success"
     );
+
+    // Reconcile with Sheets in the background (non-blocking).
+    llsLoadTeachersFromSheets().catch(() => {});
   } catch (error) {
     console.error(error);
     showToast(error.message || "Could not save the teacher.", "error");
