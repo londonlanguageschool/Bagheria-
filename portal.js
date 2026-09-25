@@ -5599,4 +5599,12 @@ document.addEventListener("DOMContentLoaded", () => {
       if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Log in"; }
     }
   });
+
+  const logoutButton = byId("adminLogoutButton");
+  if (logoutButton) {
+    logoutButton.addEventListener("click", () => {
+      sessionStorage.removeItem(LLS_ADMIN_TOKEN_KEY);
+      window.location.reload();
+    });
+  }
 });
