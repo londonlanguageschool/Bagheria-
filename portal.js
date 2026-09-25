@@ -4996,6 +4996,7 @@ async function llsApiGet(action, params = {}) {
   const url = new URL(LLS_API_URL);
   url.searchParams.set("action", action);
   url.searchParams.set("t", Date.now());
+  url.searchParams.set("token", sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY) || "");
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && String(value) !== "") {
       url.searchParams.set(key, String(value));
@@ -5011,15 +5012,25 @@ async function llsApiGet(action, params = {}) {
   let data;
   try { data = JSON.parse(raw); }
   catch (_) { throw new Error("Apps Script did not return JSON."); }
-  if (!data || data.success !== true) throw new Error(data?.error || "API request failed.");
+  if (!data || data.success !== true) {
+    if (data && data.error === "UNAUTHORIZED" && typeof llsHandleSessionExpired === "function") {
+      llsHandleSessionExpired();
+    }
+    throw new Error(data?.error || "API request failed.");
+  }
   return data;
 }
 
 async function llsApiPost(body) {
   // V12.3: form POST avoids the intermittent Apps Script GET redirect/404.
+  // V15: every mutation carries the admin session token.
+  const payload = Object.assign({}, body || {}, {
+    token: sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY) || ""
+  });
+
   const form = new URLSearchParams();
-  form.set("action", String((body || {}).action || ""));
-  form.set("payload", JSON.stringify(body || {}));
+  form.set("action", String(payload.action || ""));
+  form.set("payload", JSON.stringify(payload));
   form.set("_", String(Date.now()));
 
   const response = await fetch(LLS_API_URL, {
@@ -5041,6 +5052,9 @@ async function llsApiPost(body) {
   }
 
   if (!result || result.success !== true) {
+    if (result && result.error === "UNAUTHORIZED" && typeof llsHandleSessionExpired === "function") {
+      llsHandleSessionExpired();
+    }
     throw new Error(result?.error || result?.message || "The server did not confirm the change.");
   }
   return result;
@@ -5517,4 +5531,72 @@ document.addEventListener("DOMContentLoaded", () => {
   if (assignButton) assignButton.addEventListener("click", llsHomeworkAssign);
 
   renderHomeworkLoginState();
+});
+
+/* =========================================================
+   V15 — ADMIN PORTAL LOGIN GATE
+   Protects the whole admin portal behind one shared password,
+   checked server-side by Apps Script (never stored in this file).
+   Separate from the per-teacher PIN system on the Homework page.
+========================================================= */
+
+const LLS_ADMIN_TOKEN_KEY = "lls_admin_session_token";
+
+function llsHasAdminSession() {
+  return !!sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY);
+}
+
+function llsAdminGateShow() {
+  const gate = byId("adminLoginGate");
+  if (gate) gate.style.display = "flex";
+}
+
+function llsAdminGateHide() {
+  const gate = byId("adminLoginGate");
+  if (gate) gate.style.display = "none";
+}
+
+function llsHandleSessionExpired() {
+  sessionStorage.removeItem(LLS_ADMIN_TOKEN_KEY);
+  llsAdminGateShow();
+  showToast("Your session expired. Please log in again.", "error");
+}
+
+// Run immediately (script executes after the DOM is parsed, since it's
+// loaded at the end of <body>): show or hide the gate before anything
+// else the page does.
+if (llsHasAdminSession()) {
+  llsAdminGateHide();
+} else {
+  llsAdminGateShow();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const form = byId("adminLoginForm");
+  const errorEl = byId("adminLoginError");
+  const submitBtn = byId("adminLoginSubmit");
+  if (!form) return;
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const password = byId("adminLoginPassword")?.value || "";
+
+    if (errorEl) { errorEl.style.display = "none"; errorEl.textContent = ""; }
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Logging in…"; }
+
+    try {
+      const result = await llsApiPost({ action: "adminLogin", password });
+      sessionStorage.setItem(LLS_ADMIN_TOKEN_KEY, result.token);
+      // Reload so every page-load data fetch (core data, finance,
+      // teachers, enquiries) picks up the new session token cleanly.
+      window.location.reload();
+    } catch (error) {
+      if (errorEl) {
+        errorEl.textContent = error.message || "Login failed. Check the password and try again.";
+        errorEl.style.display = "block";
+      }
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Log in"; }
+    }
+  });
 });

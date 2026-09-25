@@ -1302,7 +1302,8 @@ tbody tr:hover {
 .status-active,
 .status-paid,
 .status-enrolled,
-.status-present {
+.status-present,
+.status-done {
   background: var(--green-100);
   color: var(--green-700);
 }
@@ -2398,826 +2399,89 @@ tbody tr:hover {
 }
 
 /* =========================================================
-   LIVE GOOGLE SHEETS REGISTER
+   V14 — HOMEWORK (teacher login + assign/mark done)
 ========================================================= */
 
-.live-sheet-panel {
-  margin-bottom: 18px;
+.form-error {
+  color: var(--red-600, #b91c1c);
+  font-size: 13px;
+  margin-top: 10px;
 }
 
-.live-sheet-status {
+.homework-teacher-bar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 8px;
+  gap: 12px;
+  font-weight: 600;
 }
 
-.live-sheet-actions {
+.homework-status-row {
   display: flex;
   align-items: center;
-  gap: 9px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border, #e5e7eb);
 }
 
-.live-status {
-  display: inline-flex;
-  min-height: 30px;
-  align-items: center;
-  border-radius: 999px;
-  padding: 5px 10px;
-  font-size: 0.72rem;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.live-status-loading {
-  background: var(--orange-100);
-  color: var(--orange-700);
-}
-
-.live-status-connected {
-  background: var(--green-100);
-  color: var(--green-700);
-}
-
-.live-status-error {
-  background: var(--red-100);
-  color: var(--red-700);
-}
-
-.button-small {
-  min-height: 34px;
-  padding: 6px 11px;
-  font-size: 0.75rem;
-}
-
-.live-register-table {
-  margin-top: 14px;
-  border: 1px solid var(--ink-100);
-  border-radius: 10px;
-}
-
-.live-register-table table {
-  min-width: 880px;
-}
-
-.live-register-table th,
-.live-register-table td {
-  padding: 10px 12px;
-  vertical-align: top;
-}
-
-.live-register-table td {
-  font-size: 0.76rem;
-}
-
-.live-preview-note {
-  margin: 9px 0 0;
-}
-
-@media (max-width: 720px) {
-  .live-sheet-status {
-    flex-direction: column;
-  }
-
-  .live-sheet-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
+.homework-status-row:last-child {
+  border-bottom: none;
 }
 
 /* =========================================================
-   CLASS 1 LIVE ADMIN EDITOR
+   V15 — ADMIN LOGIN GATE
 ========================================================= */
 
-.live-editor-backdrop {
+.admin-login-gate {
   position: fixed;
   inset: 0;
-  z-index: 300;
-  display: none;
+  z-index: 9999;
+  display: flex;
   align-items: center;
   justify-content: center;
-  overflow-y: auto;
-  background: rgba(4, 15, 30, 0.58);
-  padding: 24px;
-  backdrop-filter: blur(3px);
+  background: linear-gradient(135deg, var(--navy-950, #061b37), var(--navy-800, #0b3b78));
+  padding: 20px;
 }
 
-.live-editor-backdrop.visible {
-  display: flex;
+.admin-login-gate[hidden] {
+  display: none;
 }
 
-.live-editor-card {
-  width: min(720px, 100%);
-  max-height: calc(100vh - 48px);
-  overflow-y: auto;
-  border-radius: var(--radius-lg);
-  background: var(--white);
-  padding: 22px;
-  box-shadow: var(--shadow-lg);
-}
-
-.live-editor-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.live-editor-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.live-editor-wide {
-  grid-column: 1 / -1;
-}
-
-.live-editor-help {
-  margin: 16px 0 0;
-  color: var(--ink-500);
-  font-size: 0.75rem;
-}
-
-.live-editor-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 9px;
-  margin-top: 20px;
-}
-
-#saveLiveLessonEdit:disabled {
-  cursor: wait;
-  opacity: 0.7;
-}
-
-@media (max-width: 640px) {
-  .live-editor-backdrop {
-    align-items: flex-start;
-    padding: 12px;
-  }
-
-  .live-editor-card {
-    max-height: calc(100vh - 24px);
-    padding: 18px;
-  }
-
-  .live-editor-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .live-editor-wide {
-    grid-column: auto;
-  }
-
-  .live-editor-actions {
-    flex-direction: column-reverse;
-  }
-
-  .live-editor-actions .button {
-    width: 100%;
-  }
-}
-
-/* =========================================================
-   CLASS 1 STUDENT PROGRESS EDITING
-========================================================= */
-
-.live-editor-section + .live-editor-section {
-  margin-top: 24px;
-  padding-top: 22px;
-  border-top: 1px solid var(--line);
-}
-
-.live-editor-section-heading {
-  margin-bottom: 14px;
-}
-
-.live-editor-section-heading h4 {
-  margin: 0 0 5px;
-}
-
-.live-editor-section-heading p {
-  margin: 0;
-}
-
-.live-student-editor {
-  margin-top: 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--ink-25, #f8fafc);
-  overflow: hidden;
-}
-
-.live-student-editor summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  cursor: pointer;
-  padding: 13px 15px;
-  font-weight: 700;
-  list-style-position: inside;
-}
-
-.live-student-editor summary .muted {
-  font-size: 0.72rem;
-  font-weight: 500;
-}
-
-.live-student-editor-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  padding: 4px 15px 16px;
-}
-
-@media (max-width: 640px) {
-  .live-student-editor summary {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .live-student-editor-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-
-.live-students-loading,.live-students-error{display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:18px 4px}
-.live-students-error .button{margin-top:6px}
-.live-student-id{margin-top:4px;color:var(--ink-500);font-size:.72rem;font-weight:600;letter-spacing:.03em}
-.live-readonly-badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;background:#eef8f3;color:#087a4b;font-size:.72rem;font-weight:800;white-space:nowrap}
-
-
-/* V6 — live class selection */
-.class-card-selected {
-  box-shadow: 0 0 0 2px rgba(15, 76, 129, 0.18), var(--shadow-sm);
-}
-
-
-/* =========================================================
-   V7 — ADMINISTRATOR PORTAL FOUNDATION
-========================================================= */
-
-.v7-database-strip {
-  margin: 0 0 24px;
-  padding: 14px 18px;
-  border: 1px solid var(--ink-300);
-  border-radius: 14px;
-  background: #ffffff;
-  display: flex;
-  gap: 18px;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: var(--shadow-sm);
-}
-
-.v7-database-strip > div {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.v7-database-strip strong {
-  color: var(--navy-900);
-}
-
-.v7-database-strip span {
-  color: var(--ink-600);
-}
-
-.v7-database-strip[data-status="connected"] {
-  border-color: #b9dfcf;
-  background: #f5fbf8;
-}
-
-.v7-database-strip[data-status="connected"] strong::before {
-  content: "● ";
-  color: var(--green-700);
-}
-
-.v7-database-strip[data-status="loading"] strong::before {
-  content: "● ";
-  color: var(--orange-700);
-}
-
-.v7-database-strip[data-status="error"] {
-  border-color: #efc5c1;
-  background: #fff8f7;
-}
-
-.v7-database-strip[data-status="error"] strong::before {
-  content: "● ";
-  color: var(--red-700);
-}
-
-.v7-disabled-master-write {
-  opacity: .58;
-  cursor: not-allowed !important;
-}
-
-.v7-clickable-row {
-  cursor: pointer;
-}
-
-.v7-clickable-row:hover {
-  background: var(--navy-50);
-}
-
-.v7-class-card {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.v7-class-enrolments {
-  border-top: 1px solid #e7eaf0;
-  padding-top: 14px;
-}
-
-.v7-class-enrolments-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 6px;
-  color: var(--ink-700);
-}
-
-.v7-class-enrolments p {
-  margin: 0;
-  color: var(--ink-600);
-  font-size: .92rem;
-  line-height: 1.5;
-}
-
-.v7-class-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: auto;
-}
-
-.v7-profile-card {
-  max-width: 840px;
-}
-
-.v7-profile-status-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-
-.v7-info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.v7-info-field {
-  background: var(--navy-50);
-  border: 1px solid #e4eaf3;
-  border-radius: 12px;
-  padding: 12px 14px;
-  min-height: 70px;
-}
-
-.v7-info-field span {
-  display: block;
-  color: var(--ink-600);
-  font-size: .78rem;
-  margin-bottom: 5px;
-}
-
-.v7-info-field strong {
-  color: var(--ink-900);
-  overflow-wrap: anywhere;
-}
-
-.v7-profile-section {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid #e4e7ec;
-}
-
-.v7-profile-section-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.v7-profile-section-head h4 {
-  margin: 0;
-}
-
-.v7-profile-section-head span {
-  min-width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  display: inline-grid;
-  place-items: center;
-  background: var(--navy-100);
-  color: var(--navy-900);
-  font-weight: 800;
-}
-
-.v7-enrolment-card,
-.v7-student-link-card {
+.admin-login-card {
   width: 100%;
-  border: 1px solid #e1e6ee;
-  border-radius: 12px;
+  max-width: 360px;
   background: #fff;
-  padding: 13px 14px;
-  margin-bottom: 10px;
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-  text-align: left;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 20px 60px rgba(6, 27, 55, 0.35);
 }
 
-.v7-enrolment-card strong,
-.v7-student-link-card strong {
-  display: block;
-  color: var(--ink-900);
+.admin-login-card h1 {
+  margin: 4px 0 8px;
+  font-size: 22px;
 }
 
-.v7-enrolment-card span,
-.v7-student-link-card span {
-  color: var(--ink-600);
-  font-size: .86rem;
+.admin-login-card .eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--ink-500, #7f899a);
 }
 
-.v7-enrolment-meta {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+.admin-login-card .muted {
+  color: var(--ink-600, #657187);
+  margin-bottom: 20px;
 }
 
-.v7-student-link-card {
-  cursor: pointer;
-  font: inherit;
+.admin-login-card .form-field {
+  margin-bottom: 16px;
 }
 
-.v7-student-link-card:hover {
-  border-color: #b7c9e2;
-  background: var(--navy-50);
-}
-
-.v7-profile-footer-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-.v7-today-class {
+.admin-login-card input {
   width: 100%;
-  border: 0;
-  border-bottom: 1px solid #edf0f4;
-  background: transparent;
-  padding: 12px 2px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  text-align: left;
-  cursor: pointer;
-  font: inherit;
 }
 
-.v7-today-class:last-child {
-  border-bottom: 0;
-}
-
-.v7-today-class:hover {
-  color: var(--navy-800);
-}
-
-.v7-today-class div {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.v7-today-class strong {
-  color: var(--ink-900);
-}
-
-.v7-today-class span {
-  color: var(--ink-600);
-  font-size: .86rem;
-}
-
-@media (max-width: 760px) {
-  .v7-database-strip,
-  .v7-enrolment-card {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .v7-info-grid,
-  .v7-class-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .v7-enrolment-meta {
-    justify-content: flex-start;
-  }
-}
-
-
-/* =========================================================
-   V8 — STUDENT & ENROLMENT MANAGEMENT
-========================================================= */
-
-.v8-form-note {
-  margin: 0 0 18px;
-  padding: 12px 14px;
-  border: 1px solid var(--navy-100);
-  border-radius: 12px;
-  background: var(--navy-50);
-  color: var(--ink-700);
-  font-size: 0.9rem;
-}
-
-.v8-profile-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 16px 0 4px;
-}
-
-.v8-enrolment-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.v8-test-badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: var(--orange-100);
-  color: var(--orange-700);
-  font-weight: 800;
-  font-size: 0.78rem;
-}
-
-.v8-danger-button {
-  color: var(--red-700);
-  border-color: var(--red-100);
-}
-
-.v8-danger-button:hover {
-  background: var(--red-100);
-}
-
-input[readonly] {
-  background: var(--ink-50);
-  color: var(--ink-700);
-  cursor: default;
-}
-
-
-/* =========================================================
-   V9 — LIVE CLASS MANAGEMENT
-========================================================= */
-
-.v9-class-actions {
-  flex-wrap: wrap;
-}
-
-.v9-class-actions .button[disabled] {
-  cursor: not-allowed;
-  opacity: 0.55;
-  transform: none;
-  box-shadow: none;
-}
-
-.v9-register-warning {
-  margin-top: 12px;
-  border: 1px solid #f0d59b;
-  border-radius: 10px;
-  background: #fff8e8;
-  color: #7a5512;
-  padding: 9px 11px;
-  font-size: 0.75rem;
-  line-height: 1.45;
-}
-
-
-/* =========================================================
-   V10.1 — LIVE ATTENDANCE
-========================================================= */
-
-.v10-attendance-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 18px;
-}
-
-.v10-attendance-status .muted {
-  margin: 5px 0 0;
-}
-
-.v101-attendance-select {
-  min-width: 150px;
-}
-
-.status-warning {
-  background: var(--orange-100);
-  color: var(--orange-700);
-}
-
-#classProfileModal button[disabled],
-.v7-class-actions button[disabled] {
-  cursor: not-allowed;
-  opacity: 0.55;
-  transform: none;
-  box-shadow: none;
-}
-
-@media (max-width: 760px) {
-  .v10-attendance-status {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
-
-
-/* =========================================================
-   V11 — PRIVATE FINANCE
-========================================================= */
-
-.finance-live-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 18px;
-}
-
-.finance-live-banner p {
-  margin-bottom: 0;
-}
-
-.finance-stats-v11 {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
-.finance-card small {
-  display: block;
-  margin-top: 6px;
-  color: var(--ink-500);
-  font-size: 0.72rem;
-}
-
-.finance-card-danger {
-  border-color: #f3cbc7;
-  background: linear-gradient(180deg, #fff, #fff8f7);
-}
-
-.finance-card-danger strong {
-  color: var(--red-700);
-}
-
-.finance-history-panel {
-  margin-top: 20px;
-}
-
-.finance-history-list {
-  display: grid;
-  gap: 8px;
-}
-
-.finance-history-row {
-  display: grid;
-  grid-template-columns: minmax(180px, 1.4fr) 120px 120px 130px minmax(130px, 1fr);
-  gap: 14px;
-  align-items: center;
-  border-bottom: 1px solid var(--ink-100);
-  padding: 11px 0;
-}
-
-.finance-history-row:last-child {
-  border-bottom: 0;
-}
-
-.finance-history-row strong,
-.finance-history-row span {
-  min-width: 0;
-}
-
-.finance-history-row .amount {
-  color: var(--green-700);
-  font-weight: 800;
-}
-
-.finance-account-meta {
-  display: grid;
-  gap: 2px;
-}
-
-.finance-account-meta strong {
-  color: var(--ink-900);
-}
-
-.finance-account-meta span {
-  color: var(--ink-500);
-  font-size: 0.74rem;
-}
-
-.finance-balance {
-  font-weight: 800;
-}
-
-.finance-balance.due {
-  color: var(--orange-700);
-}
-
-.finance-balance.overdue {
-  color: var(--red-700);
-}
-
-.finance-balance.paid {
-  color: var(--green-700);
-}
-
-.finance-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-.finance-empty-loading {
-  padding: 28px;
-  color: var(--ink-500);
-  text-align: center;
-}
-
-@media (max-width: 1250px) {
-  .finance-stats-v11 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .finance-history-row {
-    grid-template-columns: minmax(160px, 1.4fr) 110px 110px 120px;
-  }
-
-  .finance-history-row > :last-child {
-    display: none;
-  }
-}
-
-@media (max-width: 780px) {
-  .finance-stats-v11 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .finance-live-banner {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .finance-history-row {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .finance-history-row > :last-child {
-    display: block;
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 520px) {
-  .finance-stats-v11 {
-    grid-template-columns: 1fr;
-  }
-}
-
-
-/* V2.5 NEXT BUILD — live attendance */
-.live-attendance-status,
-.live-attendance-note {
-  min-width: 130px;
-}
-#saveAttendanceButton:disabled {
-  opacity: .65;
-  cursor: wait;
+.admin-login-card button {
+  width: 100%;
 }
