@@ -2262,6 +2262,18 @@ async function savePaymentForm(event) {
         throw new Error("Fee was saved but no Fee ID was returned.");
       }
 
+      // Optimistic update: we already know what we just wrote, so show it
+      // immediately rather than waiting on a full re-download from Sheets.
+      llsLiveFinanceData.fees.push({
+        "Fee ID": feeId,
+        "Student ID": studentId,
+        "School Year": "2026-27",
+        "Course Fee": courseFee,
+        "Discount": 0,
+        "Amount Due": courseFee,
+        "Notes": description
+      });
+
       if (paidNow > 0) {
         await llsApiPost({
           action: "createPayment",
@@ -2273,6 +2285,15 @@ async function savePaymentForm(event) {
             "Payment Method": method,
             "Notes": notes
           }
+        });
+
+        llsLiveFinanceData.payments.push({
+          "Fee ID": feeId,
+          "Student ID": studentId,
+          "Payment Date": paymentDate,
+          "Amount": paidNow,
+          "Payment Method": method,
+          "Notes": notes
         });
       }
     } else {
@@ -2291,9 +2312,20 @@ async function savePaymentForm(event) {
           "Notes": notes
         }
       });
+
+      llsLiveFinanceData.payments.push({
+        "Fee ID": feeId,
+        "Student ID": studentId,
+        "Payment Date": paymentDate,
+        "Amount": paidNow,
+        "Payment Method": method,
+        "Notes": notes
+      });
     }
 
-    await llsLoadFinanceFromSheets(true);
+    // Show the result straight away...
+    llsRebuildPaymentsState();
+    saveState();
     renderAll();
     closeModal("paymentModal");
 
@@ -2301,6 +2333,12 @@ async function savePaymentForm(event) {
       mode === "create" ? "Fee and payment recorded." : "Payment recorded.",
       "success"
     );
+
+    // ...then quietly reconcile with Sheets in the background (picks up the
+    // real row order/timestamps; does not block or re-open the modal).
+    llsLoadFinanceFromSheets(true)
+      .then(() => renderAll())
+      .catch((error) => console.warn("LLS: background finance reconcile deferred.", error));
   } catch (error) {
     console.error(error);
     showToast(error.message || "The payment could not be saved.", "error");
