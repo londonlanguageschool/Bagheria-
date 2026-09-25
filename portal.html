@@ -60,6 +60,11 @@
           <span>Attendance</span>
         </button>
 
+        <button class="nav-item" data-page="homework" type="button">
+          <span class="nav-icon" aria-hidden="true">✎</span>
+          <span>Homework</span>
+        </button>
+
         <button class="nav-item" data-page="fees" type="button">
           <span class="nav-icon" aria-hidden="true">€</span>
           <span>Fees & Payments</span>
@@ -503,6 +508,97 @@
         </section>
 
         <!-- =========================
+             HOMEWORK
+        ========================== -->
+        <section class="page" id="page-homework">
+          <div class="page-toolbar">
+            <div>
+              <p class="section-label">Teaching</p>
+              <h2>Homework</h2>
+              <p class="page-description">
+                Teachers log in to assign homework and mark it as completed. Results are tracked as part of each student's progress.
+              </p>
+            </div>
+          </div>
+
+          <div class="panel" id="homeworkLoginPanel">
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="homeworkTeacherLoginId">Teacher email or ID</label>
+                <input id="homeworkTeacherLoginId" type="text" placeholder="you@londonlanguageschool.it or TCH0001">
+              </div>
+
+              <div class="form-field">
+                <label for="homeworkTeacherPin">PIN</label>
+                <input id="homeworkTeacherPin" type="password" inputmode="numeric" maxlength="6" placeholder="4-6 digits">
+              </div>
+
+              <div class="form-field" style="align-self:end;">
+                <button class="button button-primary" id="homeworkLoginButton" type="button">
+                  Log in
+                </button>
+              </div>
+            </div>
+            <p id="homeworkLoginError" class="form-error" style="display:none;"></p>
+          </div>
+
+          <div id="homeworkWorkspace" style="display:none;">
+            <div class="panel homework-teacher-bar">
+              <span id="homeworkTeacherName"></span>
+              <button class="button button-secondary" id="homeworkLogoutButton" type="button">
+                Log out
+              </button>
+            </div>
+
+            <div class="panel">
+              <div class="form-grid">
+                <div class="form-field">
+                  <label for="homeworkClassSelect">Class</label>
+                  <select id="homeworkClassSelect"></select>
+                </div>
+
+                <div class="form-field form-field-wide">
+                  <label for="homeworkTitle">Title</label>
+                  <input id="homeworkTitle" type="text" placeholder="e.g. Unit 4 vocabulary sheet">
+                </div>
+
+                <div class="form-field form-field-wide">
+                  <label for="homeworkDescription">Description / instructions</label>
+                  <textarea id="homeworkDescription" rows="2"></textarea>
+                </div>
+
+                <div class="form-field">
+                  <label for="homeworkDueDate">Due date</label>
+                  <input id="homeworkDueDate" type="date">
+                </div>
+
+                <div class="form-field" style="align-self:end;">
+                  <button class="button button-primary" id="homeworkAssignButton" type="button">
+                    + Assign homework
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-card">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Due date</th>
+                      <th>Completed</th>
+                      <th class="table-actions-cell">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="homeworkListBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =========================
              FEES
         ========================== -->
         <section class="page" id="page-fees">
@@ -617,9 +713,8 @@
               <option value="all">All stages</option>
               <option value="New">New</option>
               <option value="Contacted">Contacted</option>
-              <option value="Placement/Trial Booked">Placement/Trial Booked</option>
-              <option value="Placement/Trial Completed">Placement/Trial Completed</option>
-              <option value="Course Offered">Course Offered</option>
+              <option value="Trial booked">Trial booked</option>
+              <option value="Interested">Interested</option>
               <option value="Enrolled">Enrolled</option>
               <option value="Lost">Lost</option>
             </select>
@@ -931,18 +1026,6 @@
             <select id="studentClass"></select>
           </div>
 
-          <div id="conversionEnrolmentFields" class="form-field form-field-wide" hidden>
-            <div style="border:1px solid #dce2ea;border-radius:12px;padding:16px;background:#f7f9fc;">
-              <p class="section-label" style="margin-bottom:10px;">Complete enrolment</p>
-              <div class="form-grid">
-                <div class="form-field"><label for="conversionSchoolYear">School year *</label><input id="conversionSchoolYear" type="text" value="2026-27"></div>
-                <div class="form-field"><label for="conversionCourseFee">Agreed course fee (€) *</label><input id="conversionCourseFee" type="number" min="0.01" step="0.01" placeholder="e.g. 650"></div>
-                <div class="form-field"><label for="conversionDiscount">Discount (€)</label><input id="conversionDiscount" type="number" min="0" step="0.01" value="0"></div>
-                <div class="form-field"><label for="conversionPaymentPlan">Payment plan</label><select id="conversionPaymentPlan"><option value="Full payment">Full payment</option><option value="2 instalments">2 instalments</option><option value="3 instalments" selected>3 instalments</option><option value="Custom">Custom</option></select></div>
-              </div>
-            </div>
-          </div>
-
           <div class="form-field">
             <label for="studentStatus">Status</label>
             <select id="studentStatus">
@@ -984,10 +1067,10 @@
        CLASS MODAL
   ========================== -->
   <div class="modal-backdrop" id="classModal">
-    <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="classModalTitle">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="classModalTitle">
       <div class="modal-header">
         <div>
-          <p class="section-label">2026/27 class management</p>
+          <p class="section-label">Class record</p>
           <h2 id="classModalTitle">Create class</h2>
         </div>
         <button class="modal-close" type="button" data-close-modal="classModal">×</button>
@@ -999,17 +1082,12 @@
         <div class="form-grid">
           <div class="form-field form-field-wide">
             <label for="className">Class name *</label>
-            <input id="className" type="text" placeholder="e.g. Kids A1 Monday" required>
+            <input id="className" type="text" required>
           </div>
 
           <div class="form-field">
-            <label for="classSchoolYear">School year *</label>
-            <input id="classSchoolYear" type="text" value="2026-27" required>
-          </div>
-
-          <div class="form-field">
-            <label for="classLevel">Level</label>
-            <select id="classLevel">
+            <label for="classLevel">Level *</label>
+            <select id="classLevel" required>
               <option value="">Select level</option>
               <option value="Young Learners">Young Learners</option>
               <option value="A1">A1</option>
@@ -1023,13 +1101,12 @@
 
           <div class="form-field">
             <label for="classTeacher">Teacher</label>
-            <input id="classTeacher" type="text" placeholder="Teacher name">
+            <select id="classTeacher"></select>
           </div>
 
           <div class="form-field">
-            <label for="classDay">Session 1 day</label>
-            <select id="classDay">
-              <option value="">Select day</option>
+            <label for="classDay">Day *</label>
+            <select id="classDay" required>
               <option value="Monday">Monday</option>
               <option value="Tuesday">Tuesday</option>
               <option value="Wednesday">Wednesday</option>
@@ -1040,26 +1117,13 @@
           </div>
 
           <div class="form-field">
-            <label for="classTime">Session 1 time</label>
-            <input id="classTime" type="time">
+            <label for="classTime">Start time *</label>
+            <input id="classTime" type="time" required>
           </div>
 
           <div class="form-field">
-            <label for="classDay2">Session 2 day</label>
-            <select id="classDay2">
-              <option value="">No second session</option>
-              <option value="Monday">Monday</option>
-              <option value="Tuesday">Tuesday</option>
-              <option value="Wednesday">Wednesday</option>
-              <option value="Thursday">Thursday</option>
-              <option value="Friday">Friday</option>
-              <option value="Saturday">Saturday</option>
-            </select>
-          </div>
-
-          <div class="form-field">
-            <label for="classTime2">Session 2 time</label>
-            <input id="classTime2" type="time">
+            <label for="classDuration">Duration (minutes)</label>
+            <input id="classDuration" type="number" min="30" step="15" value="90">
           </div>
 
           <div class="form-field">
@@ -1072,24 +1136,19 @@
             <input id="classCapacity" type="number" min="1" value="10">
           </div>
 
-          <div class="form-field">
-            <label for="classStatus">Status</label>
-            <select id="classStatus">
-              <option value="Active">Active</option>
-              <option value="Planned">Planned</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-          </div>
-
           <div class="form-field form-field-wide">
-            <label for="classRegisterSheet">Register sheet</label>
-            <input id="classRegisterSheet" type="text" placeholder="Optional for now">
+            <label for="classNotes">Notes</label>
+            <textarea id="classNotes" rows="3"></textarea>
           </div>
         </div>
 
         <div class="modal-actions">
-          <button class="button button-secondary" type="button" data-close-modal="classModal">Cancel</button>
-          <button class="button button-primary" type="submit">Save class</button>
+          <button class="button button-secondary" type="button" data-close-modal="classModal">
+            Cancel
+          </button>
+          <button class="button button-primary" type="submit">
+            Save class
+          </button>
         </div>
       </form>
     </div>
@@ -1237,9 +1296,8 @@
             <select id="enquiryStatus">
               <option value="New">New</option>
               <option value="Contacted">Contacted</option>
-              <option value="Placement/Trial Booked">Placement/Trial Booked</option>
-              <option value="Placement/Trial Completed">Placement/Trial Completed</option>
-              <option value="Course Offered">Course Offered</option>
+              <option value="Trial booked">Trial booked</option>
+              <option value="Interested">Interested</option>
               <option value="Enrolled">Enrolled</option>
               <option value="Lost">Lost</option>
             </select>
@@ -1253,30 +1311,6 @@
           <div class="form-field">
             <label for="enquiryCreated">Enquiry date</label>
             <input id="enquiryCreated" type="date">
-          </div>
-
-          <div class="form-field">
-            <label for="enquiryTrialDate">Placement / trial date</label>
-            <input id="enquiryTrialDate" type="date">
-          </div>
-
-          <div class="form-field">
-            <label for="enquiryFinalLevel">Teacher-assessed level</label>
-            <select id="enquiryFinalLevel">
-              <option value="">Not assessed yet</option>
-              <option value="Young Learners">Young Learners</option>
-              <option value="A1">A1</option>
-              <option value="A2">A2</option>
-              <option value="B1">B1</option>
-              <option value="B2">B2</option>
-              <option value="C1">C1</option>
-              <option value="C2">C2</option>
-            </select>
-          </div>
-
-          <div class="form-field form-field-wide">
-            <label for="enquiryAssessment">Teacher assessment</label>
-            <textarea id="enquiryAssessment" rows="3" placeholder="Speaking, listening, grammar, confidence and recommended course/class"></textarea>
           </div>
 
           <div class="form-field form-field-wide">
@@ -1342,6 +1376,11 @@
             </select>
           </div>
 
+          <div class="form-field">
+            <label for="teacherPin">Homework login PIN</label>
+            <input id="teacherPin" type="text" inputmode="numeric" maxlength="6" placeholder="4-6 digits">
+          </div>
+
           <div class="form-field form-field-wide">
             <label for="teacherNotes">Notes</label>
             <textarea id="teacherNotes" rows="3"></textarea>
@@ -1357,6 +1396,29 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- =========================
+       HOMEWORK STATUS MODAL
+  ========================== -->
+  <div class="modal-backdrop" id="homeworkStatusModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="homeworkStatusTitle">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">Homework</p>
+          <h2 id="homeworkStatusTitle">Mark completion</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="homeworkStatusModal">×</button>
+      </div>
+
+      <div id="homeworkStatusList"></div>
+
+      <div class="modal-actions">
+        <button class="button button-secondary" type="button" data-close-modal="homeworkStatusModal">
+          Close
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1407,24 +1469,5 @@
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
   <script src="portal.js"></script>
-
-<div class="modal-backdrop" id="classWorkspaceModal" aria-hidden="true">
-  <div class="modal-card class-workspace-card" role="dialog" aria-modal="true">
-    <div class="modal-header">
-      <div>
-        <div class="eyebrow">CLASS MANAGEMENT</div>
-        <h2 id="classWorkspaceTitle">Class</h2>
-        <p id="classWorkspaceMeta" class="muted"></p>
-      </div>
-      <button type="button" class="modal-close" onclick="closeClassWorkspace()" aria-label="Close">×</button>
-    </div>
-    <div class="class-workspace-toolbar">
-      <div><strong>Students</strong><div class="muted">Students currently assigned to this class.</div></div>
-      <button type="button" id="classWorkspaceAttendance" class="primary-button" onclick="goToClassAttendance()">Take attendance</button>
-    </div>
-    <div id="classWorkspaceStudents" class="class-workspace-students"></div>
-  </div>
-</div>
-
 </body>
 </html>
