@@ -2046,7 +2046,7 @@ function renderPayments() {
                 type="button"
                 data-edit-payment="${payment.id}"
               >
-                Edit
+                Add payment
               </button>
 
               <button
@@ -2067,7 +2067,7 @@ function renderPayments() {
     .querySelectorAll("[data-edit-payment]")
     .forEach((button) => {
       button.addEventListener("click", () => {
-        openEditPayment(button.dataset.editPayment);
+        openAddPayment(button.dataset.editPayment);
       });
     });
 
@@ -2138,11 +2138,17 @@ function openNewPayment() {
     return;
   }
 
+  paymentModalMode = "create";
+
   byId("paymentForm").reset();
 
   setValue("paymentId", "");
   setValue("paymentDate", isoDate(new Date()));
   setValue("paymentMethod", "Cash");
+
+  byId("paymentStudent").disabled = false;
+  byId("paymentDescription").readOnly = false;
+  byId("paymentFee").readOnly = false;
 
   populatePaymentStudentSelect();
 
@@ -2154,116 +2160,163 @@ function openNewPayment() {
   openModal("paymentModal");
 }
 
-function openEditPayment(id) {
-  const payment = state.payments.find(
-    (item) => item.id === id
+function openAddPayment(feeId) {
+  const fee = (llsLiveFinanceData.fees || []).find(
+    (item) => String(item["Fee ID"] || "").trim() === feeId
   );
 
-  if (!payment) {
+  if (!fee) {
+    showToast("That fee record could not be found. Try refreshing.", "error");
     return;
   }
 
+  const studentId = String(fee["Student ID"] || "").trim();
+  const student = getStudent(studentId);
+
+  paymentModalMode = "payment";
+
+  byId("paymentForm").reset();
+
   populatePaymentStudentSelect();
 
-  setValue("paymentId", payment.id);
-  setValue("paymentStudent", payment.studentId);
-  setValue("paymentDescription", payment.description);
-  setValue("paymentFee", payment.fee);
-  setValue("paymentPaid", payment.paid);
-  setValue("paymentDate", payment.date);
-  setValue("paymentMethod", payment.method);
-  setValue("paymentNotes", payment.notes);
+  setValue("paymentId", feeId);
+  setValue("paymentStudent", studentId);
+  setValue("paymentDescription", llsFeeDescription(fee));
+  setValue("paymentFee", number(fee["Amount Due"]));
+  setValue("paymentPaid", "");
+  setValue("paymentDate", isoDate(new Date()));
+  setValue("paymentMethod", "Cash");
+  setValue("paymentNotes", "");
+
+  byId("paymentStudent").disabled = true;
+  byId("paymentDescription").readOnly = true;
+  byId("paymentFee").readOnly = true;
 
   text(
     "paymentModalTitle",
-    "Edit payment"
+    `Add payment — ${getStudentName(student) || "Student"}`
   );
 
   openModal("paymentModal");
 }
 
-function savePaymentForm(event) {
+async function savePaymentForm(event) {
   event.preventDefault();
 
-  const id = value("paymentId");
-  const fee = number(value("paymentFee"));
-  const paid = number(value("paymentPaid"));
+  const mode = paymentModalMode;
+  const studentId = value("paymentStudent");
+  const courseFee = number(value("paymentFee"));
+  const paidNow = number(value("paymentPaid"));
+  const description = value("paymentDescription").trim();
+  const paymentDate = value("paymentDate");
+  const method = value("paymentMethod");
+  const notes = value("paymentNotes").trim();
 
-  if (!value("paymentStudent")) {
-    showToast(
-      "Select a student.",
-      "error"
-    );
+  if (!studentId) {
+    showToast("Select a student.", "error");
     return;
   }
 
-  if (fee < 0 || paid < 0) {
-    showToast(
-      "Payment amounts cannot be negative.",
-      "error"
-    );
+  if (mode === "create" && courseFee <= 0) {
+    showToast("Enter the total course fee.", "error");
     return;
   }
 
-  const record = {
-    id: id || makeId("payment"),
-    studentId: value("paymentStudent"),
-    description:
-      value("paymentDescription").trim(),
-    fee,
-    paid,
-    date: value("paymentDate"),
-    method: value("paymentMethod"),
-    notes: value("paymentNotes").trim()
-  };
-
-  if (id) {
-    state.payments = state.payments.map(
-      (payment) =>
-        payment.id === id
-          ? record
-          : payment
-    );
-  } else {
-    state.payments.push(record);
+  if (mode === "payment" && paidNow <= 0) {
+    showToast("Enter an amount greater than zero.", "error");
+    return;
   }
 
-  saveState();
-  closeModal("paymentModal");
-  renderAll();
+  if (courseFee < 0 || paidNow < 0) {
+    showToast("Payment amounts cannot be negative.", "error");
+    return;
+  }
 
-  showToast(
-    id
-      ? "Payment updated."
-      : "Payment recorded.",
-    "success"
-  );
+  const button = byId("paymentForm")?.querySelector('button[type="submit"]');
+  const oldLabel = button?.textContent || "Save payment";
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Saving…";
+  }
+
+  try {
+    let feeId = value("paymentId");
+
+    if (mode === "create") {
+      const feeResult = await llsApiPost({
+        action: "createFee",
+        fields: {
+          "Student ID": studentId,
+          "School Year": "2026-27",
+          "Course Fee": courseFee,
+          "Discount": 0,
+          "Amount Due": courseFee,
+          "Notes": description
+        }
+      });
+
+      feeId = String(feeResult.feeId || "").trim();
+
+      if (!feeId) {
+        throw new Error("Fee was saved but no Fee ID was returned.");
+      }
+
+      if (paidNow > 0) {
+        await llsApiPost({
+          action: "createPayment",
+          fields: {
+            "Fee ID": feeId,
+            "Student ID": studentId,
+            "Payment Date": paymentDate,
+            "Amount": paidNow,
+            "Payment Method": method,
+            "Notes": notes
+          }
+        });
+      }
+    } else {
+      if (!feeId) {
+        throw new Error("No fee was selected for this payment.");
+      }
+
+      await llsApiPost({
+        action: "createPayment",
+        fields: {
+          "Fee ID": feeId,
+          "Student ID": studentId,
+          "Payment Date": paymentDate,
+          "Amount": paidNow,
+          "Payment Method": method,
+          "Notes": notes
+        }
+      });
+    }
+
+    await llsLoadFinanceFromSheets(true);
+    renderAll();
+    closeModal("paymentModal");
+
+    showToast(
+      mode === "create" ? "Fee and payment recorded." : "Payment recorded.",
+      "success"
+    );
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "The payment could not be saved.", "error");
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = oldLabel;
+    }
+    paymentModalMode = "create";
+  }
 }
 
 function deletePayment(id) {
-  const payment = state.payments.find(
-    (item) => item.id === id
-  );
-
-  if (!payment) {
-    return;
-  }
-
-  openConfirm(
-    "Delete payment record?",
-    "This payment record will be permanently removed from the portal data stored in this browser.",
-    () => {
-      state.payments = state.payments.filter(
-        (item) => item.id !== id
-      );
-
-      saveState();
-      renderAll();
-      showToast(
-        "Payment deleted.",
-        "success"
-      );
-    }
+  showToast(
+    "Deleting fees or payments isn't available in the portal yet — correct or remove the row directly in the Fees/Payments tabs of the Google Sheet.",
+    "error"
   );
 }
 
@@ -4673,7 +4726,107 @@ async function llsLoadEnquiriesFromSheets() {
 window.addEventListener("load", async () => {
   await llsLoadCoreFromSheets(true);
   await llsLoadEnquiriesFromSheets();
+  await llsLoadFinanceFromSheets(true);
 });
+
+/* =========================================================
+   V13 — LIVE FEES & PAYMENTS (Google Sheets backed)
+   Mirrors the same pattern used for students/classes/enquiries:
+   raw Sheets rows are loaded into llsLiveFinanceData, then
+   normalised into state.payments (one row per Fee, "paid" =
+   sum of that Fee's Payments) so every existing screen that
+   already reads state.payments — Dashboard, the Fees & Payments
+   page, Reports, CSV export — keeps working unchanged.
+========================================================= */
+
+let llsLiveFinanceData = { fees: [], payments: [] };
+let paymentModalMode = "create"; // "create" = new fee + first payment, "payment" = add payment to an existing fee
+
+function llsFeeDescription(fee) {
+  const schoolYear = String(fee["School Year"] || "").trim();
+  const enrolmentId = String(fee["Enrolment ID"] || "").trim();
+  let className = "";
+
+  if (enrolmentId) {
+    const enrolment = (llsLivePortalData.enrolments || []).find(
+      (item) => String(item["Enrolment ID"] || "").trim() === enrolmentId
+    );
+
+    if (enrolment) {
+      const classId = String(enrolment["Class ID"] || "").trim();
+      const classRecord = (llsLivePortalData.classes || []).find(
+        (item) => String(item["Class ID"] || "").trim() === classId
+      );
+      if (classRecord) className = String(classRecord["Class Name"] || "").trim();
+    }
+  }
+
+  const notes = String(fee["Notes"] || "").trim();
+
+  if (className) return schoolYear ? `${className} · ${schoolYear}` : className;
+  if (notes) return notes;
+  return schoolYear ? `Course fee · ${schoolYear}` : "Course fee";
+}
+
+function llsRebuildPaymentsState() {
+  const fees = llsLiveFinanceData.fees || [];
+  const payments = llsLiveFinanceData.payments || [];
+
+  state.payments = fees
+    .map((fee) => {
+      const feeId = String(fee["Fee ID"] || "").trim();
+      const studentId = String(fee["Student ID"] || "").trim();
+
+      const feePayments = payments.filter(
+        (item) => String(item["Fee ID"] || "").trim() === feeId
+      );
+
+      const paid = sum(feePayments.map((item) => number(item["Amount"])));
+
+      const lastPayment = [...feePayments].sort((a, b) =>
+        String(a["Payment Date"] || "").localeCompare(String(b["Payment Date"] || ""))
+      ).pop();
+
+      return {
+        id: feeId,
+        studentId,
+        description: llsFeeDescription(fee),
+        fee: number(fee["Amount Due"]),
+        paid,
+        date: lastPayment ? String(lastPayment["Payment Date"] || "") : "",
+        method: lastPayment ? String(lastPayment["Payment Method"] || "") : "",
+        notes: String(fee["Notes"] || "")
+      };
+    })
+    .filter((item) => item.id);
+}
+
+async function llsLoadFinanceFromSheets(force = false) {
+  try {
+    const data = await llsApiGet("getFinanceData");
+
+    llsLiveFinanceData = {
+      fees: Array.isArray(data.fees) ? data.fees : [],
+      payments: Array.isArray(data.payments) ? data.payments : []
+    };
+
+    llsRebuildPaymentsState();
+    saveState();
+
+    console.info(
+      `LLS: loaded ${llsLiveFinanceData.fees.length} fees and ${llsLiveFinanceData.payments.length} payments from Google Sheets.`
+    );
+
+    return true;
+  } catch (error) {
+    console.error("LLS: could not load finance data from Google Sheets:", error);
+    showToast(
+      "Could not refresh fees & payments from Google Sheets. Showing the last available data.",
+      "error"
+    );
+    return false;
+  }
+}
 
 
 /* V2 CLASS OPERATIONS */
