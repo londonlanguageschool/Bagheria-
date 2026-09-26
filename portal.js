@@ -646,6 +646,7 @@ function renderTodayClasses() {
 
   // V15.4: a class can meet on a second weekday (Day 2 / Time 2).
   const classes = state.classes
+    .filter((item) => String(item.status || "").trim().toLowerCase() === "active")
     .filter((item) => item.day === todayName || item.day2 === todayName)
     .map((item) => item.day === todayName ? item : { ...item, time: item.time2 || item.time })
     .sort((a, b) => a.time.localeCompare(b.time));
@@ -924,7 +925,7 @@ function renderStudents() {
                 type="button"
                 data-delete-student="${student.id}"
               >
-                Delete
+                Deactivate
               </button>
             </div>
           </td>
@@ -1313,18 +1314,50 @@ function deleteStudent(id) {
     return;
   }
 
+  // V15.5: "Delete" used to remove the student only from this browser;
+  // the row stayed in Google Sheets and came back on refresh. Now it marks
+  // the student Inactive and ends their class enrolments, saved to Sheets.
+  // History (payments, attendance) is kept.
   openConfirm(
-    "Delete student?",
-    `Delete ${student.firstName} ${student.lastName}? The student record will be removed from this browser.`,
-    () => {
-      state.students = state.students.filter(
-        (item) => item.id !== id
-      );
+    "Mark student inactive?",
+    `${student.firstName} ${student.lastName} will be marked Inactive and removed from their class. Their payment and attendance history is kept. You can set them back to Active later with Edit.`,
+    async () => {
+      try {
+        await llsApiPost({
+          action: "updateStudent",
+          studentId: id,
+          fields: { "Status": "Inactive" }
+        });
 
-      saveState();
-      renderAll();
-      showToast("Student deleted.", "success");
-    }
+        const activeEnrolments = (llsLivePortalData.enrolments || []).filter((item) =>
+          String(item["Student ID"] || "").trim() === id &&
+          String(item["Status"] || "").trim().toLowerCase() === "active"
+        );
+
+        for (const enrolment of activeEnrolments) {
+          const enrolmentId = String(enrolment["Enrolment ID"] || "").trim();
+          if (enrolmentId) {
+            await llsApiPost({ action: "endEnrolment", enrolmentId });
+            enrolment["Status"] = "Completed";
+          }
+        }
+
+        // Re-find: a background refresh may have replaced state.students.
+        const current = state.students.find((item) => item.id === id);
+        if (current) {
+          current.status = "Inactive";
+          current.classId = "";
+        }
+        saveState();
+        renderAll();
+        showToast("Student marked inactive.", "success");
+        void llsRefreshCoreAfterSaveInBackground();
+      } catch (error) {
+        console.error(error);
+        showToast(error.message || "Could not update the student.", "error");
+      }
+    },
+    "Mark inactive"
   );
 }
 
@@ -1343,6 +1376,7 @@ function renderClasses() {
   const day = byId("classDayFilter").value;
 
   const classes = [...state.classes]
+    .filter((item) => String(item.status || "").trim().toLowerCase() !== "archived")
     .filter((item) => {
       const teacher = getTeacher(item.teacherId) || (item.teacherName ? { name: item.teacherName } : null);
 
@@ -1644,30 +1678,38 @@ function deleteClass(id) {
   const studentCount =
     getClassStudents(id).length;
 
+  // V15.5: archive in Google Sheets instead of hiding in this browser only.
+  if (studentCount) {
+    showToast(
+      `${item.name} still has ${studentCount} active student${studentCount === 1 ? "" : "s"}. Move or deactivate them first.`,
+      "error"
+    );
+    return;
+  }
+
   openConfirm(
-    "Delete class?",
-    studentCount
-      ? `${item.name} currently has ${studentCount} student record${studentCount === 1 ? "" : "s"} assigned. Deleting the class will leave those students unassigned.`
-      : `Delete ${item.name}?`,
-    () => {
-      state.classes = state.classes.filter(
-        (record) => record.id !== id
-      );
+    "Archive class?",
+    `${item.name} will be archived: hidden from Classes, Attendance and the dashboard. Its attendance history is kept.`,
+    async () => {
+      try {
+        await llsApiPost({
+          action: "updateClass",
+          classId: id,
+          fields: { "Status": "Archived" }
+        });
 
-      state.students = state.students.map(
-        (student) => ({
-          ...student,
-          classId:
-            student.classId === id
-              ? ""
-              : student.classId
-        })
-      );
-
-      saveState();
-      renderAll();
-      showToast("Class deleted.", "success");
-    }
+        const currentClass = state.classes.find((record) => record.id === id);
+        if (currentClass) currentClass.status = "Archived";
+        saveState();
+        renderAll();
+        showToast("Class archived.", "success");
+        void llsRefreshCoreAfterSaveInBackground();
+      } catch (error) {
+        console.error(error);
+        showToast(error.message || "Could not archive the class.", "error");
+      }
+    },
+    "Archive"
   );
 }
 
