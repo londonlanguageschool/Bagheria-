@@ -1283,6 +1283,24 @@ async function saveStudentForm(event) {
       localStudent.parent = fields["Parent / Guardian"];
       localStudent.notes = fields["Notes"];
       saveState();
+    } else {
+      // V19: show a brand-new student straight away (Sheets confirms later).
+      state.students.push({
+        id: studentId,
+        firstName,
+        lastName,
+        email: fields["Email"],
+        phone: fields["Phone"],
+        dob: fields["Date of Birth"],
+        level: fields["Level"],
+        classId,
+        status: fields["Status"],
+        joined: fields["Joined"],
+        parent: fields["Parent / Guardian"],
+        notes: fields["Notes"],
+        coachUntil: ""
+      });
+      saveState();
     }
 
     pendingConversionEnquiryId = "";
@@ -1306,6 +1324,10 @@ async function saveStudentForm(event) {
       // Enquiry refresh is also non-blocking after a successful conversion.
       void (async () => {
         try {
+          // V19: the new course fee shows on Fees & Payments straight away.
+          if (typeof llsLoadFinanceFromSheets === "function") {
+            await llsLoadFinanceFromSheets(true).catch((e) => console.warn("LLS: finance refresh deferred.", e));
+          }
           await llsLoadEnquiriesFromSheets();
           renderAll();
         } catch (error) {
@@ -2909,6 +2931,11 @@ async function convertEnquiryToStudent(id) {
   if (!enquiry) return;
 
   pendingConversionEnquiryId = id;
+  // New student: hide the boxes that belong to an existing student.
+  const progressBox = byId("studentHomeworkProgress");
+  if (progressBox) progressBox.hidden = true;
+  const coachBox = byId("studentCoachBox");
+  if (coachBox) coachBox.hidden = true;
 
   const parts = String(enquiry.name || "").trim().split(/\s+/);
   const firstName = parts.shift() || "";
@@ -6055,4 +6082,43 @@ document.addEventListener("DOMContentLoaded", () => {
     llsSaveCoach(until);
   });
   byId("studentCoachOff")?.addEventListener("click", () => llsSaveCoach(""));
+});
+
+
+/* =========================================================
+   V19 — "Record payment" uses the student's open fee
+   If the chosen student already has a fee with money still owed,
+   the payment goes against that fee instead of creating a second
+   (duplicate) course fee.
+========================================================= */
+
+function llsOpenFeeForStudent(studentId) {
+  return (state.payments || []).find((p) =>
+    p.studentId === studentId && number(p.fee) - number(p.paid) > 0.001
+  ) || null;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const select = byId("paymentStudent");
+  if (!select) return;
+  select.addEventListener("change", () => {
+    if (select.disabled) return;
+    const open = llsOpenFeeForStudent(select.value);
+    if (open) {
+      paymentModalMode = "payment";
+      setValue("paymentId", open.id);
+      setValue("paymentDescription", open.description || "Course fee");
+      setValue("paymentFee", number(open.fee));
+      byId("paymentDescription").readOnly = true;
+      byId("paymentFee").readOnly = true;
+      showToast(`Owed: ${formatMoney(number(open.fee) - number(open.paid))}. This payment will go against the existing course fee.`);
+    } else if (paymentModalMode === "payment") {
+      paymentModalMode = "create";
+      setValue("paymentId", "");
+      setValue("paymentDescription", "");
+      setValue("paymentFee", "");
+      byId("paymentDescription").readOnly = false;
+      byId("paymentFee").readOnly = false;
+    }
+  });
 });

@@ -773,8 +773,9 @@
               <option value="all">All stages</option>
               <option value="New">New</option>
               <option value="Contacted">Contacted</option>
-              <option value="Trial booked">Trial booked</option>
-              <option value="Interested">Interested</option>
+              <option value="Placement/Trial Booked">Trial / placement booked</option>
+              <option value="Placement/Trial Completed">Trial / placement done</option>
+              <option value="Course Offered">Course offered (interested)</option>
               <option value="Enrolled">Enrolled</option>
               <option value="Lost">Lost</option>
             </select>
@@ -1110,6 +1111,33 @@
             <textarea id="studentNotes" rows="4"></textarea>
           </div>
 
+          <div class="form-field form-field-wide" id="conversionEnrolmentFields" hidden>
+            <label>Enrolment and course fee</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+              <div>
+                <label for="conversionSchoolYear" style="font-weight: 500;">School year</label>
+                <input id="conversionSchoolYear" type="text" value="2026-27">
+              </div>
+              <div>
+                <label for="conversionCourseFee" style="font-weight: 500;">Course fee (€) *</label>
+                <input id="conversionCourseFee" type="number" min="0" step="1" inputmode="decimal">
+              </div>
+              <div>
+                <label for="conversionDiscount" style="font-weight: 500;">Discount (€)</label>
+                <input id="conversionDiscount" type="number" min="0" step="1" value="0" inputmode="decimal">
+              </div>
+              <div>
+                <label for="conversionPaymentPlan" style="font-weight: 500;">Payment plan</label>
+                <select id="conversionPaymentPlan">
+                  <option value="Full payment">Full payment</option>
+                  <option value="3 instalments" selected>3 instalments</option>
+                  <option value="Monthly">Monthly</option>
+                  <option value="Other">Other (see notes)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           <div class="form-field form-field-wide" id="studentHomeworkProgress" hidden>
             <label>Progress (homework 80% + practice 20%)</label>
             <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px;">
@@ -1417,8 +1445,9 @@
             <select id="enquiryStatus">
               <option value="New">New</option>
               <option value="Contacted">Contacted</option>
-              <option value="Trial booked">Trial booked</option>
-              <option value="Interested">Interested</option>
+              <option value="Placement/Trial Booked">Trial / placement booked</option>
+              <option value="Placement/Trial Completed">Trial / placement done</option>
+              <option value="Course Offered">Course offered (interested)</option>
               <option value="Enrolled">Enrolled</option>
               <option value="Lost">Lost</option>
             </select>
