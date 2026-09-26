@@ -299,8 +299,11 @@
     }
 
     function parseDate(text) {
-      const m = String(text || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
-      return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+      const raw = String(text || "").trim();
+      const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+      const uk = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); // sheet shows UK dates
+      return uk ? new Date(+uk[3], +uk[2] - 1, +uk[1]) : null;
     }
 
     function dueBadge(text, isDone) {

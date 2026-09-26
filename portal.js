@@ -4698,6 +4698,10 @@ function llsDateOnly(valueToNormalise) {
   const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
   if (match) return match[1];
 
+  // The sheet is in UK format: 05/03/2026 = 5 March (never US month-first).
+  const uk = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (uk) return `${uk[3]}-${uk[2].padStart(2, "0")}-${uk[1].padStart(2, "0")}`;
+
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) return raw;
 
@@ -5526,7 +5530,7 @@ async function renderHomeworkList() {
 
     body.innerHTML = llsHomeworkCache.homework
       .slice()
-      .sort((a, b) => String(b["Due Date"] || "").localeCompare(String(a["Due Date"] || "")))
+      .sort((a, b) => llsDateOnly(b["Due Date"]).localeCompare(llsDateOnly(a["Due Date"])))
       .map(item => {
         const homeworkId = String(item["Homework ID"] || "");
         const done = llsHomeworkCache.status.filter(s =>
@@ -5537,7 +5541,7 @@ async function renderHomeworkList() {
         return `
           <tr>
             <td><strong>${escapeHtml(String(item["Title"] || ""))}</strong></td>
-            <td>${item["Due Date"] ? escapeHtml(formatDate(item["Due Date"])) : "—"}</td>
+            <td>${item["Due Date"] ? escapeHtml(formatDate(llsDateOnly(item["Due Date"]))) : "—"}</td>
             <td>${done} / ${totalStudents}</td>
             <td class="table-actions-cell">
               <button class="row-action" type="button" data-view-homework="${escapeAttribute(homeworkId)}">
@@ -5883,7 +5887,7 @@ async function loadStudentHomeworkProgress(studentId) {
 
     const today = isoDate(new Date());
     const missing = homework
-      .filter((h) => !doneIds.has(String(h["Homework ID"] || "")) && String(h["Due Date"] || "") && String(h["Due Date"]) < today)
+      .filter((h) => !doneIds.has(String(h["Homework ID"] || "")) && llsDateOnly(h["Due Date"]) && llsDateOnly(h["Due Date"]) < today)
       .map((h) => String(h["Title"] || "Homework"));
 
     text(
