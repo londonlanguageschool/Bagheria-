@@ -1361,6 +1361,31 @@
             <input id="paymentPaid" type="number" min="0" step="0.01" required>
           </div>
 
+          <div class="form-field form-field-wide" id="paymentPlanBox">
+            <label for="paymentPlan">Payment plan for this course fee</label>
+            <select id="paymentPlan">
+              <option value="Full payment">Full payment</option>
+              <option value="3 instalments" selected>3 instalments</option>
+              <option value="Monthly">Monthly</option>
+              <option value="Other">Other (see notes)</option>
+            </select>
+            <div id="paymentDueDates" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">
+              <div data-instalment="1">
+                <label for="paymentDue1" style="font-weight: 500;">1st payment due</label>
+                <input id="paymentDue1" type="date">
+              </div>
+              <div data-instalment="2">
+                <label for="paymentDue2" style="font-weight: 500;">2nd payment due</label>
+                <input id="paymentDue2" type="date">
+              </div>
+              <div data-instalment="3">
+                <label for="paymentDue3" style="font-weight: 500;">3rd payment due</label>
+                <input id="paymentDue3" type="date">
+              </div>
+            </div>
+            <div style="font-size: 13px; color: #56617a; margin-top: 6px;">Suggested dates: change them to match what you agreed.</div>
+          </div>
+
           <div class="form-field">
             <label for="paymentDate">Payment date</label>
             <input id="paymentDate" type="date">

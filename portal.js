@@ -2297,6 +2297,12 @@ function openNewPayment() {
 
   populatePaymentStudentSelect();
 
+  // V19: a new course fee gets a payment plan and due dates.
+  const planBox = byId("paymentPlanBox");
+  if (planBox) planBox.hidden = false;
+  setValue("paymentPlan", "3 instalments");
+  llsSuggestDueDates("payment");
+
   text(
     "paymentModalTitle",
     "Record payment"
@@ -2336,6 +2342,8 @@ function openAddPayment(feeId) {
   byId("paymentStudent").disabled = true;
   byId("paymentDescription").readOnly = true;
   byId("paymentFee").readOnly = true;
+  const planBox = byId("paymentPlanBox");
+  if (planBox) planBox.hidden = true;
 
   text(
     "paymentModalTitle",
@@ -2389,6 +2397,10 @@ async function savePaymentForm(event) {
     let feeId = value("paymentId");
 
     if (mode === "create") {
+      const plan = value("paymentPlan") || "Full payment";
+      if (plan === "Full payment" && !value("paymentDue1")) setValue("paymentDue1", paymentDate);
+      const planFields = { "Payment Plan": plan, ...llsInstalmentFields(plan, courseFee, "payment") };
+
       const feeResult = await llsApiPost({
         action: "createFee",
         fields: {
@@ -2397,9 +2409,7 @@ async function savePaymentForm(event) {
           "Course Fee": courseFee,
           "Discount": 0,
           "Amount Due": courseFee,
-          "Payment Plan": "Full payment",
-          "Instalment 1 Amount": courseFee,
-          "Instalment 1 Due": paymentDate,
+          ...planFields,
           "Notes": description
         }
       });
@@ -2419,9 +2429,7 @@ async function savePaymentForm(event) {
         "Course Fee": courseFee,
         "Discount": 0,
         "Amount Due": courseFee,
-        "Payment Plan": "Full payment",
-        "Instalment 1 Amount": courseFee,
-        "Instalment 1 Due": paymentDate,
+        ...planFields,
         "Notes": description
       });
 
@@ -6138,6 +6146,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setValue("paymentFee", number(open.fee));
       byId("paymentDescription").readOnly = true;
       byId("paymentFee").readOnly = true;
+      if (byId("paymentPlanBox")) byId("paymentPlanBox").hidden = true;
       showToast(`Owed: ${formatMoney(number(open.fee) - number(open.paid))}. This payment will go against the existing course fee.`);
     } else if (paymentModalMode === "payment") {
       paymentModalMode = "create";
@@ -6146,6 +6155,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setValue("paymentFee", "");
       byId("paymentDescription").readOnly = false;
       byId("paymentFee").readOnly = false;
+      if (byId("paymentPlanBox")) byId("paymentPlanBox").hidden = false;
     }
   });
 });
@@ -6163,12 +6173,12 @@ function llsAddMonths(date, months) {
   return d;
 }
 
-function llsSuggestDueDates() {
+function llsSuggestDueDates(prefix = "conversion") {
   const today = new Date();
-  setValue("conversionDue1", isoDate(today));
-  setValue("conversionDue2", isoDate(llsAddMonths(today, 3)));
-  setValue("conversionDue3", isoDate(llsAddMonths(today, 6)));
-  llsShowDueDateFields();
+  setValue(`${prefix}Due1`, isoDate(today));
+  setValue(`${prefix}Due2`, isoDate(llsAddMonths(today, 3)));
+  setValue(`${prefix}Due3`, isoDate(llsAddMonths(today, 6)));
+  llsShowDueDateFields(prefix);
 }
 
 function llsInstalmentCount(plan) {
@@ -6177,17 +6187,18 @@ function llsInstalmentCount(plan) {
   return 0; // Monthly / Other: no fixed dates here
 }
 
-function llsShowDueDateFields() {
-  const count = llsInstalmentCount(value("conversionPaymentPlan"));
-  document.querySelectorAll("#conversionDueDates [data-instalment]").forEach((box) => {
+function llsShowDueDateFields(prefix = "conversion") {
+  const plan = prefix === "payment" ? value("paymentPlan") : value("conversionPaymentPlan");
+  const count = llsInstalmentCount(plan);
+  document.querySelectorAll(`#${prefix}DueDates [data-instalment]`).forEach((box) => {
     box.hidden = Number(box.dataset.instalment) > count;
   });
-  const wrap = byId("conversionDueDates");
+  const wrap = byId(`${prefix}DueDates`);
   if (wrap) wrap.hidden = count === 0;
 }
 
 // Split the amount into equal whole-euro parts; any remainder goes on the first.
-function llsInstalmentFields(plan, amountDue) {
+function llsInstalmentFields(plan, amountDue, prefix = "conversion") {
   const count = llsInstalmentCount(plan);
   const fields = {};
   if (!count || !(amountDue > 0)) return fields;
@@ -6195,7 +6206,7 @@ function llsInstalmentFields(plan, amountDue) {
   const first = Math.round((amountDue - part * (count - 1)) * 100) / 100;
   for (let i = 1; i <= count; i++) {
     fields[`Instalment ${i} Amount`] = i === 1 ? first : part;
-    fields[`Instalment ${i} Due`] = value(`conversionDue${i}`) || "";
+    fields[`Instalment ${i} Due`] = value(`${prefix}Due${i}`) || "";
   }
   return fields;
 }
@@ -6255,7 +6266,8 @@ function llsReminderLink(payment, student) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  byId("conversionPaymentPlan")?.addEventListener("change", llsShowDueDateFields);
+  byId("conversionPaymentPlan")?.addEventListener("change", () => llsShowDueDateFields("conversion"));
+  byId("paymentPlan")?.addEventListener("change", () => llsShowDueDateFields("payment"));
 });
 
 function llsItalianDate(iso) {
