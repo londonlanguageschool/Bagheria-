@@ -2192,6 +2192,13 @@ function renderPayments() {
               >
                 Add payment
               </button>
+              <button
+                class="row-action"
+                type="button"
+                data-edit-fee="${payment.id}"
+              >
+                Edit plan
+              </button>
               ${llsReminderLink(payment, student)}
 
               <button
@@ -2213,6 +2220,14 @@ function renderPayments() {
     .forEach((button) => {
       button.addEventListener("click", () => {
         openAddPayment(button.dataset.editPayment);
+      });
+    });
+
+  body
+    .querySelectorAll("[data-edit-fee]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        llsOpenFeeEditor(button.dataset.editFee);
       });
     });
 
@@ -6275,3 +6290,119 @@ function llsItalianDate(iso) {
   if (!m) return String(iso || "");
   return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
 }
+
+
+/* =========================================================
+   V19 — EDIT A COURSE FEE (total, plan, instalments, notes)
+   Uses updateFee (already in the Apps Script since V12).
+========================================================= */
+
+function llsFeeEditorCount() {
+  const plan = value("feeEditPlan");
+  return plan === "Full payment" ? 1 : plan === "3 instalments" ? 3 : 0;
+}
+
+function llsFeeEditorRefresh() {
+  const count = llsFeeEditorCount();
+  document.querySelectorAll("#feeEditRows [data-fee-row]").forEach((row) => {
+    row.hidden = Number(row.dataset.feeRow) > count;
+  });
+  byId("feeEditRows").hidden = count === 0;
+  const total = number(value("feeEditTotal"));
+  let sumParts = 0;
+  for (let i = 1; i <= count; i++) sumParts += number(value(`feeEditAmount${i}`));
+  const ok = count === 0 || Math.abs(sumParts - total) < 0.01;
+  const check = byId("feeEditCheck");
+  check.textContent = count ? (ok ? `Payments add up to ${formatMoney(total)} ✓` : `Payments add up to ${formatMoney(sumParts)}, not ${formatMoney(total)}`) : "";
+  check.style.color = ok ? "#177b52" : "#b3261e";
+  return ok;
+}
+
+function llsFeeEditorSplit() {
+  const count = llsFeeEditorCount();
+  const total = number(value("feeEditTotal"));
+  if (!count || !(total > 0)) return;
+  const part = Math.floor(total / count);
+  const first = Math.round((total - part * (count - 1)) * 100) / 100;
+  for (let i = 1; i <= count; i++) setValue(`feeEditAmount${i}`, i === 1 ? first : part);
+  if (!value("feeEditDue1")) setValue("feeEditDue1", isoDate(new Date()));
+  if (count === 3) {
+    if (!value("feeEditDue2")) setValue("feeEditDue2", isoDate(llsAddMonths(new Date(), 3)));
+    if (!value("feeEditDue3")) setValue("feeEditDue3", isoDate(llsAddMonths(new Date(), 6)));
+  }
+  llsFeeEditorRefresh();
+}
+
+function llsOpenFeeEditor(feeId) {
+  const fee = (llsLiveFinanceData.fees || []).find((f) => String(f["Fee ID"] || "").trim() === feeId);
+  if (!fee) {
+    showToast("That fee could not be found. Try refreshing.", "error");
+    return;
+  }
+  const student = getStudent(String(fee["Student ID"] || "").trim());
+  setValue("feeEditId", feeId);
+  setValue("feeEditTotal", number(fee["Amount Due"]));
+  const plan = String(fee["Payment Plan"] || "").trim();
+  setValue("feeEditPlan", ["Full payment", "3 instalments", "Monthly", "Other"].includes(plan) ? plan : "Full payment");
+  for (let i = 1; i <= 3; i++) {
+    const amount = number(fee[`Instalment ${i} Amount`]);
+    setValue(`feeEditAmount${i}`, amount > 0 ? amount : "");
+    setValue(`feeEditDue${i}`, llsDateOnly(fee[`Instalment ${i} Due`]) || "");
+  }
+  setValue("feeEditNotes", String(fee["Notes"] || ""));
+  text("feeModalTitle", `Edit course fee — ${getStudentName(student) || "Student"}`);
+  llsFeeEditorRefresh();
+  openModal("feeModal");
+}
+
+async function llsSaveFeeEditor(event) {
+  event.preventDefault();
+  const feeId = value("feeEditId");
+  const total = number(value("feeEditTotal"));
+  const plan = value("feeEditPlan");
+  const count = llsFeeEditorCount();
+
+  if (!(total >= 0)) { showToast("Enter the total to pay.", "error"); return; }
+  if (!llsFeeEditorRefresh()) { showToast("The payments must add up to the total. Press Split total equally or fix the amounts.", "error"); return; }
+  for (let i = 1; i <= count; i++) {
+    if (number(value(`feeEditAmount${i}`)) > 0 && !value(`feeEditDue${i}`)) {
+      showToast(`Add a due date for payment ${i}.`, "error");
+      return;
+    }
+  }
+
+  const fields = { "Amount Due": total, "Payment Plan": plan, "Notes": value("feeEditNotes").trim() };
+  for (let i = 1; i <= 3; i++) {
+    fields[`Instalment ${i} Amount`] = i <= count ? number(value(`feeEditAmount${i}`)) : 0;
+    fields[`Instalment ${i} Due`] = i <= count ? value(`feeEditDue${i}`) : "";
+  }
+
+  const button = byId("feeForm").querySelector('button[type="submit"]');
+  button.disabled = true;
+  button.textContent = "Saving…";
+  try {
+    await llsApiPost({ action: "updateFee", feeId, fields });
+    const fee = (llsLiveFinanceData.fees || []).find((f) => String(f["Fee ID"] || "").trim() === feeId);
+    if (fee) Object.assign(fee, fields);
+    llsRebuildPaymentsState();
+    saveState();
+    renderAll();
+    closeModal("feeModal");
+    showToast("Course fee saved.", "success");
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "The course fee could not be saved.", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Save fee";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  byId("feeForm")?.addEventListener("submit", llsSaveFeeEditor);
+  byId("feeEditSplit")?.addEventListener("click", llsFeeEditorSplit);
+  ["feeEditPlan", "feeEditTotal", "feeEditAmount1", "feeEditAmount2", "feeEditAmount3"].forEach((id) => {
+    byId(id)?.addEventListener("input", llsFeeEditorRefresh);
+    byId(id)?.addEventListener("change", llsFeeEditorRefresh);
+  });
+});
