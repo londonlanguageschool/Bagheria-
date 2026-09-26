@@ -1073,6 +1073,18 @@
             <label for="studentNotes">Notes</label>
             <textarea id="studentNotes" rows="4"></textarea>
           </div>
+
+          <div class="form-field form-field-wide" id="studentHomeworkProgress" hidden>
+            <label>Homework progress</label>
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px;">
+              <span id="studentHomeworkProgressText">Loading…</span>
+              <span id="studentHomeworkProgressPct"></span>
+            </div>
+            <div style="height: 10px; border-radius: 99px; background: #eaf1fa; overflow: hidden; margin-top: 6px;">
+              <div id="studentHomeworkProgressBar" style="height: 100%; width: 0; background: #177b52; border-radius: 99px;"></div>
+            </div>
+            <div id="studentHomeworkProgressList" style="font-size: 13px; color: #56617a; margin-top: 8px;"></div>
+          </div>
         </div>
 
         <div class="modal-actions">
@@ -1125,7 +1137,8 @@
 
           <div class="form-field">
             <label for="classTeacher">Teacher</label>
-            <select id="classTeacher"></select>
+            <input id="classTeacher" type="text" list="classTeacherList" placeholder="e.g. Josie, or Cole (Mon) / Helen (Wed)" autocomplete="off">
+            <datalist id="classTeacherList"></datalist>
           </div>
 
           <div class="form-field">
@@ -1147,7 +1160,25 @@
 
           <div class="form-field">
             <label for="classDuration">Duration (minutes)</label>
-            <input id="classDuration" type="number" min="30" step="15" value="90">
+            <input id="classDuration" type="number" min="30" step="15" value="60">
+          </div>
+
+          <div class="form-field">
+            <label for="classDay2">Second day (optional)</label>
+            <select id="classDay2">
+              <option value="">None</option>
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="classTime2">Second day start time</label>
+            <input id="classTime2" type="time">
           </div>
 
           <div class="form-field">

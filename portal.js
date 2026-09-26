@@ -968,6 +968,8 @@ function renderStudents() {
 }
 
 function openNewStudent() {
+  const progress = byId("studentHomeworkProgress");
+  if (progress) progress.hidden = true;
   pendingConversionEnquiryId = "";
   const conversionFields = byId("conversionEnrolmentFields");
   if (conversionFields) conversionFields.hidden = true;
@@ -1011,6 +1013,7 @@ function openEditStudent(id) {
 
   text("studentModalTitle", "Edit student");
   openModal("studentModal");
+  loadStudentHomeworkProgress(id);
 }
 
 /*
@@ -1541,6 +1544,9 @@ function openNewClass() {
   setValue("classId", "");
   setValue("classSchoolYear", "2026-27");
   setValue("classCapacity", "10");
+  setValue("classDuration", "60");
+  setValue("classDay2", "");
+  setValue("classTime2", "");
   setValue("classStatus", "Active");
   text("classModalTitle", "Create class");
   openModal("classModal");
@@ -1559,6 +1565,7 @@ function openEditClass(id) {
   setValue("classTime", item.time);
   setValue("classDay2", item.day2 || "");
   setValue("classTime2", item.time2 || "");
+  setValue("classDuration", item.duration || 60);
   setValue("classRoom", item.room);
   setValue("classCapacity", item.capacity || 10);
   setValue("classRegisterSheet", item.registerSheet || "");
@@ -1607,12 +1614,29 @@ async function saveClassForm(event) {
     "Status": value("classStatus") || "Active"
   };
 
+  // V16.1: second weekly lesson and length (Apps Script V16 saves these).
+  const extraFields = {
+    "Day 2": value("classDay2"),
+    "Time 2": value("classDay2") ? value("classTime2") : "",
+    "Duration": value("classDuration") || ""
+  };
+
+  if (extraFields["Day 2"] && !extraFields["Time 2"]) {
+    showToast("Add a start time for the second day.", "error");
+    return;
+  }
+
   try {
     const result = await llsApiPost(
       id
-        ? { action: "updateClass", classId: id, fields }
+        ? { action: "updateClass", classId: id, fields: { ...fields, ...extraFields } }
         : { action: "createClass", fields }
     );
+
+    // createClass only knows the original columns: add the extras after.
+    if (!id && result?.classId) {
+      await llsApiPost({ action: "updateClass", classId: result.classId, fields: extraFields });
+    }
 
     /*
      * V12.9 — Classes now use the same stable save strategy as Students.
@@ -1636,6 +1660,9 @@ async function saveClassForm(event) {
         existing.capacity = capacity;
         existing.registerSheet = fields["Register Sheet"];
         existing.status = fields["Status"];
+        existing.day2 = extraFields["Day 2"];
+        existing.time2 = extraFields["Time 2"];
+        existing.duration = Number(extraFields["Duration"]) || existing.duration;
       }
     } else if (classId) {
       state.classes.push({
@@ -1647,8 +1674,9 @@ async function saveClassForm(event) {
         teacherName: fields["Teacher"],
         day: fields["Day"],
         time: fields["Time"],
-        day2: "",
-        time2: "",
+        day2: extraFields["Day 2"],
+        time2: extraFields["Time 2"],
+        duration: Number(extraFields["Duration"]) || 60,
         room: fields["Room"],
         capacity,
         registerSheet: fields["Register Sheet"],
@@ -3702,40 +3730,20 @@ function populateStudentClassSelect(selectedId = "") {
 }
 
 function populateTeacherSelect() {
-  const select = byId("classTeacher");
+  // V16.1: the class Teacher field is free text (a class can have two
+  // teachers, e.g. "Cole (Mon) / Helen (Wed)"). The list only suggests
+  // names from the Teachers page; nothing typed is ever discarded.
+  const list = byId("classTeacherList");
 
-  if (!select) {
+  if (!list) {
     return;
   }
 
-  const current = select.value;
-
-  select.innerHTML =
-    `<option value="">Not assigned</option>` +
-    state.teachers
-      .filter(
-        (teacher) =>
-          teacher.status === "Active"
-      )
-      .sort((a, b) =>
-        a.name.localeCompare(b.name)
-      )
-      .map((teacher) => `
-        <option value="${escapeAttribute(teacher.id)}">
-          ${escapeHtml(teacher.name)}
-        </option>
-      `)
-      .join("");
-
-  if (
-    current &&
-    state.teachers.some(
-      (teacher) =>
-        teacher.id === current
-    )
-  ) {
-    select.value = current;
-  }
+  list.innerHTML = state.teachers
+    .filter((teacher) => teacher.status === "Active" && teacher.name)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((teacher) => `<option value="${escapeAttribute(teacher.name)}"></option>`)
+    .join("");
 }
 
 function populatePaymentStudentSelect() {
@@ -5773,3 +5781,54 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+
+/* =========================================================
+   V16.1 — HOMEWORK PROGRESS ON THE STUDENT RECORD
+   Uses getHomeworkForStudent (admin login required): homework
+   for the student's active classes and their done/not-done status.
+========================================================= */
+
+async function loadStudentHomeworkProgress(studentId) {
+  const box = byId("studentHomeworkProgress");
+  if (!box) return;
+
+  box.hidden = false;
+  text("studentHomeworkProgressText", "Loading…");
+  text("studentHomeworkProgressPct", "");
+  text("studentHomeworkProgressList", "");
+  byId("studentHomeworkProgressBar").style.width = "0";
+
+  try {
+    const data = await llsApiGet("getHomeworkForStudent", { studentId });
+    if (value("studentId") !== studentId) return; // modal moved on
+
+    const homework = Array.isArray(data.homework) ? data.homework : [];
+    const doneIds = new Set(
+      (Array.isArray(data.status) ? data.status : [])
+        .filter((row) => String(row["Status"] || "") === "Done")
+        .map((row) => String(row["Homework ID"] || ""))
+    );
+
+    const total = homework.length;
+    const done = homework.filter((h) => doneIds.has(String(h["Homework ID"] || ""))).length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+
+    text("studentHomeworkProgressText", total ? `${done} of ${total} homework done` : "No homework set for this student's class yet.");
+    text("studentHomeworkProgressPct", total ? `${pct}%` : "");
+    byId("studentHomeworkProgressBar").style.width = `${pct}%`;
+
+    const today = isoDate(new Date());
+    const missing = homework
+      .filter((h) => !doneIds.has(String(h["Homework ID"] || "")) && String(h["Due Date"] || "") && String(h["Due Date"]) < today)
+      .map((h) => String(h["Title"] || "Homework"));
+
+    text(
+      "studentHomeworkProgressList",
+      missing.length ? `Overdue: ${missing.slice(0, 5).join(", ")}${missing.length > 5 ? "…" : ""}` : ""
+    );
+  } catch (error) {
+    console.error(error);
+    text("studentHomeworkProgressText", "Could not load homework progress.");
+  }
+}
