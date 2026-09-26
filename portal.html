@@ -714,6 +714,7 @@
               <option value="Paid">Paid</option>
               <option value="Part-paid">Part-paid</option>
               <option value="Due">Due</option>
+              <option value="Overdue">Overdue</option>
             </select>
           </div>
 
@@ -1136,6 +1137,21 @@
                 </select>
               </div>
             </div>
+            <div id="conversionDueDates" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">
+              <div data-instalment="1">
+                <label for="conversionDue1" style="font-weight: 500;">1st payment due</label>
+                <input id="conversionDue1" type="date">
+              </div>
+              <div data-instalment="2">
+                <label for="conversionDue2" style="font-weight: 500;">2nd payment due</label>
+                <input id="conversionDue2" type="date">
+              </div>
+              <div data-instalment="3">
+                <label for="conversionDue3" style="font-weight: 500;">3rd payment due</label>
+                <input id="conversionDue3" type="date">
+              </div>
+            </div>
+            <div style="font-size: 13px; color: #56617a; margin-top: 6px;">Suggested dates: change them to match what you agreed. The portal shows a payment as overdue after its date.</div>
           </div>
 
           <div class="form-field form-field-wide" id="studentHomeworkProgress" hidden>

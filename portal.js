@@ -1222,6 +1222,7 @@ async function saveStudentForm(event) {
           "Discount": discount,
           "Amount Due": Math.max(0, courseFee - discount),
           "Payment Plan": paymentPlan,
+          ...llsInstalmentFields(paymentPlan, Math.max(0, courseFee - discount)),
           "Status": "Open",
           "Notes": `Created from enquiry ${enquiry.id}.`
         }
@@ -2113,7 +2114,8 @@ function renderPayments() {
       return (
         (!query || haystack.includes(query)) &&
         (filterStatus === "all" ||
-          status === filterStatus)
+          status === filterStatus ||
+          (filterStatus === "Overdue" && payment.overdue))
       );
     })
     .sort((a, b) =>
@@ -2178,6 +2180,7 @@ function renderPayments() {
 
           <td>
             ${statusBadge(status)}
+            ${llsNextDueLine(payment)}
           </td>
 
           <td class="table-actions-cell">
@@ -2189,6 +2192,7 @@ function renderPayments() {
               >
                 Add payment
               </button>
+              ${llsReminderLink(payment, student)}
 
               <button
                 class="row-action delete"
@@ -2393,6 +2397,9 @@ async function savePaymentForm(event) {
           "Course Fee": courseFee,
           "Discount": 0,
           "Amount Due": courseFee,
+          "Payment Plan": "Full payment",
+          "Instalment 1 Amount": courseFee,
+          "Instalment 1 Due": paymentDate,
           "Notes": description
         }
       });
@@ -2412,6 +2419,9 @@ async function savePaymentForm(event) {
         "Course Fee": courseFee,
         "Discount": 0,
         "Amount Due": courseFee,
+        "Payment Plan": "Full payment",
+        "Instalment 1 Amount": courseFee,
+        "Instalment 1 Due": paymentDate,
         "Notes": description
       });
 
@@ -2973,6 +2983,7 @@ async function convertEnquiryToStudent(id) {
   setValue("conversionCourseFee", "");
   setValue("conversionDiscount", "0");
   setValue("conversionPaymentPlan", "3 instalments");
+  llsSuggestDueDates();
 
   openModal("studentModal");
 
@@ -3548,11 +3559,22 @@ function renderNotifications() {
   state.payments
     .filter(
       (payment) =>
-        paymentStatus(payment) !== "Paid"
+        paymentStatus(payment) !== "Paid" &&
+        // V19: with payment dates, only warn once a payment is late.
+        (!payment.nextDue || payment.overdue)
     )
     .forEach((payment) => {
       const student =
         getStudent(payment.studentId);
+
+      if (payment.overdue) {
+        notifications.push({
+          icon: "€",
+          title: "Payment overdue",
+          message: `${getStudentName(student) || "Student"} · ${formatMoney(payment.nextAmount)} since ${formatDate(payment.nextDue)}`
+        });
+        return;
+      }
 
       notifications.push({
         icon: "€",
@@ -5010,7 +5032,8 @@ function llsRebuildPaymentsState() {
         paid,
         date: lastPayment ? String(lastPayment["Payment Date"] || "") : "",
         method: lastPayment ? String(lastPayment["Payment Method"] || "") : "",
-        notes: String(fee["Notes"] || "")
+        notes: String(fee["Notes"] || ""),
+        ...llsNextInstalment(fee, paid)
       };
     })
     .filter((item) => item.id);
@@ -6126,3 +6149,117 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+
+/* =========================================================
+   V19 — PAYMENT DATES, OVERDUE AND WHATSAPP REMINDERS
+   A fee can have up to 3 instalments (amount + due date) in the
+   Fees sheet. Payments are counted against them in order, so the
+   portal knows the next amount due and whether it is late.
+========================================================= */
+
+function llsAddMonths(date, months) {
+  const d = new Date(date.getFullYear(), date.getMonth() + months, 1);
+  return d;
+}
+
+function llsSuggestDueDates() {
+  const today = new Date();
+  setValue("conversionDue1", isoDate(today));
+  setValue("conversionDue2", isoDate(llsAddMonths(today, 3)));
+  setValue("conversionDue3", isoDate(llsAddMonths(today, 6)));
+  llsShowDueDateFields();
+}
+
+function llsInstalmentCount(plan) {
+  if (plan === "Full payment") return 1;
+  if (plan === "3 instalments") return 3;
+  return 0; // Monthly / Other: no fixed dates here
+}
+
+function llsShowDueDateFields() {
+  const count = llsInstalmentCount(value("conversionPaymentPlan"));
+  document.querySelectorAll("#conversionDueDates [data-instalment]").forEach((box) => {
+    box.hidden = Number(box.dataset.instalment) > count;
+  });
+  const wrap = byId("conversionDueDates");
+  if (wrap) wrap.hidden = count === 0;
+}
+
+// Split the amount into equal whole-euro parts; any remainder goes on the first.
+function llsInstalmentFields(plan, amountDue) {
+  const count = llsInstalmentCount(plan);
+  const fields = {};
+  if (!count || !(amountDue > 0)) return fields;
+  const part = Math.floor(amountDue / count);
+  const first = Math.round((amountDue - part * (count - 1)) * 100) / 100;
+  for (let i = 1; i <= count; i++) {
+    fields[`Instalment ${i} Amount`] = i === 1 ? first : part;
+    fields[`Instalment ${i} Due`] = value(`conversionDue${i}`) || "";
+  }
+  return fields;
+}
+
+function llsNextInstalment(fee, paid) {
+  const schedule = [];
+  for (let i = 1; i <= 3; i++) {
+    const amount = number(fee[`Instalment ${i} Amount`]);
+    const due = llsDateOnly(fee[`Instalment ${i} Due`]);
+    if (amount > 0 && /^\d{4}-\d{2}-\d{2}$/.test(due)) schedule.push({ amount, due });
+  }
+  if (!schedule.length) return { nextDue: "", nextAmount: 0, overdue: false };
+
+  let cumulative = 0;
+  for (const item of schedule) {
+    cumulative += item.amount;
+    if (cumulative - number(paid) > 0.001) {
+      const owed = Math.min(item.amount, cumulative - number(paid));
+      return {
+        nextDue: item.due,
+        nextAmount: Math.round(owed * 100) / 100,
+        overdue: item.due < isoDate(new Date())
+      };
+    }
+  }
+  return { nextDue: "", nextAmount: 0, overdue: false };
+}
+
+function llsNextDueLine(payment) {
+  if (!payment.nextDue) return "";
+  const colour = payment.overdue ? "#b3261e" : "#56617a";
+  const label = payment.overdue ? "Overdue" : "Next";
+  return `<div style="font-size: 12px; margin-top: 4px; color: ${colour}; font-weight: ${payment.overdue ? 700 : 500};">
+    ${label}: ${escapeHtml(formatMoney(payment.nextAmount))} · ${escapeHtml(formatDate(payment.nextDue))}
+  </div>`;
+}
+
+function llsWhatsAppNumber(phone) {
+  let digits = String(phone || "").replace(/[^\d+]/g, "");
+  if (digits.startsWith("+")) digits = digits.slice(1);
+  else if (digits.startsWith("00")) digits = digits.slice(2);
+  else if (/^3\d{8,9}$/.test(digits)) digits = "39" + digits; // Italian mobile
+  return digits.length >= 10 ? digits : "";
+}
+
+function llsReminderLink(payment, student) {
+  if (!payment.overdue || !student) return "";
+  const number_ = llsWhatsAppNumber(student.phone);
+  if (!number_) return "";
+  const name = student.firstName || "";
+  const message =
+    `Buongiorno! Vi ricordiamo gentilmente che la rata di ${formatMoney(payment.nextAmount)} ` +
+    `del corso di inglese${name ? ` di ${name}` : ""} era in scadenza il ${llsItalianDate(payment.nextDue)}. ` +
+    `Potete pagare in segreteria o rispondere a questo messaggio per qualsiasi domanda. ` +
+    `Se avete già pagato, ignorate pure questo messaggio. Grazie! London Language School`;
+  return `<a class="row-action" href="https://wa.me/${number_}?text=${encodeURIComponent(message)}" target="_blank" rel="noopener">WhatsApp reminder</a>`;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  byId("conversionPaymentPlan")?.addEventListener("change", llsShowDueDateFields);
+});
+
+function llsItalianDate(iso) {
+  const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return String(iso || "");
+  return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
+}
