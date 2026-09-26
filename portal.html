@@ -574,6 +574,42 @@
               </button>
             </div>
 
+            <div class="panel" id="homeworkAiPanel">
+              <p class="section-label" style="margin-top:0;">Create with AI</p>
+              <p class="muted" style="margin:4px 0 14px;">Choose the class below, describe the topic, and the AI writes a draft that fills in the Title and Instructions. Always read and edit it before assigning.</p>
+              <div class="form-grid">
+                <div class="form-field form-field-wide">
+                  <label for="homeworkAiTopic">Topic or lesson content</label>
+                  <input id="homeworkAiTopic" type="text" placeholder="e.g. past simple, irregular verbs, our weekend">
+                </div>
+                <div class="form-field">
+                  <label for="homeworkAiType">Type</label>
+                  <select id="homeworkAiType">
+                    <option>Mixed practice</option>
+                    <option>Vocabulary practice</option>
+                    <option>Grammar practice</option>
+                    <option>Reading with questions</option>
+                    <option>Short writing task</option>
+                    <option>Speaking preparation</option>
+                    <option>Cambridge exam practice</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label for="homeworkAiMinutes">Time at home</label>
+                  <select id="homeworkAiMinutes">
+                    <option value="10">10 minutes</option>
+                    <option value="15" selected>15 minutes</option>
+                    <option value="20">20 minutes</option>
+                    <option value="30">30 minutes</option>
+                  </select>
+                </div>
+                <div class="form-field" style="align-self:end;">
+                  <button class="button button-secondary" id="homeworkAiButton" type="button">Create draft</button>
+                </div>
+              </div>
+              <p id="homeworkAiMessage" class="muted" style="margin:10px 0 0;"></p>
+            </div>
+
             <div class="panel">
               <div class="form-grid">
                 <div class="form-field">
@@ -588,7 +624,7 @@
 
                 <div class="form-field form-field-wide">
                   <label for="homeworkDescription">Description / instructions</label>
-                  <textarea id="homeworkDescription" rows="2"></textarea>
+                  <textarea id="homeworkDescription" rows="8"></textarea>
                 </div>
 
                 <div class="form-field">

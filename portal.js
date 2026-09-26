@@ -5832,3 +5832,62 @@ async function loadStudentHomeworkProgress(studentId) {
     text("studentHomeworkProgressText", "Could not load homework progress.");
   }
 }
+
+
+/* =========================================================
+   V17 — AI HOMEWORK DRAFTS
+   Apps Script V17 calls Claude with the class's level; the draft
+   fills Title + Instructions for the teacher to edit, then Assign.
+========================================================= */
+
+async function llsCreateHomeworkDraft() {
+  const classId = value("homeworkClassSelect");
+  const topic = value("homeworkAiTopic").trim();
+  const button = byId("homeworkAiButton");
+  const message = byId("homeworkAiMessage");
+
+  if (!classId) { showToast("Choose a class first.", "error"); return; }
+  if (!topic) { showToast("Write the topic first.", "error"); return; }
+
+  const record = (llsLivePortalData.classes || []).find(
+    (item) => String(item["Class ID"] || "").trim() === classId
+  ) || {};
+
+  const hasWork = value("homeworkTitle").trim() || value("homeworkDescription").trim();
+  if (hasWork && !window.confirm("Replace the title and instructions you have written?")) return;
+
+  if (button) { button.disabled = true; button.textContent = "Writing…"; }
+  if (message) message.textContent = "The AI is writing the homework. This takes about 10–20 seconds.";
+
+  try {
+    const result = await llsApiPost({
+      action: "generateHomework",
+      className: String(record["Class Name"] || ""),
+      level: String(record["Level"] || ""),
+      ages: String(record["Notes"] || ""),
+      topic,
+      type: value("homeworkAiType"),
+      minutes: value("homeworkAiMinutes")
+    });
+
+    setValue("homeworkTitle", result.title || "");
+    setValue("homeworkDescription", result.instructions || "");
+    if (message) message.textContent = "Draft ready below. Read it, change anything you like, set the due date, then Assign.";
+    byId("homeworkTitle")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  } catch (error) {
+    console.error(error);
+    const notSetUp = /AI_NOT_SET_UP|Unknown mutation action/i.test(error.message || "");
+    if (message) {
+      message.textContent = notSetUp
+        ? "The AI homework builder isn't switched on yet. Ask Cole."
+        : (error.message || "The AI could not create the homework. Try again.");
+    }
+  } finally {
+    if (button) { button.disabled = false; button.textContent = "Create draft"; }
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const button = byId("homeworkAiButton");
+  if (button) button.addEventListener("click", llsCreateHomeworkDraft);
+});
