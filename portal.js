@@ -5027,17 +5027,37 @@ async function llsApiPost(body) {
     token: sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY) || ""
   });
 
-  const form = new URLSearchParams();
-  form.set("action", String(payload.action || ""));
-  form.set("payload", JSON.stringify(payload));
-  form.set("_", String(Date.now()));
+  // V15.3: send changes through the script's GET "mutate" route.
+  // Apps Script answers POSTs with a redirect that intermittently comes
+  // back as HTTP 404 in the browser (the change may or may not have been
+  // saved). GET requests to the same script are reliable, so use GET
+  // unless the change is too large to fit in a URL.
+  const getUrl = new URL(LLS_API_URL);
+  getUrl.searchParams.set("action", "mutate");
+  getUrl.searchParams.set("payload", JSON.stringify(payload));
+  getUrl.searchParams.set("_", String(Date.now()));
 
-  const response = await fetch(LLS_API_URL, {
-    method: "POST",
-    body: form,
-    cache: "no-store",
-    redirect: "follow"
-  });
+  let response;
+
+  if (getUrl.toString().length <= 7000) {
+    response = await fetch(getUrl.toString(), {
+      method: "GET",
+      cache: "no-store",
+      redirect: "follow"
+    });
+  } else {
+    const form = new URLSearchParams();
+    form.set("action", String(payload.action || ""));
+    form.set("payload", JSON.stringify(payload));
+    form.set("_", String(Date.now()));
+
+    response = await fetch(LLS_API_URL, {
+      method: "POST",
+      body: form,
+      cache: "no-store",
+      redirect: "follow"
+    });
+  }
 
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
