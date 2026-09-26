@@ -644,8 +644,10 @@ function renderTodayClasses() {
     { weekday: "long" }
   ).format(new Date());
 
+  // V15.4: a class can meet on a second weekday (Day 2 / Time 2).
   const classes = state.classes
-    .filter((item) => item.day === todayName)
+    .filter((item) => item.day === todayName || item.day2 === todayName)
+    .map((item) => item.day === todayName ? item : { ...item, time: item.time2 || item.time })
     .sort((a, b) => a.time.localeCompare(b.time));
 
   if (!classes.length) {
@@ -1356,7 +1358,7 @@ function renderClasses() {
 
       return (
         (!query || haystack.includes(query)) &&
-        (day === "all" || item.day === day)
+        (day === "all" || item.day === day || item.day2 === day)
       );
     })
     .sort((a, b) => {
@@ -1431,12 +1433,12 @@ function renderClasses() {
           <div class="class-details">
             <div class="class-detail">
               <span>Day</span>
-              <strong>${escapeHtml(item.day)}</strong>
+              <strong>${escapeHtml(item.day2 ? `${item.day.slice(0, 3)} & ${item.day2.slice(0, 3)}` : item.day)}</strong>
             </div>
 
             <div class="class-detail">
               <span>Time</span>
-              <strong>${escapeHtml(formatTime(item.time))}</strong>
+              <strong>${escapeHtml(item.day2 && item.time2 && item.time2 !== item.time ? `${formatTime(item.time)} / ${formatTime(item.time2)}` : formatTime(item.time))}</strong>
             </div>
 
             <div class="class-detail">
