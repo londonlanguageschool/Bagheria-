@@ -4710,18 +4710,8 @@ async function llsLoadClassesFromSheets() {
 
 async function llsLoadEnquiriesFromSheets() {
   try {
-    const response = await fetch(`${LLS_API_URL}?action=getEnquiries&_=${Date.now()}`, {
-      method: "GET",
-      cache: "no-store"
-    });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const payload = await response.json();
-
-    if (payload && payload.success === false) {
-      throw new Error(payload.error || payload.message || "API returned an error");
-    }
+    // V15.1: go through llsApiGet so the login token is sent.
+    const payload = await llsApiGet("getEnquiries");
 
     const rows = Array.isArray(payload)
       ? payload
@@ -4810,10 +4800,19 @@ async function llsLoadTeachersFromSheets() {
 }
 
 window.addEventListener("load", async () => {
-  await llsLoadCoreFromSheets(true);
-  await llsLoadEnquiriesFromSheets();
-  await llsLoadFinanceFromSheets(true);
-  await llsLoadTeachersFromSheets();
+  // V15.1: don't hit the API (and show error toasts) before staff log in.
+  if (!llsHasAdminSession()) return;
+  // V15.2: fetch all four at once instead of one after another.
+  // Finance needs student/class data to label fees, so re-render once
+  // everything has arrived.
+  await Promise.all([
+    llsLoadCoreFromSheets(true),
+    llsLoadEnquiriesFromSheets(),
+    llsLoadFinanceFromSheets(true),
+    llsLoadTeachersFromSheets()
+  ]);
+  llsRebuildPaymentsState();
+  renderAll();
 });
 
 /* =========================================================
@@ -5232,7 +5231,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }, true);
   }
 
-  loadLiveAttendanceFoundation(true).then(renderLiveAttendance).catch(console.error);
+  if (llsHasAdminSession()) {
+    loadLiveAttendanceFoundation(true).then(renderLiveAttendance).catch(console.error);
+  }
 });
 
 /* =========================================================
@@ -5604,6 +5605,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (logoutButton) {
     logoutButton.addEventListener("click", () => {
       sessionStorage.removeItem(LLS_ADMIN_TOKEN_KEY);
+      // V15.1: don't leave student/parent data cached on this computer.
+      try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+      try { sessionStorage.removeItem(LLS_TEACHER_SESSION_KEY); } catch (_) {}
       window.location.reload();
     });
   }
