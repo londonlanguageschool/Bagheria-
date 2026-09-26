@@ -1449,6 +1449,31 @@
   <!-- =========================
        CONFIRM MODAL
   ========================== -->
+  <div class="modal-backdrop" id="homeworkLinkModal">
+    <div class="modal modal-small" role="dialog" aria-modal="true" aria-labelledby="homeworkLinkTitle">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">Student homework page</p>
+          <h2 id="homeworkLinkTitle">Homework link</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="homeworkLinkModal">×</button>
+      </div>
+
+      <div class="form-field">
+        <label for="homeworkLinkUrl">Private link for this student</label>
+        <input id="homeworkLinkUrl" type="text" readonly>
+      </div>
+
+      <p id="homeworkLinkNote" class="confirm-copy"></p>
+
+      <div class="modal-actions">
+        <button class="button button-secondary" id="homeworkLinkReset" type="button">Make new link</button>
+        <button class="button button-secondary" id="homeworkLinkCopy" type="button">Copy link</button>
+        <a class="button button-primary" id="homeworkLinkWhatsApp" href="#" target="_blank" rel="noopener">Send on WhatsApp</a>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-backdrop" id="confirmModal">
     <div class="modal modal-small" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
       <div class="modal-header">

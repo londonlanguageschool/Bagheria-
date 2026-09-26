@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>My Homework | London Language School</title>
+  <link rel="icon" href="logo.png">
+  <style>
+    :root {
+      --navy-950: #061b37;
+      --navy-800: #0b3b78;
+      --navy-100: #eaf1fa;
+      --navy-50: #f4f7fc;
+      --red-600: #ee3124;
+      --red-100: #ffe9e6;
+      --green-700: #177b52;
+      --green-100: #e3f4ec;
+      --amber-700: #9a5a0c;
+      --amber-100: #fdf1dc;
+      --ink-900: #14213d;
+      --ink-600: #56617a;
+      --ink-200: #dfe4ec;
+      --card: #ffffff;
+      --page: #f6f8fb;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink-900);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.45;
+    }
+
+    header {
+      background: linear-gradient(180deg, var(--navy-950), var(--navy-800));
+      color: #fff;
+      padding: 20px 16px 28px;
+    }
+
+    .wrap { max-width: 640px; margin: 0 auto; }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand img { width: 44px; height: 44px; border-radius: 50%; background: #fff; object-fit: contain; }
+    .brand strong { display: block; font-size: 17px; letter-spacing: .02em; }
+    .brand span { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-size: 13px; opacity: .85; }
+
+    h1 { font-size: 26px; margin: 22px 0 4px; }
+    .sub { margin: 0; opacity: .85; font-size: 14px; }
+
+    .progress-card {
+      background: var(--card);
+      color: var(--ink-900);
+      border-radius: 14px;
+      padding: 16px;
+      margin: -14px auto 0;
+      box-shadow: 0 6px 20px rgba(6, 27, 55, .10);
+    }
+    .progress-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .progress-top strong { font-size: 15px; }
+    .progress-top span { font-size: 14px; color: var(--ink-600); }
+    .bar { height: 12px; background: var(--navy-100); border-radius: 99px; overflow: hidden; margin-top: 10px; }
+    .bar div { height: 100%; width: 0; background: var(--green-700); border-radius: 99px; transition: width .4s ease; }
+
+    main { padding: 8px 16px 40px; }
+
+    h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-600); margin: 26px 0 10px; }
+
+    .item {
+      background: var(--card);
+      border: 1px solid var(--ink-200);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px 12px;
+      align-items: start;
+    }
+    .item.done { background: var(--navy-50); }
+    .item.done .title { text-decoration: line-through; color: var(--ink-600); }
+    .title { font-weight: 700; font-size: 16px; margin: 0; overflow-wrap: anywhere; }
+    .meta { font-size: 13px; color: var(--ink-600); margin: 2px 0 0; }
+    .desc { grid-column: 1 / -1; font-size: 14px; margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+    .due { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; margin-top: 6px; }
+    .due.soon { background: var(--amber-100); color: var(--amber-700); }
+    .due.late { background: var(--red-100); color: #b3261e; }
+    .due.ok { background: var(--navy-100); color: var(--navy-800); }
+
+    .tick {
+      min-width: 92px;
+      min-height: 44px;
+      border: 2px solid var(--green-700);
+      background: #fff;
+      color: var(--green-700);
+      border-radius: 10px;
+      font: inherit;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 6px 10px;
+    }
+    .tick.is-done { background: var(--green-700); color: #fff; }
+    .tick:disabled { opacity: .6; cursor: wait; }
+
+    .empty, .error {
+      background: var(--card);
+      border: 1px dashed var(--ink-200);
+      border-radius: 14px;
+      padding: 22px 16px;
+      text-align: center;
+      color: var(--ink-600);
+    }
+    .error { border-style: solid; border-color: var(--red-600); color: var(--ink-900); }
+
+    .classes { font-size: 13px; color: var(--ink-600); margin-top: 8px; }
+
+    footer { text-align: center; font-size: 12px; color: var(--ink-600); padding: 0 16px 28px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="brand">
+        <img src="logo.png" alt="">
+        <div>
+          <strong>London Language School</strong>
+          <span>We make English fun!</span>
+        </div>
+      </div>
+      <h1 id="hello">My homework</h1>
+      <p class="sub" id="subtitle">I compiti di inglese</p>
+    </div>
+  </header>
+
+  <div class="wrap" style="padding: 0 16px;">
+    <section class="progress-card" id="progressCard" hidden>
+      <div class="progress-top">
+        <strong>Progress · Progressi</strong>
+        <span id="progressText"></span>
+      </div>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="progressBar"><div></div></div>
+      <div class="classes" id="classList"></div>
+    </section>
+  </div>
+
+  <main class="wrap" id="main">
+    <div class="empty">Loading your homework… · Caricamento…</div>
+  </main>
+
+  <footer>Questions? Ask your teacher or the school office.</footer>
+
+  <script>
+    "use strict";
+
+    const API_URL = "https://script.google.com/macros/s/AKfycbyHbfFoaiMOT1rpY2DcbXAkuNwMoOHVdLlG2aQLgPgCe5gqPuyk8VYm7i4eGQRm8iqi/exec";
+    const KEY = new URLSearchParams(location.search).get("k") || "";
+    let data = null;
+
+    function esc(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    async function api(params) {
+      const url = new URL(API_URL);
+      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+      url.searchParams.set("_", Date.now());
+      const response = await fetch(url.toString(), { cache: "no-store", redirect: "follow" });
+      const result = JSON.parse(await response.text());
+      if (!result || result.success !== true) throw new Error(result?.error || "Something went wrong.");
+      return result;
+    }
+
+    function parseDate(text) {
+      const m = String(text || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+      return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+    }
+
+    function dueBadge(text, isDone) {
+      const due = parseDate(text);
+      if (!due) return "";
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const days = Math.round((due - today) / 86400000);
+      const label = due.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+      if (isDone) return `<span class="due ok">Due ${esc(label)}</span>`;
+      if (days < 0) return `<span class="due late">Late · was due ${esc(label)}</span>`;
+      if (days === 0) return `<span class="due soon">Due today · Per oggi</span>`;
+      if (days === 1) return `<span class="due soon">Due tomorrow · Per domani</span>`;
+      return `<span class="due ok">Due ${esc(label)}</span>`;
+    }
+
+    function render() {
+      const main = document.getElementById("main");
+      const name = data.student.firstName;
+      document.getElementById("hello").textContent = name ? `Hi ${name}!` : "My homework";
+      document.getElementById("subtitle").textContent = "Here's your English homework · Ecco i tuoi compiti";
+
+      const classById = {};
+      data.classes.forEach((c) => { classById[String(c["Class ID"])] = c; });
+      const statusById = {};
+      data.status.forEach((s) => { statusById[String(s["Homework ID"])] = s["Status"]; });
+
+      const items = data.homework.map((h) => ({
+        ...h,
+        done: statusById[String(h["Homework ID"])] === "Done",
+        className: classById[String(h["Class ID"])]?.["Class Name"] || ""
+      }));
+
+      const done = items.filter((i) => i.done).length;
+      const total = items.length;
+      const pct = total ? Math.round((done / total) * 100) : 0;
+
+      const card = document.getElementById("progressCard");
+      card.hidden = false;
+      document.getElementById("progressText").textContent = total ? `${done} of ${total} done · ${pct}%` : "No homework yet";
+      const bar = document.getElementById("progressBar");
+      bar.setAttribute("aria-valuenow", String(pct));
+      bar.firstElementChild.style.width = pct + "%";
+      document.getElementById("classList").textContent = data.classes.length
+        ? "Class: " + data.classes.map((c) => c["Class Name"]).join(", ")
+        : "";
+
+      if (!total) {
+        main.innerHTML = `<div class="empty">No homework yet. 🎉<br>Nessun compito per ora.</div>`;
+        return;
+      }
+
+      const byDue = (a, b) => String(a["Due Date"] || "9999").localeCompare(String(b["Due Date"] || "9999"));
+      const todo = items.filter((i) => !i.done).sort(byDue);
+      const finished = items.filter((i) => i.done).sort(byDue).reverse();
+
+      const card_ = (i) => `
+        <article class="item ${i.done ? "done" : ""}">
+          <div>
+            <p class="title">${esc(i["Title"])}</p>
+            ${i.className ? `<p class="meta">${esc(i.className)}</p>` : ""}
+            ${dueBadge(i["Due Date"], i.done)}
+          </div>
+          <button class="tick ${i.done ? "is-done" : ""}" type="button"
+                  data-id="${esc(i["Homework ID"])}" data-next="${i.done ? "Not started" : "Done"}"
+                  aria-pressed="${i.done}">
+            ${i.done ? "Done ✓" : "Mark done"}
+          </button>
+          ${i["Description"] ? `<p class="desc">${esc(i["Description"])}</p>` : ""}
+        </article>`;
+
+      main.innerHTML =
+        `<h2>To do · Da fare (${todo.length})</h2>` +
+        (todo.length ? todo.map(card_).join("") : `<div class="empty">All done! Well done. 🎉<br>Tutto fatto, bravo/a!</div>`) +
+        (finished.length ? `<h2>Done · Fatti (${finished.length})</h2>` + finished.map(card_).join("") : "");
+
+      main.querySelectorAll(".tick").forEach((button) => {
+        button.addEventListener("click", () => toggle(button));
+      });
+    }
+
+    async function toggle(button) {
+      const id = button.dataset.id;
+      const next = button.dataset.next;
+      button.disabled = true;
+      button.textContent = "Saving…";
+
+      try {
+        await api({
+          action: "mutate",
+          payload: JSON.stringify({ action: "studentMarkHomework", key: KEY, homeworkId: id, status: next })
+        });
+        const existing = data.status.find((s) => String(s["Homework ID"]) === id);
+        if (existing) existing["Status"] = next;
+        else data.status.push({ "Homework ID": id, "Status": next });
+        render();
+      } catch (error) {
+        button.disabled = false;
+        button.textContent = next === "Done" ? "Mark done" : "Done ✓";
+        alert("Could not save. Please try again.\nNon è stato possibile salvare. Riprova.");
+      }
+    }
+
+    function showError(message) {
+      document.getElementById("main").innerHTML = `<div class="error">${esc(message)}</div>`;
+    }
+
+    async function load() {
+      if (KEY.length < 20) {
+        showError("This homework link is not complete. Please ask the school for your link. · Il link non è completo: chiedi alla scuola.");
+        return;
+      }
+      try {
+        data = await api({ action: "getStudentHomework", key: KEY });
+        render();
+      } catch (error) {
+        showError(error.message || "Could not load your homework. Please try again later.");
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

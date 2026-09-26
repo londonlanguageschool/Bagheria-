@@ -921,6 +921,14 @@ function renderStudents() {
               </button>
 
               <button
+                class="row-action"
+                type="button"
+                data-homework-link="${student.id}"
+              >
+                Homework link
+              </button>
+
+              <button
                 class="row-action delete"
                 type="button"
                 data-delete-student="${student.id}"
@@ -939,6 +947,14 @@ function renderStudents() {
     .forEach((button) => {
       button.addEventListener("click", () => {
         openEditStudent(button.dataset.editStudent);
+      });
+    });
+
+  body
+    .querySelectorAll("[data-homework-link]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        openHomeworkLink(button.dataset.homeworkLink);
       });
     });
 
@@ -5673,6 +5689,87 @@ document.addEventListener("DOMContentLoaded", () => {
       try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
       try { sessionStorage.removeItem(LLS_TEACHER_SESSION_KEY); } catch (_) {}
       window.location.reload();
+    });
+  }
+});
+
+
+/* =========================================================
+   V16 — STUDENT HOMEWORK LINKS
+   Each student gets a private link to homework.html?k=KEY.
+   The key is made by Apps Script (createStudentLink) and stored
+   in the Students sheet. Staff copy it or send it by WhatsApp.
+========================================================= */
+
+let llsHomeworkLinkStudentId = "";
+
+function llsHomeworkPageUrl(key) {
+  const url = new URL("homework.html", location.href);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("k", key);
+  return url.toString();
+}
+
+async function openHomeworkLink(studentId, reset = false) {
+  const student = getStudent(studentId);
+  if (!student) return;
+
+  llsHomeworkLinkStudentId = studentId;
+  text("homeworkLinkTitle", `Homework link — ${getStudentName(student)}`);
+  setValue("homeworkLinkUrl", "Creating link…");
+  text("homeworkLinkNote", "");
+  openModal("homeworkLinkModal");
+
+  try {
+    const result = await llsApiPost({ action: "createStudentLink", studentId, reset });
+    const link = llsHomeworkPageUrl(result.key);
+    setValue("homeworkLinkUrl", link);
+
+    const message =
+      `Ciao! Ecco il link personale per vedere i compiti di inglese di ${student.firstName} ` +
+      `alla London Language School. Salvalo tra i preferiti:\n${link}`;
+    byId("homeworkLinkWhatsApp").href = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    text(
+      "homeworkLinkNote",
+      reset
+        ? "New link made. The old link no longer works."
+        : "Keep this link private: anyone with it can see this student's homework."
+    );
+  } catch (error) {
+    console.error(error);
+    setValue("homeworkLinkUrl", "");
+    text(
+      "homeworkLinkNote",
+      /Unknown mutation action/i.test(error.message || "")
+        ? "The Apps Script hasn't been updated yet (V16 needed)."
+        : (error.message || "Could not create the link.")
+    );
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const copyButton = byId("homeworkLinkCopy");
+  const resetButton = byId("homeworkLinkReset");
+
+  if (copyButton) {
+    copyButton.addEventListener("click", async () => {
+      const link = value("homeworkLinkUrl");
+      if (!/^https?:/.test(link)) return;
+      try {
+        await navigator.clipboard.writeText(link);
+      } catch (_) {
+        byId("homeworkLinkUrl").select();
+        document.execCommand("copy");
+      }
+      showToast("Link copied.", "success");
+    });
+  }
+
+  if (resetButton) {
+    resetButton.addEventListener("click", () => {
+      if (!llsHomeworkLinkStudentId) return;
+      openHomeworkLink(llsHomeworkLinkStudentId, true);
     });
   }
 });
