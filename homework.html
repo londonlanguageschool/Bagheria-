@@ -6,7 +6,14 @@
   <meta name="robots" content="noindex, nofollow">
   <meta name="referrer" content="no-referrer">
   <title>My Homework | London Language School</title>
-  <link rel="icon" href="logo.png">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="homework.webmanifest">
+  <meta name="theme-color" content="#0b3b78">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="LLS Homework">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
     :root {
       --navy-950: #061b37;
@@ -159,7 +166,14 @@
     "use strict";
 
     const API_URL = "https://script.google.com/macros/s/AKfycbyHbfFoaiMOT1rpY2DcbXAkuNwMoOHVdLlG2aQLgPgCe5gqPuyk8VYm7i4eGQRm8iqi/exec";
-    const KEY = new URLSearchParams(location.search).get("k") || "";
+    // Remember this student's key on the phone, so the home-screen icon
+    // still works if the phone opens it without the ?k= part.
+    const STORE = "lls_homework_key";
+    let KEY = new URLSearchParams(location.search).get("k") || "";
+    try {
+      if (KEY) localStorage.setItem(STORE, KEY);
+      else KEY = localStorage.getItem(STORE) || "";
+    } catch (_) {}
     let data = null;
 
     function esc(value) {
@@ -296,6 +310,9 @@
         data = await api({ action: "getStudentHomework", key: KEY });
         render();
       } catch (error) {
+        if (/not valid/i.test(error.message || "")) {
+          try { if (localStorage.getItem(STORE) === KEY) localStorage.removeItem(STORE); } catch (_) {}
+        }
         showError(error.message || "Could not load your homework. Please try again later.");
       }
     }
