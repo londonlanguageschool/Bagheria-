@@ -209,6 +209,24 @@
     .mic.listening { background: var(--red-600); }
     .note { font-size: 13px; color: var(--ink-600); background: var(--navy-50); border-radius: 10px; padding: 10px 12px; margin-top: 12px; }
 
+    /* V19: AI Speaking Coach */
+    .coach-card { background: linear-gradient(135deg, #0b3b78, #1d5fb3); color: #fff; border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+    .coach-card h3 { margin: 0 0 6px; font-size: 18px; }
+    .coach-card p { margin: 0 0 10px; font-size: 14px; opacity: .95; }
+    .coach-card .meta { color: #dbe7f7; }
+    .coach-card select { margin-bottom: 10px; }
+    .coach-card .primary { background: #fff; color: var(--navy-800); width: 100%; }
+    .chat { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; }
+    .bubble { max-width: 86%; padding: 10px 12px; border-radius: 14px; font-size: 16px; line-height: 1.4; overflow-wrap: anywhere; }
+    .bubble.c { align-self: flex-start; background: var(--navy-50); border: 1px solid var(--ink-200); }
+    .bubble.s { align-self: flex-end; background: var(--navy-800); color: #fff; }
+    .bubble .fix { display: block; margin-top: 6px; font-size: 14px; background: var(--amber-100); color: #5c3606; border-radius: 8px; padding: 6px 8px; }
+    .bubble .replay { background: none; border: 0; font-size: 16px; cursor: pointer; padding: 0 0 0 6px; }
+    .bubble.thinking { color: var(--ink-600); font-style: italic; }
+    .chat-controls { display: grid; gap: 8px; }
+    .chat-controls form { display: flex; gap: 8px; }
+    .chat-controls input { flex: 1; }
+
     footer { text-align: center; font-size: 12px; color: var(--ink-600); padding: 0 16px 28px; }
   </style>
 </head>
@@ -393,6 +411,7 @@
       document.getElementById("tabPractice").setAttribute("aria-selected", String(tab === "practice"));
 
       if (quiz) renderQuiz();
+      else if (chat) renderChat();
       else if (tab === "practice") renderPractice();
       else renderHomework();
     }
@@ -400,6 +419,7 @@
     function setTab(next) {
       tab = next;
       quiz = null;
+      if (chat) endChat();
       try { history.replaceState(null, "", next === "practice" ? "#practice" : location.pathname + location.search); } catch (_) {}
       render();
     }
@@ -505,7 +525,8 @@
           <select class="big" id="bookPicker"><option value="">—</option>${options}</select>
         </div>`;
 
-      main.innerHTML = `<h2>Practice · Esercizi</h2>` + html;
+      main.innerHTML = `<h2>Practice · Esercizi</h2>` + coachCard() + html;
+      bindCoachCard();
 
       main.querySelector("#bookPicker").addEventListener("change", (e) => {
         try { localStorage.setItem(BOOK_STORE, e.target.value); } catch (_) {}
@@ -964,6 +985,218 @@
         if (quiz && quiz.items[quiz.index] === item) renderQuiz();
       };
       try { rec.start(); } catch (_) { renderQuiz(); }
+    }
+
+
+    /* ---------- AI Speaking Coach (paid extra, V19) ---------- */
+
+    let chat = null;
+
+    function coachTopics() {
+      const topics = [];
+      const books = myBooks();
+      const extra = chosenBook();
+      const book = books[0] || (COURSES[extra] ? { id: extra, units: "", current: "" } : null);
+      if (book && COURSES[book.id]) {
+        const course = COURSES[book.id];
+        const range = PRACTICE.parseUnits(book.id, book.units);
+        const cur = Number(book.current) || range.to;
+        course.lessons
+          .filter((l) => l.unit >= range.from && l.unit <= cur)
+          .reverse()
+          .slice(0, 8)
+          .forEach((l) => topics.push({
+            label: `${l.code} · ${l.title}`,
+            topic: `${l.title} (practise: ${l.grammar}; words: ${l.vocab})`,
+            level: course.level
+          }));
+      }
+      const level = topics[0]?.level || "B1";
+      topics.push({ label: "Free chat · Conversazione libera", topic: "free conversation about the student's everyday life, hobbies and plans", level });
+      topics.push({ label: "Holidays and travel · Viaggi", topic: "holidays, travel and places in Sicily and abroad", level });
+      topics.push({ label: "Food · Cibo", topic: "food, cooking and eating out", level });
+      return topics;
+    }
+
+    function minutesLeft(replies) {
+      return Math.max(0, Math.floor(Number(replies || 0) / 3));
+    }
+
+    function coachCard() {
+      const c = data.coach;
+      if (!c) return "";
+      if (!c.active) {
+        return `
+          <section class="coach-card">
+            <h3>🗣️ AI Speaking Coach</h3>
+            <p>Have real conversations in English. The coach listens, answers and helps you fix your mistakes.</p>
+            <p class="meta" style="margin:0">Ask at the school office to switch it on. · Chiedi in segreteria per attivarlo.</p>
+          </section>`;
+      }
+      if (!c.ready) {
+        return `
+          <section class="coach-card">
+            <h3>🗣️ AI Speaking Coach</h3>
+            <p style="margin:0">Your coach is almost ready. Try again soon! · Quasi pronto, riprova presto!</p>
+          </section>`;
+      }
+      if (c.repliesLeft <= 0) {
+        return `
+          <section class="coach-card">
+            <h3>🗣️ AI Speaking Coach</h3>
+            <p style="margin:0">You've used all your coach time this month. It starts again on the 1st. · Tempo esaurito per questo mese.</p>
+          </section>`;
+      }
+      const options = coachTopics().map((t, i) => `<option value="${i}">${esc(t.label)}</option>`).join("");
+      return `
+        <section class="coach-card">
+          <h3>🗣️ AI Speaking Coach</h3>
+          <p>Choose a topic and start talking. · Scegli un argomento e parla.</p>
+          <select class="big" id="coachTopic">${options}</select>
+          <button class="primary" type="button" id="coachStart">Start talking · Inizia</button>
+          <p class="meta" style="margin:8px 0 0">About ${minutesLeft(c.repliesLeft)} minutes left this month · Circa ${minutesLeft(c.repliesLeft)} minuti</p>
+        </section>`;
+    }
+
+    function bindCoachCard() {
+      const start = document.getElementById("coachStart");
+      if (!start) return;
+      start.addEventListener("click", () => {
+        const picked = coachTopics()[Number(document.getElementById("coachTopic").value) || 0];
+        // iPhones only allow speech after a tap: unlock it now.
+        try { speechSynthesis.speak(new SpeechSynthesisUtterance("")); } catch (_) {}
+        chat = { topic: picked.topic, label: picked.label, level: picked.level, messages: [], busy: false, error: "", voice: true };
+        window.scrollTo(0, 0);
+        render();
+        sendChat("");
+      });
+    }
+
+    function sayAloud(text) {
+      if (!("speechSynthesis" in window) || !text) return;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "en-GB";
+      u.rate = 0.95;
+      const voice = speechSynthesis.getVoices().find((v) => /^en[-_]GB/i.test(v.lang));
+      if (voice) u.voice = voice;
+      speechSynthesis.speak(u);
+    }
+
+    function endChat() {
+      stopListening();
+      try { speechSynthesis.cancel(); } catch (_) {}
+      chat = null;
+    }
+
+    function renderChat() {
+      const main = document.getElementById("main");
+      const c = chat;
+      const bubbles = c.messages.map((m, i) => m.r === "c"
+        ? `<div class="bubble c">${esc(m.t)}<button class="replay" type="button" data-say="${i}" aria-label="Listen">🔊</button></div>`
+        : `<div class="bubble s">${esc(m.t)}${m.fix ? `<span class="fix">✎ Better: ${esc(m.fix)}</span>` : ""}</div>`
+      ).join("") + (c.busy ? `<div class="bubble c thinking">Coach is thinking… · Sto pensando…</div>` : "");
+
+      main.innerHTML = `
+        <section class="quiz">
+          <div class="quiz-top">
+            <button class="link" type="button" id="chatEnd">← End · Fine</button>
+            <span>🗣️ ${esc(c.label)}</span>
+          </div>
+          <div class="chat" id="chatLog">${bubbles}</div>
+          ${c.error ? `<p class="note">${esc(c.error)}</p>` : ""}
+          <div class="chat-controls">
+            ${Recognition ? `<button class="primary mic" type="button" id="chatMic" ${c.busy ? "disabled" : ""}>🎤 Speak · Parla</button>` : ""}
+            <form id="chatForm" autocomplete="off">
+              <input class="big" id="chatInput" type="text" placeholder="…or type · …oppure scrivi" ${c.busy ? "disabled" : ""}>
+              <button class="secondary" type="submit" ${c.busy ? "disabled" : ""}>Send</button>
+            </form>
+            <label class="meta" style="display:flex;gap:6px;align-items:center">
+              <input type="checkbox" id="chatVoice" ${c.voice ? "checked" : ""}> Read the coach's answers aloud · Leggi ad alta voce
+            </label>
+            <p class="meta" style="margin:0">About ${minutesLeft(data.coach.repliesLeft)} minutes left this month</p>
+          </div>
+        </section>`;
+
+      main.querySelector("#chatEnd").addEventListener("click", () => { endChat(); render(); });
+      main.querySelectorAll("[data-say]").forEach((b) => b.addEventListener("click", () => sayAloud(c.messages[Number(b.dataset.say)].t)));
+      main.querySelector("#chatVoice").addEventListener("change", (e) => { c.voice = e.target.checked; if (!c.voice) speechSynthesis.cancel(); });
+      main.querySelector("#chatForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const input = main.querySelector("#chatInput");
+        if (input.value.trim() && !c.busy) sendChat(input.value.trim());
+      });
+      const mic = main.querySelector("#chatMic");
+      if (mic) mic.addEventListener("click", () => chatListen(mic));
+      const log = main.querySelector("#chatLog");
+      log.lastElementChild?.scrollIntoView({ block: "nearest" });
+    }
+
+    function chatListen(button) {
+      stopListening();
+      try { speechSynthesis.cancel(); } catch (_) {}
+      const rec = new Recognition();
+      recognizer = rec;
+      rec.lang = "en-GB";
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      button.classList.add("listening");
+      button.textContent = "🎤 Listening… · Ascolto…";
+      let heard = "";
+      rec.onresult = (event) => { heard = String(event.results[0]?.[0]?.transcript || "").trim(); };
+      rec.onerror = (event) => {
+        if (!chat) return;
+        chat.error = event.error === "not-allowed" || event.error === "service-not-allowed"
+          ? "Please allow the microphone for this page. · Consenti l'uso del microfono."
+          : event.error === "no-speech" ? "I didn't hear anything. Try again. · Non ho sentito niente." : "";
+      };
+      rec.onend = () => {
+        if (recognizer === rec) recognizer = null;
+        if (!chat) return;
+        if (heard) sendChat(heard);
+        else renderChat();
+      };
+      try { rec.start(); } catch (_) { renderChat(); }
+    }
+
+    async function sendChat(text) {
+      const c = chat;
+      if (!c || c.busy) return;
+      c.error = "";
+      const history = c.messages.map((m) => ({ r: m.r, t: m.t }));
+      let mine = null;
+      if (text) { mine = { r: "s", t: text, fix: "" }; c.messages.push(mine); }
+      c.busy = true;
+      renderChat();
+      try {
+        const result = await api({
+          action: "mutate",
+          payload: JSON.stringify({ action: "coachTurn", key: KEY, level: c.level, topic: c.topic, history, text })
+        });
+        if (chat !== c) return;
+        if (mine && result.fix) mine.fix = result.fix;
+        c.messages.push({ r: "c", t: result.reply });
+        data.coach.repliesLeft = result.repliesLeft;
+        if (c.voice) sayAloud(result.reply);
+      } catch (error) {
+        if (chat !== c) return;
+        const msg = String(error.message || "");
+        if (/COACH_LIMIT/.test(msg)) { c.error = "You've used all your coach time this month. · Tempo esaurito per questo mese."; data.coach.repliesLeft = 0; }
+        else if (/COACH_OFF/.test(msg)) { c.error = "The Speaking Coach isn't active for you. Ask at the school office. · Chiedi in segreteria."; data.coach.active = false; }
+        else if (/AI_NOT_SET_UP/.test(msg)) c.error = "The coach isn't ready yet. Try again soon. · Non ancora pronto.";
+        else c.error = /busy/i.test(msg) ? msg : "The coach couldn't answer. Check your connection and try again. · Riprova.";
+        if (mine) { c.messages.pop(); c.retryText = text; }
+      } finally {
+        if (chat === c) {
+          c.busy = false;
+          renderChat();
+          if (c.retryText) {
+            const input = document.getElementById("chatInput");
+            if (input) input.value = c.retryText;
+            c.retryText = "";
+          }
+        }
+      }
     }
 
     /* ---------- load ---------- */

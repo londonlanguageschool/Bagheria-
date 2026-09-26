@@ -970,6 +970,8 @@ function renderStudents() {
 function openNewStudent() {
   const progress = byId("studentHomeworkProgress");
   if (progress) progress.hidden = true;
+  const coachBox = byId("studentCoachBox");
+  if (coachBox) coachBox.hidden = true;
   pendingConversionEnquiryId = "";
   const conversionFields = byId("conversionEnrolmentFields");
   if (conversionFields) conversionFields.hidden = true;
@@ -1014,6 +1016,7 @@ function openEditStudent(id) {
   text("studentModalTitle", "Edit student");
   openModal("studentModal");
   loadStudentHomeworkProgress(id);
+  llsShowCoachBox(student);
 }
 
 /*
@@ -4745,7 +4748,8 @@ function llsApplyCorePortalData(payload) {
       status: r["Status"] || r.status || "Active",
       joined: llsDateOnly(r["Joined"] || r.joined || ""),
       parent: r["Parent / Guardian"] || r.parent || "",
-      notes: r["Notes"] || r.notes || ""
+      notes: r["Notes"] || r.notes || "",
+      coachUntil: llsCoachIso(r["Speaking Coach Until"])
     };
   }).filter((student) => student.id);
 
@@ -5986,3 +5990,69 @@ function llsPracticeSummary(studentId, results) {
     label: `Practice: ${done} of ${setIds.size} sets passed up to the current unit${extra ? ` (+${extra} extra)` : ""}.`
   };
 }
+
+
+/* =========================================================
+   V19 — AI SPEAKING COACH (paid extra)
+   The office sets "active until" per student; Apps Script V19
+   checks it before every coach reply. Empty date = off.
+========================================================= */
+
+function llsCoachIso(raw) {
+  const text = String(raw || "").replace(/^'/, "").trim();
+  let m = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+  m = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  return "";
+}
+
+function llsCoachLabel(until) {
+  if (!until) return "Off. Set the date the student has paid until to switch it on.";
+  const today = isoDate(new Date());
+  return until >= today
+    ? `On until ${until}. The student sees the Speaking Coach in the Practice tab.`
+    : `Expired on ${until}. Set a new date to switch it back on.`;
+}
+
+function llsShowCoachBox(student) {
+  const box = byId("studentCoachBox");
+  if (!box || !student) return;
+  box.hidden = false;
+  box.dataset.studentId = student.id;
+  setValue("studentCoachUntil", student.coachUntil || "");
+  text("studentCoachText", llsCoachLabel(student.coachUntil || ""));
+}
+
+async function llsSaveCoach(until) {
+  const box = byId("studentCoachBox");
+  const studentId = box?.dataset.studentId || "";
+  if (!studentId || studentId !== value("studentId")) return;
+  const buttons = [byId("studentCoachSave"), byId("studentCoachOff")];
+  buttons.forEach((b) => { if (b) b.disabled = true; });
+  try {
+    await llsApiPost({ action: "setSpeakingCoach", studentId, until });
+    const student = state.students.find((s) => s.id === studentId);
+    if (student) student.coachUntil = until;
+    saveState();
+    setValue("studentCoachUntil", until);
+    text("studentCoachText", llsCoachLabel(until));
+    showToast(until ? "Speaking Coach switched on." : "Speaking Coach switched off.");
+  } catch (error) {
+    console.error(error);
+    showToast(/unknown mutation/i.test(error.message || "")
+      ? "Update the Apps Script to V19 first."
+      : "Could not save the coach date.", "error");
+  } finally {
+    buttons.forEach((b) => { if (b) b.disabled = false; });
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  byId("studentCoachSave")?.addEventListener("click", () => {
+    const until = value("studentCoachUntil");
+    if (!until) { showToast("Choose a date first.", "error"); return; }
+    llsSaveCoach(until);
+  });
+  byId("studentCoachOff")?.addEventListener("click", () => llsSaveCoach(""));
+});

@@ -1122,6 +1122,18 @@
             <div id="studentPracticeProgressText" style="font-size: 13px; color: #56617a; margin-top: 8px;"></div>
             <div id="studentHomeworkProgressList" style="font-size: 13px; color: #56617a; margin-top: 4px;"></div>
           </div>
+
+          <div class="form-field form-field-wide" id="studentCoachBox" hidden>
+            <label for="studentCoachUntil">AI Speaking Coach (paid extra): active until</label>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <input id="studentCoachUntil" type="date" style="max-width: 200px;">
+              <button class="button button-secondary" id="studentCoachSave" type="button">Save coach date</button>
+              <button class="button button-secondary" id="studentCoachOff" type="button">Switch off</button>
+            </div>
+            <div id="studentCoachText" style="font-size: 13px; color: #56617a; margin-top: 6px;">
+              Set the date the student has paid until (e.g. end of the month, or 30 June for the school year).
+            </div>
+          </div>
         </div>
 
         <div class="modal-actions">
