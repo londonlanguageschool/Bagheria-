@@ -1547,6 +1547,11 @@ function openNewClass() {
   setValue("classDuration", "60");
   setValue("classDay2", "");
   setValue("classTime2", "");
+  llsFillBookSelect();
+  setValue("classBook", "");
+  setValue("classUnits", "");
+  setValue("classCurrentUnit", "");
+  setValue("classNotes", "");
   setValue("classStatus", "Active");
   text("classModalTitle", "Create class");
   openModal("classModal");
@@ -1570,6 +1575,11 @@ function openEditClass(id) {
   setValue("classCapacity", item.capacity || 10);
   setValue("classRegisterSheet", item.registerSheet || "");
   setValue("classStatus", item.status || "Active");
+  llsFillBookSelect();
+  setValue("classBook", item.book || "");
+  setValue("classUnits", item.units || "");
+  setValue("classCurrentUnit", item.currentUnit || "");
+  setValue("classNotes", item.notes || "");
 
   text("classModalTitle", "Edit class");
   openModal("classModal");
@@ -1618,7 +1628,12 @@ async function saveClassForm(event) {
   const extraFields = {
     "Day 2": value("classDay2"),
     "Time 2": value("classDay2") ? value("classTime2") : "",
-    "Duration": value("classDuration") || ""
+    "Duration": value("classDuration") || "",
+    // V18: course book / units / current unit drive the student Practice section.
+    "Book": value("classBook"),
+    "Units": value("classUnits").trim(),
+    "Current Unit": value("classCurrentUnit"),
+    "Notes": value("classNotes").trim()
   };
 
   if (extraFields["Day 2"] && !extraFields["Time 2"]) {
@@ -1663,6 +1678,10 @@ async function saveClassForm(event) {
         existing.day2 = extraFields["Day 2"];
         existing.time2 = extraFields["Time 2"];
         existing.duration = Number(extraFields["Duration"]) || existing.duration;
+        existing.book = extraFields["Book"];
+        existing.units = extraFields["Units"];
+        existing.currentUnit = extraFields["Current Unit"];
+        existing.notes = extraFields["Notes"];
       }
     } else if (classId) {
       state.classes.push({
@@ -1677,6 +1696,10 @@ async function saveClassForm(event) {
         day2: extraFields["Day 2"],
         time2: extraFields["Time 2"],
         duration: Number(extraFields["Duration"]) || 60,
+        book: extraFields["Book"],
+        units: extraFields["Units"],
+        currentUnit: extraFields["Current Unit"],
+        notes: extraFields["Notes"],
         room: fields["Room"],
         capacity,
         registerSheet: fields["Register Sheet"],
@@ -4690,7 +4713,10 @@ function llsApplyCorePortalData(payload) {
     capacity: Number(r["Capacity"] || r.capacity || 10),
     registerSheet: "",
     status: String(r["Status"] || r.status || "Active"),
-    notes: String(r["Notes"] || r.notes || "")
+    notes: String(r["Notes"] || r.notes || ""),
+    book: String(r["Book"] || ""),
+    units: String(r["Units"] || ""),
+    currentUnit: String(r["Current Unit"] || "")
   })).filter((item) => item.id);
 
   // Authoritative membership: ACTIVE Enrolments only.
@@ -5812,11 +5838,17 @@ async function loadStudentHomeworkProgress(studentId) {
 
     const total = homework.length;
     const done = homework.filter((h) => doneIds.has(String(h["Homework ID"] || ""))).length;
-    const pct = total ? Math.round((done / total) * 100) : 0;
+
+    // V18: practice sets passed for the student's class book(s).
+    const practice = llsPracticeSummary(studentId, Array.isArray(data.practice) ? data.practice : []);
+    const pct = window.LLS_PRACTICE
+      ? LLS_PRACTICE.combinedProgress(done, total, practice.done, practice.total)
+      : (total ? Math.round((done / total) * 100) : 0);
 
     text("studentHomeworkProgressText", total ? `${done} of ${total} homework done` : "No homework set for this student's class yet.");
-    text("studentHomeworkProgressPct", total ? `${pct}%` : "");
+    text("studentHomeworkProgressPct", (total || practice.total) ? `${pct}%` : "");
     byId("studentHomeworkProgressBar").style.width = `${pct}%`;
+    text("studentPracticeProgressText", practice.label);
 
     const today = isoDate(new Date());
     const missing = homework
@@ -5891,3 +5923,66 @@ document.addEventListener("DOMContentLoaded", () => {
   const button = byId("homeworkAiButton");
   if (button) button.addEventListener("click", llsCreateHomeworkDraft);
 });
+
+
+/* =========================================================
+   V18 — PRACTICE (course book per class + practice progress)
+   practice/courses.js lists the books; the class form sets
+   Book / Units / Current Unit; progress = 80% homework + 20% practice.
+========================================================= */
+
+function llsFillBookSelect() {
+  const select = byId("classBook");
+  if (!select || select.dataset.filled === "1" || !window.LLS_COURSES) return;
+  Object.values(LLS_COURSES).forEach((course) => {
+    const option = document.createElement("option");
+    option.value = course.id;
+    option.textContent = course.title;
+    select.appendChild(option);
+  });
+  select.dataset.filled = "1";
+}
+
+function llsPracticeSummary(studentId, results) {
+  const empty = { done: 0, total: 0, label: "" };
+  if (!window.LLS_PRACTICE || !window.LLS_COURSES) return empty;
+
+  const classIds = new Set(
+    (state.enrolments || [])
+      .filter((e) => String(e.studentId || e["Student ID"] || "") === studentId &&
+        String(e.status || e["Status"] || "Active").toLowerCase() === "active")
+      .map((e) => String(e.classId || e["Class ID"] || ""))
+  );
+  const student = (state.students || []).find((s) => s.id === studentId);
+  if (student && student.classId) classIds.add(String(student.classId));
+
+  const setIds = new Set();
+  (state.classes || []).forEach((cls) => {
+    if (!classIds.has(cls.id) || !cls.book || !LLS_COURSES[cls.book]) return;
+    LLS_PRACTICE.practiceSetIdsFor(cls.book, cls.units, cls.currentUnit).forEach((id) => setIds.add(id));
+  });
+
+  const passed = new Set(
+    results
+      .filter((r) => Number(r.total) > 0 && Number(r.best) / Number(r.total) >= LLS_PRACTICE.PASS_MARK)
+      .map((r) => String(r.setId))
+  );
+  const done = [...setIds].filter((id) => passed.has(id)).length;
+  const extra = [...passed].filter((id) => !setIds.has(id)).length;
+
+  if (!setIds.size) {
+    return {
+      done: 0,
+      total: 0,
+      label: results.length
+        ? `Practice: ${passed.size} set(s) passed. Set a course book on the class to count practice in progress.`
+        : "Practice: no course book set for this class yet."
+    };
+  }
+
+  return {
+    done,
+    total: setIds.size,
+    label: `Practice: ${done} of ${setIds.size} sets passed up to the current unit${extra ? ` (+${extra} extra)` : ""}.`
+  };
+}

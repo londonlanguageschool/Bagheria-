@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <meta name="referrer" content="no-referrer">
-  <title>My Homework | London Language School</title>
+  <title>My English | London Language School</title>
   <link rel="icon" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="homework.webmanifest">
@@ -127,6 +127,88 @@
 
     .classes { font-size: 13px; color: var(--ink-600); margin-top: 8px; }
 
+
+    /* V18: tabs + practice */
+    .tabs { display: flex; gap: 8px; margin: 18px 0 4px; }
+    .tab {
+      flex: 1; min-height: 44px; border: 2px solid var(--navy-800); background: #fff; color: var(--navy-800);
+      border-radius: 12px; font: inherit; font-weight: 700; font-size: 15px; cursor: pointer;
+    }
+    .tab[aria-selected="true"] { background: var(--navy-800); color: #fff; }
+    .split { font-size: 13px; color: var(--ink-600); margin-top: 6px; }
+
+    .course { background: var(--card); border: 1px solid var(--ink-200); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+    .course h3 { margin: 0; font-size: 17px; }
+    .course .meta { margin-top: 2px; }
+    details.unit { border-top: 1px solid var(--ink-200); padding: 10px 0 4px; margin-top: 10px; }
+    details.unit summary { cursor: pointer; font-weight: 700; list-style: none; display: flex; justify-content: space-between; gap: 8px; min-height: 32px; align-items: center; }
+    details.unit summary::-webkit-details-marker { display: none; }
+    details.unit summary::after { content: "▾"; color: var(--ink-600); }
+    details.unit[open] summary::after { content: "▴"; }
+    .now { font-size: 12px; font-weight: 700; background: var(--amber-100); color: var(--amber-700); border-radius: 99px; padding: 2px 8px; margin-left: 6px; }
+    .count { font-size: 13px; font-weight: 600; color: var(--ink-600); margin-left: auto; margin-right: 6px; }
+    .lesson { padding: 10px 0; border-bottom: 1px dashed var(--ink-200); }
+    .lesson:last-child { border-bottom: 0; }
+    .lesson-title { font-weight: 700; font-size: 15px; margin: 0; }
+    .lesson-topic { font-size: 13px; color: var(--ink-600); margin: 2px 0 8px; }
+    .sets { display: flex; flex-wrap: wrap; gap: 8px; }
+    .set {
+      min-height: 40px; border: 1.5px solid var(--ink-200); background: var(--navy-50); color: var(--ink-900);
+      border-radius: 10px; padding: 6px 12px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .set.passed { border-color: var(--green-700); background: var(--green-100); color: var(--green-700); }
+    .set.tried { border-color: var(--amber-700); background: var(--amber-100); color: var(--amber-700); }
+    .picker { background: var(--card); border: 1px solid var(--ink-200); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+    .picker label { font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px; }
+    select.big, input.big {
+      width: 100%; min-height: 46px; font: inherit; font-size: 16px; padding: 8px 12px;
+      border: 1.5px solid var(--ink-200); border-radius: 10px; background: #fff; color: var(--ink-900);
+    }
+
+    .quiz { background: var(--card); border: 1px solid var(--ink-200); border-radius: 14px; padding: 16px; margin-top: 18px; }
+    .quiz-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-600); }
+    .link { background: none; border: 0; color: var(--navy-800); font: inherit; font-weight: 700; cursor: pointer; padding: 8px 0; min-height: 40px; }
+    .dots { display: flex; gap: 5px; margin: 10px 0 14px; }
+    .dots span { flex: 1; height: 6px; border-radius: 99px; background: var(--navy-100); }
+    .dots span.ok { background: var(--green-700); }
+    .dots span.no { background: var(--red-600); }
+    .dots span.cur { background: var(--navy-800); }
+    .question { font-size: 19px; font-weight: 600; margin: 0 0 14px; overflow-wrap: anywhere; }
+    .blank { display: inline-block; min-width: 56px; border-bottom: 2.5px solid var(--navy-800); margin: 0 2px; }
+    .options { display: grid; gap: 10px; }
+    .option {
+      text-align: left; min-height: 50px; border: 2px solid var(--ink-200); background: #fff; color: var(--ink-900);
+      border-radius: 12px; padding: 10px 14px; font: inherit; font-size: 17px; cursor: pointer;
+    }
+    .option.right { border-color: var(--green-700); background: var(--green-100); }
+    .option.wrong { border-color: var(--red-600); background: var(--red-100); }
+    .option:disabled { cursor: default; }
+    .typed { display: flex; gap: 8px; }
+    .typed input { flex: 1; }
+    .primary {
+      min-height: 46px; border: 0; background: var(--navy-800); color: #fff; border-radius: 12px;
+      padding: 10px 18px; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    .primary:disabled { opacity: .5; cursor: default; }
+    .secondary {
+      min-height: 46px; border: 2px solid var(--navy-800); background: #fff; color: var(--navy-800); border-radius: 12px;
+      padding: 10px 18px; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    .feedback { border-radius: 12px; padding: 12px 14px; margin-top: 14px; font-size: 15px; }
+    .feedback.ok { background: var(--green-100); color: #0f5236; }
+    .feedback.no { background: var(--red-100); color: #7a1c14; }
+    .feedback strong { display: block; margin-bottom: 2px; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .result { text-align: center; padding: 10px 0; }
+    .result .big-score { font-size: 42px; font-weight: 800; margin: 6px 0; }
+    .saved { font-size: 13px; color: var(--ink-600); }
+    .say { font-size: 22px; font-weight: 600; line-height: 1.4; margin: 6px 0 16px; overflow-wrap: anywhere; }
+    .say .hit { color: var(--green-700); }
+    .say .miss { color: #b3261e; text-decoration: underline wavy; }
+    .heard { font-size: 14px; color: var(--ink-600); margin-top: 10px; }
+    .mic.listening { background: var(--red-600); }
+    .note { font-size: 13px; color: var(--ink-600); background: var(--navy-50); border-radius: 10px; padding: 10px 12px; margin-top: 12px; }
+
     footer { text-align: center; font-size: 12px; color: var(--ink-600); padding: 0 16px 28px; }
   </style>
 </head>
@@ -152,8 +234,13 @@
         <span id="progressText"></span>
       </div>
       <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="progressBar"><div></div></div>
+      <div class="split" id="progressSplit"></div>
       <div class="classes" id="classList"></div>
     </section>
+    <nav class="tabs" id="tabs" role="tablist" hidden>
+      <button class="tab" type="button" role="tab" id="tabHomework" aria-selected="true">📝 Homework · Compiti</button>
+      <button class="tab" type="button" role="tab" id="tabPractice" aria-selected="false">🎯 Practice · Esercizi</button>
+    </nav>
   </div>
 
   <main class="wrap" id="main">
@@ -162,6 +249,7 @@
 
   <footer>Questions? Ask your teacher or the school office.</footer>
 
+  <script src="practice/courses.js"></script>
   <script>
     "use strict";
 
@@ -210,39 +298,122 @@
       return `<span class="due ok">Due ${esc(label)}</span>`;
     }
 
-    function render() {
-      const main = document.getElementById("main");
-      const name = data.student.firstName;
-      document.getElementById("hello").textContent = name ? `Hi ${name}!` : "My homework";
-      document.getElementById("subtitle").textContent = "Here's your English homework · Ecco i tuoi compiti";
+    const COURSES = window.LLS_COURSES || {};
+    const PRACTICE = window.LLS_PRACTICE;
+    const TYPE_NAMES = { g: "Grammar", v: "Vocabulary", s: "Speaking" };
+    const TYPE_IT = { g: "Grammatica", v: "Vocabolario", s: "Pronuncia" };
+    const BOOK_STORE = "lls_practice_book";
+    let tab = location.hash === "#practice" ? "practice" : "homework";
+    let banks = {};
+    let quiz = null;
 
+    /* ---------- progress (homework 80% + practice 20%) ---------- */
+
+    function homeworkItems() {
       const classById = {};
       data.classes.forEach((c) => { classById[String(c["Class ID"])] = c; });
       const statusById = {};
       data.status.forEach((s) => { statusById[String(s["Homework ID"])] = s["Status"]; });
-
-      const items = data.homework.map((h) => ({
+      return data.homework.map((h) => ({
         ...h,
         done: statusById[String(h["Homework ID"])] === "Done",
         className: classById[String(h["Class ID"])]?.["Class Name"] || ""
       }));
+    }
 
-      const done = items.filter((i) => i.done).length;
-      const total = items.length;
-      const pct = total ? Math.round((done / total) * 100) : 0;
+    // The class books this student practises with (deduplicated).
+    function myBooks() {
+      const seen = {};
+      const list = [];
+      data.classes.forEach((c) => {
+        const id = String(c["Book"] || "").trim();
+        if (!COURSES[id] || !COURSES[id].lessons.length) return;
+        const units = String(c["Units"] || "").trim();
+        const k = id + "|" + units;
+        if (seen[k]) return;
+        seen[k] = true;
+        list.push({ id, units, current: String(c["Current Unit"] || "").trim(), className: c["Class Name"] });
+      });
+      return list;
+    }
 
-      const card = document.getElementById("progressCard");
-      card.hidden = false;
-      document.getElementById("progressText").textContent = total ? `${done} of ${total} done · ${pct}%` : "No homework yet";
+    function resultsById() {
+      const map = {};
+      (data.practice || []).forEach((r) => { map[String(r.setId)] = r; });
+      return map;
+    }
+
+    function passed(r) {
+      return r && Number(r.total) > 0 && Number(r.best) / Number(r.total) >= PRACTICE.PASS_MARK;
+    }
+
+    function practiceCounts() {
+      if (!PRACTICE) return { done: 0, total: 0 };
+      const ids = new Set();
+      myBooks().forEach((b) => PRACTICE.practiceSetIdsFor(b.id, b.units, b.current).forEach((id) => ids.add(id)));
+      const res = resultsById();
+      let done = 0;
+      ids.forEach((id) => { if (passed(res[id])) done++; });
+      return { done, total: ids.size };
+    }
+
+    function renderProgress() {
+      const items = homeworkItems();
+      const hwDone = items.filter((i) => i.done).length;
+      const hwTotal = items.length;
+      const pr = practiceCounts();
+      const pct = PRACTICE
+        ? PRACTICE.combinedProgress(hwDone, hwTotal, pr.done, pr.total)
+        : (hwTotal ? Math.round((hwDone / hwTotal) * 100) : 0);
+
+      document.getElementById("progressCard").hidden = false;
+      document.getElementById("progressText").textContent = (hwTotal || pr.total) ? `${pct}%` : "Let's start! · Iniziamo!";
       const bar = document.getElementById("progressBar");
       bar.setAttribute("aria-valuenow", String(pct));
       bar.firstElementChild.style.width = pct + "%";
+
+      const parts = [];
+      parts.push(hwTotal ? `Homework ${hwDone}/${hwTotal}` : "No homework yet");
+      if (pr.total) parts.push(`Practice ${pr.done}/${pr.total}`);
+      document.getElementById("progressSplit").textContent = parts.join(" · ");
       document.getElementById("classList").textContent = data.classes.length
         ? "Class: " + data.classes.map((c) => c["Class Name"]).join(", ")
         : "";
+    }
 
-      if (!total) {
-        main.innerHTML = `<div class="empty">No homework yet. 🎉<br>Nessun compito per ora.</div>`;
+    function render() {
+      const name = data.student.firstName;
+      document.getElementById("hello").textContent = name ? `Hi ${name}!` : "My English";
+      document.getElementById("subtitle").textContent = "Homework and practice · Compiti ed esercizi";
+      renderProgress();
+
+      const tabs = document.getElementById("tabs");
+      tabs.hidden = false;
+      document.getElementById("tabHomework").setAttribute("aria-selected", String(tab === "homework"));
+      document.getElementById("tabPractice").setAttribute("aria-selected", String(tab === "practice"));
+
+      if (quiz) renderQuiz();
+      else if (tab === "practice") renderPractice();
+      else renderHomework();
+    }
+
+    function setTab(next) {
+      tab = next;
+      quiz = null;
+      try { history.replaceState(null, "", next === "practice" ? "#practice" : location.pathname + location.search); } catch (_) {}
+      render();
+    }
+    document.getElementById("tabHomework").addEventListener("click", () => setTab("homework"));
+    document.getElementById("tabPractice").addEventListener("click", () => setTab("practice"));
+
+    /* ---------- homework ---------- */
+
+    function renderHomework() {
+      const main = document.getElementById("main");
+      const items = homeworkItems();
+
+      if (!items.length) {
+        main.innerHTML = `<div class="empty">No homework yet. 🎉<br>Nessun compito per ora.<br><br>Why not try some practice? · Prova gli esercizi!</div>`;
         return;
       }
 
@@ -297,6 +468,506 @@
       }
     }
 
+    /* ---------- practice: choose a unit ---------- */
+
+    function chosenBook() {
+      try { return localStorage.getItem(BOOK_STORE) || ""; } catch (_) { return ""; }
+    }
+
+    function renderPractice() {
+      const main = document.getElementById("main");
+      if (!PRACTICE) {
+        main.innerHTML = `<div class="error">Practice could not load. Please refresh the page.</div>`;
+        return;
+      }
+
+      const books = myBooks();
+      const extra = chosenBook();
+      let html = "";
+
+      if (!books.length) {
+        html += `<div class="note" style="margin-top:18px">Your teacher hasn't chosen your practice book yet. Choose one below. ·
+          Il tuo insegnante non ha ancora scelto il libro: scegline uno qui sotto.</div>`;
+      }
+
+      books.forEach((b) => { html += courseCard(b.id, b.units, b.current, b.className); });
+
+      const shown = new Set(books.map((b) => b.id));
+      if (extra && COURSES[extra] && !shown.has(extra)) html += courseCard(extra, "", "", "Extra practice · Esercizi extra");
+
+      const options = Object.values(COURSES)
+        .filter((c) => c.lessons.length)
+        .map((c) => `<option value="${esc(c.id)}" ${c.id === extra ? "selected" : ""}>${esc(c.title)}</option>`)
+        .join("");
+      html += `
+        <div class="picker">
+          <label for="bookPicker">${books.length ? "Practise another level · Un altro livello" : "Choose your book · Scegli il libro"}</label>
+          <select class="big" id="bookPicker"><option value="">—</option>${options}</select>
+        </div>`;
+
+      main.innerHTML = `<h2>Practice · Esercizi</h2>` + html;
+
+      main.querySelector("#bookPicker").addEventListener("change", (e) => {
+        try { localStorage.setItem(BOOK_STORE, e.target.value); } catch (_) {}
+        renderPractice();
+      });
+      main.querySelectorAll(".set").forEach((button) => {
+        button.addEventListener("click", () => startSet(button.dataset.course, button.dataset.lesson, button.dataset.type));
+      });
+    }
+
+    function courseCard(courseId, unitsText, currentText, label) {
+      const course = COURSES[courseId];
+      const range = PRACTICE.parseUnits(courseId, unitsText);
+      const current = Number(currentText) || 0;
+      const res = resultsById();
+
+      const units = {};
+      course.lessons.forEach((l) => { (units[l.unit] = units[l.unit] || []).push(l); });
+
+      const unitBlock = (n) => {
+        const lessons = units[n] || [];
+        let ok = 0, all = 0;
+        const rows = lessons.map((l) => {
+          const buttons = PRACTICE.SET_TYPES.map((t) => {
+            const r = res[`${l.id}-${t}`];
+            all++;
+            if (passed(r)) ok++;
+            const cls = passed(r) ? "passed" : (r ? "tried" : "");
+            const mark = r ? ` ${passed(r) ? "✓" : ""} ${r.best}/${r.total}` : "";
+            return `<button class="set ${cls}" type="button" data-course="${esc(courseId)}" data-lesson="${esc(l.code)}" data-type="${t}">${TYPE_NAMES[t]}${esc(mark)}</button>`;
+          }).join("");
+          return `
+            <div class="lesson">
+              <p class="lesson-title">${esc(l.code)} · ${esc(l.title)}</p>
+              <p class="lesson-topic">${esc(l.grammar)} · ${esc(l.vocab)}</p>
+              <div class="sets">${buttons}</div>
+            </div>`;
+        }).join("");
+        const isNow = current === n;
+        return `
+          <details class="unit" ${isNow || (!current && n === range.from) ? "open" : ""}>
+            <summary><span>Unit ${n}${isNow ? '<span class="now">Now · Adesso</span>' : ""}</span><span class="count">${ok}/${all}</span></summary>
+            ${rows}
+          </details>`;
+      };
+
+      let inRange = "", outRange = "";
+      for (let n = 1; n <= course.unitCount; n++) {
+        if (n >= range.from && n <= range.to) inRange += unitBlock(n);
+        else outRange += unitBlock(n);
+      }
+
+      const sub = [];
+      if (label) sub.push(esc(label));
+      if (unitsText) sub.push(`Units ${range.from}–${range.to}`);
+      if (current) sub.push(`now on unit ${current}`);
+
+      return `
+        <section class="course">
+          <h3>${esc(course.title)}</h3>
+          ${sub.length ? `<p class="meta">${sub.join(" · ")}</p>` : ""}
+          ${inRange}
+          ${outRange ? `<details class="unit"><summary><span>Other units · Altre unità</span></summary>${outRange}</details>` : ""}
+        </section>`;
+    }
+
+    /* ---------- practice: run a set ---------- */
+
+    async function loadBank(courseId) {
+      if (banks[courseId]) return banks[courseId];
+      const response = await fetch(COURSES[courseId].bank, { cache: "no-cache" });
+      if (!response.ok) throw new Error("bank");
+      banks[courseId] = await response.json();
+      return banks[courseId];
+    }
+
+    function shuffle(list) {
+      const a = list.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    async function startSet(courseId, code, type) {
+      const main = document.getElementById("main");
+      main.innerHTML = `<div class="empty">Loading… · Caricamento…</div>`;
+      try {
+        const bank = await loadBank(courseId);
+        const lesson = COURSES[courseId].lessons.find((l) => l.code === code);
+        const items = bank.lessons?.[code]?.[type];
+        if (!lesson || !Array.isArray(items) || !items.length) throw new Error("missing");
+
+        quiz = {
+          courseId, code, type, lesson,
+          setId: `${lesson.id}-${type}`,
+          items: type === "s"
+            ? items.map((text) => ({ text, best: 0, heard: "", marks: null }))
+            : items.map((q) => {
+                if (!Array.isArray(q.o)) return { ...q };
+                const order = shuffle(q.o.map((_, i) => i));
+                return { ...q, o: order.map((i) => q.o[i]), a: order.indexOf(q.a) };
+              }),
+          index: 0,
+          answers: [],
+          finished: false,
+          saveState: ""
+        };
+        window.scrollTo(0, 0);
+        render();
+      } catch (error) {
+        quiz = null;
+        main.innerHTML = `<div class="error">Could not load this practice. Check your connection and try again. · Controlla la connessione e riprova.</div>`;
+      }
+    }
+
+    function questionHtml(text) {
+      return esc(text).replace(/_{2,}/g, '<span class="blank">&nbsp;</span>');
+    }
+
+    function norm(text) {
+      return String(text || "")
+        .toLowerCase()
+        .replace(/[’‘`´]/g, "'")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/[.!?]+$/, "")
+        .trim();
+    }
+
+    function expand(text) {
+      return norm(text)
+        .replace(/\bcan't\b/g, "cannot").replace(/\bwon't\b/g, "will not").replace(/\bshan't\b/g, "shall not")
+        .replace(/n't\b/g, " not").replace(/'re\b/g, " are").replace(/'m\b/g, " am")
+        .replace(/'ll\b/g, " will").replace(/'ve\b/g, " have").replace(/'d\b/g, " would")
+        .replace(/\s+/g, " ").trim();
+    }
+
+    function typedIsRight(q, input) {
+      const given = expand(input);
+      if (!given) return false;
+      // Accept "I'm not" when the answer is "'m not" / "am not": the word before the gap may be typed too.
+      const before = norm(String(q.q).split(/_{2,}/)[0]).split(" ").pop() || "";
+      return q.a.some((answer) => {
+        const a = expand(answer);
+        const withBefore = expand(before + (String(answer).startsWith("'") ? "" : " ") + answer);
+        return given === a || given === withBefore;
+      });
+    }
+
+    function renderQuiz() {
+      const main = document.getElementById("main");
+      const q = quiz;
+      const label = `${q.lesson.code} ${TYPE_NAMES[q.type]} · ${TYPE_IT[q.type]}`;
+      const dots = q.items.map((_, i) => {
+        const a = q.answers[i];
+        const cls = a === undefined ? (i === q.index && !q.finished ? "cur" : "") : (a ? "ok" : "no");
+        return `<span class="${cls}"></span>`;
+      }).join("");
+
+      let body = "";
+      if (q.finished) body = resultHtml();
+      else if (q.type === "s") body = speakHtml();
+      else body = questionBlock();
+
+      main.innerHTML = `
+        <section class="quiz">
+          <div class="quiz-top">
+            <button class="link" type="button" id="quizBack">← Back · Indietro</button>
+            <span>${esc(label)}</span>
+          </div>
+          <p class="lesson-topic" style="margin:0">${esc(q.lesson.title)} · ${esc(q.type === "v" ? q.lesson.vocab : q.lesson.grammar)}</p>
+          <div class="dots">${dots}</div>
+          ${body}
+        </section>`;
+
+      main.querySelector("#quizBack").addEventListener("click", () => { stopListening(); quiz = null; render(); });
+      if (q.finished) bindResult();
+      else if (q.type === "s") bindSpeak();
+      else bindQuestion();
+    }
+
+    function questionBlock() {
+      const q = quiz;
+      const item = q.items[q.index];
+      const answered = q.answers[q.index] !== undefined;
+      let html = `<p class="question">${questionHtml(item.q)}</p>`;
+
+      if (Array.isArray(item.o)) {
+        html += `<div class="options">` + item.o.map((option, i) => {
+          let cls = "";
+          if (answered) {
+            if (i === item.a) cls = "right";
+            else if (i === item.picked) cls = "wrong";
+          }
+          return `<button class="option ${cls}" type="button" data-i="${i}" ${answered ? "disabled" : ""}>${esc(option)}</button>`;
+        }).join("") + `</div>`;
+      } else {
+        html += `
+          <form class="typed" id="typedForm" autocomplete="off">
+            <input class="big" id="typedInput" type="text" autocapitalize="off" autocorrect="off" spellcheck="false"
+                   value="${esc(item.typed || "")}" ${answered ? "disabled" : ""} placeholder="Type your answer · Scrivi">
+            ${answered ? "" : `<button class="primary" type="submit">Check</button>`}
+          </form>`;
+      }
+
+      if (answered) {
+        const right = q.answers[q.index];
+        const answerText = Array.isArray(item.o) ? item.o[item.a] : item.a[0];
+        html += `
+          <div class="feedback ${right ? "ok" : "no"}">
+            <strong>${right ? "✓ Right! · Giusto!" : `✗ Not quite · Risposta: ${esc(answerText)}`}</strong>
+            ${esc(item.e || "")}
+          </div>
+          <div class="actions"><button class="primary" type="button" id="nextQ">${q.index + 1 < q.items.length ? "Next · Avanti →" : "See my score · Risultato"}</button></div>`;
+      }
+      return html;
+    }
+
+    function bindQuestion() {
+      const main = document.getElementById("main");
+      const item = quiz.items[quiz.index];
+      main.querySelectorAll(".option").forEach((button) => {
+        button.addEventListener("click", () => {
+          const i = Number(button.dataset.i);
+          item.picked = i;
+          quiz.answers[quiz.index] = i === item.a;
+          renderQuiz();
+        });
+      });
+      const form = main.querySelector("#typedForm");
+      if (form && !form.querySelector("input").disabled) {
+        const input = form.querySelector("input");
+        input.focus();
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          if (!input.value.trim()) return;
+          item.typed = input.value;
+          quiz.answers[quiz.index] = typedIsRight(item, input.value);
+          renderQuiz();
+        });
+      }
+      const next = main.querySelector("#nextQ");
+      if (next) {
+        next.addEventListener("click", nextItem);
+        next.focus();
+      }
+    }
+
+    function nextItem() {
+      if (quiz.index + 1 < quiz.items.length) quiz.index++;
+      else finishSet();
+      renderQuiz();
+    }
+
+    function finishSet() {
+      quiz.finished = true;
+      saveResult();
+    }
+
+    function score() {
+      if (quiz.type === "s") return quiz.items.filter((x) => x.best >= SPEAK_PASS).length;
+      return quiz.answers.filter(Boolean).length;
+    }
+
+    function resultHtml() {
+      const total = quiz.items.length;
+      const got = score();
+      const ok = got / total >= PRACTICE.PASS_MARK;
+      const saved = {
+        saving: "Saving… · Salvataggio…",
+        saved: "✓ Saved to your progress · Salvato",
+        failed: "Not saved: check your connection. · Non salvato.",
+        offline: "Practice scores will be saved soon. · Presto salveremo i risultati."
+      }[quiz.saveState] || "";
+      return `
+        <div class="result">
+          <div>${ok ? "🎉 Great work! · Ottimo lavoro!" : "💪 Keep practising! · Continua così!"}</div>
+          <div class="big-score">${got} / ${total}</div>
+          <div class="saved" id="savedText">${esc(saved)}</div>
+          ${ok ? "" : `<p class="note">You need ${Math.ceil(total * PRACTICE.PASS_MARK)} or more to count towards your progress. · Ne servono almeno ${Math.ceil(total * PRACTICE.PASS_MARK)}.</p>`}
+        </div>
+        <div class="actions">
+          ${quiz.saveState === "failed" ? `<button class="secondary" type="button" id="retrySave">Save again · Riprova</button>` : ""}
+          <button class="secondary" type="button" id="again">Try again · Riprova</button>
+          <button class="primary" type="button" id="done">Back to practice · Indietro</button>
+        </div>`;
+    }
+
+    function bindResult() {
+      const main = document.getElementById("main");
+      main.querySelector("#again").addEventListener("click", () => startSet(quiz.courseId, quiz.code, quiz.type));
+      main.querySelector("#done").addEventListener("click", () => { quiz = null; render(); });
+      const retry = main.querySelector("#retrySave");
+      if (retry) retry.addEventListener("click", saveResult);
+    }
+
+    async function saveResult() {
+      const q = quiz;
+      const total = q.items.length;
+      const got = score();
+      q.saveState = "saving";
+      try {
+        const result = await api({
+          action: "mutate",
+          payload: JSON.stringify({ action: "studentSavePractice", key: KEY, setId: q.setId, score: got, total })
+        });
+        data.practice = data.practice || [];
+        const existing = data.practice.find((r) => r.setId === q.setId);
+        const row = { setId: q.setId, best: result.best, total: result.total, attempts: result.attempts, date: result.date };
+        if (existing) Object.assign(existing, row);
+        else data.practice.push(row);
+        q.saveState = "saved";
+      } catch (error) {
+        q.saveState = /unknown mutation/i.test(error.message || "") ? "offline" : "failed";
+      }
+      if (quiz === q) render();
+    }
+
+    /* ---------- speaking (read aloud, free: the phone's own speech recognition) ---------- */
+
+    const SPEAK_PASS = 0.7;
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognizer = null;
+
+    function words(text) {
+      return expand(text).replace(/-/g, " ").replace(/[^a-z0-9' ]/g, " ").replace(/'/g, "").split(/\s+/).filter(Boolean);
+    }
+
+    // Longest common subsequence: which target words were heard, in order.
+    function matchWords(target, heard) {
+      const t = words(target), h = words(heard);
+      const dp = Array.from({ length: t.length + 1 }, () => new Array(h.length + 1).fill(0));
+      for (let i = t.length - 1; i >= 0; i--) {
+        for (let j = h.length - 1; j >= 0; j--) {
+          dp[i][j] = t[i] === h[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+        }
+      }
+      const hit = new Array(t.length).fill(false);
+      let i = 0, j = 0;
+      while (i < t.length && j < h.length) {
+        if (t[i] === h[j]) { hit[i] = true; i++; j++; }
+        else if (dp[i + 1][j] >= dp[i][j + 1]) i++;
+        else j++;
+      }
+      return { ratio: t.length ? hit.filter(Boolean).length / t.length : 0, hit };
+    }
+
+    // Colour the original sentence word by word.
+    function markedSentence(text, marks) {
+      if (!marks) return esc(text);
+      let k = 0;
+      return text.split(/(\s+)/).map((token) => {
+        if (/^\s+$/.test(token) || !token) return token;
+        const count = words(token).length;
+        if (!count) return esc(token);
+        const ok = marks.slice(k, k + count).every(Boolean);
+        k += count;
+        return `<span class="${ok ? "hit" : "miss"}">${esc(token)}</span>`;
+      }).join("");
+    }
+
+    function speakHtml() {
+      const item = quiz.items[quiz.index];
+      const tried = item.heard !== "";
+      const ok = item.best >= SPEAK_PASS;
+      let html = `
+        <p class="lesson-topic">Read this sentence aloud · Leggi ad alta voce</p>
+        <p class="say">${markedSentence(item.text, item.marks)}</p>
+        <div class="actions" style="margin-top:0">
+          <button class="secondary" type="button" id="listen">🔊 Listen · Ascolta</button>
+          ${Recognition ? `<button class="primary mic" type="button" id="mic">🎤 Speak · Parla</button>` : ""}
+        </div>`;
+      if (!Recognition) {
+        html += `<p class="note">The speaking check doesn't work in this browser. Open your link in Chrome (Android) or Safari (iPhone).
+          You can still listen and repeat. · Il controllo della pronuncia non funziona in questo browser: apri il link con Chrome o Safari.</p>`;
+      }
+      if (item.error) html += `<p class="note">${esc(item.error)}</p>`;
+      if (tried) {
+        html += `<p class="heard">I heard · Ho sentito: “${esc(item.heard)}”</p>
+          <div class="feedback ${ok ? "ok" : "no"}"><strong>${ok ? "✓ Great! · Bravo/a!" : "Try again · Riprova"}</strong>
+          ${ok ? "Clear and correct." : "Red words weren't clear. Listen, then try again. · Le parole in rosso non erano chiare."}</div>`;
+      }
+      const last = quiz.index + 1 >= quiz.items.length;
+      html += `<div class="actions"><button class="${tried || !Recognition ? "primary" : "secondary"}" type="button" id="nextS">
+        ${last ? "Finish · Fine" : (tried || !Recognition ? "Next · Avanti →" : "Skip · Salta →")}</button></div>`;
+      return html;
+    }
+
+    function bindSpeak() {
+      const main = document.getElementById("main");
+      const item = quiz.items[quiz.index];
+
+      main.querySelector("#listen").addEventListener("click", () => {
+        if (!("speechSynthesis" in window)) return;
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(item.text);
+        u.lang = "en-GB";
+        u.rate = 0.9;
+        const voice = speechSynthesis.getVoices().find((v) => /^en[-_]GB/i.test(v.lang));
+        if (voice) u.voice = voice;
+        speechSynthesis.speak(u);
+      });
+
+      const mic = main.querySelector("#mic");
+      if (mic) mic.addEventListener("click", () => listen(mic, item));
+
+      main.querySelector("#nextS").addEventListener("click", () => {
+        stopListening();
+        quiz.answers[quiz.index] = item.best >= SPEAK_PASS;
+        nextItem();
+      });
+    }
+
+    function stopListening() {
+      if (recognizer) { try { recognizer.abort(); } catch (_) {} recognizer = null; }
+    }
+
+    function listen(button, item) {
+      stopListening();
+      const rec = new Recognition();
+      recognizer = rec;
+      rec.lang = "en-GB";
+      rec.interimResults = false;
+      rec.maxAlternatives = 3;
+      button.classList.add("listening");
+      button.textContent = "🎤 Listening… · Ascolto…";
+
+      let handled = false;
+      rec.onresult = (event) => {
+        handled = true;
+        item.error = "";
+        const alternatives = Array.from(event.results[0] || []).map((a) => a.transcript);
+        let best = { ratio: -1 };
+        let heard = "";
+        alternatives.forEach((text) => {
+          const m = matchWords(item.text, text);
+          if (m.ratio > best.ratio) { best = m; heard = text; }
+        });
+        item.heard = heard || "…";
+        item.marks = best.hit || null;
+        item.best = Math.max(item.best, best.ratio || 0);
+        if (best.ratio >= SPEAK_PASS) item.marks = best.hit;
+      };
+      rec.onerror = (event) => {
+        handled = true;
+        item.error = event.error === "not-allowed" || event.error === "service-not-allowed"
+          ? "Please allow the microphone for this page, then try again. · Consenti l'uso del microfono e riprova."
+          : event.error === "no-speech"
+            ? "I didn't hear anything. Tap Speak and read the sentence. · Non ho sentito niente: riprova."
+            : event.error === "aborted" ? "" : "The speaking check isn't working right now. Check your internet connection. · Controlla la connessione.";
+      };
+      rec.onend = () => {
+        if (recognizer === rec) recognizer = null;
+        if (quiz && quiz.items[quiz.index] === item) renderQuiz();
+      };
+      try { rec.start(); } catch (_) { renderQuiz(); }
+    }
+
+    /* ---------- load ---------- */
+
     function showError(message) {
       document.getElementById("main").innerHTML = `<div class="error">${esc(message)}</div>`;
     }
@@ -308,6 +979,7 @@
       }
       try {
         data = await api({ action: "getStudentHomework", key: KEY });
+        data.practice = Array.isArray(data.practice) ? data.practice : [];
         render();
       } catch (error) {
         if (/not valid/i.test(error.message || "")) {

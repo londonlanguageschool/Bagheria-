@@ -1111,7 +1111,7 @@
           </div>
 
           <div class="form-field form-field-wide" id="studentHomeworkProgress" hidden>
-            <label>Homework progress</label>
+            <label>Progress (homework 80% + practice 20%)</label>
             <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px;">
               <span id="studentHomeworkProgressText">Loading…</span>
               <span id="studentHomeworkProgressPct"></span>
@@ -1119,7 +1119,8 @@
             <div style="height: 10px; border-radius: 99px; background: #eaf1fa; overflow: hidden; margin-top: 6px;">
               <div id="studentHomeworkProgressBar" style="height: 100%; width: 0; background: #177b52; border-radius: 99px;"></div>
             </div>
-            <div id="studentHomeworkProgressList" style="font-size: 13px; color: #56617a; margin-top: 8px;"></div>
+            <div id="studentPracticeProgressText" style="font-size: 13px; color: #56617a; margin-top: 8px;"></div>
+            <div id="studentHomeworkProgressList" style="font-size: 13px; color: #56617a; margin-top: 4px;"></div>
           </div>
         </div>
 
@@ -1225,6 +1226,23 @@
           <div class="form-field">
             <label for="classCapacity">Capacity</label>
             <input id="classCapacity" type="number" min="1" value="10">
+          </div>
+
+          <div class="form-field">
+            <label for="classBook">Course book (for student Practice)</label>
+            <select id="classBook">
+              <option value="">None</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="classUnits">Units this year (optional)</label>
+            <input id="classUnits" type="text" placeholder="e.g. 1-5 or 6-10">
+          </div>
+
+          <div class="form-field">
+            <label for="classCurrentUnit">Current unit</label>
+            <input id="classCurrentUnit" type="number" min="1" max="12" step="1" placeholder="e.g. 3">
           </div>
 
           <div class="form-field form-field-wide">
@@ -1584,6 +1602,7 @@
   ========================== -->
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
+  <script src="practice/courses.js"></script>
   <script src="portal.js"></script>
 </body>
 </html>
