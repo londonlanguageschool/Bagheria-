@@ -357,3 +357,10 @@ input[type="checkbox"] { border-radius: 4px; }
   .reg-how .reg-rating { width: 230px; flex-basis: 230px; }
 }
 @media (max-width: 700px) { .reg-row { grid-template-columns: 1fr; } .reg-how .reg-rating { width: 100%; flex-basis: auto; } }
+
+/* lesson outbox status + required fields */
+.outbox-pill { font: inherit; font-weight: 800; font-size: .82rem; border: 2px solid var(--sky-tile); background: var(--sky-soft); color: var(--ink); border-radius: 999px; padding: 6px 12px; cursor: pointer; max-width: 100%; text-align: left; }
+.outbox-pill.is-error { background: var(--blush); border-color: var(--red); color: var(--red-700); }
+.outbox-pill.in-topbar { font-size: .75rem; padding: 4px 10px; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reg-row.needs .reg-rating, textarea.needs, input.needs { border-color: var(--red) !important; box-shadow: 0 0 0 4px rgba(234, 42, 42, .15) !important; }
+.reg-row.needs .reg-name::after { content: "  ← rating needed"; color: var(--red); font-size: .75rem; font-weight: 800; }

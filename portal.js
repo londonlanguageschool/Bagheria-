@@ -5298,7 +5298,7 @@ async function llsApiPost(body) {
     token: sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY) || "",
     // 27 Sept: a receipt number per save. Apps Script V25 remembers it for
     // 10 minutes, so re-sending after a lost reply never saves twice.
-    requestId: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `r${Date.now()}${Math.random().toString(36).slice(2)}`
+    requestId: (body && body.requestId) || ((window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `r${Date.now()}${Math.random().toString(36).slice(2)}`)
   });
   const act = String(payload.action || "");
   const canRetry = (window.llsServerVersion || 0) >= 25 ||
@@ -7420,83 +7420,122 @@ async function llsRenderLesson() {
   llsLesson.loadedKey = key;
 
   const regBody = byId("lessonRegister");
-  regBody.innerHTML = `<p class="muted">Loading…</p>`;
   const saveBtn = byId("lessonSaveButton");
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Loading class…"; }
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "💾 Save lesson"; }
   byId("lessonLast").hidden = true;
   ["lessonDone", "lessonNotes", "lessonHwTitle", "lessonHwText"].forEach((id) => setValue(id, ""));
   setValue("lessonUnitPage", cls.currentUnit || "");
   llsSetSpecial(false);
   setValue("lessonHwDue", llsNextLessonDate(cls, date));
+  llsLesson.entries = [];
+  llsLesson.noteTouched = false;
+  llsLesson.homework = [];
+  llsLesson.status = [];
 
+  // 27 Sept: show the register straight away from the class list we already
+  // have; saved marks and notes fill in when Google answers. A lesson saved on
+  // this device but still being sent (outbox) wins over what Google has.
+  const pending = llsOutboxFor(cls.id, date);
   try {
-    await loadLiveAttendanceFoundation();
-    const [att, log, hw] = await Promise.all([
-      llsApiGet("getAttendance", { classId: cls.id, lessonDate: date }),
-      llsApiGet("getLessonLog", { classId: cls.id, limit: 1000 }).catch((e) => ({ entries: [], error: e.message })),
-      llsApiGet("getHomeworkForClass", { classId: cls.id }).catch(() => ({ homework: [], status: [] }))
-    ]);
-    if (llsLesson.loadedKey !== key) return; // user moved on
+    if (!llsStudentsForClass(cls.id).length && !(llsLivePortalData.classes || []).length) {
+      regBody.innerHTML = `<p class="muted">Loading…</p>`;
+      await loadLiveAttendanceFoundation();
+      if (llsLesson.loadedKey !== key) return;
+    }
+  } catch (_) { /* fall through: the register shows what we have */ }
+  const students = llsStudentsForClass(cls.id);
+  const fromPending = new Map(((pending && pending.rows) || []).map((r) => [r.studentId, { Status: r.status, Notes: r.notes }]));
+  llsDrawRegister(regBody, students, fromPending);
+  if (pending && pending.note) llsFillLessonNote(pending.note, cls);
 
-    // Register
+  // Saved register (only fills rows the teacher hasn't touched yet)
+  llsApiGet("getAttendance", { classId: cls.id, lessonDate: date }).then((att) => {
+    if (llsLesson.loadedKey !== key || pending) return;
     const saved = new Map((att.attendance || []).map((r) => [String(r["Student ID"] || "").trim(), r]));
-    const students = llsStudentsForClass(cls.id);
-    regBody.innerHTML = students.length ? students.map((st) => {
-      const id = String(st["Student ID"] || "").trim();
-      const row = saved.get(id) || {};
-      const status = String(row["Status"] || "Present");
-      const btn = (s, label) => `<button type="button" class="reg-btn reg-${s.toLowerCase()}${status === s ? " on" : ""}" data-status="${s}" aria-pressed="${status === s}">${label}</button>`;
-      return `<div class="reg-row" data-student="${escapeHtml(id)}" data-status="${escapeHtml(status)}">
-        <div class="reg-name">${escapeHtml(llsStudentName(st))}</div>
-        <div class="reg-btns">${btn("Present", "✓ Here")}${btn("Late", "Late")}${btn("Absent", "Absent")}${btn("Excused", "Excused")}</div>
-        <div class="reg-how">
-          <select class="reg-rating" aria-label="How did they do?">
-            <option value="">How did they do?</option>
-            ${["Excellent", "Good", "OK", "Needs support"].map((r) => `<option value="${r}" ${llsSplitRating(row["Notes"]).rating === r ? "selected" : ""}>${{ Excellent: "⭐ Excellent", Good: "👍 Good", OK: "🙂 OK", "Needs support": "🤝 Needs support" }[r]}</option>`).join("")}
-          </select>
-          <input class="reg-note" type="text" placeholder="Note (optional)" value="${escapeHtml(llsSplitRating(row["Notes"]).note)}">
-        </div>
-      </div>`;
-    }).join("") : `<p class="muted">No students enrolled in this class yet.</p>`;
-    regBody.querySelectorAll(".reg-btn").forEach((b) => b.addEventListener("click", () => {
-      const row = b.closest(".reg-row");
-      row.dataset.status = b.dataset.status;
-      row.querySelectorAll(".reg-btn").forEach((x) => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", String(x === b)); });
-      llsLessonCount();
-    }));
+    regBody.querySelectorAll(".reg-row:not([data-touched])").forEach((row) => {
+      const rec = saved.get(row.dataset.student);
+      if (rec) llsSetRegisterRow(row, String(rec["Status"] || "Present"), rec["Notes"]);
+    });
     llsLessonCount();
-    byId("lessonAllHere").hidden = !students.length;
+  }).catch((e) => {
+    if (llsLesson.loadedKey !== key) return;
+    const n = document.createElement("p");
+    n.className = "muted";
+    n.textContent = "Couldn't fetch earlier marks for this date (" + (e.message || "no reply") + "). You can still take the register and save.";
+    regBody.prepend(n);
+  });
 
-    // Lesson notes: this date's entry (if any) + last lesson before it + full history
+  // Lesson notes: this date's entry + last lesson + whole history
+  llsApiGet("getLessonLog", { classId: cls.id, limit: 1000 }).then((log) => {
+    if (llsLesson.loadedKey !== key) return;
     llsLesson.entries = Array.isArray(log.entries) ? log.entries : [];
     const own = llsLesson.entries.find((e) => e.lessonDate === date);
-    if (own) {
-      const sp = llsSpecialTitle(own.unit);
-      if (sp) { llsSetSpecial(true, sp); setValue("lessonUnitPage", cls.currentUnit || ""); }
-      else setValue("lessonUnitPage", own.unit);
-      setValue("lessonDone", own.whatWeDid);
-      setValue("lessonNotes", own.notes);
-    }
+    if (own && !pending && !llsLesson.noteTouched) llsFillLessonNote(own, cls);
     const last = llsLesson.entries.find((e) => e.lessonDate < date);
     const lastBox = byId("lessonLast");
     if (last) { lastBox.hidden = false; lastBox.innerHTML = `<h3>📝 Last lesson</h3>${llsLessonLogEntryHtml(last)}`; }
-    const hist = byId("lessonHistory");
-    if (log.error) hist.innerHTML = `<p class="muted">${/Unknown action/i.test(log.error) ? "Lesson notes need the latest Apps Script (V23)." : escapeHtml(log.error)}</p>`;
-    else llsRenderLessonLogList(hist, llsLesson.entries);
+    llsRenderLessonLogList(byId("lessonHistory"), llsLesson.entries);
     byId("lessonHistoryCount").textContent = llsLesson.entries.length ? `(${llsLesson.entries.length})` : "";
+  }).catch((e) => {
+    if (llsLesson.loadedKey !== key) return;
+    byId("lessonHistory").innerHTML = `<p class="muted">${escapeHtml(e.message || "")}</p>`;
+  });
 
-    // Homework already set for this class
+  // Homework already set for this class
+  llsApiGet("getHomeworkForClass", { classId: cls.id }).then((hw) => {
+    if (llsLesson.loadedKey !== key) return;
     llsLesson.homework = Array.isArray(hw.homework) ? hw.homework : [];
     llsLesson.status = Array.isArray(hw.status) ? hw.status : [];
     llsRenderLessonHomework(students.length);
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "💾 Save lesson"; }
-  } catch (error) {
-    console.error(error);
-    llsLesson.loadedKey = "";
-    regBody.innerHTML = `<p class="muted">Could not load this lesson: ${escapeHtml(error.message || "")} <button type="button" class="row-action" id="lessonRetry">Try again</button></p>`;
-    byId("lessonRetry")?.addEventListener("click", () => llsRenderLesson());
-    if (saveBtn) { saveBtn.textContent = "💾 Save lesson"; }
-  }
+  }).catch(() => {});
+}
+
+function llsFillLessonNote(entry, cls) {
+  const sp = llsSpecialTitle(entry.unit);
+  if (sp) { llsSetSpecial(true, sp); setValue("lessonUnitPage", cls.currentUnit || ""); }
+  else setValue("lessonUnitPage", entry.unit || "");
+  setValue("lessonDone", entry.whatWeDid || "");
+  setValue("lessonNotes", entry.notes || "");
+}
+
+function llsSetRegisterRow(row, status, notes) {
+  row.dataset.status = status;
+  row.querySelectorAll(".reg-btn").forEach((x) => { const on = x.dataset.status === status; x.classList.toggle("on", on); x.setAttribute("aria-pressed", String(on)); });
+  const parts = llsSplitRating(notes);
+  const sel = row.querySelector(".reg-rating"); if (sel) sel.value = parts.rating;
+  const note = row.querySelector(".reg-note"); if (note) note.value = parts.note;
+}
+
+function llsDrawRegister(regBody, students, saved) {
+  regBody.innerHTML = students.length ? students.map((st) => {
+    const id = String(st["Student ID"] || "").trim();
+    const row = saved.get(id) || {};
+    const status = String(row["Status"] || "Present");
+    const btn = (s, label) => `<button type="button" class="reg-btn reg-${s.toLowerCase()}${status === s ? " on" : ""}" data-status="${s}" aria-pressed="${status === s}">${label}</button>`;
+    return `<div class="reg-row" data-student="${escapeHtml(id)}" data-status="${escapeHtml(status)}">
+      <div class="reg-name">${escapeHtml(llsStudentName(st))}</div>
+      <div class="reg-btns">${btn("Present", "✓ Here")}${btn("Late", "Late")}${btn("Absent", "Absent")}${btn("Excused", "Excused")}</div>
+      <div class="reg-how">
+        <select class="reg-rating" aria-label="How did they do?">
+          <option value="">How did they do?</option>
+          ${["Excellent", "Good", "OK", "Needs support"].map((r) => `<option value="${r}" ${llsSplitRating(row["Notes"]).rating === r ? "selected" : ""}>${{ Excellent: "⭐ Excellent", Good: "👍 Good", OK: "🙂 OK", "Needs support": "🤝 Needs support" }[r]}</option>`).join("")}
+        </select>
+        <input class="reg-note" type="text" placeholder="Note (optional)" value="${escapeHtml(llsSplitRating(row["Notes"]).note)}">
+      </div>
+    </div>`;
+  }).join("") : `<p class="muted">No students enrolled in this class yet.</p>`;
+  regBody.querySelectorAll(".reg-row").forEach((row) => {
+    const touch = () => { row.dataset.touched = "1"; row.classList.remove("needs"); };
+    row.querySelectorAll(".reg-btn").forEach((b) => b.addEventListener("click", () => {
+      touch();
+      llsSetRegisterRow(row, b.dataset.status, llsJoinRating(row.querySelector(".reg-rating").value, row.querySelector(".reg-note").value));
+      llsLessonCount();
+    }));
+    row.querySelector(".reg-rating").addEventListener("change", touch);
+    row.querySelector(".reg-note").addEventListener("input", touch);
+  });
+  llsLessonCount();
+  byId("lessonAllHere").hidden = !students.length;
 }
 
 function llsRenderLessonHomework(classSize) {
@@ -7549,66 +7588,182 @@ async function llsSaveLesson() {
   const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
   const date = byId("lessonDate")?.value || "";
   if (!cls || !date) { showToast("Choose a class and date.", "error"); return; }
-  if (byId("lessonSpecialOn")?.checked && !value("lessonSpecialTitle").trim()) {
+  const specialOn = byId("lessonSpecialOn")?.checked;
+  const specialTitle = value("lessonSpecialTitle").trim();
+  if (specialOn && !specialTitle) {
     showToast("Give the special lesson a name (e.g. Halloween), or untick ⭐ Special lesson.", "error");
     byId("lessonSpecialTitle")?.focus();
     return;
   }
-  const button = byId("lessonSaveButton");
-  button.disabled = true;
-  button.textContent = "Saving…";
-  const done = [];
-  const failed = [];
+
+  // Required (owner, 27 Sept): a rating for every student who was there,
+  // and "What we did" (filled automatically for a special lesson).
+  const rowEls = [...document.querySelectorAll("#lessonRegister .reg-row")];
+  const unrated = rowEls.filter((r) => ["Present", "Late"].includes(r.dataset.status) && !r.querySelector(".reg-rating")?.value);
+  rowEls.forEach((r) => r.classList.toggle("needs", unrated.includes(r)));
+  const doneText = value("lessonDone").trim() || (specialOn ? specialTitle + " lesson" : "");
+  byId("lessonDone")?.classList.toggle("needs", !doneText);
+  if (unrated.length || !doneText) {
+    const missing = [];
+    if (unrated.length) missing.push(`"How did they do?" for ${unrated.length} ${unrated.length === 1 ? "student" : "students"}`);
+    if (!doneText) missing.push(`"What we did"`);
+    showToast(`Almost done: fill in ${missing.join(" and ")}. They count towards each student's progress.`, "error");
+    (unrated[0]?.querySelector(".reg-rating") || byId("lessonDone"))?.focus();
+    return;
+  }
+
+  const rows = rowEls.map((r) => ({
+    studentId: r.dataset.student,
+    status: r.dataset.status || "Present",
+    notes: llsJoinRating(r.querySelector(".reg-rating")?.value || "", r.querySelector(".reg-note")?.value.trim() || "")
+  }));
+  const hwTitle = value("lessonHwTitle").trim();
+  const note = { unit: specialOn ? LLS_SPECIAL_PREFIX + specialTitle : value("lessonUnitPage").trim(), whatWeDid: doneText, notes: value("lessonNotes").trim() };
+  const own = llsLesson.entries.find((e) => e.lessonDate === date);
+  const homeworkSet = hwTitle || (own ? own.homeworkSet : "");
+  const session = llsGetTeacherSession();
+  const rid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `r${Date.now()}${Math.random().toString(36).slice(2)}`;
+
+  const steps = [];
+  if (rows.length) steps.push({ what: "register", body: { action: "saveAttendance", classId: cls.id, lessonDate: date, rows, requestId: rid() } });
+  if (hwTitle) steps.push({ what: "homework", body: { action: "createHomework", classId: cls.id, teacherId: session?.teacherId || "", title: hwTitle, description: value("lessonHwText").trim(), assignedDate: date, dueDate: value("lessonHwDue"), requestId: rid() } });
+  steps.push({ what: "notes", body: { action: "saveLessonLog", classId: cls.id, lessonDate: date, ...note, homeworkSet, requestId: rid() } });
+
+  // A newer save of the same lesson replaces one still waiting to be sent
+  // (the homework part is kept, so it is never lost).
+  const box = llsOutboxLoad();
+  const older = box.filter((j) => j.classId === cls.id && j.date === date && !j.sending);
+  older.forEach((j) => j.steps.filter((st) => st.what === "homework" && !st.done).forEach((st) => steps.splice(1, 0, st)));
+  const next = box.filter((j) => !older.includes(j));
+  next.push({ id: rid(), classId: cls.id, className: cls.name, date, rows, note: { ...note, homeworkSet }, steps, createdAt: Date.now(), tries: 0 });
+  llsOutboxSave(next);
+
+  // Update the screen now, without waiting for Google.
+  llsLesson.entries = [{ lessonDate: date, teacherName: session?.name || "", unit: note.unit, whatWeDid: note.whatWeDid, homeworkSet, notes: note.notes }, ...llsLesson.entries.filter((e) => e.lessonDate !== date)];
+  llsRenderLessonLogList(byId("lessonHistory"), llsLesson.entries);
+  if (hwTitle) {
+    llsLesson.homework = [{ Title: hwTitle, "Due Date": value("lessonHwDue"), "Created At": new Date().toISOString() }, ...llsLesson.homework];
+    llsRenderLessonHomework(rows.length);
+    setValue("lessonHwTitle", ""); setValue("lessonHwText", "");
+  }
+  showToast(`✓ ${cls.name} saved on this device. It's being sent to Google in the background: you can go to your next class.`, "success");
+  llsOutboxRun();
+}
+
+/* ---------- Lesson outbox (27 Sept) ----------
+   Saving a lesson used to wait for three slow Google calls (up to 1–2
+   minutes). Now the lesson is kept on this device first ("lls_outbox"),
+   then sent in the background, retrying until Google confirms. Each part
+   carries a receipt number, so a re-send never saves twice (Apps Script V25). */
+const LLS_OUTBOX_KEY = "lls_outbox";
+let llsOutboxBusy = false;
+let llsOutboxTimer = null;
+
+function llsOutboxLoad() {
+  try { return JSON.parse(localStorage.getItem(LLS_OUTBOX_KEY) || "[]") || []; } catch (_) { return []; }
+}
+function llsOutboxSave(list) {
+  try { localStorage.setItem(LLS_OUTBOX_KEY, JSON.stringify(list)); } catch (_) {}
+  llsOutboxPaint();
+}
+function llsOutboxFor(classId, date) {
+  return llsOutboxLoad().find((j) => j.classId === classId && j.date === date) || null;
+}
+
+function llsOutboxPaint() {
+  const box = llsOutboxLoad();
+  let pill = byId("lessonOutbox");
+  const bar = document.querySelector(".lesson-save-bar");
+  if (!pill && bar) {
+    pill = document.createElement("button");
+    pill.type = "button";
+    pill.id = "lessonOutbox";
+    pill.className = "outbox-pill";
+    pill.addEventListener("click", () => { llsOutboxRun(true); });
+    bar.prepend(pill);
+  }
+  let top = byId("topOutbox");
+  const actions = document.querySelector(".topbar-actions");
+  if (!top && actions) {
+    top = document.createElement("button");
+    top.type = "button";
+    top.id = "topOutbox";
+    top.className = "outbox-pill in-topbar";
+    top.addEventListener("click", () => { llsOutboxRun(true); });
+    actions.insertBefore(top, actions.firstChild);
+  }
+  const failed = box.filter((j) => j.error);
+  const text = !box.length ? "" : failed.length
+    ? `⚠ ${failed.length === 1 ? failed[0].className + " " + failed[0].date : failed.length + " lessons"} not sent: ${failed[0].error}. Tap to retry`
+    : `⏳ Sending ${box.length === 1 ? box[0].className : box.length + " lessons"} to Google…`;
+  [pill, top].forEach((el) => {
+    if (!el) return;
+    el.hidden = !box.length;
+    el.textContent = text;
+    el.classList.toggle("is-error", Boolean(failed.length));
+  });
+}
+
+async function llsOutboxRun(manual) {
+  clearTimeout(llsOutboxTimer);
+  if (llsOutboxBusy) return;
+  if (!sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY)) return; // resumes after login
+  llsOutboxBusy = true;
   try {
-    // 1. Register
-    const rows = [...document.querySelectorAll("#lessonRegister .reg-row")].map((r) => ({
-      studentId: r.dataset.student,
-      status: r.dataset.status || "Present",
-      notes: llsJoinRating(r.querySelector(".reg-rating")?.value || "", r.querySelector(".reg-note")?.value.trim() || "")
-    }));
-    if (rows.length) {
-      try { await llsApiPost({ action: "saveAttendance", classId: cls.id, lessonDate: date, rows }); done.push("register"); llsAttendanceLoadedKey = ""; }
-      catch (e) { failed.push("register: " + e.message); }
-    }
-    // 2. Homework (only if a title was written)
-    const hwTitle = value("lessonHwTitle").trim();
-    if (hwTitle) {
-      try {
-        const session = llsGetTeacherSession();
-        await llsApiPost({
-          action: "createHomework", classId: cls.id, teacherId: session?.teacherId || "",
-          title: hwTitle, description: value("lessonHwText").trim(),
-          assignedDate: date, dueDate: value("lessonHwDue")
-        });
-        done.push("homework (now in the students' app)");
-        setValue("lessonHwTitle", ""); setValue("lessonHwText", "");
-      } catch (e) { failed.push("homework: " + e.message); }
-    }
-    // 3. Lesson notes
-    const specialOn = byId("lessonSpecialOn")?.checked;
-    const specialTitle = value("lessonSpecialTitle").trim();
-    const note = { unit: specialOn ? LLS_SPECIAL_PREFIX + specialTitle : value("lessonUnitPage").trim(), whatWeDid: value("lessonDone").trim(), notes: value("lessonNotes").trim() };
-    if (specialOn && !note.whatWeDid) note.whatWeDid = specialTitle + " lesson";
-    const own = llsLesson.entries.find((e) => e.lessonDate === date);
-    const homeworkSet = hwTitle || (own ? own.homeworkSet : "");
-    if (note.whatWeDid || note.notes || homeworkSet) {
-      try {
-        await llsApiPost({ action: "saveLessonLog", classId: cls.id, lessonDate: date, ...note, homeworkSet });
-        done.push("lesson notes");
-      } catch (e) {
-        failed.push("notes: " + (/Unknown/i.test(e.message || "") ? "update the Apps Script to V23" : e.message));
+    let box = llsOutboxLoad();
+    for (const job of box) {
+      if (job.error && !manual) continue;
+      job.sending = true; job.error = ""; llsOutboxSave(box);
+      let problem = "";
+      for (const step of job.steps) {
+        if (step.done) continue;
+        try {
+          await llsApiPost(step.body);
+          step.done = true;
+          llsOutboxSave(box);
+        } catch (e) {
+          if (e && (e.transport || e.uncertain || /didn't answer|didn't confirm|no connection|HTTP/i.test(e.message || ""))) { problem = "retry"; }
+          else problem = e?.message || "error";
+          break;
+        }
+      }
+      job.sending = false;
+      job.tries = (job.tries || 0) + 1;
+      if (!problem) {
+        box = box.filter((j) => j !== job);
+        llsOutboxSave(box);
+        if (llsIsCurrentLesson(job)) llsAttendanceLoadedKey = "";
+        showToast(`✓ ${job.className} (${job.date}) is safely in Google Sheets.`, "success");
+      } else if (problem === "retry") {
+        llsOutboxSave(box);
+        break; // Google is slow or unreachable: try again later
+      } else {
+        job.error = problem === "UNAUTHORIZED" ? "please log in again" : problem;
+        llsOutboxSave(box);
       }
     }
-    if (failed.length) showToast(`Not saved: ${failed.join("; ")}`, "error");
-    else if (done.length) showToast(`Saved: ${done.join(", ")}.`, "success");
-    else showToast("Nothing to save yet.", "error");
-    llsLesson.loadedKey = "";
-    await llsRenderLesson();
   } finally {
-    button.disabled = false;
-    button.textContent = "💾 Save lesson";
+    llsOutboxBusy = false;
+    const left = llsOutboxLoad().filter((j) => !j.error);
+    if (left.length) {
+      const tries = Math.max(...left.map((j) => j.tries || 0));
+      llsOutboxTimer = setTimeout(() => llsOutboxRun(), Math.min(120000, 8000 * Math.max(1, tries)));
+    }
   }
 }
+
+function llsIsCurrentLesson(job) {
+  return job.classId === llsLesson.classId && job.date === (byId("lessonDate")?.value || "");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  llsOutboxPaint();
+  setTimeout(() => llsOutboxRun(), 1500);
+  window.addEventListener("online", () => llsOutboxRun());
+  window.addEventListener("beforeunload", (e) => {
+    if (llsOutboxLoad().some((j) => !j.error)) { e.preventDefault(); e.returnValue = ""; }
+  });
+});
 
 function llsInitLessonPage() {
   const dateInput = byId("lessonDate");
@@ -7630,6 +7785,7 @@ function llsInitLessonPage() {
 document.addEventListener("DOMContentLoaded", () => {
   byId("lessonDate")?.addEventListener("change", () => { llsLesson.loadedKey = ""; llsRenderLessonPicker(); llsRenderLesson(); });
   byId("lessonSaveButton")?.addEventListener("click", llsSaveLesson);
+  ["lessonUnitPage", "lessonDone", "lessonNotes"].forEach((id) => byId(id)?.addEventListener("input", () => { llsLesson.noteTouched = true; byId("lessonDone")?.classList.remove("needs"); }));
   byId("lessonSpecialOn")?.addEventListener("change", (e) => { llsSetSpecial(e.target.checked, value("lessonSpecialTitle")); if (e.target.checked) byId("lessonSpecialTitle")?.focus(); });
   byId("lessonSpecialTitle")?.addEventListener("input", llsMarkSpecialChip);
   document.querySelectorAll("#lessonSpecialChips [data-special]").forEach((b) => b.addEventListener("click", () => { setValue("lessonSpecialTitle", b.dataset.special); llsMarkSpecialChip(); }));
