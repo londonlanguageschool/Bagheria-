@@ -1,214 +1,292 @@
 /* =========================================================
-   LLS PORTAL THEME — matches the public website (index.html)
+   LLS PORTAL THEME v2 — "poster" style (owner's B1 poster, 27 Sept)
+   Light pastel ground with sky/yellow blobs, chunky dark-navy
+   headings (Poppins), handwritten accents (Patrick Hand), pastel
+   tiles (sky / butter / blush), dark navy pill buttons, yellow rays.
    Loaded AFTER portal.css. Look only: no layout logic lives here.
    To undo the restyle, remove the <link> to this file in portal.html.
-   Website palette: navy #062f67, sky #48bdf2, red #ef2f2f,
-   yellow #ffd84d, soft blue #eaf7ff. Pills, 900-weight headings.
 ========================================================= */
 
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Nunito:wght@500;600;700;800&family=Patrick+Hand&display=swap");
+
 :root {
-  --navy-950: #041f45;
-  --navy-900: #062f67;
-  --navy-800: #062f67;
-  --navy-700: #0d4a92;
-  --navy-100: #eaf7ff;
-  --navy-50: #f5fbff;
-  --red-700: #cf2222;
-  --red-600: #ef2f2f;
-  --red-100: #ffe8e8;
-  --sky: #48bdf2;
-  --sky-100: #eaf7ff;
-  --sun: #ffd84d;
-  --sun-100: #fff6cf;
-  --page-bg: #f5fbff;
-  --radius-md: 18px;
-  --radius-lg: 26px;
-  --shadow-sm: 0 4px 14px rgba(6, 47, 103, 0.06);
-  --shadow-md: 0 16px 36px rgba(6, 47, 103, 0.12);
+  --ink: #0f1b3d;            /* poster headline navy */
+  --pill: #16275c;           /* contact-bar navy */
+  --pill-hover: #22377a;
+  --sky: #3fb3f0;            /* rays */
+  --sky-tile: #dcefff;       /* pastel blue tile */
+  --sky-soft: #eef7ff;
+  --sun: #ffd23f;            /* rays / underline */
+  --butter: #fff1a8;         /* pastel yellow tile */
+  --butter-soft: #fff8d6;
+  --blush: #ffe1e1;          /* pastel pink tile */
+  --red: #ea2a2a;
+  --mint: #dff5e9;
+  --line: #dfe9f5;
+
+  --navy-950: #0f1b3d;
+  --navy-900: #0f1b3d;
+  --navy-800: #16275c;
+  --navy-700: #22377a;
+  --navy-100: #eef7ff;
+  --navy-50: #f6fbff;
+  --red-700: #c81f1f;
+  --red-600: #ea2a2a;
+  --red-100: #ffe1e1;
+  --ink-900: #0f1b3d;
+  --ink-800: #1f2b4d;
+  --ink-700: #34405f;
+  --page-bg: #f6fbff;
+  --radius-md: 22px;
+  --radius-lg: 30px;
+  --shadow-sm: 0 4px 14px rgba(15, 27, 61, 0.06);
+  --shadow-md: 0 16px 36px rgba(15, 27, 61, 0.12);
   --pop: cubic-bezier(.34, 1.56, .64, 1);
+  --display: "Poppins", "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --hand: "Patrick Hand", "Comic Sans MS", "Segoe Print", cursive;
 }
 
-/* ---------- page ground: the website's airy blue ---------- */
+/* ---------- ground: pale blue paper with poster blobs ---------- */
 body {
+  font-family: "Nunito", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
   background:
-    radial-gradient(circle at 85% -10%, rgba(72, 189, 242, 0.18), transparent 38%),
-    radial-gradient(circle at 10% 110%, rgba(255, 216, 77, 0.14), transparent 30%),
-    linear-gradient(135deg, #ffffff 0%, #f7fbff 55%, #edf8ff 100%) fixed;
+    radial-gradient(ellipse 420px 300px at 100% 0%, rgba(255, 210, 63, 0.55), transparent 70%),
+    radial-gradient(ellipse 380px 320px at 22% 0%, rgba(63, 179, 240, 0.20), transparent 70%),
+    radial-gradient(ellipse 460px 340px at 0% 100%, rgba(63, 179, 240, 0.22), transparent 70%),
+    radial-gradient(ellipse 360px 280px at 100% 100%, rgba(255, 210, 63, 0.25), transparent 70%),
+    #f6fbff fixed;
 }
 .main { background: transparent; }
 
-/* ---------- headings: bold navy like the site ---------- */
-.hero h2, .page-toolbar h2, .panel-header h2, .panel-header h3, .modal-header h2,
-.class-card h3, .admin-login-card h1, #page-lesson h2, #lessonClassName {
-  color: var(--navy-900);
-  font-weight: 900;
-  letter-spacing: -0.02em;
+/* ---------- chunky poster headings ---------- */
+h1, h2, h3, #pageTitle, .hero h2, .page-toolbar h2, .panel-header h2, .panel-header h3,
+.modal-header h2, .class-card h3, .admin-login-card h1, #lessonClassName, .stat-main strong {
+  font-family: var(--display);
+  color: var(--ink);
+  font-weight: 800;
+  letter-spacing: -0.025em;
 }
-.eyebrow, .section-label, .hero-kicker { color: var(--red-600); letter-spacing: 0.14em; font-weight: 800; }
+.page-toolbar h2, #page-lesson > .page-toolbar h2, .hero h2 { font-weight: 900; }
+/* yellow marker underline under each page title */
+.page-toolbar h2 {
+  display: inline-block;
+  background: linear-gradient(transparent 70%, rgba(255, 210, 63, 0.75) 70% 92%, transparent 92%);
+  padding-right: 4px;
+}
+.eyebrow, .section-label, .hero-kicker {
+  color: var(--red);
+  letter-spacing: 0.12em;
+  font-weight: 800;
+}
 
-/* ---------- sidebar ---------- */
+/* ---------- sidebar: light, like the poster ---------- */
 .sidebar {
   background:
-    radial-gradient(circle at 20% 0%, rgba(72, 189, 242, 0.35), transparent 34%),
-    radial-gradient(circle at 100% 100%, rgba(239, 47, 47, 0.22), transparent 30%),
-    linear-gradient(180deg, #062f67 0%, #041f45 100%);
+    radial-gradient(ellipse 260px 200px at 100% 0%, rgba(255, 210, 63, 0.35), transparent 70%),
+    radial-gradient(ellipse 280px 240px at 0% 100%, rgba(63, 179, 240, 0.22), transparent 70%),
+    rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  border-right: 1px solid var(--line);
+  box-shadow: 8px 0 30px rgba(15, 27, 61, 0.05);
 }
-.nav-item { border-radius: 999px; font-weight: 700; }
-.nav-item:hover { background: rgba(72, 189, 242, 0.16); transform: translateX(3px); }
+.brand-mark {
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff url("logo.png") center / 82% no-repeat;
+  box-shadow: 0 6px 16px rgba(15, 27, 61, 0.12);
+  transform: none;
+}
+.brand-mark-main { visibility: hidden; }
+.brand-copy strong { color: var(--ink); font-family: var(--display); font-weight: 900; letter-spacing: 0.02em; }
+.brand-copy span { color: var(--red); font-family: Georgia, "Times New Roman", serif; font-weight: 700; }
+.brand-tagline { color: #1d4ed8; font-family: var(--hand); font-style: normal; font-size: 1.05rem; opacity: 1; }
+.nav-item {
+  color: var(--ink-700);
+  border-radius: 999px;
+  font-weight: 800;
+  transition: background 160ms ease, transform 160ms var(--pop), color 160ms ease;
+}
+.nav-item:hover { background: var(--sky-tile); color: var(--ink); transform: translateX(3px); }
 .nav-item.active {
-  background: #ffffff;
-  color: var(--navy-900);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+  background: var(--pill);
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(22, 39, 92, 0.28);
 }
-.nav-item.active .nav-icon { color: var(--red-600); }
-.nav-item[data-page="lesson"] .nav-icon { color: var(--sun); }
-.nav-item.active[data-page="lesson"] .nav-icon { color: #e0a800; }
-.nav-badge { background: var(--sun); color: var(--navy-900); font-weight: 900; }
-.brand-tagline { color: var(--sun); opacity: 0.95; }
+.nav-icon { color: var(--sky); }
+.nav-item.active .nav-icon { color: var(--sun); }
+.nav-item[data-page="lesson"] .nav-icon { color: #e0a800; }
+.nav-item.active[data-page="lesson"] .nav-icon { color: var(--sun); }
+.nav-badge { background: var(--red); color: #ffffff; font-weight: 900; }
+.school-card { background: var(--butter-soft); border: 1px solid #f5e39a; }
+.school-card strong { color: var(--ink); }
+.school-card span { color: var(--ink-700); }
+.school-card-icon { background: var(--red); }
 
 /* ---------- top bar ---------- */
 .topbar {
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(246, 251, 255, 0.8);
   backdrop-filter: saturate(1.4) blur(10px);
-  border-bottom: 1px solid #e6edf5;
+  border-bottom: 1px solid var(--line);
 }
-.global-search input { border-radius: 999px; }
+.global-search input { border-radius: 999px; background: #ffffff; }
 .user-button, .icon-button { border-radius: 999px; }
-.avatar { background: linear-gradient(135deg, var(--sky), var(--navy-900)); }
+.avatar { background: var(--pill); }
 
-/* ---------- buttons: website pills ---------- */
-.button { border-radius: 999px; font-weight: 800; transition: transform 160ms var(--pop), box-shadow 160ms ease, background 160ms ease; }
+/* ---------- buttons: navy pills (poster "Contattaci ora" bar) ---------- */
+.button {
+  border-radius: 999px;
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0;
+  transition: transform 160ms var(--pop), box-shadow 160ms ease, background 160ms ease;
+}
 .button:hover { transform: translateY(-2px); }
 .button:active { transform: translateY(0) scale(0.98); }
 .button-primary {
-  background: var(--red-600);
-  box-shadow: 0 10px 22px rgba(239, 47, 47, 0.28);
+  background: var(--pill);
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(22, 39, 92, 0.26);
 }
-.button-primary:hover { background: var(--red-700); box-shadow: 0 14px 28px rgba(239, 47, 47, 0.34); }
-.button-secondary { background: #ffffff; border: 1.5px solid #d6e6f5; color: var(--navy-900); }
-.button-secondary:hover { border-color: var(--sky); background: var(--sky-100); }
-.row-action { border-radius: 999px; font-weight: 700; }
+.button-primary:hover { background: var(--pill-hover); box-shadow: 0 14px 28px rgba(22, 39, 92, 0.32); }
+.button-secondary { background: #ffffff; border: 2px solid var(--sky-tile); color: var(--ink); }
+.button-secondary:hover { border-color: var(--sky); background: var(--sky-soft); }
+.button-danger { background: var(--red); }
+.row-action { border-radius: 999px; font-weight: 800; }
 
-/* ---------- dashboard hero: sky → navy with a sticker ---------- */
+/* ---------- dashboard hero: white poster box with yellow frame ---------- */
 .hero {
   background:
-    radial-gradient(circle at 88% 20%, rgba(255, 255, 255, 0.22), transparent 18%),
-    radial-gradient(circle at 96% 110%, rgba(255, 216, 77, 0.55), transparent 26%),
-    linear-gradient(135deg, #48bdf2 -10%, #0d4a92 45%, #062f67 100%);
+    radial-gradient(ellipse 240px 160px at 100% 100%, rgba(255, 210, 63, 0.45), transparent 70%),
+    radial-gradient(ellipse 200px 140px at 0% 0%, rgba(63, 179, 240, 0.18), transparent 70%),
+    #ffffff;
+  border: 3px solid var(--sun);
   border-radius: var(--radius-lg);
+  box-shadow: 0 16px 36px rgba(15, 27, 61, 0.08);
+  color: var(--ink);
 }
-.hero h2 { color: #ffffff; }
-.hero .hero-kicker { color: var(--sun); }
+.hero h2 { color: var(--ink); font-size: clamp(1.6rem, 2.6vw, 2.3rem); }
+.hero p { color: var(--ink-700); }
+.hero p.hero-kicker, #page-dashboard .hero .hero-kicker { color: var(--red) !important; opacity: 1; }
+.hero .button-secondary { background: #ffffff; color: var(--ink); border-color: var(--sky-tile); }
 #page-dashboard .hero::after {
   content: "We make English fun!";
   position: absolute;
-  top: 18px;
+  top: 16px;
   right: 22px;
-  transform: rotate(3deg);
-  background: var(--sun);
-  color: var(--navy-900);
-  font-weight: 900;
-  font-size: 0.85rem;
-  padding: 8px 14px;
-  border-radius: 14px;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+  transform: rotate(-4deg);
+  background: var(--sky-tile);
+  color: var(--ink);
+  font-family: var(--hand);
+  font-size: 1.2rem;
+  padding: 8px 16px;
+  border-radius: 20px 20px 20px 4px;
   pointer-events: none;
 }
 @media (max-width: 760px) { #page-dashboard .hero::after { display: none; } }
 
-/* ---------- cards: rounded, coloured top stripe (like the course cards) ---------- */
+/* ---------- cards: pastel tiles like the poster's side boxes ---------- */
 .stat-card, .panel, .table-card, .class-card, .teacher-card, .finance-card, .report-card, .mini-stat, .pipeline-step {
   border-radius: var(--radius-md);
-  border-color: #e6edf5;
+  border-color: var(--line);
 }
-.stat-card, .class-card, .teacher-card, .finance-card, .report-card {
-  position: relative;
-  overflow: hidden;
-  transition: transform 180ms var(--pop), box-shadow 180ms ease;
+.stat-card, .finance-card, .mini-stat, .pipeline-step { border: 0; transition: transform 180ms var(--pop), box-shadow 180ms ease; }
+.stats-grid > :nth-child(4n+1), .finance-stats > :nth-child(3n+1), .attendance-summary-grid > :nth-child(4n+1), .pipeline > :nth-child(3n+1) { background: var(--sky-tile); }
+.stats-grid > :nth-child(4n+2), .finance-stats > :nth-child(3n+2), .attendance-summary-grid > :nth-child(4n+2), .pipeline > :nth-child(3n+2) { background: var(--butter); }
+.stats-grid > :nth-child(4n+3), .finance-stats > :nth-child(3n), .attendance-summary-grid > :nth-child(4n+3), .pipeline > :nth-child(3n) { background: var(--blush); }
+.stats-grid > :nth-child(4n), .attendance-summary-grid > :nth-child(4n) { background: var(--mint); }
+.stat-card:hover, .class-card:hover, .teacher-card:hover { transform: translateY(-4px) rotate(-0.4deg); box-shadow: var(--shadow-md); }
+.stat-icon { background: #ffffff !important; border-radius: 50%; width: 52px; height: 52px; flex-basis: 52px; font-size: 1.35rem; box-shadow: 0 6px 14px rgba(15, 27, 61, 0.08); }
+.stat-main span { color: var(--ink-700); font-weight: 800; }
+.stat-main strong { font-size: 1.9rem; }
+.stat-main small { color: var(--ink-700); }
+.class-card, .teacher-card, .report-card { position: relative; overflow: hidden; }
+.class-card::before, .teacher-card::before, .report-card::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 6px; background: var(--sun);
 }
-.stat-card::before, .class-card::before, .teacher-card::before, .finance-card::before, .report-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 5px;
-  background: var(--sun);
-}
-.stats-grid > :nth-child(4n+2)::before, .class-grid > :nth-child(3n+2)::before,
-.teacher-grid > :nth-child(3n+2)::before, .finance-stats > :nth-child(3n+2)::before, .reports-grid > :nth-child(3n+2)::before { background: var(--sky); }
-.stats-grid > :nth-child(4n+3)::before, .class-grid > :nth-child(3n)::before,
-.teacher-grid > :nth-child(3n)::before, .finance-stats > :nth-child(3n)::before, .reports-grid > :nth-child(3n)::before { background: var(--red-600); }
-.stats-grid > :nth-child(4n)::before { background: var(--navy-900); }
-.stat-card:hover, .class-card:hover, .teacher-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
-.stat-icon { border-radius: 16px; width: 50px; height: 50px; flex-basis: 50px; font-size: 1.3rem; }
-.stat-main strong { color: var(--navy-900); font-weight: 900; }
+.class-grid > :nth-child(3n+2)::before, .teacher-grid > :nth-child(3n+2)::before, .reports-grid > :nth-child(3n+2)::before { background: var(--sky); }
+.class-grid > :nth-child(3n)::before, .teacher-grid > :nth-child(3n)::before, .reports-grid > :nth-child(3n)::before { background: var(--red); }
 
 /* ---------- progress bars: game XP bar ---------- */
-.progress-track, .capacity-bar { border-radius: 999px; background: #e3eef9; }
+.progress-track, .capacity-bar { border-radius: 999px; background: var(--sky-tile); }
 .progress-fill, .capacity-bar > div {
   border-radius: 999px;
   background:
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.22) 0 8px, transparent 8px 16px),
-    linear-gradient(90deg, var(--sky), var(--navy-700));
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.25) 0 8px, transparent 8px 16px),
+    linear-gradient(90deg, var(--sky), var(--pill));
 }
 
 /* ---------- status badges ---------- */
 .status-badge { border-radius: 999px; font-weight: 800; }
 
-/* ---------- tables: keep the Actions column on screen ---------- */
-th { background: #f5fbff; color: #5a6b85; }
-tbody tr:hover { background: #f5fbff; }
+/* ---------- tables ---------- */
+th { background: var(--sky-soft); color: #4a5a7c; }
+tbody tr:hover { background: var(--sky-soft); }
+td { color: var(--ink-700); }
 .table-wrap th:last-child, .table-wrap td.table-actions-cell {
   position: sticky;
   right: 0;
   z-index: 1;
   background: #ffffff;
-  box-shadow: -10px 0 12px -10px rgba(6, 47, 103, 0.22);
+  box-shadow: -10px 0 12px -10px rgba(15, 27, 61, 0.22);
 }
-.table-wrap th:last-child { background: #f5fbff; }
-.table-wrap tbody tr:hover td.table-actions-cell { background: #f5fbff; }
+.table-wrap th:last-child { background: var(--sky-soft); }
+.table-wrap tbody tr:hover td.table-actions-cell { background: var(--sky-soft); }
+.student-avatar, .compact-avatar, .teacher-avatar { background: var(--sky-tile); color: var(--ink); }
 
 /* ---------- forms ---------- */
 .form-field input:focus, .form-field select:focus, .form-field textarea:focus,
 .filter-search input:focus, .filter-bar select:focus, .reg-note:focus {
   border-color: var(--sky);
-  box-shadow: 0 0 0 4px rgba(72, 189, 242, 0.22);
+  box-shadow: 0 0 0 4px rgba(63, 179, 240, 0.22);
   outline: none;
 }
 
-/* ---------- Lesson page: the teacher's "game board" ---------- */
-.lesson-chip { border-width: 1.5px; font-weight: 700; transition: transform 160ms var(--pop), background 160ms ease; }
-.lesson-chip:hover { transform: translateY(-2px); border-color: var(--sky); background: var(--sky-100); }
-.lesson-chip.active { background: var(--navy-900); border-color: var(--navy-900); box-shadow: 0 10px 20px rgba(6, 47, 103, 0.25); }
+/* ---------- Lesson page ---------- */
+.lesson-chip { border-width: 2px; border-color: var(--sky-tile); font-weight: 800; transition: transform 160ms var(--pop), background 160ms ease; }
+.lesson-chip:hover { transform: translateY(-2px); border-color: var(--sky); background: var(--sky-soft); }
+.lesson-chip.active, .lesson-chip.active:hover { background: var(--pill); border-color: var(--pill); color: #ffffff; box-shadow: 0 10px 20px rgba(22, 39, 92, 0.25); }
 .lesson-chip.active strong { color: var(--sun); }
-.lesson-unit { border-width: 1.5px; background: #ffffff; }
-.lesson-unit strong { color: var(--navy-900); font-weight: 900; }
-.lesson-unit button { background: var(--sky-100); border-color: #cfe8f8; color: var(--navy-900); font-weight: 900; }
+.lesson-unit { border-width: 2px; border-color: var(--sky-tile); background: #ffffff; }
+.lesson-unit strong { color: var(--ink); font-family: var(--display); font-weight: 900; }
+.lesson-unit button { background: var(--sky-tile); border-color: var(--sky-tile); color: var(--ink); font-weight: 900; }
 .lesson-unit button:hover { background: var(--sun); }
-.reg-row { border-radius: 14px; }
-.reg-btn { border-radius: 999px; border-width: 1.5px; font-weight: 700; transition: transform 160ms var(--pop), background 160ms ease; }
+.reg-row { border-radius: 16px; }
+.reg-btn { border-radius: 999px; border-width: 2px; font-weight: 800; transition: transform 160ms var(--pop), background 160ms ease; }
 .reg-btn:hover { transform: translateY(-1px); }
 .reg-btn.on { animation: llsPop 260ms var(--pop); }
-.reg-btn.on.reg-present { background: #dcf5e8; }
-.lesson-save-bar .button { box-shadow: 0 14px 30px rgba(239, 47, 47, 0.34); }
-.lesson-log-latest { border-left: 5px solid var(--sun); border-radius: 14px; background: var(--sun-100); }
+.reg-btn.on.reg-present { background: var(--mint); }
+.reg-btn.on.reg-late { background: var(--butter); }
+.reg-btn.on.reg-absent { background: var(--blush); }
+.lesson-save-bar .button { font-size: 1.1rem; box-shadow: 0 14px 30px rgba(22, 39, 92, 0.34); }
+.lesson-log-latest { border: 0; border-radius: 18px; background: var(--butter-soft); }
 
-/* ---------- toasts: a little celebration on success ---------- */
-.toast { border-radius: 16px; border-left-width: 6px; }
+/* Special lesson box */
+.lesson-special { border: 2px dashed var(--sky-tile); border-radius: 18px; padding: 12px 14px; margin-bottom: 14px; background: #ffffff; transition: background 160ms ease, border-color 160ms ease; }
+.lesson-special.on { border-style: solid; border-color: var(--sun); background: var(--butter-soft); }
+.lesson-special-toggle { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.lesson-special-toggle input { width: 20px; height: 20px; min-height: 0; margin: 2px 0 0; flex: none; accent-color: var(--pill); }
+.lesson-special-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.lesson-special-chips .lesson-chip { min-height: 38px; padding: 6px 12px; }
+
+/* ---------- toasts ---------- */
+.toast { border-radius: 18px; border-left-width: 6px; }
 .toast.success { border-left-color: #18a86b; }
 .toast.success strong::before { content: "🎉 "; }
 
 /* ---------- modals ---------- */
 .modal { border-radius: var(--radius-lg); }
-.modal-header { border-bottom-color: #e6edf5; }
+.modal-header { border-bottom-color: var(--line); }
 
-/* ---------- login: the website's front door ---------- */
+/* ---------- login: the poster itself ---------- */
 .admin-login-gate {
   background:
-    radial-gradient(circle at 80% 10%, rgba(72, 189, 242, 0.45), transparent 35%),
-    radial-gradient(circle at 10% 95%, rgba(255, 216, 77, 0.35), transparent 30%),
-    linear-gradient(135deg, #062f67, #0d4a92);
+    radial-gradient(ellipse 520px 380px at 100% 0%, rgba(255, 210, 63, 0.6), transparent 70%),
+    radial-gradient(ellipse 480px 380px at 0% 0%, rgba(63, 179, 240, 0.25), transparent 70%),
+    radial-gradient(ellipse 520px 380px at 0% 100%, rgba(63, 179, 240, 0.3), transparent 70%),
+    #f6fbff;
 }
-.admin-login-card { border-radius: 28px; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.3); }
+.admin-login-card { border-radius: 30px; border: 3px solid var(--sun); box-shadow: 0 30px 70px rgba(15, 27, 61, 0.16); }
 
 @keyframes llsPop { 0% { transform: scale(0.9); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
 
@@ -218,14 +296,18 @@ tbody tr:hover { background: #f5fbff; }
   .reg-btn.on { animation: none; }
 }
 
-/* dashboard banner date: yellow on blue */
-.hero p.hero-kicker, #page-dashboard .hero .hero-kicker { color: var(--sun) !important; opacity: 1; }
+/* banner buttons stay on one line */
+.hero .button { white-space: nowrap; }
 
-/* ---------- Special lesson box ---------- */
-.lesson-special { border: 1.5px dashed #cfe0f0; border-radius: 16px; padding: 12px 14px; margin-bottom: 14px; background: #fbfdff; transition: background 160ms ease, border-color 160ms ease; }
-.lesson-special.on { border-style: solid; border-color: var(--sun); background: var(--sun-100); }
-.lesson-special-toggle { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
-.lesson-special-toggle input { width: 20px; height: 20px; min-height: 0; margin: 2px 0 0; flex: none; accent-color: var(--red-600); }
-.lesson-special-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.lesson-special-chips .lesson-chip { min-height: 38px; padding: 6px 12px; }
-.lesson-chip.active:hover { background: var(--navy-900); border-color: var(--navy-900); color: #ffffff; }
+/* poster "sparkle rays" (yellow strokes) */
+.hero::before, .admin-login-card::before {
+  content: "";
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg stroke='%23ffd23f' stroke-width='7' stroke-linecap='round'%3E%3Cpath d='M10 40 L24 44'/%3E%3Cpath d='M16 18 L28 30'/%3E%3Cpath d='M38 6 L40 22'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+  pointer-events: none;
+}
+.hero::before { left: 6px; bottom: 4px; transform: rotate(180deg); opacity: .9; }
+.admin-login-card { position: relative; }
+.admin-login-card::before { right: -30px; top: -34px; }
