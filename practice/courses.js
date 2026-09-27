@@ -298,6 +298,8 @@
   // equally. Each homework, teacher test, review and mini test = 1 point;
   // each lesson practice set = 1/3 point (a whole lesson = 1 point).
   // Only things already set/unlocked count, so keeping up = 100%.
+  const RATING_POINTS = { "Excellent": 1, "Good": 0.8, "OK": 0.6, "Needs support": 0.4 };
+
   function progressPoints(opts) {
     const res = {};
     (opts.results || []).forEach(function (r) { res[String(r.setId)] = r; });
@@ -335,14 +337,23 @@
 
     const hwDone = Number(opts.homeworkDone) || 0, hwTotal = Number(opts.homeworkTotal) || 0;
     const ttDone = Number(opts.testsDone) || 0, ttTotal = Number(opts.testsTotal) || 0;
-    earned = hwDone + ttDone + examsDone + practiceEarned;
-    available = hwTotal + ttTotal + examsTotal + practiceAvailable;
+    // 27 Sept: each lesson the teacher rated ("How did they do?") = 1 point,
+    // earned by the rating (Excellent 1, Good 0.8, OK 0.6, Needs support 0.4).
+    let lessonEarned = 0, lessonCount = 0;
+    (opts.ratings || []).forEach(function (r) {
+      if (!Object.prototype.hasOwnProperty.call(RATING_POINTS, r)) return;
+      lessonCount += 1;
+      lessonEarned += RATING_POINTS[r];
+    });
+    earned = hwDone + ttDone + examsDone + practiceEarned + lessonEarned;
+    available = hwTotal + ttTotal + examsTotal + practiceAvailable + lessonCount;
     return {
       pct: available > 0 ? Math.round((earned / available) * 100) : 0,
       available: available,
       homework: [hwDone, hwTotal],
       tests: [ttDone + examsDone, ttTotal + examsTotal],
-      practice: [Math.round(practiceEarned * 10) / 10, Math.round(practiceAvailable * 10) / 10]
+      practice: [Math.round(practiceEarned * 10) / 10, Math.round(practiceAvailable * 10) / 10],
+      lessons: [Math.round(lessonEarned * 10) / 10, lessonCount]
     };
   }
 
@@ -350,6 +361,7 @@
   root.LLS_PRACTICE = {
     SET_TYPES: SET_TYPES,
     PASS_MARK: 0.5,
+    RATINGS: ["Excellent", "Good", "OK", "Needs support"],
     parseUnits: parseUnits,
     progressPoints: progressPoints,
     practiceSetIdsFor: practiceSetIdsFor,

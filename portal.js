@@ -5224,6 +5224,32 @@ let llsLivePortalData = { students: [], classes: [], enrolments: [] };
 let llsLiveAttendance = [];
 let llsAttendanceLoadedKey = "";
 
+/* 27 Sept: Google Apps Script drops replies (HTTP 404 / an HTML page)
+   when a browser fires many requests at once. Send at most 2 at a time. */
+let llsActiveRequests = 0;
+const llsRequestWaiters = [];
+async function llsFetch_(url, options) {
+  if (llsActiveRequests >= 2) await new Promise((resolve) => llsRequestWaiters.push(resolve));
+  llsActiveRequests++;
+  try {
+    return await fetch(url, options);
+  } finally {
+    llsActiveRequests--;
+    const next = llsRequestWaiters.shift();
+    if (next) next();
+  }
+}
+
+// Changes that are safe to send twice (logins, "set to this value" edits,
+// registers and notes that replace the same row). Anything that ADDS a row
+// is only retried with Apps Script V25, which recognises the receipt.
+const LLS_SAFE_TO_RESEND = new Set([
+  "adminLogin", "teacherPortalLogin", "teacherLogin", "studentCodeLogin",
+  "saveAttendance", "saveLessonLog", "updateClass", "updateStudent", "updateEnquiry",
+  "updateFee", "updateTeacher", "updateHomework", "markHomeworkStatus", "setSpeakingCoach"
+]);
+const LLS_LOGIN_ACTIONS = new Set(["adminLogin", "teacherPortalLogin", "teacherLogin"]);
+
 async function llsApiGet(action, params = {}) {
   const url = new URL(LLS_API_URL);
   url.searchParams.set("action", action);
@@ -5246,7 +5272,7 @@ async function llsApiGet(action, params = {}) {
       await new Promise((resolve) => setTimeout(resolve, attempt * 1200));
     }
     try {
-      const response = await fetch(url.toString(), { method: "GET", cache: "no-store", redirect: "follow" });
+      const response = await llsFetch_(url.toString(), { method: "GET", cache: "no-store", redirect: "follow" });
       if (!response.ok) { problem = `HTTP ${response.status}`; continue; }
       const raw = await response.text();
       try { data = JSON.parse(raw); } catch (_) { problem = "Apps Script did not return JSON."; continue; }
@@ -5255,7 +5281,7 @@ async function llsApiGet(action, params = {}) {
       problem = "no connection";
     }
   }
-  if (!data) throw new Error(`Google didn't answer (${problem}). Check the connection and try again.`);
+  if (!data) throw new Error(`Google didn't answer this time (${problem}). Wait a few seconds and try again.`);
   if (!data || data.success !== true) {
     if (data && data.error === "UNAUTHORIZED" && typeof llsHandleSessionExpired === "function") {
       llsHandleSessionExpired();
@@ -5274,7 +5300,9 @@ async function llsApiPost(body) {
     // 10 minutes, so re-sending after a lost reply never saves twice.
     requestId: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `r${Date.now()}${Math.random().toString(36).slice(2)}`
   });
-  const canRetry = (window.llsServerVersion || 0) >= 25;
+  const act = String(payload.action || "");
+  const canRetry = (window.llsServerVersion || 0) >= 25 ||
+    LLS_SAFE_TO_RESEND.has(act) || (act === "createStudentLink" && !payload.reset);
   let lastProblem = null;
   for (let attempt = 0; attempt < (canRetry ? 3 : 1); attempt++) {
     if (attempt) await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
@@ -5285,6 +5313,9 @@ async function llsApiPost(body) {
       lastProblem = error;
       console.warn("LLS save: reply lost, attempt", attempt + 1, error.message);
     }
+  }
+  if (LLS_LOGIN_ACTIONS.has(act) || act === "createStudentLink") {
+    throw new Error("Google didn't answer (" + (lastProblem?.message || "no reply") + "). Wait a few seconds and try again.");
   }
   const uncertain = new Error(
     "Google didn't confirm the save (" + (lastProblem?.message || "no reply") + "). " +
@@ -5312,7 +5343,7 @@ async function llsSendMutation_(payload) {
 
   try {
   if (getUrl.toString().length <= 7000) {
-    response = await fetch(getUrl.toString(), {
+    response = await llsFetch_(getUrl.toString(), {
       method: "GET",
       cache: "no-store",
       redirect: "follow"
@@ -5323,7 +5354,7 @@ async function llsSendMutation_(payload) {
     form.set("payload", JSON.stringify(payload));
     form.set("_", String(Date.now()));
 
-    response = await fetch(LLS_API_URL, {
+    response = await llsFetch_(LLS_API_URL, {
       method: "POST",
       body: form,
       cache: "no-store",
@@ -5956,7 +5987,14 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.reload();
     } catch (error) {
       if (errorEl) {
-        errorEl.textContent = error.message || "Login failed. Check the password and try again.";
+        const raw = String(error.message || "");
+        errorEl.textContent =
+          /Incorrect PIN/i.test(raw) ? "That PIN isn't right. Check it, or open \"Forgotten your PIN?\" below." :
+          /Teacher not found/i.test(raw) ? "No teacher has that ID or email. Try your Teacher ID (e.g. TCH0002)." :
+          /not active/i.test(raw) ? "This teacher account is switched off. Ask the office." :
+          /password/i.test(raw) && /incorrect|invalid|wrong/i.test(raw) ? "That password isn't right. Check Caps Lock and try again." :
+          raw || "Login failed. Check the password and try again.";
+        byId("loginForgot")?.setAttribute("open", "");
         errorEl.style.display = "block";
       }
     } finally {
@@ -6098,7 +6136,8 @@ async function loadStudentHomeworkProgress(studentId) {
           homeworkDone: done, homeworkTotal: total,
           testsDone, testsTotal: tests.length,
           results: Array.isArray(data.practice) ? data.practice : [],
-          books: llsBooksForStudent(studentId)
+          books: llsBooksForStudent(studentId),
+          ratings: (Array.isArray(data.attendance) ? data.attendance : []).map((a) => a.rating).filter(Boolean)
         })
       : { pct: total ? Math.round((done / total) * 100) : 0, available: total, tests: [0, 0], practice: [0, 0] };
     const pct = p.pct;
@@ -6109,6 +6148,7 @@ async function loadStudentHomeworkProgress(studentId) {
     const extra = [];
     if (p.tests[1]) extra.push(`Tests taken: ${p.tests[0]} of ${p.tests[1]}`);
     if (p.practice[1]) extra.push(`Practice: ${Math.round((p.practice[0] / p.practice[1]) * 100)}% of the lessons so far`);
+    if (p.lessons && p.lessons[1]) extra.push(`In class: ${Math.round((p.lessons[0] / p.lessons[1]) * 100)}% over ${p.lessons[1]} rated lessons`);
     const results = testResults.map((r) => {
       const t = tests.find((x) => x.testId === r.testId);
       return t ? `${t.title} ${r.first}/${r.total}` : "";
@@ -7030,7 +7070,7 @@ document.addEventListener("DOMContentLoaded", () => {
    the office (admin) sees everything and can open any view.
 ========================================================= */
 
-const LLS_TEACHER_PAGES = ["dashboard", "lesson", "classes", "attendance", "homework"];
+const LLS_TEACHER_PAGES = ["dashboard", "lesson", "classes", "homework"]; // 27 Sept: register lives on ★ Lesson
 
 function llsCoachRequestLabel(student) {
   if (!student?.coachRequest) return "";
@@ -7381,6 +7421,8 @@ async function llsRenderLesson() {
 
   const regBody = byId("lessonRegister");
   regBody.innerHTML = `<p class="muted">Loading…</p>`;
+  const saveBtn = byId("lessonSaveButton");
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Loading class…"; }
   byId("lessonLast").hidden = true;
   ["lessonDone", "lessonNotes", "lessonHwTitle", "lessonHwText"].forEach((id) => setValue(id, ""));
   setValue("lessonUnitPage", cls.currentUnit || "");
@@ -7407,7 +7449,13 @@ async function llsRenderLesson() {
       return `<div class="reg-row" data-student="${escapeHtml(id)}" data-status="${escapeHtml(status)}">
         <div class="reg-name">${escapeHtml(llsStudentName(st))}</div>
         <div class="reg-btns">${btn("Present", "✓ Here")}${btn("Late", "Late")}${btn("Absent", "Absent")}${btn("Excused", "Excused")}</div>
-        <input class="reg-note" type="text" placeholder="How did they do? (optional)" value="${escapeHtml(String(row["Notes"] || ""))}">
+        <div class="reg-how">
+          <select class="reg-rating" aria-label="How did they do?">
+            <option value="">How did they do?</option>
+            ${["Excellent", "Good", "OK", "Needs support"].map((r) => `<option value="${r}" ${llsSplitRating(row["Notes"]).rating === r ? "selected" : ""}>${{ Excellent: "⭐ Excellent", Good: "👍 Good", OK: "🙂 OK", "Needs support": "🤝 Needs support" }[r]}</option>`).join("")}
+          </select>
+          <input class="reg-note" type="text" placeholder="Note (optional)" value="${escapeHtml(llsSplitRating(row["Notes"]).note)}">
+        </div>
       </div>`;
     }).join("") : `<p class="muted">No students enrolled in this class yet.</p>`;
     regBody.querySelectorAll(".reg-btn").forEach((b) => b.addEventListener("click", () => {
@@ -7441,10 +7489,13 @@ async function llsRenderLesson() {
     llsLesson.homework = Array.isArray(hw.homework) ? hw.homework : [];
     llsLesson.status = Array.isArray(hw.status) ? hw.status : [];
     llsRenderLessonHomework(students.length);
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "💾 Save lesson"; }
   } catch (error) {
     console.error(error);
     llsLesson.loadedKey = "";
-    regBody.innerHTML = `<p class="muted">Could not load this lesson: ${escapeHtml(error.message || "")}</p>`;
+    regBody.innerHTML = `<p class="muted">Could not load this lesson: ${escapeHtml(error.message || "")} <button type="button" class="row-action" id="lessonRetry">Try again</button></p>`;
+    byId("lessonRetry")?.addEventListener("click", () => llsRenderLesson());
+    if (saveBtn) { saveBtn.textContent = "💾 Save lesson"; }
   }
 }
 
@@ -7458,6 +7509,15 @@ function llsRenderLessonHomework(classSize) {
     const due = h["Due Date"] ? ` · due ${formatDate(String(h["Due Date"]))}` : "";
     return `<div class="lesson-hw-item"><span>${escapeHtml(String(h["Title"] || ""))}<span class="muted">${escapeHtml(due)}</span></span><strong>${done}/${classSize} done</strong></div>`;
   }).join("") : "";
+}
+
+// "How did they do?" lives at the start of the attendance note: "[Good] note".
+function llsSplitRating(notes) {
+  const m = String(notes || "").match(/^\[(Excellent|Good|OK|Needs support)\]\s*/);
+  return { rating: m ? m[1] : "", note: m ? String(notes).slice(m[0].length) : String(notes || "") };
+}
+function llsJoinRating(rating, note) {
+  return [rating ? `[${rating}]` : "", note].filter(Boolean).join(" ");
 }
 
 function llsLessonCount() {
@@ -7504,7 +7564,7 @@ async function llsSaveLesson() {
     const rows = [...document.querySelectorAll("#lessonRegister .reg-row")].map((r) => ({
       studentId: r.dataset.student,
       status: r.dataset.status || "Present",
-      notes: r.querySelector(".reg-note")?.value.trim() || ""
+      notes: llsJoinRating(r.querySelector(".reg-rating")?.value || "", r.querySelector(".reg-note")?.value.trim() || "")
     }));
     if (rows.length) {
       try { await llsApiPost({ action: "saveAttendance", classId: cls.id, lessonDate: date, rows }); done.push("register"); llsAttendanceLoadedKey = ""; }

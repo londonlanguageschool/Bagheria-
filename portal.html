@@ -43,6 +43,11 @@
         <button class="button button-primary" type="submit" id="adminLoginSubmit">Log in</button>
         <p id="adminLoginError" class="form-error" style="display:none;"></p>
       </form>
+      <details class="login-forgot" id="loginForgot">
+        <summary>Forgotten your PIN, ID or password? · Password dimenticata?</summary>
+        <p><strong>Teachers:</strong> you can log in with your <b>email</b> instead of the Teacher ID. If the PIN doesn't work, ask the office: they set a new one in <b>Teachers → Edit → PIN</b> in a few seconds. After 8 wrong PINs the login pauses for 15 minutes.</p>
+        <p><strong>Office:</strong> the office password is kept by the director (Cole). Don't share it by WhatsApp.</p>
+      </details>
     </div>
   </div>
 
@@ -487,7 +492,7 @@
               <p class="section-label">Academic records</p>
               <h2>Attendance</h2>
               <p class="page-description">
-                Record attendance for each student and monitor attendance rates.
+                Office view of past registers, for corrections and exports. Teachers take the register, write the lesson notes and set homework on <a href="#lesson" data-page-target="lesson"><b>★ Lesson</b></a>.
               </p>
             </div>
 
@@ -552,7 +557,7 @@
             </div>
           </div>
 
-          <div class="panel lesson-log-panel" id="lessonLogPanel">
+          <div class="panel lesson-log-panel" id="lessonLogPanel" hidden>
             <p class="section-label" style="margin-top:0;">Lesson log: notes for the next teacher</p>
             <p class="muted" style="margin:4px 0 14px;">After the lesson, write what you did, the homework you set and anything the next teacher should know. Every teacher of this class (and the office) can read it. Saving again for the same date updates the entry.</p>
             <div class="form-grid">
@@ -693,6 +698,7 @@
             </div>
 
             <div class="lesson-save-bar">
+              <span class="lesson-save-hint">Saves the register, notes and homework together</span>
               <button class="button button-primary" id="lessonSaveButton" type="button">💾 Save lesson</button>
             </div>
           </div>

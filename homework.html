@@ -420,13 +420,28 @@
         .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
+    // 27 Sept: Google sometimes loses the reply. Reading, logging in and
+    // ticking homework are safe to repeat, so retry those up to 3 times.
+    const SAFE_TO_RESEND = ["studentCodeLogin", "studentMarkHomework", "studentRequestCoach"];
     async function api(params) {
-      const url = new URL(API_URL);
-      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-      url.searchParams.set("_", Date.now());
-      const response = await fetch(url.toString(), { cache: "no-store", redirect: "follow" });
-      const result = JSON.parse(await response.text());
-      if (!result || result.success !== true) throw new Error(result?.error || "Something went wrong.");
+      let inner = "";
+      try { inner = params.action === "mutate" ? JSON.parse(params.payload || "{}").action : ""; } catch (_) {}
+      const safe = params.action !== "mutate" || SAFE_TO_RESEND.indexOf(inner) !== -1;
+      let result = null, problem = "";
+      for (let attempt = 0; attempt < (safe ? 3 : 1); attempt++) {
+        if (attempt) await new Promise((r) => setTimeout(r, attempt * 1200));
+        const url = new URL(API_URL);
+        Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+        url.searchParams.set("_", Date.now());
+        try {
+          const response = await fetch(url.toString(), { cache: "no-store", redirect: "follow" });
+          if (!response.ok) { problem = "HTTP " + response.status; continue; }
+          result = JSON.parse(await response.text());
+          break;
+        } catch (_) { problem = "no reply"; }
+      }
+      if (!result) throw new Error("The connection dropped (" + problem + "). Try again · Connessione persa, riprova.");
+      if (result.success !== true) throw new Error(result?.error || "Something went wrong.");
       return result;
     }
 
@@ -523,7 +538,8 @@
             homeworkDone: hwDone, homeworkTotal: hwTotal,
             testsDone, testsTotal: tests.length,
             results: data.practice || [],
-            books: myBooks()
+            books: myBooks(),
+            ratings: (data.attendance || []).map((a) => a.rating).filter(Boolean)
           })
         : { pct: hwTotal ? Math.round((hwDone / hwTotal) * 100) : 0, available: hwTotal, homework: [hwDone, hwTotal], tests: [0, 0], practice: [0, 0] };
       const pct = p.pct;
@@ -538,6 +554,7 @@
       parts.push(hwTotal ? `Homework ${hwDone}/${hwTotal}` : "No homework yet");
       if (p.tests[1]) parts.push(`Tests ${p.tests[0]}/${p.tests[1]}`);
       if (p.practice[1]) parts.push(`Practice ${Math.round((p.practice[0] / p.practice[1]) * 100)}%`);
+      if (p.lessons && p.lessons[1]) parts.push(`In class ${Math.round((p.lessons[0] / p.lessons[1]) * 100)}%`);
       document.getElementById("progressSplit").textContent = parts.join(" · ");
       document.getElementById("classList").textContent = data.classes.length
         ? "Class: " + data.classes.map((c) => c["Class Name"]).join(", ")
@@ -599,7 +616,8 @@
       const hw = homeworkItems().filter((i) => i.done).length;
       const tests = (data.tests || []).filter((t) => testResultFor(t.testId)).length;
       const lessons = (data.attendance || []).filter((a) => a.status === "Present" || a.status === "Late").length;
-      return hw + tests + practice + checkpoints * 3 + lessons;
+      const excellent = (data.attendance || []).filter((a) => a.rating === "Excellent").length;
+      return hw + tests + practice + checkpoints * 3 + lessons + excellent;
     }
 
     function trailHtml(book) {
@@ -632,7 +650,9 @@
       const classById = {};
       data.classes.forEach((c) => { classById[String(c["Class ID"])] = c; });
       const att = {};
-      (data.attendance || []).forEach((a) => { att[a.classId + "|" + a.lessonDate] = a.status; });
+      const rate = {};
+      (data.attendance || []).forEach((a) => { att[a.classId + "|" + a.lessonDate] = a.status; rate[a.classId + "|" + a.lessonDate] = a.rating || ""; });
+      const RATE_LABEL = { Excellent: "⭐ Excellent!", Good: "👍 Good work", OK: "🙂 OK", "Needs support": "🤝 Keep going" };
       const steps = [];
       (data.lessons || []).forEach((l) => {
         const special = (String(l.unit || "").match(/^Special:\s*(.+)$/i) || [])[1];
@@ -643,7 +663,7 @@
           icon: special ? "⭐" : missed ? "💤" : "📘",
           cls: special ? "special" : missed ? "missed" : "lesson",
           title: special ? `Special lesson: ${special}` : (l.unit ? `Lesson · Unit ${l.unit}` : "Lesson · Lezione"),
-          sub: (missed ? "Missed · Assente — " : "") + (l.whatWeDid || classById[l.classId]?.["Class Name"] || "")
+          sub: (missed ? "Missed · Assente — " : (RATE_LABEL[rate[l.classId + "|" + l.lessonDate]] ? RATE_LABEL[rate[l.classId + "|" + l.lessonDate]] + " — " : "")) + (l.whatWeDid || classById[l.classId]?.["Class Name"] || "")
         });
       });
       homeworkItems().forEach((h) => {
