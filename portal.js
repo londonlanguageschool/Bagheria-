@@ -250,6 +250,10 @@ function navigateTo(page, updateHash = true) {
   if (!PAGE_TITLES[page]) {
     page = "dashboard";
   }
+  // V22: teachers only see the teaching pages.
+  if (typeof llsIsTeacher === "function" && llsIsTeacher() && LLS_TEACHER_PAGES.indexOf(page) === -1) {
+    page = "dashboard";
+  }
 
   document.querySelectorAll(".page").forEach((section) => {
     section.classList.toggle(
@@ -1564,6 +1568,8 @@ function renderClasses() {
         deleteClass(button.dataset.deleteClass);
       });
     });
+
+  if (typeof llsTeacherClassControls === "function") llsTeacherClassControls();
 
   container
     .querySelectorAll("[data-class-applinks]")
@@ -3625,6 +3631,17 @@ function renderNotifications() {
       });
     });
 
+  (state.students || [])
+    .filter((s) => s.coachRequest && !(s.coachUntil && s.coachUntil >= isoDate(new Date())))
+    .forEach((s) => {
+      const [date, plan] = s.coachRequest.split(" ");
+      notifications.push({
+        icon: "🗣",
+        title: "Speaking Coach request",
+        message: `${getStudentName(s)} · ${plan === "year" ? "€25 school year" : "€3 a month"} · asked ${formatDate(date)}`
+      });
+    });
+
   (llsHourPacks?.students || [])
     .filter((e) => e.hoursBought > 0 && e.hoursLeft <= 2)
     .forEach((e) => {
@@ -4853,7 +4870,8 @@ function llsApplyCorePortalData(payload) {
       joined: llsDateOnly(r["Joined"] || r.joined || ""),
       parent: r["Parent / Guardian"] || r.parent || "",
       notes: r["Notes"] || r.notes || "",
-      coachUntil: llsCoachIso(r["Speaking Coach Until"])
+      coachUntil: llsCoachIso(r["Speaking Coach Until"]),
+      coachRequest: String(r["Speaking Coach Request"] || "").replace(/^'/, "")
     };
   }).filter((student) => student.id);
 
@@ -5007,12 +5025,15 @@ window.addEventListener("load", async () => {
   // V15.2: fetch all four at once instead of one after another.
   // Finance needs student/class data to label fees, so re-render once
   // everything has arrived.
-  await Promise.all([
-    llsLoadCoreFromSheets(true),
-    llsLoadEnquiriesFromSheets(),
-    llsLoadFinanceFromSheets(true),
-    llsLoadTeachersFromSheets()
-  ]);
+  // V22: teachers only load teaching data (no enquiries or money).
+  await Promise.all(llsIsTeacher()
+    ? [llsLoadCoreFromSheets(true), llsLoadTeachersFromSheets()]
+    : [
+        llsLoadCoreFromSheets(true),
+        llsLoadEnquiriesFromSheets(),
+        llsLoadFinanceFromSheets(true),
+        llsLoadTeachersFromSheets()
+      ]);
   llsRebuildPaymentsState();
   renderAll();
 });
@@ -5766,6 +5787,15 @@ document.addEventListener("DOMContentLoaded", () => {
 ========================================================= */
 
 const LLS_ADMIN_TOKEN_KEY = "lls_admin_session_token";
+const LLS_ROLE_KEY = "lls_session_role";
+
+function llsRole() {
+  try { return sessionStorage.getItem(LLS_ROLE_KEY) || "admin"; } catch (_) { return "admin"; }
+}
+
+function llsIsTeacher() {
+  return llsHasAdminSession() && llsRole() === "teacher";
+}
 
 function llsHasAdminSession() {
   return !!sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY);
@@ -5802,6 +5832,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitBtn = byId("adminLoginSubmit");
   if (!form) return;
 
+  // V22: Office/Admin (password) or Teacher (ID + PIN).
+  let loginMode = "office";
+  const setMode = (mode) => {
+    loginMode = mode;
+    byId("officeLoginFields").hidden = mode !== "office";
+    byId("teacherLoginFields").hidden = mode !== "teacher";
+    byId("loginAsOffice").className = `button ${mode === "office" ? "button-primary" : "button-secondary"}`;
+    byId("loginAsTeacher").className = `button ${mode === "teacher" ? "button-primary" : "button-secondary"}`;
+    byId("loginAsOffice").setAttribute("aria-pressed", String(mode === "office"));
+    byId("loginAsTeacher").setAttribute("aria-pressed", String(mode === "teacher"));
+    text("loginHelp", mode === "office"
+      ? "Enter the portal password to continue."
+      : "Log in with your teacher ID (or email) and PIN. You'll see your classes, attendance and homework.");
+    (mode === "office" ? byId("adminLoginPassword") : byId("teacherLoginId"))?.focus();
+  };
+  byId("loginAsOffice")?.addEventListener("click", () => setMode("office"));
+  byId("loginAsTeacher")?.addEventListener("click", () => setMode("teacher"));
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const password = byId("adminLoginPassword")?.value || "";
@@ -5810,8 +5858,28 @@ document.addEventListener("DOMContentLoaded", () => {
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Logging in…"; }
 
     try {
+      if (loginMode === "teacher") {
+        const idOrEmail = value("teacherLoginId").trim();
+        const result = await llsApiPost({
+          action: "teacherPortalLogin",
+          teacherId: idOrEmail,
+          email: idOrEmail,
+          pin: value("teacherLoginPin").trim()
+        });
+        sessionStorage.setItem(LLS_ADMIN_TOKEN_KEY, result.token);
+        sessionStorage.setItem(LLS_ROLE_KEY, "teacher");
+        llsSetTeacherSession({
+          teacherId: result.teacher?.["Teacher ID"] || "",
+          name: result.teacher?.["Name"] || "Teacher",
+          email: result.teacher?.["Email"] || "",
+          role: result.teacher?.["Role"] || ""
+        });
+        window.location.reload();
+        return;
+      }
       const result = await llsApiPost({ action: "adminLogin", password });
       sessionStorage.setItem(LLS_ADMIN_TOKEN_KEY, result.token);
+      sessionStorage.setItem(LLS_ROLE_KEY, "admin");
       // Reload so every page-load data fetch (core data, finance,
       // teachers, enquiries) picks up the new session token cleanly.
       window.location.reload();
@@ -5829,6 +5897,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (logoutButton) {
     logoutButton.addEventListener("click", () => {
       sessionStorage.removeItem(LLS_ADMIN_TOKEN_KEY);
+      sessionStorage.removeItem(LLS_ROLE_KEY);
       // V15.1: don't leave student/parent data cached on this computer.
       try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
       try { sessionStorage.removeItem(LLS_TEACHER_SESSION_KEY); } catch (_) {}
@@ -5871,6 +5940,7 @@ async function openHomeworkLink(studentId, reset = false) {
     setValue("homeworkLinkUrl", link);
 
     byId("homeworkLinkWhatsApp").href = llsAppWhatsAppHref(student, link);
+    if (byId("homeworkLinkOpen")) byId("homeworkLinkOpen").href = link;
     text(
       "homeworkLinkNote",
       reset
@@ -6141,7 +6211,7 @@ function llsShowCoachBox(student) {
   box.hidden = false;
   box.dataset.studentId = student.id;
   setValue("studentCoachUntil", student.coachUntil || "");
-  text("studentCoachText", llsCoachLabel(student.coachUntil || ""));
+  text("studentCoachText", llsCoachLabel(student.coachUntil || "") + llsCoachRequestLabel(student));
 }
 
 async function llsSaveCoach(until) {
@@ -6534,7 +6604,8 @@ function llsRenderHourPacks() {
   const body = byId("hourPacksBody");
   if (!card || !body) return;
 
-  const signedIn = typeof llsHasAdminSession !== "function" || llsHasAdminSession();
+  const signedIn = (typeof llsHasAdminSession !== "function" || llsHasAdminSession()) &&
+    !(typeof llsIsTeacher === "function" && llsIsTeacher());
   if (signedIn && !llsHourPacks.loading && Date.now() - llsHourPacks.loadedAt > 60000) {
     llsHourPacks.loading = true;
     llsApiGet("getOneToOneHours")
@@ -6862,4 +6933,86 @@ document.addEventListener("DOMContentLoaded", () => {
   byId("deleteTestButton")?.addEventListener("click", llsDeleteOpenTest);
   byId("homeworkClassSelect")?.addEventListener("change", renderTeacherTests);
   llsCheckAiPanel();
+});
+
+
+/* =========================================================
+   V22 — ROLES: teacher logins see only the teaching pages;
+   the office (admin) sees everything and can open any view.
+========================================================= */
+
+const LLS_TEACHER_PAGES = ["dashboard", "classes", "attendance", "homework"];
+
+function llsCoachRequestLabel(student) {
+  if (!student?.coachRequest) return "";
+  const [date, plan] = student.coachRequest.split(" ");
+  return ` Requested in the app on ${formatDate(date)} (${plan === "year" ? "€25 school year" : "€3 a month"}): take payment, then set the date.`;
+}
+
+function llsApplyRole() {
+  if (!llsIsTeacher()) return;
+  document.body.classList.add("role-teacher");
+  document.querySelectorAll(".nav-item[data-page]").forEach((button) => {
+    if (LLS_TEACHER_PAGES.indexOf(button.dataset.page) === -1) button.hidden = true;
+  });
+  ["quickEnquiryButton", "quickStudentButton"].forEach((id) => { if (byId(id)) byId(id).hidden = true; });
+  ["statCollected", "statEnquiries", "recentEnquiriesList", "paymentProgressBar"].forEach((id) => {
+    const card = byId(id)?.closest("article");
+    if (card) card.hidden = true;
+  });
+  const session = llsGetTeacherSession();
+  const userCopy = document.querySelector("#userMenuButton .user-copy");
+  if (userCopy && session) {
+    userCopy.querySelector("strong").textContent = session.name || "Teacher";
+    userCopy.querySelector("span").textContent = "Teacher";
+    const avatar = document.querySelector("#userMenuButton .avatar");
+    if (avatar) avatar.textContent = (session.name || "T").trim().charAt(0).toUpperCase();
+  }
+  document.querySelectorAll('#userDropdown [data-page-target="settings"]').forEach((b) => { b.hidden = true; });
+  if (byId("homeworkLogoutButton")) byId("homeworkLogoutButton").hidden = true;
+  const page = (location.hash || "").replace("#", "");
+  if (page && LLS_TEACHER_PAGES.indexOf(page) === -1) navigateTo("dashboard");
+}
+
+// Teachers: class cards get "Change unit" instead of Edit / delete.
+function llsTeacherClassControls() {
+  if (!llsIsTeacher()) return;
+  document.querySelectorAll("[data-edit-class], [data-delete-class]").forEach((b) => { b.hidden = true; });
+  document.querySelectorAll("[data-class-results]").forEach((b) => {
+    const classId = b.dataset.classResults;
+    const cls = state.classes.find((c) => c.id === classId);
+    if (!cls || !cls.book || b.parentElement.querySelector("[data-class-unit]")) return;
+    const unit = document.createElement("button");
+    unit.className = "row-action";
+    unit.type = "button";
+    unit.dataset.classUnit = classId;
+    unit.textContent = `Unit ${cls.currentUnit || "?"} ✎`;
+    unit.addEventListener("click", async () => {
+      const next = window.prompt(`${cls.name}: which unit is the class on now?`, cls.currentUnit || "");
+      if (next == null) return;
+      const n = String(next).trim();
+      if (n && !/^\d{1,2}$/.test(n)) { showToast("Type a unit number, e.g. 3.", "error"); return; }
+      try {
+        await llsApiPost({ action: "updateClass", classId, fields: { "Current Unit": n } });
+        cls.currentUnit = n;
+        saveState();
+        renderClasses();
+        showToast(`${cls.name} is now on unit ${n}.`, "success");
+      } catch (error) {
+        showToast(error.message || "Could not save the unit.", "error");
+      }
+    });
+    b.parentElement.prepend(unit);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  llsApplyRole();
+
+  // Office: use the Homework page without a teacher PIN.
+  byId("homeworkOfficeButton")?.addEventListener("click", () => {
+    llsSetTeacherSession({ teacherId: "OFFICE", name: "Office", email: "", role: "Admin" });
+    renderHomeworkLoginState();
+  });
+  if (llsIsTeacher() && byId("homeworkOfficeButton")) byId("homeworkOfficeButton").closest(".form-field").hidden = true;
 });

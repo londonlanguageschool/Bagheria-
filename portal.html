@@ -19,11 +19,25 @@
     <div class="admin-login-card">
       <p class="eyebrow">LONDON LANGUAGE SCHOOL</p>
       <h1>Staff portal login</h1>
-      <p class="muted">Enter the portal password to continue.</p>
+      <div class="login-switch" role="tablist" style="display:flex;gap:8px;margin:12px 0 4px;">
+        <button class="button button-primary" type="button" id="loginAsOffice" aria-pressed="true">Office / Admin</button>
+        <button class="button button-secondary" type="button" id="loginAsTeacher" aria-pressed="false">Teacher</button>
+      </div>
+      <p class="muted" id="loginHelp">Enter the portal password to continue.</p>
       <form id="adminLoginForm">
-        <div class="form-field">
+        <div class="form-field" id="officeLoginFields">
           <label for="adminLoginPassword">Password</label>
-          <input id="adminLoginPassword" type="password" autocomplete="current-password" required>
+          <input id="adminLoginPassword" type="password" autocomplete="current-password">
+        </div>
+        <div id="teacherLoginFields" hidden>
+          <div class="form-field">
+            <label for="teacherLoginId">Teacher ID or email</label>
+            <input id="teacherLoginId" type="text" autocomplete="username" placeholder="e.g. TCH0002">
+          </div>
+          <div class="form-field">
+            <label for="teacherLoginPin">PIN</label>
+            <input id="teacherLoginPin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password">
+          </div>
         </div>
         <button class="button button-primary" type="submit" id="adminLoginSubmit">Log in</button>
         <p id="adminLoginError" class="form-error" style="display:none;"></p>
@@ -562,6 +576,12 @@
                   Log in
                 </button>
               </div>
+
+              <div class="form-field" style="align-self:end;">
+                <button class="button button-secondary" id="homeworkOfficeButton" type="button">
+                  Continue as office
+                </button>
+              </div>
             </div>
             <p id="homeworkLoginError" class="form-error" style="display:none;"></p>
           </div>
@@ -574,9 +594,41 @@
               </button>
             </div>
 
+            <div class="panel">
+              <p class="section-label" style="margin-top:0;">Assign homework</p>
+              <p class="muted" style="margin:4px 0 14px;">Choose the class, write the homework yourself (title, instructions and due date) and press <strong>Assign homework</strong>. It appears in the students' app straight away and counts towards their progress. You don't need the AI for this.</p>
+              <div class="form-grid">
+                <div class="form-field">
+                  <label for="homeworkClassSelect">Class</label>
+                  <select id="homeworkClassSelect"></select>
+                </div>
+
+                <div class="form-field form-field-wide">
+                  <label for="homeworkTitle">Title</label>
+                  <input id="homeworkTitle" type="text" placeholder="e.g. Unit 4 vocabulary sheet">
+                </div>
+
+                <div class="form-field form-field-wide">
+                  <label for="homeworkDescription">Description / instructions</label>
+                  <textarea id="homeworkDescription" rows="8"></textarea>
+                </div>
+
+                <div class="form-field">
+                  <label for="homeworkDueDate">Due date</label>
+                  <input id="homeworkDueDate" type="date">
+                </div>
+
+                <div class="form-field" style="align-self:end;">
+                  <button class="button button-primary" id="homeworkAssignButton" type="button">
+                    + Assign homework
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div class="panel" id="homeworkAiPanel">
-              <p class="section-label" style="margin-top:0;">Create with AI</p>
-              <p class="muted" style="margin:4px 0 14px;">Choose the class below, describe the topic, and the AI writes a draft that fills in the Title and Instructions. Always read and edit it before assigning.</p>
+              <p class="section-label" style="margin-top:0;">Optional: draft with AI</p>
+              <p class="muted" style="margin:4px 0 14px;">Only if you want help: describe the topic and the AI fills in the Title and Instructions above for the class you chose. Always read and edit it before assigning.</p>
               <div class="form-grid">
                 <div class="form-field form-field-wide">
                   <label for="homeworkAiTopic">Topic or lesson content</label>
@@ -608,36 +660,6 @@
                 </div>
               </div>
               <p id="homeworkAiMessage" class="muted" style="margin:10px 0 0;"></p>
-            </div>
-
-            <div class="panel">
-              <div class="form-grid">
-                <div class="form-field">
-                  <label for="homeworkClassSelect">Class</label>
-                  <select id="homeworkClassSelect"></select>
-                </div>
-
-                <div class="form-field form-field-wide">
-                  <label for="homeworkTitle">Title</label>
-                  <input id="homeworkTitle" type="text" placeholder="e.g. Unit 4 vocabulary sheet">
-                </div>
-
-                <div class="form-field form-field-wide">
-                  <label for="homeworkDescription">Description / instructions</label>
-                  <textarea id="homeworkDescription" rows="8"></textarea>
-                </div>
-
-                <div class="form-field">
-                  <label for="homeworkDueDate">Due date</label>
-                  <input id="homeworkDueDate" type="date">
-                </div>
-
-                <div class="form-field" style="align-self:end;">
-                  <button class="button button-primary" id="homeworkAssignButton" type="button">
-                    + Assign homework
-                  </button>
-                </div>
-              </div>
             </div>
 
             <div class="table-card">
@@ -1789,6 +1811,7 @@
       <div class="modal-actions">
         <button class="button button-secondary" id="homeworkLinkReset" type="button">Make new link</button>
         <button class="button button-secondary" id="homeworkLinkCopy" type="button">Copy link</button>
+        <a class="button button-secondary" id="homeworkLinkOpen" href="#" target="_blank" rel="noopener">Open app (see what they see)</a>
         <a class="button button-primary" id="homeworkLinkWhatsApp" href="#" target="_blank" rel="noopener">Send on WhatsApp</a>
       </div>
     </div>

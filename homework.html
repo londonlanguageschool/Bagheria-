@@ -227,6 +227,12 @@
     .coach-card .meta { color: #dbe7f7; }
     .coach-card select { margin-bottom: 10px; }
     .coach-card .primary { background: #fff; color: var(--navy-800); width: 100%; }
+    .coach-badge { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; background: var(--red-600); color: #fff; border-radius: 99px; padding: 2px 8px; vertical-align: middle; margin-left: 4px; }
+    .coach-list { margin: 0 0 10px; padding-left: 18px; font-size: 14px; display: grid; gap: 2px; }
+    .coach-card .coach-price { font-size: 20px; font-weight: 800; margin: 4px 0 10px; }
+    .coach-price span { font-size: 14px; font-weight: 500; opacity: .85; }
+    .coach-actions { display: grid; gap: 8px; }
+    .coach-sent { background: rgba(255,255,255,.15); border-radius: 10px; padding: 10px 12px; margin: 0; font-size: 14px; }
     .chat { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; }
     .bubble { max-width: 86%; padding: 10px 12px; border-radius: 14px; font-size: 16px; line-height: 1.4; overflow-wrap: anywhere; }
     .bubble.c { align-self: flex-start; background: var(--navy-50); border: 1px solid var(--ink-200); }
@@ -1223,11 +1229,25 @@
       const c = data.coach;
       if (!c) return "";
       if (!c.active) {
+        const req = String(c.requested || "");
+        const reqPlan = /year$/.test(req) ? "year" : "month";
         return `
           <section class="coach-card">
-            <h3>🗣️ AI Speaking Coach</h3>
-            <p>Have real conversations in English. The coach listens, answers and helps you fix your mistakes.</p>
-            <p class="meta" style="margin:0">Ask at the school office to switch it on. · Chiedi in segreteria per attivarlo.</p>
+            <h3>🗣️ AI Speaking Coach <span class="coach-badge">Extra</span></h3>
+            <p><strong>Parla inglese quando vuoi, anche a casa.</strong> Il Coach è un'intelligenza artificiale che ti ascolta, ti risponde a voce e ti mostra come correggere gli errori. · Talk in English any time: the coach listens, answers out loud and helps you fix your mistakes.</p>
+            <ul class="coach-list">
+              <li>Conversazioni sugli argomenti delle tue unità · Topics from your units</li>
+              <li>Una correzione gentile a ogni risposta · A gentle correction each time</li>
+              <li>Circa 60 minuti al mese · About 60 minutes a month</li>
+            </ul>
+            <p class="coach-price">€3 al mese <span>oppure</span> €25 per tutto l'anno</p>
+            ${req
+              ? `<p class="coach-sent">✓ Richiesta inviata (${reqPlan === "year" ? "€25 anno" : "€3 mese"}). Paga in segreteria e lo attiviamo. · Request sent: pay at the office and we'll switch it on.</p>`
+              : `<div class="coach-actions">
+                   <button class="primary" type="button" data-coach-plan="month">Voglio attivarlo · €3/mese</button>
+                   <button class="primary" type="button" data-coach-plan="year">Tutto l'anno · €25</button>
+                 </div>
+                 <p class="meta" style="margin:8px 0 0">Nessun pagamento online: paghi in segreteria. · No online payment: you pay at the office.</p>`}
           </section>`;
       }
       if (!c.ready) {
@@ -1256,6 +1276,22 @@
     }
 
     function bindCoachCard() {
+      document.querySelectorAll("[data-coach-plan]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          document.querySelectorAll("[data-coach-plan]").forEach((b) => { b.disabled = true; });
+          button.textContent = "Invio… · Sending…";
+          try {
+            const result = await api({
+              action: "mutate",
+              payload: JSON.stringify({ action: "studentRequestCoach", key: KEY, plan: button.dataset.coachPlan })
+            });
+            data.coach.requested = result.requested;
+          } catch (error) {
+            alert("Non è stato possibile inviare la richiesta. Riprova. · Could not send the request.");
+          }
+          render();
+        });
+      });
       const start = document.getElementById("coachStart");
       if (!start) return;
       start.addEventListener("click", () => {
