@@ -1320,6 +1320,31 @@
   </div>
 
   <!-- =========================
+       CLASS RESULTS MODAL (V20)
+  ========================== -->
+  <div class="modal-backdrop" id="classResultsModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="classResultsTitle" style="max-width: 980px;">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">Progress</p>
+          <h2 id="classResultsTitle">Class results</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="classResultsModal">×</button>
+      </div>
+      <p id="classResultsNote" style="margin: 0 0 12px; font-size: 13px; color: #56617a;">Mini tests show each student's FIRST score (best score in brackets if they retook it). Practice = lesson sets and reviews passed up to the current unit.</p>
+      <div style="overflow-x: auto;">
+        <table class="data-table" style="min-width: 560px;">
+          <thead id="classResultsHead"></thead>
+          <tbody id="classResultsBody"></tbody>
+        </table>
+      </div>
+      <div class="modal-actions">
+        <button class="button button-secondary" type="button" data-close-modal="classResultsModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================
        FEE PLAN MODAL (V19)
   ========================== -->
   <div class="modal-backdrop" id="feeModal">

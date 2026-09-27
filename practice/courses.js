@@ -228,6 +228,24 @@
     }, 0);
   });
 
+  // Reviews (every 3 units, practice mode) and mini tests (4 a year,
+  // teacher sees the first score). 10-unit books are taught over two
+  // years (units 1-5, 6-10), so their blocks follow those halves.
+  Object.keys(COURSES).forEach(function (id) {
+    const c = COURSES[id];
+    c.extra = "practice/" + id + "-extra.json";
+    if (c.unitCount === 12) {
+      c.reviews = [[1, 3], [4, 6], [7, 9], [10, 12]];
+      c.tests = [[1, 3], [4, 6], [7, 9], [10, 12]];
+    } else if (c.unitCount === 10) {
+      c.reviews = [[1, 3], [4, 5], [6, 8], [9, 10]];
+      c.tests = [[1, 2], [3, 3], [4, 4], [5, 5], [6, 7], [8, 8], [9, 9], [10, 10]];
+    } else {
+      c.reviews = [];
+      c.tests = [];
+    }
+  });
+
   // Every lesson has three practice sets: grammar, vocabulary, speaking.
   const SET_TYPES = ["g", "v", "s"];
 
@@ -258,6 +276,10 @@
       if (lesson.unit >= range.from && lesson.unit <= limit) {
         SET_TYPES.forEach(function (t) { ids.push(lesson.id + "-" + t); });
       }
+    });
+    // Reviews count too, once the class has reached the review's last unit.
+    (course.reviews || []).forEach(function (block, i) {
+      if (block[0] >= range.from && block[1] <= limit) ids.push(courseId + "-R" + (i + 1));
     });
     return ids;
   }

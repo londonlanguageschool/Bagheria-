@@ -1543,6 +1543,7 @@ function renderClasses() {
               <div style="width:${capacityPercentage}%"></div>
             </div>
           </div>
+          ${llsClassBookLine(item)}
         </article>
       `;
     })
@@ -1561,6 +1562,14 @@ function renderClasses() {
     .forEach((button) => {
       button.addEventListener("click", () => {
         deleteClass(button.dataset.deleteClass);
+      });
+    });
+
+  container
+    .querySelectorAll("[data-class-results]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        llsOpenClassResults(button.dataset.classResults);
       });
     });
 }
@@ -6406,3 +6415,67 @@ document.addEventListener("DOMContentLoaded", () => {
     byId(id)?.addEventListener("change", llsFeeEditorRefresh);
   });
 });
+
+
+/* =========================================================
+   V20 — CLASS RESULTS (mini tests + practice) per class
+========================================================= */
+
+function llsClassBookLine(item) {
+  const course = window.LLS_COURSES && LLS_COURSES[item.book];
+  if (!course) return "";
+  const parts = [course.title];
+  if (item.units) parts.push(`units ${item.units}`);
+  if (item.currentUnit) parts.push(`now unit ${item.currentUnit}`);
+  return `
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+      <span style="font-size: 13px; color: #56617a;">📘 ${escapeHtml(parts.join(" · "))}</span>
+      <button class="row-action" type="button" data-class-results="${escapeHtml(item.id)}">Results</button>
+    </div>`;
+}
+
+function llsTestsForClass(cls) {
+  const course = LLS_COURSES[cls.book];
+  const range = LLS_PRACTICE.parseUnits(cls.book, cls.units);
+  return (course.tests || [])
+    .map((block, i) => ({ block, n: i + 1 }))
+    .filter(({ block }) => block[0] >= range.from && block[1] <= range.to);
+}
+
+async function llsOpenClassResults(classId) {
+  const cls = state.classes.find((c) => c.id === classId);
+  if (!cls || !window.LLS_COURSES || !LLS_COURSES[cls.book]) return;
+  const tests = llsTestsForClass(cls);
+  text("classResultsTitle", `Results — ${cls.name}`);
+  byId("classResultsHead").innerHTML = `<tr><th>Student</th><th>Practice</th>${tests.map(({ block }) =>
+    `<th>Test ${block[0] === block[1] ? `U${block[0]}` : `U${block[0]}–${block[1]}`}</th>`).join("")}</tr>`;
+  byId("classResultsBody").innerHTML = `<tr><td colspan="${2 + tests.length}">Loading…</td></tr>`;
+  openModal("classResultsModal");
+
+  try {
+    const data = await llsApiGet("getClassResults", { classId });
+    const setIds = new Set(LLS_PRACTICE.practiceSetIdsFor(cls.book, cls.units, cls.currentUnit));
+    const rows = (data.students || []).sort((a, b) => a.name.localeCompare(b.name)).map((st) => {
+      const results = (data.results || {})[st.id] || [];
+      const byId_ = {};
+      results.forEach((r) => { byId_[r.setId] = r; });
+      const passedCount = [...setIds].filter((id) => {
+        const r = byId_[id];
+        return r && r.total > 0 && r.best / r.total >= LLS_PRACTICE.PASS_MARK;
+      }).length;
+      const cells = tests.map(({ n }) => {
+        const r = byId_[`${cls.book}-T${n}`];
+        if (!r) return `<td style="color:#8a93a6">—</td>`;
+        const first = r.first != null ? r.first : r.best;
+        const pct = Math.round((first / r.total) * 100);
+        const colour = pct >= 70 ? "#177b52" : pct >= 50 ? "#9a5a0c" : "#b3261e";
+        return `<td><strong style="color:${colour}">${first}/${r.total}</strong>${r.best !== first ? ` <span style="color:#8a93a6">(${r.best})</span>` : ""}</td>`;
+      }).join("");
+      return `<tr><td>${escapeHtml(st.name)}</td><td>${passedCount}/${setIds.size}</td>${cells}</tr>`;
+    });
+    byId("classResultsBody").innerHTML = rows.length ? rows.join("") : `<tr><td colspan="${2 + tests.length}">No students in this class yet.</td></tr>`;
+  } catch (error) {
+    console.error(error);
+    byId("classResultsBody").innerHTML = `<tr><td colspan="${2 + tests.length}">${/unknown action/i.test(error.message || "") ? "Update the Apps Script to V20 to see results." : "Could not load results."}</td></tr>`;
+  }
+}

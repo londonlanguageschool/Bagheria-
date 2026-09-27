@@ -158,6 +158,17 @@
     }
     .set.passed { border-color: var(--green-700); background: var(--green-100); color: var(--green-700); }
     .set.tried { border-color: var(--amber-700); background: var(--amber-100); color: var(--amber-700); }
+    .set.review { border-style: dashed; }
+    .set.test { border-color: var(--navy-800); background: #fff; color: var(--navy-800); }
+    .set.test.passed { border-color: var(--green-700); background: var(--green-100); color: var(--green-700); }
+    .set:disabled { opacity: .55; cursor: not-allowed; }
+    .extra-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0 4px; border-top: 1px dashed var(--ink-200); }
+    .option.picked { border-color: var(--navy-800); background: var(--navy-100); }
+    .answers { display: grid; gap: 10px; margin-top: 14px; text-align: left; }
+    .answer { border: 1px solid var(--ink-200); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+    .answer.ok { border-color: var(--green-700); }
+    .answer.no { border-color: var(--red-600); }
+    .answer p { margin: 2px 0; }
     .picker { background: var(--card); border: 1px solid var(--ink-200); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
     .picker label { font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px; }
     select.big, input.big {
@@ -321,8 +332,8 @@
 
     const COURSES = window.LLS_COURSES || {};
     const PRACTICE = window.LLS_PRACTICE;
-    const TYPE_NAMES = { g: "Grammar", v: "Vocabulary", s: "Speaking" };
-    const TYPE_IT = { g: "Grammatica", v: "Vocabolario", s: "Pronuncia" };
+    const TYPE_NAMES = { g: "Grammar", v: "Vocabulary", s: "Speaking", r: "Review", t: "Mini test" };
+    const TYPE_IT = { g: "Grammatica", v: "Vocabolario", s: "Pronuncia", r: "Ripasso", t: "Mini test" };
     const BOOK_STORE = "lls_practice_book";
     let tab = location.hash === "#practice" ? "practice" : "homework";
     let banks = {};
@@ -513,7 +524,7 @@
           Il tuo insegnante non ha ancora scelto il libro: scegline uno qui sotto.</div>`;
       }
 
-      books.forEach((b) => { html += courseCard(b.id, b.units, b.current, b.className); });
+      books.forEach((b) => { html += courseCard(b.id, b.units, b.current, b.className, true); });
 
       const shown = new Set(books.map((b) => b.id));
       if (extra && COURSES[extra] && !shown.has(extra)) html += courseCard(extra, "", "", "Extra practice · Esercizi extra");
@@ -536,11 +547,14 @@
         renderPractice();
       });
       main.querySelectorAll(".set").forEach((button) => {
-        button.addEventListener("click", () => startSet(button.dataset.course, button.dataset.lesson, button.dataset.type));
+        button.addEventListener("click", () => {
+          if (button.dataset.kind) startExtra(button.dataset.course, button.dataset.kind, Number(button.dataset.n));
+          else startSet(button.dataset.course, button.dataset.lesson, button.dataset.type);
+        });
       });
     }
 
-    function courseCard(courseId, unitsText, currentText, label) {
+    function courseCard(courseId, unitsText, currentText, label, isClassBook) {
       const course = COURSES[courseId];
       const range = PRACTICE.parseUnits(courseId, unitsText);
       const current = Number(currentText) || 0;
@@ -569,10 +583,34 @@
             </div>`;
         }).join("");
         const isNow = current === n;
+
+        // Review after every 3 units; mini tests (class books only) open
+        // when the class reaches the test's last unit.
+        let extras = "";
+        (course.reviews || []).forEach((block, i) => {
+          if (block[1] !== n) return;
+          const r = res[`${courseId}-R${i + 1}`];
+          const cls = passed(r) ? "passed" : (r ? "tried" : "");
+          const mark = r ? ` ${passed(r) ? "✓" : ""} ${r.best}/${r.total}` : "";
+          extras += `<button class="set review ${cls}" type="button" data-course="${esc(courseId)}" data-kind="r" data-n="${i + 1}">🔁 Review units ${block[0]}–${block[1]}${esc(mark)}</button>`;
+        });
+        if (isClassBook) {
+          (course.tests || []).forEach((block, i) => {
+            if (block[1] !== n || block[1] < range.from || block[0] > range.to) return;
+            const r = res[`${courseId}-T${i + 1}`];
+            const open = !current || current >= block[1];
+            const units = block[0] === block[1] ? `unit ${block[0]}` : `units ${block[0]}–${block[1]}`;
+            const mark = r ? ` ✓ ${r.first != null ? r.first : r.best}/${r.total}` : "";
+            extras += `<button class="set test ${r ? "passed" : ""}" type="button" data-course="${esc(courseId)}" data-kind="t" data-n="${i + 1}" ${open ? "" : "disabled"}>📝 Mini test (${units})${open ? esc(mark) : " · 🔒"}</button>`;
+          });
+        }
+        if (extras) extras = `<div class="extra-row">${extras}</div>`;
+
         return `
           <details class="unit" ${isNow || (!current && n === range.from) ? "open" : ""}>
             <summary><span>Unit ${n}${isNow ? '<span class="now">Now · Adesso</span>' : ""}</span><span class="count">${ok}/${all}</span></summary>
             ${rows}
+            ${extras}
           </details>`;
       };
 
@@ -647,6 +685,48 @@
       }
     }
 
+    async function loadExtra(courseId) {
+      const key = courseId + "|extra";
+      if (banks[key]) return banks[key];
+      const response = await fetch(COURSES[courseId].extra, { cache: "no-cache" });
+      if (!response.ok) throw new Error("extra");
+      banks[key] = await response.json();
+      return banks[key];
+    }
+
+    async function startExtra(courseId, kind, n) {
+      const main = document.getElementById("main");
+      main.innerHTML = `<div class="empty">Loading… · Caricamento…</div>`;
+      try {
+        const course = COURSES[courseId];
+        const bank = await loadExtra(courseId);
+        const K = kind === "t" ? "T" : "R";
+        const items = (kind === "t" ? bank.tests : bank.reviews)?.[K + n];
+        const block = (kind === "t" ? course.tests : course.reviews)[n - 1];
+        if (!Array.isArray(items) || !items.length || !block) throw new Error("missing");
+        const units = block[0] === block[1] ? `unit ${block[0]}` : `units ${block[0]}–${block[1]}`;
+        quiz = {
+          courseId, code: K + n, type: kind, n,
+          lesson: { code: K + n, title: kind === "t" ? `Mini test · ${units}` : `Review · ${units}`, grammar: "", vocab: "" },
+          setId: `${courseId}-${K}${n}`,
+          items: items.map((q) => {
+            if (!Array.isArray(q.o)) return { ...q };
+            const order = shuffle(q.o.map((_, i) => i));
+            return { ...q, o: order.map((i) => q.o[i]), a: order.indexOf(q.a) };
+          }),
+          index: 0,
+          answers: [],
+          finished: false,
+          saveState: ""
+        };
+        window.scrollTo(0, 0);
+        render();
+      } catch (error) {
+        quiz = null;
+        main.innerHTML = `<div class="error">Could not load this practice. Check your connection and try again. · Controlla la connessione e riprova.</div>`;
+      }
+    }
+
     function questionHtml(text) {
       return esc(text).replace(/_{2,}/g, '<span class="blank">&nbsp;</span>');
     }
@@ -684,10 +764,13 @@
     function renderQuiz() {
       const main = document.getElementById("main");
       const q = quiz;
-      const label = `${q.lesson.code} ${TYPE_NAMES[q.type]} · ${TYPE_IT[q.type]}`;
+      const label = q.type === "t" ? "Mini test"
+        : q.type === "r" ? `${TYPE_NAMES[q.type]} · ${TYPE_IT[q.type]}`
+        : `${q.lesson.code} ${TYPE_NAMES[q.type]} · ${TYPE_IT[q.type]}`;
       const dots = q.items.map((_, i) => {
         const a = q.answers[i];
-        const cls = a === undefined ? (i === q.index && !q.finished ? "cur" : "") : (a ? "ok" : "no");
+        const cls = a === undefined ? (i === q.index && !q.finished ? "cur" : "")
+          : (q.type === "t" && !q.finished ? "cur" : (a ? "ok" : "no"));
         return `<span class="${cls}"></span>`;
       }).join("");
 
@@ -702,7 +785,8 @@
             <button class="link" type="button" id="quizBack">← Back · Indietro</button>
             <span>${esc(label)}</span>
           </div>
-          <p class="lesson-topic" style="margin:0">${esc(q.lesson.title)} · ${esc(q.type === "v" ? q.lesson.vocab : q.lesson.grammar)}</p>
+          <p class="lesson-topic" style="margin:0">${esc([q.lesson.title, q.type === "v" ? q.lesson.vocab : q.lesson.grammar].filter(Boolean).join(" · "))}</p>
+          ${q.type === "t" && !q.finished ? `<p class="note" style="margin-top:8px">Mini test: answer all the questions, then see your score and the answers. Your first score goes to your teacher. · Il primo risultato va all'insegnante.</p>` : ""}
           <div class="dots">${dots}</div>
           ${body}
         </section>`;
@@ -723,7 +807,8 @@
         html += `<div class="options">` + item.o.map((option, i) => {
           let cls = "";
           if (answered) {
-            if (i === item.a) cls = "right";
+            if (quiz.type === "t") cls = i === item.picked ? "picked" : "";
+            else if (i === item.a) cls = "right";
             else if (i === item.picked) cls = "wrong";
           }
           return `<button class="option ${cls}" type="button" data-i="${i}" ${answered ? "disabled" : ""}>${esc(option)}</button>`;
@@ -737,7 +822,9 @@
           </form>`;
       }
 
-      if (answered) {
+      if (answered && q.type === "t") {
+        html += `<div class="actions"><button class="primary" type="button" id="nextQ">${q.index + 1 < q.items.length ? "Next · Avanti →" : "Finish · Fine"}</button></div>`;
+      } else if (answered) {
         const right = q.answers[q.index];
         const answerText = Array.isArray(item.o) ? item.o[item.a] : item.a[0];
         html += `
@@ -811,7 +898,8 @@
           <div>${ok ? "🎉 Great work! · Ottimo lavoro!" : "💪 Keep practising! · Continua così!"}</div>
           <div class="big-score">${got} / ${total}</div>
           <div class="saved" id="savedText">${esc(saved)}</div>
-          ${ok ? "" : `<p class="note">You need ${Math.ceil(total * PRACTICE.PASS_MARK)} or more to count towards your progress. · Ne servono almeno ${Math.ceil(total * PRACTICE.PASS_MARK)}.</p>`}
+          ${ok || quiz.type === "t" ? "" : `<p class="note">You need ${Math.ceil(total * PRACTICE.PASS_MARK)} or more to count towards your progress. · Ne servono almeno ${Math.ceil(total * PRACTICE.PASS_MARK)}.</p>`}
+          ${quiz.type === "t" ? answerList() : ""}
         </div>
         <div class="actions">
           ${quiz.saveState === "failed" ? `<button class="secondary" type="button" id="retrySave">Save again · Riprova</button>` : ""}
@@ -820,9 +908,25 @@
         </div>`;
     }
 
+    function answerList() {
+      return `<div class="answers">` + quiz.items.map((item, i) => {
+        const right = quiz.answers[i];
+        const mine = Array.isArray(item.o) ? (item.o[item.picked] ?? "—") : (item.typed || "—");
+        const correct = Array.isArray(item.o) ? item.o[item.a] : item.a[0];
+        return `<div class="answer ${right ? "ok" : "no"}">
+          <p><strong>${i + 1}. ${right ? "✓" : "✗"}</strong> ${questionHtml(item.q)}</p>
+          ${right ? "" : `<p>Your answer · La tua risposta: ${esc(mine)}</p><p><strong>Answer · Risposta: ${esc(correct)}</strong></p>`}
+          <p class="meta">${esc(item.e || "")}</p>
+        </div>`;
+      }).join("") + `</div>`;
+    }
+
     function bindResult() {
       const main = document.getElementById("main");
-      main.querySelector("#again").addEventListener("click", () => startSet(quiz.courseId, quiz.code, quiz.type));
+      main.querySelector("#again").addEventListener("click", () => {
+        if (quiz.type === "r" || quiz.type === "t") startExtra(quiz.courseId, quiz.type, quiz.n);
+        else startSet(quiz.courseId, quiz.code, quiz.type);
+      });
       main.querySelector("#done").addEventListener("click", () => { quiz = null; render(); });
       const retry = main.querySelector("#retrySave");
       if (retry) retry.addEventListener("click", saveResult);
@@ -840,7 +944,7 @@
         });
         data.practice = data.practice || [];
         const existing = data.practice.find((r) => r.setId === q.setId);
-        const row = { setId: q.setId, best: result.best, total: result.total, attempts: result.attempts, date: result.date };
+        const row = { setId: q.setId, best: result.best, total: result.total, attempts: result.attempts, date: result.date, first: existing && existing.first != null ? existing.first : got };
         if (existing) Object.assign(existing, row);
         else data.practice.push(row);
         q.saveState = "saved";
