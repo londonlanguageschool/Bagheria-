@@ -290,6 +290,7 @@ function navigateTo(page, updateHash = true) {
   }
 
   if (page === "homework") {
+    try { llsTestFromLesson = false; } catch (_) {}
     if (typeof renderHomeworkLoginState === "function") renderHomeworkLoginState();
   }
 
@@ -6851,7 +6852,15 @@ function llsBooksForStudent(studentId) {
 let llsTeacherTests = { classId: "", tests: [], results: [] };
 let llsOpenTestId = "";
 
+// Quizzes can be made from the Homework page (office) or the Lesson page
+// (teachers). llsTestClassId() is whichever class the teacher is working on.
+let llsTestFromLesson = false;
+function llsTestClassId() {
+  return llsTestFromLesson ? (llsLesson.classId || "") : value("homeworkClassSelect");
+}
+
 async function renderTeacherTests() {
+  if (llsTestFromLesson) { llsRenderLessonTests(); return; }
   const body = byId("teacherTestsBody");
   if (!body) return;
   const classId = value("homeworkClassSelect");
@@ -6948,10 +6957,10 @@ function llsAddTestQuestion(kind, data = {}) {
 function llsOpenNewTest() {
   const session = llsGetTeacherSession();
   if (!session) { showToast("Log in first.", "error"); return; }
-  if (!value("homeworkClassSelect")) { showToast("Choose a class first.", "error"); return; }
+  if (!llsTestClassId()) { showToast("Choose a class first.", "error"); return; }
   byId("testForm").reset();
   byId("testQuestions").innerHTML = "";
-  const cls = state.classes.find((c) => c.id === value("homeworkClassSelect"));
+  const cls = state.classes.find((c) => c.id === llsTestClassId()) || llsLessonClasses().find((c) => c.id === llsTestClassId());
   text("testModalTitle", `New test — ${cls ? cls.name : ""}`);
   llsAddTestQuestion("mc");
   openModal("testModal");
@@ -6990,7 +6999,7 @@ async function llsSaveTest(event) {
   try {
     await llsApiPost({
       action: "createTeacherTest",
-      classId: value("homeworkClassSelect"),
+      classId: llsTestClassId(),
       teacherId: session?.teacherId || "",
       title,
       dueDate: value("testDue"),
@@ -7060,7 +7069,7 @@ document.addEventListener("DOMContentLoaded", () => {
   byId("addTypedQuestion")?.addEventListener("click", () => llsAddTestQuestion("typed"));
   byId("testForm")?.addEventListener("submit", llsSaveTest);
   byId("deleteTestButton")?.addEventListener("click", llsDeleteOpenTest);
-  byId("homeworkClassSelect")?.addEventListener("change", renderTeacherTests);
+  byId("homeworkClassSelect")?.addEventListener("change", () => { llsTestFromLesson = false; renderTeacherTests(); });
   llsCheckAiPanel();
 });
 
@@ -7070,7 +7079,7 @@ document.addEventListener("DOMContentLoaded", () => {
    the office (admin) sees everything and can open any view.
 ========================================================= */
 
-const LLS_TEACHER_PAGES = ["dashboard", "lesson", "classes", "homework"]; // 27 Sept: register lives on ★ Lesson
+const LLS_TEACHER_PAGES = ["lesson", "classes"]; // 27 Sept: register, feedback, homework and quizzes all on ★ Lesson
 
 function llsCoachRequestLabel(student) {
   if (!student?.coachRequest) return "";
@@ -7481,6 +7490,9 @@ async function llsRenderLesson() {
     byId("lessonHistory").innerHTML = `<p class="muted">${escapeHtml(e.message || "")}</p>`;
   });
 
+  llsTestFromLesson = true;
+  llsRenderLessonTests();
+
   // Homework already set for this class
   llsApiGet("getHomeworkForClass", { classId: cls.id }).then((hw) => {
     if (llsLesson.loadedKey !== key) return;
@@ -7488,6 +7500,30 @@ async function llsRenderLesson() {
     llsLesson.status = Array.isArray(hw.status) ? hw.status : [];
     llsRenderLessonHomework(students.length);
   }).catch(() => {});
+}
+
+// Section 4 of the Lesson page: this class's quizzes.
+async function llsRenderLessonTests() {
+  const box = byId("lessonTests");
+  const classId = llsLesson.classId;
+  if (!box || !classId) return;
+  box.innerHTML = `<p class="muted">Loading…</p>`;
+  try {
+    const data = await llsApiGet("getTeacherTestsForClass", { classId });
+    if (llsLesson.classId !== classId) return;
+    llsTeacherTests = { classId, tests: data.tests || [], results: data.results || [] };
+    const total = llsStudentsForClass(classId).length;
+    box.innerHTML = llsTeacherTests.tests.length ? llsTeacherTests.tests.map((t) => {
+      const rs = llsTeacherTests.results.filter((r) => r.testId === t.testId);
+      const avg = rs.length ? Math.round(rs.reduce((sum, r) => sum + (r.total ? r.first / r.total : 0), 0) / rs.length * 100) : null;
+      return `<div class="lesson-hw-item"><span>📝 ${escapeHtml(t.title)}<span class="muted"> · ${t.count} questions</span></span>
+        <span style="display:flex;gap:8px;align-items:center"><strong>${rs.length}/${total} done${avg == null ? "" : ` · ${avg}%`}</strong>
+        <button class="row-action" type="button" data-lesson-test="${escapeHtml(t.testId)}">Results</button></span></div>`;
+    }).join("") : `<p class="muted">No quizzes yet for this class.</p>`;
+    box.querySelectorAll("[data-lesson-test]").forEach((b) => b.addEventListener("click", () => llsOpenTestResults(b.dataset.lessonTest)));
+  } catch (error) {
+    box.innerHTML = `<p class="muted">Couldn't load quizzes: ${escapeHtml(error.message || "")}</p>`;
+  }
 }
 
 function llsFillLessonNote(entry, cls) {
@@ -7785,6 +7821,7 @@ function llsInitLessonPage() {
 document.addEventListener("DOMContentLoaded", () => {
   byId("lessonDate")?.addEventListener("change", () => { llsLesson.loadedKey = ""; llsRenderLessonPicker(); llsRenderLesson(); });
   byId("lessonSaveButton")?.addEventListener("click", llsSaveLesson);
+  byId("lessonNewTest")?.addEventListener("click", () => { llsTestFromLesson = true; llsOpenNewTest(); });
   ["lessonUnitPage", "lessonDone", "lessonNotes"].forEach((id) => byId(id)?.addEventListener("input", () => { llsLesson.noteTouched = true; byId("lessonDone")?.classList.remove("needs"); }));
   byId("lessonSpecialOn")?.addEventListener("change", (e) => { llsSetSpecial(e.target.checked, value("lessonSpecialTitle")); if (e.target.checked) byId("lessonSpecialTitle")?.focus(); });
   byId("lessonSpecialTitle")?.addEventListener("input", llsMarkSpecialChip);
