@@ -5391,6 +5391,7 @@ async function renderLiveAttendance() {
 
     body.querySelectorAll(".live-attendance-status").forEach(el => el.addEventListener("change", llsRefreshAttendanceStats));
     llsRefreshAttendanceStats();
+    if (typeof llsLoadLessonLog === "function") llsLoadLessonLog();
   } catch (error) {
     console.error(error);
     body.innerHTML = `<tr><td colspan="4"><div class="empty-state">Could not load live attendance: ${escapeHtml(error.message)}</div></td></tr>`;
@@ -7015,4 +7016,123 @@ document.addEventListener("DOMContentLoaded", () => {
     renderHomeworkLoginState();
   });
   if (llsIsTeacher() && byId("homeworkOfficeButton")) byId("homeworkOfficeButton").closest(".form-field").hidden = true;
+});
+
+
+/* ============================================================
+   V23 — LESSON LOG (notes for the next teacher)
+   Shown on the Attendance page for the chosen class and date.
+   ============================================================ */
+let llsLessonLogEntries = [];
+let llsLessonLogClass = "";
+
+function llsLessonLogEntryHtml(entry) {
+  const rows = [
+    ["Unit", entry.unit],
+    ["What we did", entry.whatWeDid],
+    ["Homework", entry.homeworkSet],
+    ["Notes", entry.notes]
+  ].filter(([, v]) => String(v || "").trim());
+  const date = entry.lessonDate ? new Date(entry.lessonDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : "";
+  return `
+    <div class="lesson-log-entry">
+      <div class="lesson-log-meta"><strong>${escapeHtml(date)}</strong> · ${escapeHtml(entry.teacherName || "—")}</div>
+      <dl>${rows.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join("")}</dl>
+    </div>`;
+}
+
+function llsFillLessonLogForm() {
+  const lessonDate = document.getElementById("attendanceDate")?.value || "";
+  const classId = document.getElementById("attendanceClassSelect")?.value || "";
+  const own = llsLessonLogEntries.find(e => e.lessonDate === lessonDate);
+  const cls = (llsLivePortalData.classes || []).find(c => String(c["Class ID"] || "") === classId) || {};
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ""; };
+  set("lessonLogUnit", own ? own.unit : String(cls["Current Unit"] || ""));
+  set("lessonLogDone", own ? own.whatWeDid : "");
+  set("lessonLogHomework", own ? own.homeworkSet : "");
+  set("lessonLogNotes", own ? own.notes : "");
+  const btn = document.getElementById("lessonLogSaveButton");
+  if (btn) btn.textContent = own ? "Update lesson notes" : "Save lesson notes";
+
+  const latestBox = document.getElementById("lessonLogLatest");
+  const list = document.getElementById("lessonLogList");
+  const earlier = llsLessonLogEntries.filter(e => !lessonDate || e.lessonDate < lessonDate);
+  if (latestBox) {
+    if (earlier.length) {
+      latestBox.hidden = false;
+      latestBox.innerHTML = `<h3>📝 Last lesson in this class</h3>${llsLessonLogEntryHtml(earlier[0])}
+        <p class="muted" style="margin:8px 0 0;">Write today's notes at the bottom of this page after the register.</p>`;
+    } else {
+      latestBox.hidden = true;
+      latestBox.innerHTML = "";
+    }
+  }
+  if (list) {
+    list.innerHTML = llsLessonLogEntries.length
+      ? llsLessonLogEntries.map(llsLessonLogEntryHtml).join("")
+      : `<p class="muted">No lesson notes for this class yet.</p>`;
+  }
+}
+
+async function llsLoadLessonLog(force = false) {
+  const classId = document.getElementById("attendanceClassSelect")?.value || "";
+  const list = document.getElementById("lessonLogList");
+  if (!classId) {
+    llsLessonLogEntries = []; llsLessonLogClass = "";
+    if (list) list.innerHTML = `<p class="muted">Choose a class.</p>`;
+    const latestBox = document.getElementById("lessonLogLatest"); if (latestBox) latestBox.hidden = true;
+    return;
+  }
+  if (force || llsLessonLogClass !== classId) {
+    if (list) list.innerHTML = `<p class="muted">Loading…</p>`;
+    try {
+      const data = await llsApiGet("getLessonLog", { classId, limit: 20 });
+      llsLessonLogEntries = Array.isArray(data.entries) ? data.entries : [];
+      llsLessonLogClass = classId;
+    } catch (error) {
+      llsLessonLogEntries = []; llsLessonLogClass = "";
+      const msg = /Unknown action/i.test(error.message || "")
+        ? "The lesson log needs the latest Apps Script (V23). Ask the office to update it."
+        : "Could not load lesson notes: " + (error.message || "");
+      if (list) list.innerHTML = `<p class="muted">${escapeHtml(msg)}</p>`;
+      const latestBox = document.getElementById("lessonLogLatest"); if (latestBox) latestBox.hidden = true;
+      return;
+    }
+  }
+  llsFillLessonLogForm();
+}
+
+async function llsSaveLessonLog() {
+  const classId = document.getElementById("attendanceClassSelect")?.value || "";
+  const lessonDate = document.getElementById("attendanceDate")?.value || "";
+  const val = id => (document.getElementById(id)?.value || "").trim();
+  if (!classId || !lessonDate) { showToast("Choose a class and lesson date.", "error"); return; }
+  const body = {
+    action: "saveLessonLog", classId, lessonDate,
+    unit: val("lessonLogUnit"), whatWeDid: val("lessonLogDone"),
+    homeworkSet: val("lessonLogHomework"), notes: val("lessonLogNotes")
+  };
+  if (!body.whatWeDid && !body.homeworkSet && !body.notes) { showToast("Write at least one line.", "error"); return; }
+  const btn = document.getElementById("lessonLogSaveButton");
+  const label = btn ? btn.textContent : "";
+  if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+  try {
+    await llsApiPost(body);
+    showToast("Lesson notes saved. Other teachers can see them now.", "success");
+    await llsLoadLessonLog(true);
+  } catch (error) {
+    console.error(error);
+    showToast(/Unknown action/i.test(error.message || "") ? "Update the Apps Script to V23 first." : (error.message || "Notes could not be saved."), "error");
+    if (btn) btn.textContent = label;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const classSelect = document.getElementById("attendanceClassSelect");
+  const dateInput = document.getElementById("attendanceDate");
+  document.getElementById("lessonLogSaveButton")?.addEventListener("click", llsSaveLessonLog);
+  classSelect?.addEventListener("change", () => llsLoadLessonLog());
+  dateInput?.addEventListener("change", () => llsLoadLessonLog());
 });

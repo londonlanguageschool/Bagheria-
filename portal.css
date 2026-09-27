@@ -2485,3 +2485,15 @@ tbody tr:hover {
 .admin-login-card button {
   width: 100%;
 }
+
+/* V23 lesson log */
+.lesson-log-panel { margin-top: 18px; }
+.lesson-log-latest { margin-bottom: 16px; border-left: 4px solid var(--navy-700); }
+.lesson-log-latest h3 { margin: 0 0 6px; font-size: 1rem; }
+.lesson-log-list { display: grid; gap: 12px; }
+.lesson-log-entry { border: 1px solid var(--ink-100); border-radius: var(--radius-md); padding: 12px 14px; background: var(--white); }
+.lesson-log-entry .lesson-log-meta { font-size: .85rem; color: var(--ink-500, #667); margin-bottom: 6px; }
+.lesson-log-entry dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; }
+.lesson-log-entry dt { font-weight: 600; }
+.lesson-log-entry dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 600px) { .lesson-log-entry dl { grid-template-columns: 1fr; } .lesson-log-entry dd { margin-bottom: 6px; } }

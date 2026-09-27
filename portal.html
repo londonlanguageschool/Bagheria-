@@ -528,6 +528,8 @@
             </article>
           </div>
 
+          <div class="panel lesson-log-latest" id="lessonLogLatest" hidden></div>
+
           <div class="table-card">
             <div class="table-wrap">
               <table>
@@ -542,6 +544,34 @@
                 <tbody id="attendanceTableBody"></tbody>
               </table>
             </div>
+          </div>
+
+          <div class="panel lesson-log-panel" id="lessonLogPanel">
+            <p class="section-label" style="margin-top:0;">Lesson log: notes for the next teacher</p>
+            <p class="muted" style="margin:4px 0 14px;">After the lesson, write what you did, the homework you set and anything the next teacher should know. Every teacher of this class (and the office) can read it. Saving again for the same date updates the entry.</p>
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="lessonLogUnit">Unit / page</label>
+                <input id="lessonLogUnit" type="text" placeholder="e.g. 2B, p.18">
+              </div>
+              <div class="form-field form-field-wide">
+                <label for="lessonLogDone">What we did</label>
+                <textarea id="lessonLogDone" rows="3" placeholder="e.g. 2B grammar (past simple), vocab game, listening p.19"></textarea>
+              </div>
+              <div class="form-field form-field-wide">
+                <label for="lessonLogHomework">Homework set</label>
+                <textarea id="lessonLogHomework" rows="2" placeholder="e.g. Workbook p.12 ex 1–3"></textarea>
+              </div>
+              <div class="form-field form-field-wide">
+                <label for="lessonLogNotes">Notes for the next teacher</label>
+                <textarea id="lessonLogNotes" rows="3" placeholder="e.g. Didn't finish the reading. Marco was absent, give him the sheet."></textarea>
+              </div>
+              <div class="form-field" style="align-self:end;">
+                <button class="button button-primary" id="lessonLogSaveButton" type="button">Save lesson notes</button>
+              </div>
+            </div>
+            <p class="section-label" style="margin-top:22px;">Previous lessons in this class</p>
+            <div id="lessonLogList" class="lesson-log-list"><p class="muted">Choose a class.</p></div>
           </div>
         </section>
 
