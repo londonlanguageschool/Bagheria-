@@ -5600,11 +5600,29 @@ function populateHomeworkClassSelect() {
     !item["Status"] || String(item["Status"]).trim().toLowerCase() === "active"
   );
 
-  select.innerHTML = classes.length
-    ? classes.map(item => `<option value="${escapeHtml(String(item["Class ID"] || ""))}">${escapeHtml(String(item["Class Name"] || item["Class ID"] || "Class"))}</option>`).join("")
-    : `<option value="">No active classes</option>`;
+  // Teachers: their own classes first, and preselect the class open on the
+  // Lesson page (or their first class) instead of the first class overall.
+  const names = typeof llsMyNames === "function" ? llsMyNames() : null;
+  const isMine = (item) => {
+    if (!names) return false;
+    const words = String(item["Teacher"] || "").toLowerCase().split(/[^a-zà-ú]+/);
+    return words.some((w) => names.has(w));
+  };
+  const option = (item) => `<option value="${escapeHtml(String(item["Class ID"] || ""))}">${escapeHtml(String(item["Class Name"] || item["Class ID"] || "Class"))}</option>`;
+  const mine = classes.filter(isMine);
+  const others = classes.filter((c) => !isMine(c));
+  select.innerHTML = !classes.length
+    ? `<option value="">No active classes</option>`
+    : mine.length
+      ? `<optgroup label="My classes">${mine.map(option).join("")}</optgroup><optgroup label="Other classes">${others.map(option).join("")}</optgroup>`
+      : classes.map(option).join("");
 
-  if (classes.some(item => String(item["Class ID"] || "") === previous)) select.value = previous;
+  const has = (id) => id && classes.some((item) => String(item["Class ID"] || "") === id);
+  let lessonClass = "";
+  try { lessonClass = llsLesson.classId || ""; } catch (_) { /* Lesson page not initialised yet */ }
+  if (has(previous)) select.value = previous;
+  else if (has(lessonClass)) select.value = lessonClass;
+  else if (mine.length) select.value = String(mine[0]["Class ID"] || "");
 }
 
 async function renderHomeworkList() {

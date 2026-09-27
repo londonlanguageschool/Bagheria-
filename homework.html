@@ -258,6 +258,48 @@
     .login-card .primary { width: 100%; min-height: 50px; font-size: 17px; }
     .login-msg { min-height: 1.2em; color: #b3261e; font-weight: 600; font-size: 14px; }
     .login-tips { font-size: 14px; color: var(--ink-600); background: var(--navy-50); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; }
+
+    /* ===== Website look + game feel (27 Sept). Visual only. ===== */
+    :root {
+      --navy-950: #041f45; --navy-800: #062f67; --navy-100: #eaf7ff; --navy-50: #f5fbff;
+      --red-600: #ef2f2f; --sky: #48bdf2; --sun: #ffd84d; --sun-100: #fff6cf; --page: #f5fbff;
+    }
+    body { background: linear-gradient(160deg, #ffffff 0%, #f5fbff 50%, #eaf7ff 100%) fixed; }
+    header {
+      position: relative; overflow: hidden;
+      background:
+        radial-gradient(circle at 90% 0%, rgba(255, 216, 77, .45), transparent 32%),
+        radial-gradient(circle at 0% 100%, rgba(72, 189, 242, .55), transparent 40%),
+        linear-gradient(140deg, #0d4a92 0%, #062f67 70%);
+      padding-bottom: 34px;
+    }
+    header h1 { font-size: 30px; font-weight: 900; letter-spacing: -.02em; }
+    .brand span { color: var(--sun); opacity: 1; }
+    .progress-card { border-radius: 22px; border: 1px solid #e6edf5; box-shadow: 0 16px 36px rgba(6, 47, 103, .14); position: relative; overflow: hidden; }
+    .progress-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 5px; background: linear-gradient(90deg, var(--sun), var(--sky), var(--red-600)); }
+    .progress-top strong { color: var(--navy-800); font-weight: 900; }
+    .progress-top span { background: var(--sun); color: var(--navy-800); font-weight: 900; border-radius: 99px; padding: 2px 10px; }
+    .bar { height: 16px; background: #e3eef9; }
+    .bar div {
+      background: repeating-linear-gradient(45deg, rgba(255,255,255,.25) 0 8px, transparent 8px 16px), linear-gradient(90deg, var(--sky), #18a86b);
+      background-size: 32px 100%, 100% 100%;
+      animation: llsStripes 1.2s linear infinite;
+    }
+    @keyframes llsStripes { to { background-position: 32px 0, 0 0; } }
+    h2 { color: var(--navy-800); font-weight: 900; }
+    .item, .course { border-radius: 18px; border-color: #e6edf5; box-shadow: 0 4px 14px rgba(6, 47, 103, .06); }
+    .item.done { background: #f1fbf6; border-color: #bfe8d3; }
+    .tick { border-radius: 999px; transition: transform .16s cubic-bezier(.34,1.56,.64,1); }
+    .tick:active { transform: scale(.94); }
+    .tick.is-done { background: #18a86b; border-color: #18a86b; box-shadow: 0 8px 18px rgba(24, 168, 107, .3); }
+    .tab { border-radius: 999px; }
+    .tab[aria-selected="true"] { background: var(--navy-800); box-shadow: 0 10px 20px rgba(6, 47, 103, .25); }
+    .set { border-radius: 999px; }
+    .set.passed::before { content: "⭐ "; }
+    .now { background: var(--sun); color: var(--navy-800); }
+    .lls-burst { position: fixed; pointer-events: none; z-index: 999; font-size: 22px; animation: llsBurst .9s ease-out forwards; }
+    @keyframes llsBurst { from { transform: translate(0, 0) scale(.6); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) scale(1.2) rotate(var(--rot)); opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .bar div { animation: none; } .lls-burst { display: none; } }
   </style>
 </head>
 <body>
@@ -544,7 +586,9 @@
         const existing = data.status.find((s) => String(s["Homework ID"]) === id);
         if (existing) existing["Status"] = next;
         else data.status.push({ "Homework ID": id, "Status": next });
+        const rect = button.getBoundingClientRect();
         render();
+        if (next === "Done" && window.llsCelebrate) window.llsCelebrate(rect);
       } catch (error) {
         button.disabled = false;
         button.textContent = next === "Done" ? "Mark done" : "Done ✓";
@@ -1530,6 +1574,29 @@
     }
 
     load();
+  </script>
+
+  <script>
+    // Little celebration when a student marks homework done (visual only).
+    (function () {
+      var EMOJI = ["⭐", "🎉", "✨", "💫", "🌟"];
+      function burst(r) {
+        for (var i = 0; i < 12; i++) {
+          var s = document.createElement("span");
+          s.className = "lls-burst";
+          s.textContent = EMOJI[i % EMOJI.length];
+          s.style.left = (r.left + r.width / 2 - 11) + "px";
+          s.style.top = (r.top + r.height / 2 - 11) + "px";
+          var a = (Math.PI * 2 * i) / 12;
+          s.style.setProperty("--dx", Math.round(Math.cos(a) * 70) + "px");
+          s.style.setProperty("--dy", Math.round(Math.sin(a) * 70 - 20) + "px");
+          s.style.setProperty("--rot", (i * 40) + "deg");
+          document.body.appendChild(s);
+          setTimeout(function (n) { return function () { n.remove(); }; }(s), 950);
+        }
+      }
+      window.llsCelebrate = function (rect) { try { burst(rect); } catch (e) {} };
+    })();
   </script>
 </body>
 </html>
