@@ -737,6 +737,28 @@
               </table>
             </div>
           </div>
+
+          <div class="table-card" id="hourPacksCard" style="margin-top: 20px;" hidden>
+            <div style="padding: 16px 18px 4px;">
+              <h3 style="margin: 0 0 4px;">1-2-1 hour packs</h3>
+              <p style="margin: 0; font-size: 13px; color: #56617a;">Hours used come from 1-2-1 attendance: Present, Late and Absent count. Mark a lesson <strong>Excused</strong> if the student cancelled at least 24 hours before, or if the school cancelled it (it will be made up), and it won't count.</p>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Hours bought</th>
+                    <th>Used</th>
+                    <th>Left</th>
+                    <th>Last lesson</th>
+                    <th class="table-actions-cell">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="hourPacksBody"></tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
         <!-- =========================
@@ -1132,7 +1154,7 @@
                 <select id="conversionPaymentPlan">
                   <option value="Full payment">Full payment</option>
                   <option value="3 instalments" selected>3 instalments</option>
-                  <option value="Monthly">Monthly</option>
+                  <option value="10-hour pack">10-hour pack (1-2-1)</option><option value="Monthly">Monthly</option>
                   <option value="Other">Other (see notes)</option>
                 </select>
               </div>
@@ -1370,7 +1392,7 @@
             <select id="feeEditPlan">
               <option value="Full payment">Full payment</option>
               <option value="3 instalments">3 instalments</option>
-              <option value="Monthly">Monthly</option>
+              <option value="10-hour pack">10-hour pack (1-2-1)</option><option value="Monthly">Monthly</option>
               <option value="Other">Other (see notes)</option>
             </select>
           </div>
@@ -1473,7 +1495,7 @@
             <select id="paymentPlan">
               <option value="Full payment">Full payment</option>
               <option value="3 instalments" selected>3 instalments</option>
-              <option value="Monthly">Monthly</option>
+              <option value="10-hour pack">10-hour pack (1-2-1)</option><option value="Monthly">Monthly</option>
               <option value="Other">Other (see notes)</option>
             </select>
             <div id="paymentDueDates" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">

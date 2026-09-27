@@ -2132,6 +2132,7 @@ function renderPayments() {
     );
 
   updateFinanceStats();
+  llsRenderHourPacks();
 
   if (!payments.length) {
     body.innerHTML = tableEmptyRow(
@@ -3613,6 +3614,16 @@ function renderNotifications() {
         title: "Outstanding balance",
         message:
           `${getStudentName(student) || "Student"} · ${formatMoney(Math.max(0, number(payment.fee) - number(payment.paid)))} due`
+      });
+    });
+
+  (llsHourPacks?.students || [])
+    .filter((e) => e.hoursBought > 0 && e.hoursLeft <= 2)
+    .forEach((e) => {
+      notifications.push({
+        icon: "⏱",
+        title: e.hoursLeft <= 0 ? "1-2-1 pack used up" : "1-2-1 pack nearly used",
+        message: `${getStudentName(getStudent(e.studentId)) || "Student"} · ${e.hoursLeft} h left`
       });
     });
 
@@ -6206,7 +6217,7 @@ function llsSuggestDueDates(prefix = "conversion") {
 }
 
 function llsInstalmentCount(plan) {
-  if (plan === "Full payment") return 1;
+  if (plan === "Full payment" || /hour pack/i.test(String(plan || ""))) return 1;
   if (plan === "3 instalments") return 3;
   return 0; // Monthly / Other: no fixed dates here
 }
@@ -6308,7 +6319,7 @@ function llsItalianDate(iso) {
 
 function llsFeeEditorCount() {
   const plan = value("feeEditPlan");
-  return plan === "Full payment" ? 1 : plan === "3 instalments" ? 3 : 0;
+  return plan === "Full payment" || /hour pack/i.test(plan) ? 1 : plan === "3 instalments" ? 3 : 0;
 }
 
 function llsFeeEditorRefresh() {
@@ -6352,7 +6363,7 @@ function llsOpenFeeEditor(feeId) {
   setValue("feeEditId", feeId);
   setValue("feeEditTotal", number(fee["Amount Due"]));
   const plan = String(fee["Payment Plan"] || "").trim();
-  setValue("feeEditPlan", ["Full payment", "3 instalments", "Monthly", "Other"].includes(plan) ? plan : "Full payment");
+  setValue("feeEditPlan", ["Full payment", "3 instalments", "10-hour pack", "Monthly", "Other"].includes(plan) ? plan : "Full payment");
   for (let i = 1; i <= 3; i++) {
     const amount = number(fee[`Instalment ${i} Amount`]);
     setValue(`feeEditAmount${i}`, amount > 0 ? amount : "");
@@ -6478,4 +6489,68 @@ async function llsOpenClassResults(classId) {
     console.error(error);
     byId("classResultsBody").innerHTML = `<tr><td colspan="${2 + tests.length}">${/unknown action/i.test(error.message || "") ? "Update the Apps Script to V20 to see results." : "Could not load results."}</td></tr>`;
   }
+}
+
+
+/* =========================================================
+   V20 — 1-2-1 HOUR PACKS (Fees & Payments page)
+   Apps Script getOneToOneHours: hours bought from fees whose plan
+   is "N-hour pack", hours used from 1-2-1 attendance.
+========================================================= */
+
+let llsHourPacks = { loadedAt: 0, loading: false, students: [], error: "" };
+
+function llsRenderHourPacks() {
+  const card = byId("hourPacksCard");
+  const body = byId("hourPacksBody");
+  if (!card || !body) return;
+
+  if (!llsHourPacks.loading && Date.now() - llsHourPacks.loadedAt > 60000) {
+    llsHourPacks.loading = true;
+    llsApiGet("getOneToOneHours")
+      .then((data) => { llsHourPacks.students = data.students || []; llsHourPacks.error = ""; })
+      .catch((error) => { llsHourPacks.error = error.message || "error"; })
+      .finally(() => {
+        llsHourPacks.loading = false;
+        llsHourPacks.loadedAt = Date.now();
+        llsRenderHourPacks();
+        renderNotifications();
+      });
+  }
+
+  const list = llsHourPacks.students.filter((e) => e.hoursBought > 0 || e.hoursUsed > 0);
+  card.hidden = !list.length;
+  if (!list.length) return;
+
+  body.innerHTML = list
+    .sort((a, b) => a.hoursLeft - b.hoursLeft)
+    .map((e) => {
+      const student = getStudent(e.studentId);
+      const low = e.hoursLeft <= 2;
+      const colour = e.hoursLeft <= 0 ? "#b3261e" : low ? "#9a5a0c" : "#177b52";
+      const last = e.lessons && e.lessons[0];
+      return `<tr>
+        <td><strong>${escapeHtml(getStudentName(student) || e.studentId)}</strong></td>
+        <td>${e.hoursBought} h</td>
+        <td>${e.hoursUsed} h</td>
+        <td><strong style="color:${colour}">${e.hoursLeft} h</strong></td>
+        <td>${last ? `${escapeHtml(formatDate(llsDateOnly(last.date)))} · ${escapeHtml(last.status)}` : "—"}</td>
+        <td class="table-actions-cell"><div class="row-actions">${low ? llsRenewLink(student, e) : ""}</div></td>
+      </tr>`;
+    })
+    .join("");
+}
+
+function llsRenewLink(student, e) {
+  if (!student) return "";
+  const phone = llsWhatsAppNumber(student.phone);
+  if (!phone) return "";
+  const hours = String(e.hoursLeft).replace(".", ",");
+  const left = e.hoursLeft <= 0 ? "le ore del pacchetto sono terminate"
+    : e.hoursLeft === 1 ? "resta 1 ora" : `restano ${hours} ore`;
+  const message =
+    `Buongiorno! Vi informiamo che per le lezioni individuali${student.firstName ? " di " + student.firstName : ""} ${left}. ` +
+    `Se volete continuare, potete rinnovare il pacchetto da 10 ore in segreteria o rispondendo a questo messaggio. ` +
+    `Grazie! London Language School`;
+  return `<a class="row-action" href="https://wa.me/${phone}?text=${encodeURIComponent(message)}" target="_blank" rel="noopener">WhatsApp renewal</a>`;
 }
