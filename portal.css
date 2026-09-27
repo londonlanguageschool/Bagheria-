@@ -2497,3 +2497,42 @@ tbody tr:hover {
 .lesson-log-entry dt { font-weight: 600; }
 .lesson-log-entry dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 600px) { .lesson-log-entry dl { grid-template-columns: 1fr; } .lesson-log-entry dd { margin-bottom: 6px; } }
+
+/* V23 lesson page */
+.lesson-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.lesson-chip { font: inherit; border: 1px solid var(--ink-200); background: var(--white); color: var(--ink-900); border-radius: 999px; padding: 10px 14px; min-height: 44px; cursor: pointer; }
+.lesson-chip strong { color: var(--navy-800); margin-right: 4px; }
+.lesson-chip.active { background: var(--navy-800); border-color: var(--navy-800); color: var(--white); }
+.lesson-chip.active strong { color: var(--white); }
+.lesson-all { margin-top: 12px; }
+.lesson-all summary { cursor: pointer; color: var(--ink-700); font-weight: 600; margin-bottom: 8px; }
+.lesson-showall { display: flex; gap: 8px; align-items: center; margin-top: 12px; color: var(--ink-600); font-size: .9rem; }
+.lesson-showall input { width: 18px; height: 18px; min-height: 0; margin: 0; padding: 0; flex: none; }
+#lessonWork { display: grid; gap: 14px; margin-top: 14px; }
+#lessonWork[hidden] { display: none; }
+#lessonWork .lesson-log-latest { margin-bottom: 0; }
+.lesson-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.lesson-head-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.lesson-unit { display: flex; align-items: center; gap: 6px; border: 1px solid var(--ink-200); border-radius: 999px; padding: 4px 6px 4px 12px; }
+.lesson-unit button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--ink-200); background: var(--ink-50); font-size: 1.1rem; cursor: pointer; }
+.lesson-unit strong { min-width: 1.5em; text-align: center; }
+.lesson-sec-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
+.reg-row { display: grid; grid-template-columns: minmax(120px, 1.2fr) auto minmax(160px, 1.5fr); gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--ink-100); }
+.reg-name { font-weight: 600; }
+.reg-btns { display: flex; gap: 4px; }
+.reg-btn { font: inherit; font-size: .85rem; border: 1px solid var(--ink-200); background: var(--white); color: var(--ink-700); border-radius: 8px; padding: 8px 10px; min-height: 40px; cursor: pointer; }
+.reg-btn.on.reg-present { background: var(--green-100); border-color: var(--green-700); color: var(--green-700); font-weight: 700; }
+.reg-btn.on.reg-late { background: var(--orange-100); border-color: var(--orange-700); color: var(--orange-700); font-weight: 700; }
+.reg-btn.on.reg-absent { background: var(--red-100); border-color: var(--red-700); color: var(--red-700); font-weight: 700; }
+.reg-btn.on.reg-excused { background: var(--purple-100); border-color: var(--purple-700); color: var(--purple-700); font-weight: 700; }
+.reg-note { width: 100%; min-height: 40px; border: 1px solid var(--ink-200); border-radius: 8px; padding: 6px 10px; font: inherit; }
+.lesson-hw-item { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--ink-100); }
+.lesson-hw-item .muted { margin-left: 6px; }
+.lesson-save-bar { position: sticky; bottom: 0; padding: 12px 0; background: linear-gradient(transparent, var(--page-bg) 35%); display: flex; justify-content: flex-end; z-index: 5; }
+.lesson-save-bar .button { min-height: 52px; padding: 0 28px; font-size: 1.05rem; }
+.lesson-log-more { margin-top: 4px; justify-self: start; }
+@media (max-width: 700px) {
+  .reg-row { grid-template-columns: 1fr; gap: 6px; }
+  .reg-btns { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .lesson-save-bar .button { width: 100%; }
+}

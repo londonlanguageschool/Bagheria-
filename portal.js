@@ -29,6 +29,7 @@ const ENQUIRY_STAGES = [
 
 const PAGE_TITLES = {
   dashboard: "Dashboard",
+  lesson: "Lesson",
   students: "Students",
   classes: "Classes",
   attendance: "Attendance",
@@ -291,6 +292,8 @@ function navigateTo(page, updateHash = true) {
   if (page === "homework") {
     if (typeof renderHomeworkLoginState === "function") renderHomeworkLoginState();
   }
+
+  if (page === "lesson" && typeof llsInitLessonPage === "function") llsInitLessonPage();
 
   if (page === "reports") {
     renderReports();
@@ -4885,6 +4888,7 @@ function llsApplyCorePortalData(payload) {
   populateStudentClassSelect();
   if (typeof populateLiveAttendanceClasses === "function") populateLiveAttendanceClasses();
   renderAll();
+  if (document.getElementById("page-lesson")?.classList.contains("active") && typeof llsInitLessonPage === "function") llsInitLessonPage();
 
   console.info(
     `LLS: loaded ${state.classes.length} classes, ${state.students.length} students and ${enrolmentRows.length} enrolments from Google Sheets.`
@@ -6942,7 +6946,7 @@ document.addEventListener("DOMContentLoaded", () => {
    the office (admin) sees everything and can open any view.
 ========================================================= */
 
-const LLS_TEACHER_PAGES = ["dashboard", "classes", "attendance", "homework"];
+const LLS_TEACHER_PAGES = ["dashboard", "lesson", "classes", "attendance", "homework"];
 
 function llsCoachRequestLabel(student) {
   if (!student?.coachRequest) return "";
@@ -6972,7 +6976,7 @@ function llsApplyRole() {
   document.querySelectorAll('#userDropdown [data-page-target="settings"]').forEach((b) => { b.hidden = true; });
   if (byId("homeworkLogoutButton")) byId("homeworkLogoutButton").hidden = true;
   const page = (location.hash || "").replace("#", "");
-  if (page && LLS_TEACHER_PAGES.indexOf(page) === -1) navigateTo("dashboard");
+  if (!page || page === "dashboard" || LLS_TEACHER_PAGES.indexOf(page) === -1) navigateTo("lesson");
 }
 
 // Teachers: class cards get "Change unit" instead of Edit / delete.
@@ -7067,11 +7071,7 @@ function llsFillLessonLogForm() {
       latestBox.innerHTML = "";
     }
   }
-  if (list) {
-    list.innerHTML = llsLessonLogEntries.length
-      ? llsLessonLogEntries.map(llsLessonLogEntryHtml).join("")
-      : `<p class="muted">No lesson notes for this class yet.</p>`;
-  }
+  if (list) llsRenderLessonLogList(list, llsLessonLogEntries);
 }
 
 async function llsLoadLessonLog(force = false) {
@@ -7086,7 +7086,7 @@ async function llsLoadLessonLog(force = false) {
   if (force || llsLessonLogClass !== classId) {
     if (list) list.innerHTML = `<p class="muted">Loading…</p>`;
     try {
-      const data = await llsApiGet("getLessonLog", { classId, limit: 20 });
+      const data = await llsApiGet("getLessonLog", { classId, limit: 1000 });
       llsLessonLogEntries = Array.isArray(data.entries) ? data.entries : [];
       llsLessonLogClass = classId;
     } catch (error) {
@@ -7135,4 +7135,326 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("lessonLogSaveButton")?.addEventListener("click", llsSaveLessonLog);
   classSelect?.addEventListener("change", () => llsLoadLessonLog());
   dateInput?.addEventListener("change", () => llsLoadLessonLog());
+});
+
+
+/* ============================================================
+   V23 — LESSON PAGE: one screen per class for teachers.
+   Pick the class (today's lessons first) → register, lesson
+   notes, homework and results → one "Save lesson" button.
+   Uses the same Apps Script actions as the other pages:
+   getAttendance/saveAttendance, getLessonLog/saveLessonLog,
+   getHomeworkForClass/createHomework, updateClass (unit).
+   ============================================================ */
+
+// Whole-course history, newest first; first 5 shown, rest behind a button.
+function llsRenderLessonLogList(container, entries, shown = 5) {
+  if (!container) return;
+  if (!entries.length) {
+    container.innerHTML = `<p class="muted">No lesson notes for this class yet.</p>`;
+    return;
+  }
+  const visible = entries.slice(0, shown);
+  const more = entries.length - visible.length;
+  container.innerHTML = visible.map(llsLessonLogEntryHtml).join("") +
+    (more > 0 ? `<button class="button button-secondary lesson-log-more" type="button">Show all ${entries.length} lessons</button>` : "");
+  container.querySelector(".lesson-log-more")?.addEventListener("click", () => llsRenderLessonLogList(container, entries, entries.length));
+}
+
+const LLS_DAY_ABBR = { monday: "mon", tuesday: "tue", wednesday: "wed", thursday: "thu", friday: "fri", saturday: "sat", sunday: "sun" };
+let llsLesson = { classId: "", date: "", entries: [], homework: [], status: [], loadedKey: "", showAll: false };
+
+function llsMyNames() {
+  const session = llsGetTeacherSession();
+  if (!llsIsTeacher() || !session) return null;
+  const first = String(session.name || "").trim().split(/\s+/)[0].toLowerCase();
+  const names = new Set([first]);
+  if (first === "colin") names.add("cole"); // Cole = Colin Bouchard
+  return names;
+}
+
+// Who teaches this class on a given weekday ("Cole (Tue) / Helen (Thu)" → Cole on Tuesday).
+function llsTeacherOnDay(cls, dayName) {
+  const field = String(cls.teacherName || "");
+  if (!field.includes("(")) return field;
+  const abbr = LLS_DAY_ABBR[String(dayName).toLowerCase()] || "";
+  const seg = field.split("/").find((p) => p.toLowerCase().includes(`(${abbr}`));
+  return seg ? seg.replace(/\(.*?\)/g, "").trim() : field;
+}
+
+function llsIsMine(teacherText, names) {
+  if (!names) return true;
+  const t = String(teacherText || "").toLowerCase();
+  return [...names].some((n) => n && new RegExp(`\\b${n}\\b`).test(t));
+}
+
+function llsLessonClasses() {
+  return (state.classes || []).filter((c) => !/inactive|archived/i.test(c.status || ""));
+}
+
+// Lessons on a date: [{cls, time, room}] sorted by time.
+function llsLessonsOn(dateIso, onlyMine) {
+  const dayName = new Date(dateIso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long" }).toLowerCase();
+  const names = onlyMine ? llsMyNames() : null;
+  const out = [];
+  llsLessonClasses().forEach((cls) => {
+    [[cls.day, cls.time], [cls.day2, cls.time2]].forEach(([d, t]) => {
+      if (String(d || "").toLowerCase() !== dayName) return;
+      if (!llsIsMine(llsTeacherOnDay(cls, d), names)) return;
+      out.push({ cls, time: t || "" });
+    });
+  });
+  return out.sort((a, b) => a.time.localeCompare(b.time));
+}
+
+function llsNextLessonDate(cls, fromIso) {
+  const days = [cls.day, cls.day2].map((d) => String(d || "").toLowerCase()).filter(Boolean);
+  if (!days.length) return "";
+  const d = new Date(fromIso + "T12:00:00");
+  for (let i = 1; i <= 7; i++) {
+    d.setDate(d.getDate() + 1);
+    if (days.includes(d.toLocaleDateString("en-GB", { weekday: "long" }).toLowerCase())) return isoDate(d);
+  }
+  return "";
+}
+
+function llsRenderLessonPicker() {
+  const box = byId("lessonPicker");
+  if (!box) return;
+  const date = byId("lessonDate")?.value || isoDate(new Date());
+  const names = llsMyNames();
+  const onlyMine = Boolean(names) && !llsLesson.showAll;
+  const today = llsLessonsOn(date, onlyMine);
+  const all = llsLessonClasses()
+    .filter((c) => !onlyMine || llsIsMine(c.teacherName, names))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const chip = (cls, label) =>
+    `<button type="button" class="lesson-chip${cls.id === llsLesson.classId ? " active" : ""}" data-lesson-class="${escapeHtml(cls.id)}">${label}</button>`;
+  const dayLabel = new Date(date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
+  box.innerHTML = `
+    <p class="section-label" style="margin:0 0 8px;">${onlyMine ? "My lessons" : "Lessons"} on ${escapeHtml(dayLabel)}</p>
+    <div class="lesson-chips">${today.length ? today.map(({ cls, time }) => chip(cls, `<strong>${escapeHtml(time)}</strong> ${escapeHtml(cls.name)}`)).join("") : `<span class="muted">No lessons on this day.</span>`}</div>
+    <details class="lesson-all"${today.length ? "" : " open"}>
+      <summary>${onlyMine ? "All my classes" : "All classes"} (${all.length})</summary>
+      <div class="lesson-chips">${all.map((c) => chip(c, escapeHtml(c.name))).join("")}</div>
+    </details>
+    ${names ? `<label class="lesson-showall"><input type="checkbox" id="lessonShowAll"${llsLesson.showAll ? " checked" : ""}> Show other teachers' classes (e.g. to cover)</label>` : ""}`;
+  box.querySelectorAll("[data-lesson-class]").forEach((b) => b.addEventListener("click", () => llsOpenLesson(b.dataset.lessonClass)));
+  byId("lessonShowAll")?.addEventListener("change", (e) => { llsLesson.showAll = e.target.checked; llsRenderLessonPicker(); });
+}
+
+async function llsOpenLesson(classId) {
+  llsLesson.classId = classId;
+  llsLesson.loadedKey = "";
+  llsRenderLessonPicker();
+  await llsRenderLesson();
+  byId("lessonWork")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function llsRenderLesson() {
+  const work = byId("lessonWork");
+  if (!work) return;
+  const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
+  if (!cls) { work.hidden = true; return; }
+  work.hidden = false;
+  const date = byId("lessonDate")?.value || isoDate(new Date());
+  const key = `${cls.id}|${date}`;
+  const dayName = new Date(date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long" });
+
+  byId("lessonClassName").textContent = cls.name;
+  byId("lessonClassMeta").textContent = [llsTeacherOnDay(cls, dayName), cls.level, cls.book ? `${(window.LLS_COURSES && LLS_COURSES[cls.book]?.title) || cls.book}` : ""].filter(Boolean).join(" · ");
+  const unitBox = byId("lessonUnitBox");
+  unitBox.hidden = !cls.book;
+  byId("lessonUnitValue").textContent = cls.currentUnit || "?";
+  byId("lessonResultsButton").hidden = !cls.book;
+
+  if (llsLesson.loadedKey === key) return;
+  llsLesson.loadedKey = key;
+
+  const regBody = byId("lessonRegister");
+  regBody.innerHTML = `<p class="muted">Loading…</p>`;
+  byId("lessonLast").hidden = true;
+  ["lessonDone", "lessonNotes", "lessonHwTitle", "lessonHwText"].forEach((id) => setValue(id, ""));
+  setValue("lessonUnitPage", cls.currentUnit || "");
+  setValue("lessonHwDue", llsNextLessonDate(cls, date));
+
+  try {
+    await loadLiveAttendanceFoundation();
+    const [att, log, hw] = await Promise.all([
+      llsApiGet("getAttendance", { classId: cls.id, lessonDate: date }),
+      llsApiGet("getLessonLog", { classId: cls.id, limit: 1000 }).catch((e) => ({ entries: [], error: e.message })),
+      llsApiGet("getHomeworkForClass", { classId: cls.id }).catch(() => ({ homework: [], status: [] }))
+    ]);
+    if (llsLesson.loadedKey !== key) return; // user moved on
+
+    // Register
+    const saved = new Map((att.attendance || []).map((r) => [String(r["Student ID"] || "").trim(), r]));
+    const students = llsStudentsForClass(cls.id);
+    regBody.innerHTML = students.length ? students.map((st) => {
+      const id = String(st["Student ID"] || "").trim();
+      const row = saved.get(id) || {};
+      const status = String(row["Status"] || "Present");
+      const btn = (s, label) => `<button type="button" class="reg-btn reg-${s.toLowerCase()}${status === s ? " on" : ""}" data-status="${s}" aria-pressed="${status === s}">${label}</button>`;
+      return `<div class="reg-row" data-student="${escapeHtml(id)}" data-status="${escapeHtml(status)}">
+        <div class="reg-name">${escapeHtml(llsStudentName(st))}</div>
+        <div class="reg-btns">${btn("Present", "✓ Here")}${btn("Late", "Late")}${btn("Absent", "Absent")}${btn("Excused", "Excused")}</div>
+        <input class="reg-note" type="text" placeholder="How did they do? (optional)" value="${escapeHtml(String(row["Notes"] || ""))}">
+      </div>`;
+    }).join("") : `<p class="muted">No students enrolled in this class yet.</p>`;
+    regBody.querySelectorAll(".reg-btn").forEach((b) => b.addEventListener("click", () => {
+      const row = b.closest(".reg-row");
+      row.dataset.status = b.dataset.status;
+      row.querySelectorAll(".reg-btn").forEach((x) => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", String(x === b)); });
+      llsLessonCount();
+    }));
+    llsLessonCount();
+    byId("lessonAllHere").hidden = !students.length;
+
+    // Lesson notes: this date's entry (if any) + last lesson before it + full history
+    llsLesson.entries = Array.isArray(log.entries) ? log.entries : [];
+    const own = llsLesson.entries.find((e) => e.lessonDate === date);
+    if (own) {
+      setValue("lessonUnitPage", own.unit);
+      setValue("lessonDone", own.whatWeDid);
+      setValue("lessonNotes", own.notes);
+    }
+    const last = llsLesson.entries.find((e) => e.lessonDate < date);
+    const lastBox = byId("lessonLast");
+    if (last) { lastBox.hidden = false; lastBox.innerHTML = `<h3>📝 Last lesson</h3>${llsLessonLogEntryHtml(last)}`; }
+    const hist = byId("lessonHistory");
+    if (log.error) hist.innerHTML = `<p class="muted">${/Unknown action/i.test(log.error) ? "Lesson notes need the latest Apps Script (V23)." : escapeHtml(log.error)}</p>`;
+    else llsRenderLessonLogList(hist, llsLesson.entries);
+    byId("lessonHistoryCount").textContent = llsLesson.entries.length ? `(${llsLesson.entries.length})` : "";
+
+    // Homework already set for this class
+    llsLesson.homework = Array.isArray(hw.homework) ? hw.homework : [];
+    llsLesson.status = Array.isArray(hw.status) ? hw.status : [];
+    llsRenderLessonHomework(students.length);
+  } catch (error) {
+    console.error(error);
+    llsLesson.loadedKey = "";
+    regBody.innerHTML = `<p class="muted">Could not load this lesson: ${escapeHtml(error.message || "")}</p>`;
+  }
+}
+
+function llsRenderLessonHomework(classSize) {
+  const box = byId("lessonHwList");
+  if (!box) return;
+  const items = [...llsLesson.homework].sort((a, b) => String(b["Created At"] || b["Assigned Date"] || "").localeCompare(String(a["Created At"] || a["Assigned Date"] || ""))).slice(0, 4);
+  box.innerHTML = items.length ? `<p class="section-label" style="margin:14px 0 6px;">Recent homework</p>` + items.map((h) => {
+    const id = String(h["Homework ID"] || "");
+    const done = llsLesson.status.filter((s) => String(s["Homework ID"] || "") === id && String(s["Status"] || "") === "Done").length;
+    const due = h["Due Date"] ? ` · due ${formatDate(String(h["Due Date"]))}` : "";
+    return `<div class="lesson-hw-item"><span>${escapeHtml(String(h["Title"] || ""))}<span class="muted">${escapeHtml(due)}</span></span><strong>${done}/${classSize} done</strong></div>`;
+  }).join("") : "";
+}
+
+function llsLessonCount() {
+  const rows = [...document.querySelectorAll("#lessonRegister .reg-row")];
+  const here = rows.filter((r) => ["Present", "Late"].includes(r.dataset.status)).length;
+  const el = byId("lessonRegCount");
+  if (el) el.textContent = rows.length ? `${here}/${rows.length} here` : "";
+}
+
+async function llsChangeLessonUnit(step) {
+  const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
+  if (!cls) return;
+  const current = Number(cls.currentUnit) || 0;
+  const next = Math.max(1, Math.min(12, current + step));
+  if (next === current) return;
+  try {
+    await llsApiPost({ action: "updateClass", classId: cls.id, fields: { "Current Unit": String(next) } });
+    cls.currentUnit = String(next);
+    saveState();
+    byId("lessonUnitValue").textContent = next;
+    if (/^\d+$/.test(value("lessonUnitPage")) || !value("lessonUnitPage")) setValue("lessonUnitPage", String(next));
+    showToast(`${cls.name} is now on unit ${next}. Practice in the app follows it.`, "success");
+  } catch (error) {
+    showToast(error.message || "Could not change the unit.", "error");
+  }
+}
+
+async function llsSaveLesson() {
+  const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
+  const date = byId("lessonDate")?.value || "";
+  if (!cls || !date) { showToast("Choose a class and date.", "error"); return; }
+  const button = byId("lessonSaveButton");
+  button.disabled = true;
+  button.textContent = "Saving…";
+  const done = [];
+  const failed = [];
+  try {
+    // 1. Register
+    const rows = [...document.querySelectorAll("#lessonRegister .reg-row")].map((r) => ({
+      studentId: r.dataset.student,
+      status: r.dataset.status || "Present",
+      notes: r.querySelector(".reg-note")?.value.trim() || ""
+    }));
+    if (rows.length) {
+      try { await llsApiPost({ action: "saveAttendance", classId: cls.id, lessonDate: date, rows }); done.push("register"); llsAttendanceLoadedKey = ""; }
+      catch (e) { failed.push("register: " + e.message); }
+    }
+    // 2. Homework (only if a title was written)
+    const hwTitle = value("lessonHwTitle").trim();
+    if (hwTitle) {
+      try {
+        const session = llsGetTeacherSession();
+        await llsApiPost({
+          action: "createHomework", classId: cls.id, teacherId: session?.teacherId || "",
+          title: hwTitle, description: value("lessonHwText").trim(),
+          assignedDate: date, dueDate: value("lessonHwDue")
+        });
+        done.push("homework (now in the students' app)");
+        setValue("lessonHwTitle", ""); setValue("lessonHwText", "");
+      } catch (e) { failed.push("homework: " + e.message); }
+    }
+    // 3. Lesson notes
+    const note = { unit: value("lessonUnitPage").trim(), whatWeDid: value("lessonDone").trim(), notes: value("lessonNotes").trim() };
+    const own = llsLesson.entries.find((e) => e.lessonDate === date);
+    const homeworkSet = hwTitle || (own ? own.homeworkSet : "");
+    if (note.whatWeDid || note.notes || homeworkSet) {
+      try {
+        await llsApiPost({ action: "saveLessonLog", classId: cls.id, lessonDate: date, ...note, homeworkSet });
+        done.push("lesson notes");
+      } catch (e) {
+        failed.push("notes: " + (/Unknown/i.test(e.message || "") ? "update the Apps Script to V23" : e.message));
+      }
+    }
+    if (failed.length) showToast(`Not saved: ${failed.join("; ")}`, "error");
+    else if (done.length) showToast(`Saved: ${done.join(", ")}.`, "success");
+    else showToast("Nothing to save yet.", "error");
+    llsLesson.loadedKey = "";
+    await llsRenderLesson();
+  } finally {
+    button.disabled = false;
+    button.textContent = "💾 Save lesson";
+  }
+}
+
+function llsInitLessonPage() {
+  const dateInput = byId("lessonDate");
+  if (dateInput && !dateInput.value) dateInput.value = isoDate(new Date());
+  if (!llsLesson.classId) {
+    const mine = llsLessonsOn(dateInput?.value || isoDate(new Date()), Boolean(llsMyNames()));
+    if (mine.length) {
+      // Pre-select the lesson on now (started < 60 min ago) or the next one.
+      const d = new Date(), nowMin = d.getHours() * 60 + d.getMinutes();
+      const mins = (t) => { const m = String(t).match(/^(\d{1,2}):(\d{2})/); return m ? Number(m[1]) * 60 + Number(m[2]) : -1; };
+      const upcoming = mine.filter((l) => mins(l.time) >= nowMin - 60);
+      llsLesson.classId = (upcoming[0] || mine[mine.length - 1]).cls.id;
+    }
+  }
+  llsRenderLessonPicker();
+  llsRenderLesson();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  byId("lessonDate")?.addEventListener("change", () => { llsLesson.loadedKey = ""; llsRenderLessonPicker(); llsRenderLesson(); });
+  byId("lessonSaveButton")?.addEventListener("click", llsSaveLesson);
+  byId("lessonUnitMinus")?.addEventListener("click", () => llsChangeLessonUnit(-1));
+  byId("lessonUnitPlus")?.addEventListener("click", () => llsChangeLessonUnit(1));
+  byId("lessonResultsButton")?.addEventListener("click", () => llsOpenClassResults(llsLesson.classId));
+  byId("lessonAllHere")?.addEventListener("click", () => {
+    document.querySelectorAll("#lessonRegister .reg-row").forEach((r) => r.querySelector('.reg-btn[data-status="Present"]')?.click());
+  });
 });

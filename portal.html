@@ -80,6 +80,11 @@
           <span>Dashboard</span>
         </button>
 
+        <button class="nav-item" data-page="lesson" type="button">
+          <span class="nav-icon" aria-hidden="true">★</span>
+          <span>Lesson</span>
+        </button>
+
         <button class="nav-item" data-page="students" type="button">
           <span class="nav-icon" aria-hidden="true">♙</span>
           <span>Students</span>
@@ -572,6 +577,101 @@
             </div>
             <p class="section-label" style="margin-top:22px;">Previous lessons in this class</p>
             <div id="lessonLogList" class="lesson-log-list"><p class="muted">Choose a class.</p></div>
+          </div>
+        </section>
+
+        <!-- =========================
+             LESSON (V23): one screen per class
+        ========================== -->
+        <section class="page" id="page-lesson">
+          <div class="page-toolbar">
+            <div>
+              <p class="section-label">Teaching</p>
+              <h2>Lesson</h2>
+              <p class="page-description">Tap your class, take the register, write what you did and set homework. One button saves everything.</p>
+            </div>
+            <div class="form-field" style="min-width:170px;">
+              <label for="lessonDate">Date</label>
+              <input id="lessonDate" type="date">
+            </div>
+          </div>
+
+          <div class="panel" id="lessonPicker"></div>
+
+          <div id="lessonWork" hidden>
+            <div class="panel lesson-head">
+              <div>
+                <h3 id="lessonClassName" style="margin:0;"></h3>
+                <p class="muted" id="lessonClassMeta" style="margin:2px 0 0;"></p>
+              </div>
+              <div class="lesson-head-actions">
+                <div class="lesson-unit" id="lessonUnitBox" hidden>
+                  <span>Unit</span>
+                  <button type="button" id="lessonUnitMinus" aria-label="Previous unit">−</button>
+                  <strong id="lessonUnitValue">?</strong>
+                  <button type="button" id="lessonUnitPlus" aria-label="Next unit">+</button>
+                </div>
+                <button class="button button-secondary" id="lessonResultsButton" type="button">📊 Results</button>
+              </div>
+            </div>
+
+            <div class="panel lesson-log-latest" id="lessonLast" hidden></div>
+
+            <div class="panel">
+              <div class="lesson-sec-head">
+                <p class="section-label" style="margin:0;">1 · Register <span id="lessonRegCount" class="muted"></span></p>
+                <button class="row-action" id="lessonAllHere" type="button">Everyone here</button>
+              </div>
+              <div id="lessonRegister"></div>
+            </div>
+
+            <div class="panel">
+              <p class="section-label" style="margin-top:0;">2 · What we did</p>
+              <div class="form-grid">
+                <div class="form-field">
+                  <label for="lessonUnitPage">Unit / page</label>
+                  <input id="lessonUnitPage" type="text" placeholder="e.g. 2B, p.18">
+                </div>
+                <div class="form-field form-field-wide">
+                  <label for="lessonDone">What we did</label>
+                  <textarea id="lessonDone" rows="2" placeholder="e.g. 2B past simple, vocab game, listening p.19"></textarea>
+                </div>
+                <div class="form-field form-field-wide">
+                  <label for="lessonNotes">Notes for the next teacher</label>
+                  <textarea id="lessonNotes" rows="2" placeholder="e.g. Didn't finish the reading. Marco absent: give him the sheet."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <p class="section-label" style="margin-top:0;">3 · Homework <span class="muted">(optional: goes straight to the students' app)</span></p>
+              <div class="form-grid">
+                <div class="form-field form-field-wide">
+                  <label for="lessonHwTitle">Homework</label>
+                  <input id="lessonHwTitle" type="text" placeholder="e.g. Workbook p.12 ex 1–3">
+                </div>
+                <div class="form-field form-field-wide">
+                  <label for="lessonHwText">Instructions (optional)</label>
+                  <textarea id="lessonHwText" rows="2"></textarea>
+                </div>
+                <div class="form-field">
+                  <label for="lessonHwDue">Due</label>
+                  <input id="lessonHwDue" type="date">
+                </div>
+              </div>
+              <div id="lessonHwList"></div>
+            </div>
+
+            <div class="panel">
+              <details>
+                <summary class="section-label" style="cursor:pointer;">All lesson notes for this class <span id="lessonHistoryCount"></span></summary>
+                <div id="lessonHistory" class="lesson-log-list" style="margin-top:12px;"></div>
+              </details>
+            </div>
+
+            <div class="lesson-save-bar">
+              <button class="button button-primary" id="lessonSaveButton" type="button">💾 Save lesson</button>
+            </div>
           </div>
         </section>
 
