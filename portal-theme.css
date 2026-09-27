@@ -342,3 +342,18 @@ input[type="radio"], input[type="checkbox"] {
 input[type="checkbox"] { border-radius: 4px; }
 #testQuestions label { align-items: center; }
 #testQuestions input[data-o] { flex: 1 1 auto; min-width: 0; width: auto; }
+/* IT | EN switch */
+.lls-lang { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 999px; background: #ffffff; border: 2px solid var(--sky-tile); flex: none; }
+.lls-lang button { font: inherit; font-family: var(--display); font-weight: 800; font-size: .78rem; border: 0; background: transparent; color: var(--ink-700); border-radius: 999px; padding: 5px 10px; min-height: 30px; cursor: pointer; }
+.lls-lang button[aria-pressed="true"] { background: var(--pill); color: #ffffff; }
+.lls-lang button:focus-visible { outline: 3px solid var(--sun); outline-offset: 1px; }
+.lls-lang.on-login { position: absolute; top: 18px; right: 18px; }
+@media (max-width: 1400px) { .reg-row { grid-template-columns: minmax(110px, 1fr) auto; } .reg-how { grid-column: 1 / -1; } .reg-how .reg-rating { width: 230px; flex-basis: 230px; } }
+
+/* register: on laptops put rating + note on their own line (Italian labels are longer) */
+@media (max-width: 1400px) {
+  .reg-row { grid-template-columns: minmax(110px, 1fr) auto; }
+  .reg-how { grid-column: 1 / -1; }
+  .reg-how .reg-rating { width: 230px; flex-basis: 230px; }
+}
+@media (max-width: 700px) { .reg-row { grid-template-columns: 1fr; } .reg-how .reg-rating { width: 100%; flex-basis: auto; } }
