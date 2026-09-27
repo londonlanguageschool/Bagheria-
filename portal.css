@@ -1,3 +1,6 @@
+/* Always honour the hidden attribute (role hiding for teachers relies on it). */
+[hidden] { display: none !important; }
+
 :root {
   --navy-950: #061b37;
   --navy-900: #082d5c;
