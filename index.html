@@ -1545,6 +1545,21 @@
         padding: 26px;
       }
     }
+
+    /* Stop long contact details (email) pushing the page sideways on phones */
+    .contact-grid > * { min-width: 0; }
+    .contact-row { overflow-wrap: anywhere; }
+
+    /* SCHOOL CALENDAR 2026/27 */
+    .calendar-section { background: #f6f8fc; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; max-width: 980px; margin: 0 auto; }
+    .calendar-item { background: #fff; border: 1px solid #e3e8f1; border-radius: 16px; padding: 18px 20px; display: grid; gap: 4px; }
+    .calendar-item.open { border-color: rgba(6, 47, 103, .25); }
+    .calendar-item strong { color: var(--navy); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+    .calendar-item span { color: var(--muted); font-size: .95rem; }
+    .calendar-item .tag { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--red); }
+    .calendar-item.open .tag { color: #177b52; }
+    .calendar-notes { max-width: 980px; margin: 22px auto 0; display: grid; gap: 8px; color: var(--muted); font-size: .95rem; text-align: center; }
   </style>
 </head>
 
@@ -1777,6 +1792,53 @@
 
         </div>
 
+      </div>
+    </section>
+
+    <!-- SCHOOL CALENDAR 2026/27 -->
+    <section class="calendar-section" id="calendar">
+      <div class="container">
+        <div class="section-heading">
+          <small data-it="Per le famiglie" data-en="For families">Per le famiglie</small>
+          <h2 data-it="Calendario 2026/27" data-en="School calendar 2026/27">Calendario 2026/27</h2>
+          <p data-it="Le lezioni si svolgono dal lunedì al venerdì, dal 28 settembre 2026 a fine maggio 2027. Ecco i giorni in cui la scuola resta chiusa." data-en="Lessons run Monday to Friday, from 28 September 2026 to the end of May 2027. These are the days the school is closed.">Le lezioni si svolgono dal lunedì al venerdì, dal 28 settembre 2026 a fine maggio 2027. Ecco i giorni in cui la scuola resta chiusa.</p>
+        </div>
+        <div class="calendar-grid">
+          <div class="calendar-item open">
+            <span class="tag" data-it="Inizio lezioni" data-en="First day">Inizio lezioni</span>
+            <strong data-it="Lunedì 28 settembre 2026" data-en="Monday 28 September 2026">Lunedì 28 settembre 2026</strong>
+            <span data-it="Si parte! Lezioni dal lunedì al venerdì." data-en="Classes run Monday to Friday.">Si parte! Lezioni dal lunedì al venerdì.</span>
+          </div>
+          <div class="calendar-item ">
+            <span class="tag" data-it="Chiuso" data-en="Closed">Chiuso</span>
+            <strong data-it="7–8 dicembre 2026" data-en="7–8 December 2026">7–8 dicembre 2026</strong>
+            <span data-it="Scuola chiusa" data-en="School closed">Scuola chiusa</span>
+          </div>
+          <div class="calendar-item ">
+            <span class="tag" data-it="Vacanze di Natale" data-en="Christmas holidays">Vacanze di Natale</span>
+            <strong data-it="23 dicembre 2026 – 6 gennaio 2027" data-en="23 December 2026 – 6 January 2027">23 dicembre 2026 – 6 gennaio 2027</strong>
+            <span data-it="Si riprende giovedì 7 gennaio." data-en="Back on Thursday 7 January.">Si riprende giovedì 7 gennaio.</span>
+          </div>
+          <div class="calendar-item ">
+            <span class="tag" data-it="Chiuso" data-en="Closed">Chiuso</span>
+            <strong data-it="19 marzo 2027" data-en="19 March 2027">19 marzo 2027</strong>
+            <span data-it="San Giuseppe, patrono di Bagheria" data-en="San Giuseppe, patron saint of Bagheria">San Giuseppe, patrono di Bagheria</span>
+          </div>
+          <div class="calendar-item ">
+            <span class="tag" data-it="Chiuso" data-en="Closed">Chiuso</span>
+            <strong data-it="25–30 aprile 2027" data-en="25–30 April 2027">25–30 aprile 2027</strong>
+            <span data-it="Scuola chiusa" data-en="School closed">Scuola chiusa</span>
+          </div>
+          <div class="calendar-item open">
+            <span class="tag" data-it="Fine corsi" data-en="Last lessons">Fine corsi</span>
+            <strong data-it="Fine maggio 2027" data-en="End of May 2027">Fine maggio 2027</strong>
+            <span data-it="Chiuso dal 31 maggio al 2 giugno." data-en="Closed 31 May – 2 June.">Chiuso dal 31 maggio al 2 giugno.</span>
+          </div>
+        </div>
+        <div class="calendar-notes">
+          <p data-it="Se è la scuola ad annullare una lezione, la lezione viene sempre recuperata." data-en="If the school cancels a lesson, it is always made up.">Se è la scuola ad annullare una lezione, la lezione viene sempre recuperata.</p>
+          <p data-it="Lezioni individuali: per non perdere l’ora, avvisateci almeno 24 ore prima." data-en="Private lessons: please cancel at least 24 hours in advance, or the lesson counts as used.">Lezioni individuali: per non perdere l’ora, avvisateci almeno 24 ore prima.</p>
+        </div>
       </div>
     </section>
 <!-- SCHOOLS -->
@@ -2613,6 +2675,11 @@
 
       document.querySelectorAll(".lang-btn").forEach(btn => {
         btn.classList.toggle("active", btn.dataset.lang === lang);
+      });
+
+      // Sections with their own IT/EN text (e.g. the school calendar).
+      document.querySelectorAll("[data-it][data-en]").forEach((el) => {
+        el.textContent = el.dataset[lang] || el.dataset.it;
       });
 
       localStorage.setItem("lls-language", lang);
