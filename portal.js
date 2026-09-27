@@ -2943,10 +2943,15 @@ async function saveEnquiryForm(event) {
     );
   } catch (error) {
     console.error("LLS enquiry save failed:", error);
-    showToast(
-      "Could not save the enquiry. Nothing was changed. Please try again.",
-      "error"
-    );
+    if (error.uncertain) {
+      closeModal("enquiryModal");
+      showToast(error.message, "error");
+    } else {
+      showToast(
+        `Could not save the enquiry: ${error.message || "please try again"}.`,
+        "error"
+      );
+    }
   } finally {
     if (submitButton) {
       submitButton.disabled = false;
@@ -2975,7 +2980,7 @@ function deleteEnquiry(id) {
       } catch (error) {
         console.error("LLS enquiry delete failed:", error);
         showToast(
-          "Could not delete the enquiry. Nothing was changed.",
+          error.uncertain ? error.message : `Could not delete the enquiry: ${error.message || "please try again"}.`,
           "error"
         );
       }
@@ -5230,15 +5235,27 @@ async function llsApiGet(action, params = {}) {
     }
   });
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    cache: "no-store",
-    redirect: "follow"
-  });
-  const raw = await response.text();
-  let data;
-  try { data = JSON.parse(raw); }
-  catch (_) { throw new Error("Apps Script did not return JSON."); }
+  // 27 Sept: Google sometimes loses the reply (HTTP 404 from
+  // googleusercontent, or an unreadable page). Reading is safe to repeat,
+  // so try up to 3 times before giving up.
+  let data = null;
+  let problem = "";
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) {
+      url.searchParams.set("t", Date.now());
+      await new Promise((resolve) => setTimeout(resolve, attempt * 1200));
+    }
+    try {
+      const response = await fetch(url.toString(), { method: "GET", cache: "no-store", redirect: "follow" });
+      if (!response.ok) { problem = `HTTP ${response.status}`; continue; }
+      const raw = await response.text();
+      try { data = JSON.parse(raw); } catch (_) { problem = "Apps Script did not return JSON."; continue; }
+      break;
+    } catch (_) {
+      problem = "no connection";
+    }
+  }
+  if (!data) throw new Error(`Google didn't answer (${problem}). Check the connection and try again.`);
   if (!data || data.success !== true) {
     if (data && data.error === "UNAUTHORIZED" && typeof llsHandleSessionExpired === "function") {
       llsHandleSessionExpired();
@@ -5252,8 +5269,34 @@ async function llsApiPost(body) {
   // V12.3: form POST avoids the intermittent Apps Script GET redirect/404.
   // V15: every mutation carries the admin session token.
   const payload = Object.assign({}, body || {}, {
-    token: sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY) || ""
+    token: sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY) || "",
+    // 27 Sept: a receipt number per save. Apps Script V25 remembers it for
+    // 10 minutes, so re-sending after a lost reply never saves twice.
+    requestId: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `r${Date.now()}${Math.random().toString(36).slice(2)}`
   });
+  const canRetry = (window.llsServerVersion || 0) >= 25;
+  let lastProblem = null;
+  for (let attempt = 0; attempt < (canRetry ? 3 : 1); attempt++) {
+    if (attempt) await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+    try {
+      return await llsSendMutation_(payload);
+    } catch (error) {
+      if (!error.transport) throw error; // the server answered: a real error
+      lastProblem = error;
+      console.warn("LLS save: reply lost, attempt", attempt + 1, error.message);
+    }
+  }
+  const uncertain = new Error(
+    "Google didn't confirm the save (" + (lastProblem?.message || "no reply") + "). " +
+    "It has probably been saved: the page has been refreshed, so check the list before saving again."
+  );
+  uncertain.uncertain = true;
+  try { if (typeof llsRefreshAfterUncertainSave_ === "function") llsRefreshAfterUncertainSave_(); } catch (_) {}
+  throw uncertain;
+}
+
+async function llsSendMutation_(payload) {
+  const transportError = (message) => { const e = new Error(message); e.transport = true; return e; };
 
   // V15.3: send changes through the script's GET "mutate" route.
   // Apps Script answers POSTs with a redirect that intermittently comes
@@ -5267,6 +5310,7 @@ async function llsApiPost(body) {
 
   let response;
 
+  try {
   if (getUrl.toString().length <= 7000) {
     response = await fetch(getUrl.toString(), {
       method: "GET",
@@ -5286,16 +5330,20 @@ async function llsApiPost(body) {
       redirect: "follow"
     });
   }
+  } catch (_) {
+    throw transportError("no connection");
+  }
 
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  if (!response.ok) throw transportError(`HTTP ${response.status}`);
 
-  const raw = await response.text();
+  let raw = "";
+  try { raw = await response.text(); } catch (_) { throw transportError("reply cut off"); }
   let result;
   try {
     result = JSON.parse(raw);
   } catch (_) {
     console.error("LLS mutation returned non-JSON:", raw.slice(0, 500));
-    throw new Error("Apps Script did not return JSON.");
+    throw transportError("reply was not readable");
   }
 
   if (!result || result.success !== true) {
@@ -6941,13 +6989,29 @@ async function llsDeleteOpenTest() {
 }
 
 // Hide "Create with AI" until the AI key is set up (ping says aiReady).
+// 27 Sept: also remembers the Apps Script version (V25+ = safe retries).
 async function llsCheckAiPanel() {
   const panel = byId("homeworkAiPanel");
-  if (!panel) return;
   try {
     const ping = await llsApiGet("ping");
-    panel.hidden = ping.aiReady !== true;
+    const m = String(ping.version || "").match(/V(\d+)/);
+    window.llsServerVersion = m ? Number(m[1]) : 0;
+    if (panel) panel.hidden = ping.aiReady !== true;
   } catch (_) { /* leave as is */ }
+}
+
+// After a save whose reply was lost: reload what the current page shows.
+function llsRefreshAfterUncertainSave_() {
+  const page = (location.hash || "#dashboard").slice(1);
+  setTimeout(async () => {
+    try {
+      if (page === "enquiries" && typeof llsLoadEnquiriesFromSheets === "function") { await llsLoadEnquiriesFromSheets(); return; }
+      if (typeof loadLiveAttendanceFoundation === "function") await loadLiveAttendanceFoundation(true);
+      if (typeof llsLoadCoreFromSheets === "function") await llsLoadCoreFromSheets(true);
+      if (page === "fees" && typeof llsLoadFinanceFromSheets === "function") await llsLoadFinanceFromSheets(true);
+      if (page === "teachers" && typeof llsLoadTeachersFromSheets === "function") await llsLoadTeachersFromSheets();
+    } catch (_) {}
+  }, 1500);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
