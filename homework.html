@@ -130,6 +130,7 @@
 
     /* V18: tabs + practice */
     .tabs { display: flex; gap: 8px; margin: 18px 0 4px; }
+    .tabs[hidden] { display: none; }
     .tab {
       flex: 1; min-height: 44px; border: 2px solid var(--navy-800); background: #fff; color: var(--navy-800);
       border-radius: 12px; font: inherit; font-weight: 700; font-size: 15px; cursor: pointer;
@@ -245,6 +246,18 @@
     .chat-controls input { flex: 1; }
 
     footer { text-align: center; font-size: 12px; color: var(--ink-600); padding: 0 16px 28px; }
+    footer a { color: var(--navy-800); }
+
+    /* V24 Student Portal login */
+    .login-card { background: var(--card); border: 1px solid var(--ink-200); border-radius: 16px; padding: 22px 18px; display: grid; gap: 12px; }
+    .login-card h2 { margin: 0; font-size: 20px; text-transform: none; letter-spacing: 0; color: var(--ink-900); }
+    .login-card p { margin: 0; color: var(--ink-600); font-size: 15px; line-height: 1.45; }
+    .login-card label { font-weight: 700; font-size: 14px; }
+    .code-input { width: 100%; box-sizing: border-box; font: inherit; font-size: 24px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; text-align: center; padding: 12px; border: 2px solid var(--ink-200); border-radius: 12px; }
+    .code-input:focus { outline: none; border-color: var(--navy-800); }
+    .login-card .primary { width: 100%; min-height: 50px; font-size: 17px; }
+    .login-msg { min-height: 1.2em; color: #b3261e; font-weight: 600; font-size: 14px; }
+    .login-tips { font-size: 14px; color: var(--ink-600); background: var(--navy-50); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; }
   </style>
 </head>
 <body>
@@ -282,7 +295,7 @@
     <div class="empty">Loading your homework… · Caricamento…</div>
   </main>
 
-  <footer>Questions? Ask your teacher or the school office.</footer>
+  <footer>Questions? Ask your teacher or the school office. <span id="switchWrap" hidden>· <a href="#" id="switchStudent">Non sei tu? Cambia studente · Switch student</a></span></footer>
 
   <script src="practice/courses.js"></script>
   <script>
@@ -1438,9 +1451,64 @@
       document.getElementById("main").innerHTML = `<div class="error">${esc(message)}</div>`;
     }
 
+    // V24: Student Portal login with the personal code from the school's slip.
+    function showLogin(message) {
+      document.getElementById("tabs").hidden = true;
+      document.getElementById("progressCard").hidden = true;
+      document.getElementById("hello").textContent = "Student Portal";
+      document.getElementById("subtitle").textContent = "Area studenti · compiti, esercizi e progressi";
+      document.getElementById("main").innerHTML = `
+        <form class="login-card" id="loginForm" autocomplete="off">
+          <h2>Entra con il tuo codice · Log in</h2>
+          <p>Scrivi il codice personale che ti ha dato la scuola (per esempio <strong>K7M4-P2QX</strong>).</p>
+          <label for="codeInput">Codice · Your code</label>
+          <input class="code-input" id="codeInput" maxlength="12" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX" required>
+          <div class="login-msg" id="loginMsg" role="alert">${esc(message || "")}</div>
+          <button class="primary" type="submit" id="loginBtn">Entra · Log in</button>
+          <div class="login-tips">
+            <div>📷 Hai il foglietto con il QR? Inquadralo con la fotocamera: entri subito.</div>
+            <div>📱 Dopo l'accesso, aggiungi la pagina alla schermata Home (iPhone: Condividi → «Aggiungi alla schermata Home»; Android: ⋮ → «Installa app»).</div>
+            <div>❓ Non hai il codice? Chiedi alla segreteria o al tuo insegnante.</div>
+          </div>
+        </form>`;
+      const input = document.getElementById("codeInput");
+      input.addEventListener("input", () => {
+        const raw = input.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+        input.value = raw.length > 4 ? raw.slice(0, 4) + "-" + raw.slice(4) : raw;
+      });
+      document.getElementById("loginForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const code = input.value.trim();
+        const msg = document.getElementById("loginMsg");
+        const btn = document.getElementById("loginBtn");
+        if (code.replace(/[^A-Za-z0-9]/g, "").length !== 8) { msg.textContent = "Il codice ha 8 caratteri · The code has 8 characters."; return; }
+        btn.disabled = true; btn.textContent = "…";
+        msg.textContent = "";
+        try {
+          const result = await api({ action: "mutate", payload: JSON.stringify({ action: "studentCodeLogin", code }) });
+          KEY = result.key;
+          try { localStorage.setItem(STORE, KEY); } catch (_) {}
+          // Put the key in the address so "Add to Home Screen" keeps the student logged in.
+          history.replaceState(null, "", "homework.html?k=" + encodeURIComponent(KEY) + location.hash);
+          document.getElementById("main").innerHTML = `<div class="empty">Ciao ${esc(result.firstName || "")}! Caricamento… · Loading…</div>`;
+          load();
+        } catch (error) {
+          msg.textContent = /Unknown mutation/i.test(error.message || "") ? "Il login con codice non è ancora attivo: usa il QR. · Code login isn't switched on yet." : (error.message || "Errore. Riprova.");
+          btn.disabled = false; btn.textContent = "Entra · Log in";
+        }
+      });
+      setTimeout(() => input.focus(), 50);
+    }
+
+    document.getElementById("switchStudent")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      try { localStorage.removeItem(STORE); } catch (_) {}
+      location.href = "homework.html";
+    });
+
     async function load() {
       if (KEY.length < 20) {
-        showError("This homework link is not complete. Please ask the school for your link. · Il link non è completo: chiedi alla scuola.");
+        showLogin();
         return;
       }
       try {
@@ -1449,9 +1517,13 @@
         data.tests = Array.isArray(data.tests) ? data.tests : [];
         data.testResults = Array.isArray(data.testResults) ? data.testResults : [];
         render();
+        document.getElementById("switchWrap").hidden = false;
       } catch (error) {
         if (/not valid/i.test(error.message || "")) {
           try { if (localStorage.getItem(STORE) === KEY) localStorage.removeItem(STORE); } catch (_) {}
+          KEY = "";
+          showLogin("Questo link non è più valido: entra con il tuo codice. · This link no longer works: log in with your code.");
+          return;
         }
         showError(error.message || "Could not load your homework. Please try again later.");
       }

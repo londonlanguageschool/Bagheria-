@@ -5944,13 +5944,14 @@ async function openHomeworkLink(studentId, reset = false) {
     const link = llsHomeworkPageUrl(result.key);
     setValue("homeworkLinkUrl", link);
 
-    byId("homeworkLinkWhatsApp").href = llsAppWhatsAppHref(student, link);
+    byId("homeworkLinkWhatsApp").href = llsAppWhatsAppHref(student, link, result.code);
     if (byId("homeworkLinkOpen")) byId("homeworkLinkOpen").href = link;
+    const codeText = result.code ? `Student Portal code: ${result.code}. ` : "";
     text(
       "homeworkLinkNote",
       reset
-        ? "New link made. The old link no longer works."
-        : "Keep this link private: anyone with it can see this student's homework."
+        ? `${codeText}New link and code made. The old slip no longer works.`
+        : `${codeText}Keep the link and code private: anyone with them can see this student's homework.`
     );
   } catch (error) {
     console.error(error);
@@ -6666,18 +6667,19 @@ function llsRenewLink(student, e) {
    V21 — STUDENT APP LINKS FOR A WHOLE CLASS
 ========================================================= */
 
-function llsAppMessage(student, link) {
+function llsAppMessage(student, link, code) {
   const name = student?.firstName ? ` di ${student.firstName}` : "";
-  return `Ciao! Ecco l'app di inglese${name} della London Language School: compiti, esercizi e progressi.\n${link}\n\n` +
+  const codeLine = code ? `Codice personale: ${code} (per entrare dal sito: londonlanguageschool.github.io/Bagheria- → ⭐ Student Portal)\n\n` : "";
+  return `Ciao! Ecco l'app di inglese${name} della London Language School: compiti, esercizi e progressi.\n${link}\n\n` + codeLine +
     `Per averla come app sul telefono, apri il link e poi:\n` +
     `• iPhone (Safari): tocca Condividi, poi «Aggiungi alla schermata Home»\n` +
     `• Android (Chrome): tocca ⋮, poi «Aggiungi a schermata Home» o «Installa app»\n\n` +
     `Il link è personale: non condividerlo. Grazie!`;
 }
 
-function llsAppWhatsAppHref(student, link) {
+function llsAppWhatsAppHref(student, link, code) {
   const phone = typeof llsWhatsAppNumber === "function" ? llsWhatsAppNumber(student?.phone) : "";
-  return `https://wa.me/${phone}?text=${encodeURIComponent(llsAppMessage(student, link))}`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(llsAppMessage(student, link, code))}`;
 }
 
 async function llsOpenClassAppLinks(classId) {
@@ -6705,12 +6707,12 @@ async function llsOpenClassAppLinks(classId) {
     try {
       const result = await llsApiPost({ action: "createStudentLink", studentId: s.id });
       const link = llsHomeworkPageUrl(result.key);
-      row.innerHTML = `
-        <a class="button button-primary" href="${escapeHtml(llsAppWhatsAppHref(s, link))}" target="_blank" rel="noopener">Send on WhatsApp</a>
+      row.innerHTML = `${result.code ? `<code style="align-self:center;font-weight:700;letter-spacing:.06em">${escapeHtml(result.code)}</code>` : ""}
+        <a class="button button-primary" href="${escapeHtml(llsAppWhatsAppHref(s, link, result.code))}" target="_blank" rel="noopener">Send on WhatsApp</a>
         <button class="button button-secondary" type="button" data-copy-link="${escapeHtml(link)}">Copy</button>`;
       row.querySelector("[data-copy-link]").addEventListener("click", async (event) => {
         const value_ = event.currentTarget.dataset.copyLink;
-        try { await navigator.clipboard.writeText(llsAppMessage(s, value_)); showToast("Message and link copied.", "success"); }
+        try { await navigator.clipboard.writeText(llsAppMessage(s, value_, result.code)); showToast("Message and link copied.", "success"); }
         catch (_) { window.prompt("Copy this link:", value_); }
       });
     } catch (error) {
