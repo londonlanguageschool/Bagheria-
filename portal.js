@@ -7032,9 +7032,33 @@ document.addEventListener("DOMContentLoaded", () => {
 let llsLessonLogEntries = [];
 let llsLessonLogClass = "";
 
+// Special lessons (Halloween, Welcome back…) are stored in the Lesson Log
+// "Unit" column as "Special: <title>". They count as a lesson but never
+// change the class's Current Unit.
+const LLS_SPECIAL_PREFIX = "Special: ";
+function llsSpecialTitle(unit) {
+  const m = String(unit || "").match(/^Special:\s*(.+)$/i);
+  return m ? m[1].trim() : "";
+}
+function llsSetSpecial(on, title) {
+  const box = byId("lessonSpecialOn");
+  if (!box) return;
+  box.checked = Boolean(on);
+  byId("lessonSpecialPick").hidden = !on;
+  byId("lessonSpecialBox").classList.toggle("on", Boolean(on));
+  byId("lessonUnitPageField").hidden = Boolean(on);
+  setValue("lessonSpecialTitle", on ? (title || "") : "");
+  llsMarkSpecialChip();
+}
+function llsMarkSpecialChip() {
+  const t = value("lessonSpecialTitle").trim().toLowerCase();
+  document.querySelectorAll("#lessonSpecialChips [data-special]").forEach((b) => b.classList.toggle("active", b.dataset.special.toLowerCase() === t));
+}
+
 function llsLessonLogEntryHtml(entry) {
+  const special = llsSpecialTitle(entry.unit);
   const rows = [
-    ["Unit", entry.unit],
+    [special ? "⭐ Special lesson" : "Unit", special || entry.unit],
     ["What we did", entry.whatWeDid],
     ["Homework", entry.homeworkSet],
     ["Notes", entry.notes]
@@ -7278,6 +7302,7 @@ async function llsRenderLesson() {
   byId("lessonLast").hidden = true;
   ["lessonDone", "lessonNotes", "lessonHwTitle", "lessonHwText"].forEach((id) => setValue(id, ""));
   setValue("lessonUnitPage", cls.currentUnit || "");
+  llsSetSpecial(false);
   setValue("lessonHwDue", llsNextLessonDate(cls, date));
 
   try {
@@ -7316,7 +7341,9 @@ async function llsRenderLesson() {
     llsLesson.entries = Array.isArray(log.entries) ? log.entries : [];
     const own = llsLesson.entries.find((e) => e.lessonDate === date);
     if (own) {
-      setValue("lessonUnitPage", own.unit);
+      const sp = llsSpecialTitle(own.unit);
+      if (sp) { llsSetSpecial(true, sp); setValue("lessonUnitPage", cls.currentUnit || ""); }
+      else setValue("lessonUnitPage", own.unit);
       setValue("lessonDone", own.whatWeDid);
       setValue("lessonNotes", own.notes);
     }
@@ -7380,6 +7407,11 @@ async function llsSaveLesson() {
   const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
   const date = byId("lessonDate")?.value || "";
   if (!cls || !date) { showToast("Choose a class and date.", "error"); return; }
+  if (byId("lessonSpecialOn")?.checked && !value("lessonSpecialTitle").trim()) {
+    showToast("Give the special lesson a name (e.g. Halloween), or untick ⭐ Special lesson.", "error");
+    byId("lessonSpecialTitle")?.focus();
+    return;
+  }
   const button = byId("lessonSaveButton");
   button.disabled = true;
   button.textContent = "Saving…";
@@ -7411,7 +7443,10 @@ async function llsSaveLesson() {
       } catch (e) { failed.push("homework: " + e.message); }
     }
     // 3. Lesson notes
-    const note = { unit: value("lessonUnitPage").trim(), whatWeDid: value("lessonDone").trim(), notes: value("lessonNotes").trim() };
+    const specialOn = byId("lessonSpecialOn")?.checked;
+    const specialTitle = value("lessonSpecialTitle").trim();
+    const note = { unit: specialOn ? LLS_SPECIAL_PREFIX + specialTitle : value("lessonUnitPage").trim(), whatWeDid: value("lessonDone").trim(), notes: value("lessonNotes").trim() };
+    if (specialOn && !note.whatWeDid) note.whatWeDid = specialTitle + " lesson";
     const own = llsLesson.entries.find((e) => e.lessonDate === date);
     const homeworkSet = hwTitle || (own ? own.homeworkSet : "");
     if (note.whatWeDid || note.notes || homeworkSet) {
@@ -7453,6 +7488,9 @@ function llsInitLessonPage() {
 document.addEventListener("DOMContentLoaded", () => {
   byId("lessonDate")?.addEventListener("change", () => { llsLesson.loadedKey = ""; llsRenderLessonPicker(); llsRenderLesson(); });
   byId("lessonSaveButton")?.addEventListener("click", llsSaveLesson);
+  byId("lessonSpecialOn")?.addEventListener("change", (e) => { llsSetSpecial(e.target.checked, value("lessonSpecialTitle")); if (e.target.checked) byId("lessonSpecialTitle")?.focus(); });
+  byId("lessonSpecialTitle")?.addEventListener("input", llsMarkSpecialChip);
+  document.querySelectorAll("#lessonSpecialChips [data-special]").forEach((b) => b.addEventListener("click", () => { setValue("lessonSpecialTitle", b.dataset.special); llsMarkSpecialChip(); }));
   byId("lessonUnitMinus")?.addEventListener("click", () => llsChangeLessonUnit(-1));
   byId("lessonUnitPlus")?.addEventListener("click", () => llsChangeLessonUnit(1));
   byId("lessonResultsButton")?.addEventListener("click", () => llsOpenClassResults(llsLesson.classId));

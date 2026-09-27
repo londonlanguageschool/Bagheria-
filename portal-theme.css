@@ -220,3 +220,12 @@ tbody tr:hover { background: #f5fbff; }
 
 /* dashboard banner date: yellow on blue */
 .hero p.hero-kicker, #page-dashboard .hero .hero-kicker { color: var(--sun) !important; opacity: 1; }
+
+/* ---------- Special lesson box ---------- */
+.lesson-special { border: 1.5px dashed #cfe0f0; border-radius: 16px; padding: 12px 14px; margin-bottom: 14px; background: #fbfdff; transition: background 160ms ease, border-color 160ms ease; }
+.lesson-special.on { border-style: solid; border-color: var(--sun); background: var(--sun-100); }
+.lesson-special-toggle { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.lesson-special-toggle input { width: 20px; height: 20px; min-height: 0; margin: 2px 0 0; flex: none; accent-color: var(--red-600); }
+.lesson-special-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.lesson-special-chips .lesson-chip { min-height: 38px; padding: 6px 12px; }
+.lesson-chip.active:hover { background: var(--navy-900); border-color: var(--navy-900); color: #ffffff; }

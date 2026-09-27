@@ -628,8 +628,30 @@
 
             <div class="panel">
               <p class="section-label" style="margin-top:0;">2 · What we did</p>
+              <div class="lesson-special" id="lessonSpecialBox">
+                <label class="lesson-special-toggle" for="lessonSpecialOn">
+                  <input id="lessonSpecialOn" type="checkbox">
+                  <span><strong>⭐ Special lesson</strong> <span class="muted">(Welcome back, Halloween, Christmas… instead of the book. It still counts as a lesson; the unit doesn't move.)</span></span>
+                </label>
+                <div id="lessonSpecialPick" hidden>
+                  <div class="lesson-special-chips" id="lessonSpecialChips">
+                    <button type="button" class="lesson-chip" data-special="Welcome back">👋 Welcome back</button>
+                    <button type="button" class="lesson-chip" data-special="Halloween">🎃 Halloween</button>
+                    <button type="button" class="lesson-chip" data-special="Bonfire Night">🎆 Bonfire Night</button>
+                    <button type="button" class="lesson-chip" data-special="Christmas">🎄 Christmas</button>
+                    <button type="button" class="lesson-chip" data-special="Carnival">🎭 Carnival</button>
+                    <button type="button" class="lesson-chip" data-special="Easter">🐣 Easter</button>
+                    <button type="button" class="lesson-chip" data-special="Revision games">🎲 Revision games</button>
+                    <button type="button" class="lesson-chip" data-special="End of year party">🎉 End of year party</button>
+                  </div>
+                  <div class="form-field" style="margin-top:10px;">
+                    <label for="lessonSpecialTitle">Special lesson name</label>
+                    <input id="lessonSpecialTitle" type="text" maxlength="60" placeholder="Pick one above or type your own, e.g. Thanksgiving">
+                  </div>
+                </div>
+              </div>
               <div class="form-grid">
-                <div class="form-field">
+                <div class="form-field" id="lessonUnitPageField">
                   <label for="lessonUnitPage">Unit / page</label>
                   <input id="lessonUnitPage" type="text" placeholder="e.g. 2B, p.18">
                 </div>
