@@ -925,7 +925,7 @@ function renderStudents() {
                 type="button"
                 data-homework-link="${student.id}"
               >
-                Homework link
+                📱 App link
               </button>
 
               <button
@@ -1543,7 +1543,7 @@ function renderClasses() {
               <div style="width:${capacityPercentage}%"></div>
             </div>
           </div>
-          ${llsClassBookLine(item)}
+          ${llsClassBookLine(item, students.length)}
         </article>
       `;
     })
@@ -1562,6 +1562,14 @@ function renderClasses() {
     .forEach((button) => {
       button.addEventListener("click", () => {
         deleteClass(button.dataset.deleteClass);
+      });
+    });
+
+  container
+    .querySelectorAll("[data-class-applinks]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        llsOpenClassAppLinks(button.dataset.classApplinks);
       });
     });
 
@@ -5500,6 +5508,7 @@ function renderHomeworkLoginState() {
     }
     populateHomeworkClassSelect();
     renderHomeworkList();
+    if (typeof renderTeacherTests === "function") renderTeacherTests();
   } else {
     loginPanel.style.display = "";
     workspace.style.display = "none";
@@ -5851,7 +5860,7 @@ async function openHomeworkLink(studentId, reset = false) {
   if (!student) return;
 
   llsHomeworkLinkStudentId = studentId;
-  text("homeworkLinkTitle", `Homework link — ${getStudentName(student)}`);
+  text("homeworkLinkTitle", `App link — ${getStudentName(student)}`);
   setValue("homeworkLinkUrl", "Creating link…");
   text("homeworkLinkNote", "");
   openModal("homeworkLinkModal");
@@ -5861,10 +5870,7 @@ async function openHomeworkLink(studentId, reset = false) {
     const link = llsHomeworkPageUrl(result.key);
     setValue("homeworkLinkUrl", link);
 
-    const message =
-      `Ciao! Ecco il link personale per vedere i compiti di inglese di ${student.firstName} ` +
-      `alla London Language School. Salvalo tra i preferiti:\n${link}`;
-    byId("homeworkLinkWhatsApp").href = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    byId("homeworkLinkWhatsApp").href = llsAppWhatsAppHref(student, link);
     text(
       "homeworkLinkNote",
       reset
@@ -5940,16 +5946,33 @@ async function loadStudentHomeworkProgress(studentId) {
     const total = homework.length;
     const done = homework.filter((h) => doneIds.has(String(h["Homework ID"] || ""))).length;
 
-    // V18: practice sets passed for the student's class book(s).
-    const practice = llsPracticeSummary(studentId, Array.isArray(data.practice) ? data.practice : []);
-    const pct = window.LLS_PRACTICE
-      ? LLS_PRACTICE.combinedProgress(done, total, practice.done, practice.total)
-      : (total ? Math.round((done / total) * 100) : 0);
+    // V21: everything set counts equally (homework, tests, reviews, mini tests
+    // = 1 point; each lesson practice set = 1/3).
+    const tests = Array.isArray(data.tests) ? data.tests : [];
+    const testResults = Array.isArray(data.testResults) ? data.testResults : [];
+    const testsDone = tests.filter((t) => testResults.some((r) => r.testId === t.testId)).length;
+    const p = window.LLS_PRACTICE
+      ? LLS_PRACTICE.progressPoints({
+          homeworkDone: done, homeworkTotal: total,
+          testsDone, testsTotal: tests.length,
+          results: Array.isArray(data.practice) ? data.practice : [],
+          books: llsBooksForStudent(studentId)
+        })
+      : { pct: total ? Math.round((done / total) * 100) : 0, available: total, tests: [0, 0], practice: [0, 0] };
+    const pct = p.pct;
 
     text("studentHomeworkProgressText", total ? `${done} of ${total} homework done` : "No homework set for this student's class yet.");
-    text("studentHomeworkProgressPct", (total || practice.total) ? `${pct}%` : "");
+    text("studentHomeworkProgressPct", p.available ? `${pct}%` : "");
     byId("studentHomeworkProgressBar").style.width = `${pct}%`;
-    text("studentPracticeProgressText", practice.label);
+    const extra = [];
+    if (p.tests[1]) extra.push(`Tests taken: ${p.tests[0]} of ${p.tests[1]}`);
+    if (p.practice[1]) extra.push(`Practice: ${Math.round((p.practice[0] / p.practice[1]) * 100)}% of the lessons so far`);
+    const results = testResults.map((r) => {
+      const t = tests.find((x) => x.testId === r.testId);
+      return t ? `${t.title} ${r.first}/${r.total}` : "";
+    }).filter(Boolean);
+    if (results.length) extra.push(`Test scores: ${results.join(", ")}`);
+    text("studentPracticeProgressText", extra.join(" · ") || "No tests or practice yet.");
 
     const today = isoDate(new Date());
     const missing = homework
@@ -6432,16 +6455,22 @@ document.addEventListener("DOMContentLoaded", () => {
    V20 — CLASS RESULTS (mini tests + practice) per class
 ========================================================= */
 
-function llsClassBookLine(item) {
+function llsClassBookLine(item, studentCount = 0) {
   const course = window.LLS_COURSES && LLS_COURSES[item.book];
-  if (!course) return "";
-  const parts = [course.title];
-  if (item.units) parts.push(`units ${item.units}`);
-  if (item.currentUnit) parts.push(`now unit ${item.currentUnit}`);
+  const parts = [];
+  if (course) {
+    parts.push(course.title);
+    if (item.units) parts.push(`units ${item.units}`);
+    if (item.currentUnit) parts.push(`now unit ${item.currentUnit}`);
+  }
+  if (!course && !studentCount) return "";
   return `
     <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
-      <span style="font-size: 13px; color: #56617a;">📘 ${escapeHtml(parts.join(" · "))}</span>
-      <button class="row-action" type="button" data-class-results="${escapeHtml(item.id)}">Results</button>
+      <span style="font-size: 13px; color: #56617a;">${course ? `📘 ${escapeHtml(parts.join(" · "))}` : ""}</span>
+      <span style="display: flex; gap: 6px; flex-wrap: wrap;">
+        ${studentCount ? `<button class="row-action" type="button" data-class-applinks="${escapeHtml(item.id)}">📱 App links</button>` : ""}
+        <button class="row-action" type="button" data-class-results="${escapeHtml(item.id)}">Results</button>
+      </span>
     </div>`;
 }
 
@@ -6505,7 +6534,8 @@ function llsRenderHourPacks() {
   const body = byId("hourPacksBody");
   if (!card || !body) return;
 
-  if (!llsHourPacks.loading && Date.now() - llsHourPacks.loadedAt > 60000) {
+  const signedIn = typeof llsHasAdminSession !== "function" || llsHasAdminSession();
+  if (signedIn && !llsHourPacks.loading && Date.now() - llsHourPacks.loadedAt > 60000) {
     llsHourPacks.loading = true;
     llsApiGet("getOneToOneHours")
       .then((data) => { llsHourPacks.students = data.students || []; llsHourPacks.error = ""; })
@@ -6554,3 +6584,282 @@ function llsRenewLink(student, e) {
     `Grazie! London Language School`;
   return `<a class="row-action" href="https://wa.me/${phone}?text=${encodeURIComponent(message)}" target="_blank" rel="noopener">WhatsApp renewal</a>`;
 }
+
+
+/* =========================================================
+   V21 — STUDENT APP LINKS FOR A WHOLE CLASS
+========================================================= */
+
+function llsAppMessage(student, link) {
+  const name = student?.firstName ? ` di ${student.firstName}` : "";
+  return `Ciao! Ecco l'app di inglese${name} della London Language School: compiti, esercizi e progressi.\n${link}\n\n` +
+    `Per averla come app sul telefono, apri il link e poi:\n` +
+    `• iPhone (Safari): tocca Condividi, poi «Aggiungi alla schermata Home»\n` +
+    `• Android (Chrome): tocca ⋮, poi «Aggiungi a schermata Home» o «Installa app»\n\n` +
+    `Il link è personale: non condividerlo. Grazie!`;
+}
+
+function llsAppWhatsAppHref(student, link) {
+  const phone = typeof llsWhatsAppNumber === "function" ? llsWhatsAppNumber(student?.phone) : "";
+  return `https://wa.me/${phone}?text=${encodeURIComponent(llsAppMessage(student, link))}`;
+}
+
+async function llsOpenClassAppLinks(classId) {
+  const cls = state.classes.find((c) => c.id === classId);
+  if (!cls) return;
+  const ids = new Set(
+    (llsLivePortalData.enrolments || [])
+      .filter((e) => String(e["Class ID"] || "").trim() === classId && String(e["Status"] || "").trim().toLowerCase() === "active")
+      .map((e) => String(e["Student ID"] || "").trim())
+  );
+  const students = state.students.filter((s) => ids.has(s.id)).sort((a, b) => getStudentName(a).localeCompare(getStudentName(b)));
+  text("appLinksTitle", `App links — ${cls.name}`);
+  const list = byId("appLinksList");
+  list.innerHTML = students.length
+    ? students.map((s) => `
+        <div class="homework-status-row" data-applink-row="${escapeHtml(s.id)}">
+          <span>${escapeHtml(getStudentName(s))}${s.phone ? "" : ` <span style="color:#8a93a6;font-size:12px">(no phone saved)</span>`}</span>
+          <span class="applink-actions" style="display:flex;gap:6px;flex-wrap:wrap">Creating link…</span>
+        </div>`).join("")
+    : `<div class="empty-state">No active students in this class.</div>`;
+  openModal("appLinksModal");
+
+  for (const s of students) {
+    const row = list.querySelector(`[data-applink-row="${CSS.escape(s.id)}"] .applink-actions`);
+    try {
+      const result = await llsApiPost({ action: "createStudentLink", studentId: s.id });
+      const link = llsHomeworkPageUrl(result.key);
+      row.innerHTML = `
+        <a class="button button-primary" href="${escapeHtml(llsAppWhatsAppHref(s, link))}" target="_blank" rel="noopener">Send on WhatsApp</a>
+        <button class="button button-secondary" type="button" data-copy-link="${escapeHtml(link)}">Copy</button>`;
+      row.querySelector("[data-copy-link]").addEventListener("click", async (event) => {
+        const value_ = event.currentTarget.dataset.copyLink;
+        try { await navigator.clipboard.writeText(llsAppMessage(s, value_)); showToast("Message and link copied.", "success"); }
+        catch (_) { window.prompt("Copy this link:", value_); }
+      });
+    } catch (error) {
+      row.textContent = "Could not create the link.";
+    }
+  }
+}
+
+
+function llsBooksForStudent(studentId) {
+  const classIds = new Set(
+    (llsLivePortalData.enrolments || [])
+      .filter((e) => String(e["Student ID"] || "").trim() === studentId && String(e["Status"] || "").trim().toLowerCase() === "active")
+      .map((e) => String(e["Class ID"] || "").trim())
+  );
+  const student = getStudent(studentId);
+  if (student?.classId) classIds.add(student.classId);
+  return state.classes
+    .filter((c) => classIds.has(c.id) && c.book)
+    .map((c) => ({ id: c.book, units: c.units, current: c.currentUnit }));
+}
+
+
+/* =========================================================
+   V21 — TEACHERS' OWN TESTS (Homework page)
+   Apps Script V21: createTeacherTest, getTeacherTestsForClass,
+   deleteTeacherTest; students submit in the app and the server marks.
+========================================================= */
+
+let llsTeacherTests = { classId: "", tests: [], results: [] };
+let llsOpenTestId = "";
+
+async function renderTeacherTests() {
+  const body = byId("teacherTestsBody");
+  if (!body) return;
+  const classId = value("homeworkClassSelect");
+  if (!classId) { body.innerHTML = tableEmptyRow(5, "Choose a class."); return; }
+  body.innerHTML = tableEmptyRow(5, "Loading…");
+  try {
+    const data = await llsApiGet("getTeacherTestsForClass", { classId });
+    llsTeacherTests = { classId, tests: data.tests || [], results: data.results || [] };
+    const totalStudents = llsStudentsForClass(classId).length;
+    if (!llsTeacherTests.tests.length) {
+      body.innerHTML = tableEmptyRow(5, "No tests yet for this class.");
+      return;
+    }
+    body.innerHTML = llsTeacherTests.tests.map((t) => {
+      const rs = llsTeacherTests.results.filter((r) => r.testId === t.testId);
+      const avg = rs.length ? Math.round(rs.reduce((sum, r) => sum + (r.total ? r.first / r.total : 0), 0) / rs.length * 100) : null;
+      return `<tr>
+        <td><strong>${escapeHtml(t.title)}</strong><div style="font-size:12px;color:#56617a">${t.count} questions</div></td>
+        <td>${t.dueDate ? escapeHtml(formatDate(llsDateOnly(t.dueDate))) : "—"}</td>
+        <td>${rs.length} / ${totalStudents}</td>
+        <td>${avg == null ? "—" : `${avg}%`}</td>
+        <td class="table-actions-cell"><button class="row-action" type="button" data-test-results="${escapeHtml(t.testId)}">Results</button></td>
+      </tr>`;
+    }).join("");
+    body.querySelectorAll("[data-test-results]").forEach((b) => b.addEventListener("click", () => llsOpenTestResults(b.dataset.testResults)));
+  } catch (error) {
+    body.innerHTML = tableEmptyRow(5, /unknown action/i.test(error.message || "")
+      ? "Update the Apps Script to V21 to use tests."
+      : "Could not load tests: " + error.message);
+  }
+}
+
+function llsOpenTestResults(testId) {
+  const t = llsTeacherTests.tests.find((x) => x.testId === testId);
+  if (!t) return;
+  llsOpenTestId = testId;
+  text("testResultsTitle", t.title);
+  const students = llsStudentsForClass(llsTeacherTests.classId);
+  const rows = students.map((st) => {
+    const id = String(st["Student ID"] || "").trim();
+    const r = llsTeacherTests.results.find((x) => x.testId === testId && x.studentId === id);
+    const pct = r && r.total ? Math.round((r.first / r.total) * 100) : 0;
+    const colour = !r ? "#8a93a6" : pct >= 70 ? "#177b52" : pct >= 50 ? "#9a5a0c" : "#b3261e";
+    return `<div class="homework-status-row">
+      <span>${escapeHtml(llsStudentName(st))}</span>
+      <strong style="color:${colour}">${r ? `${r.first}/${r.total}${r.best !== r.first ? ` (best ${r.best})` : ""}` : "Not taken"}</strong>
+    </div>`;
+  });
+  byId("testResultsList").innerHTML = rows.join("") || `<div class="empty-state">No students in this class.</div>`;
+  openModal("testResultsModal");
+}
+
+function llsAddTestQuestion(kind, data = {}) {
+  const box = byId("testQuestions");
+  const n = box.children.length + 1;
+  const wrap = document.createElement("div");
+  wrap.className = "panel";
+  wrap.dataset.kind = kind;
+  wrap.style.margin = "0";
+  const uid = Math.random().toString(36).slice(2, 8);
+  wrap.innerHTML = kind === "mc" ? `
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+        <strong class="q-number">Question ${n} · multiple choice</strong>
+        <button class="row-action delete" type="button" data-remove-q>Remove</button>
+      </div>
+      <div class="form-field" style="margin-top:8px"><label>Question</label><textarea rows="2" data-q placeholder="e.g. She ___ to school every day."></textarea></div>
+      <div style="display:grid;gap:6px">
+        ${[0, 1, 2, 3].map((i) => `<label style="display:flex;gap:8px;align-items:center;font-weight:500">
+          <input type="radio" name="correct-${uid}" value="${i}" ${i === 0 ? "checked" : ""} aria-label="Correct answer">
+          <input type="text" data-o="${i}" placeholder="Option ${String.fromCharCode(65 + i)}${i > 1 ? " (optional)" : ""}" style="flex:1">
+        </label>`).join("")}
+        <span style="font-size:12px;color:#56617a">Tick the correct option. Leave C and D empty for 2 options.</span>
+      </div>
+      <div class="form-field" style="margin-top:8px"><label>Explanation (optional, shown after the test)</label><input type="text" data-e></div>`
+    : `
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+        <strong class="q-number">Question ${n} · typed answer</strong>
+        <button class="row-action delete" type="button" data-remove-q>Remove</button>
+      </div>
+      <div class="form-field" style="margin-top:8px"><label>Question</label><textarea rows="2" data-q placeholder="e.g. I ___ (go) to Palermo yesterday."></textarea></div>
+      <div class="form-field"><label>Correct answer(s), one per line</label><textarea rows="2" data-a placeholder="went"></textarea>
+        <span style="font-size:12px;color:#56617a">Capitals, final full stops and short forms (don't / do not) are accepted automatically.</span></div>
+      <div class="form-field"><label>Explanation (optional, shown after the test)</label><input type="text" data-e></div>`;
+  wrap.querySelector("[data-remove-q]").addEventListener("click", () => {
+    wrap.remove();
+    byId("testQuestions").querySelectorAll(".q-number").forEach((el, i) => {
+      el.textContent = el.textContent.replace(/Question \d+/, `Question ${i + 1}`);
+    });
+  });
+  box.appendChild(wrap);
+  wrap.querySelector("[data-q]").focus();
+}
+
+function llsOpenNewTest() {
+  const session = llsGetTeacherSession();
+  if (!session) { showToast("Log in first.", "error"); return; }
+  if (!value("homeworkClassSelect")) { showToast("Choose a class first.", "error"); return; }
+  byId("testForm").reset();
+  byId("testQuestions").innerHTML = "";
+  const cls = state.classes.find((c) => c.id === value("homeworkClassSelect"));
+  text("testModalTitle", `New test — ${cls ? cls.name : ""}`);
+  llsAddTestQuestion("mc");
+  openModal("testModal");
+}
+
+async function llsSaveTest(event) {
+  event.preventDefault();
+  const session = llsGetTeacherSession();
+  const title = value("testTitle").trim();
+  if (!title) { showToast("Give the test a title.", "error"); return; }
+  const questions = [];
+  for (const [i, box] of [...byId("testQuestions").children].entries()) {
+    const q = box.querySelector("[data-q]").value.trim();
+    const e = box.querySelector("[data-e]").value.trim();
+    if (!q) { showToast(`Question ${i + 1} is empty.`, "error"); return; }
+    if (box.dataset.kind === "mc") {
+      const raw = [0, 1, 2, 3].map((k) => box.querySelector(`[data-o="${k}"]`).value.trim());
+      const correct = Number(box.querySelector('input[type="radio"]:checked')?.value ?? 0);
+      if (!raw[correct]) { showToast(`Question ${i + 1}: the ticked option is empty.`, "error"); return; }
+      const options = [];
+      let a = 0;
+      raw.forEach((o, k) => { if (o) { if (k === correct) a = options.length; options.push(o); } });
+      if (options.length < 2) { showToast(`Question ${i + 1} needs at least 2 options.`, "error"); return; }
+      questions.push({ q, o: options, a, e });
+    } else {
+      const answers = box.querySelector("[data-a]").value.split("\n").map((x) => x.trim()).filter(Boolean);
+      if (!answers.length) { showToast(`Question ${i + 1} needs the correct answer.`, "error"); return; }
+      questions.push({ q, a: answers, e });
+    }
+  }
+  if (!questions.length) { showToast("Add at least one question.", "error"); return; }
+
+  const button = byId("testForm").querySelector('button[type="submit"]');
+  button.disabled = true;
+  button.textContent = "Saving…";
+  try {
+    await llsApiPost({
+      action: "createTeacherTest",
+      classId: value("homeworkClassSelect"),
+      teacherId: session?.teacherId || "",
+      title,
+      dueDate: value("testDue"),
+      questions
+    });
+    closeModal("testModal");
+    showToast("Test saved. Students can take it in their app now.", "success");
+    renderTeacherTests();
+  } catch (error) {
+    showToast(/unknown mutation/i.test(error.message || "") ? "Update the Apps Script to V21 first." : (error.message || "Could not save the test."), "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Save and give to class";
+  }
+}
+
+async function llsDeleteOpenTest() {
+  if (!llsOpenTestId) return;
+  const button = byId("deleteTestButton");
+  if (button.dataset.confirm !== "1") {
+    button.dataset.confirm = "1";
+    button.textContent = "Press again to delete";
+    setTimeout(() => { button.dataset.confirm = ""; button.textContent = "Delete test"; }, 4000);
+    return;
+  }
+  button.dataset.confirm = "";
+  button.textContent = "Delete test";
+  try {
+    await llsApiPost({ action: "deleteTeacherTest", testId: llsOpenTestId });
+    closeModal("testResultsModal");
+    showToast("Test deleted.", "success");
+    renderTeacherTests();
+  } catch (error) {
+    showToast(error.message || "Could not delete the test.", "error");
+  }
+}
+
+// Hide "Create with AI" until the AI key is set up (ping says aiReady).
+async function llsCheckAiPanel() {
+  const panel = byId("homeworkAiPanel");
+  if (!panel) return;
+  try {
+    const ping = await llsApiGet("ping");
+    panel.hidden = ping.aiReady !== true;
+  } catch (_) { /* leave as is */ }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  byId("newTestButton")?.addEventListener("click", llsOpenNewTest);
+  byId("addMcQuestion")?.addEventListener("click", () => llsAddTestQuestion("mc"));
+  byId("addTypedQuestion")?.addEventListener("click", () => llsAddTestQuestion("typed"));
+  byId("testForm")?.addEventListener("submit", llsSaveTest);
+  byId("deleteTestButton")?.addEventListener("click", llsDeleteOpenTest);
+  byId("homeworkClassSelect")?.addEventListener("change", renderTeacherTests);
+  llsCheckAiPanel();
+});

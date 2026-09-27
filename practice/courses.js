@@ -294,11 +294,64 @@
     return Math.round(value * 100);
   }
 
+  // Progress (27 Sept): everything the student has been given counts
+  // equally. Each homework, teacher test, review and mini test = 1 point;
+  // each lesson practice set = 1/3 point (a whole lesson = 1 point).
+  // Only things already set/unlocked count, so keeping up = 100%.
+  function progressPoints(opts) {
+    const res = {};
+    (opts.results || []).forEach(function (r) { res[String(r.setId)] = r; });
+    const passedSet = function (id) {
+      const r = res[id];
+      return r && Number(r.total) > 0 && Number(r.best) / Number(r.total) >= 0.5;
+    };
+    let earned = 0, available = 0, practiceEarned = 0, practiceAvailable = 0, examsDone = 0, examsTotal = 0;
+
+    (opts.books || []).forEach(function (b) {
+      const course = COURSES[b.id];
+      if (!course || !course.lessons.length) return;
+      const range = parseUnits(b.id, b.units);
+      const cur = Number(b.current);
+      const limit = cur >= range.from ? Math.min(cur, range.to) : range.to;
+      course.lessons.forEach(function (l) {
+        if (l.unit < range.from || l.unit > limit) return;
+        SET_TYPES.forEach(function (t) {
+          practiceAvailable += 1 / 3;
+          if (passedSet(l.id + "-" + t)) practiceEarned += 1 / 3;
+        });
+      });
+      (course.reviews || []).forEach(function (block, i) {
+        if (block[0] < range.from || block[1] > limit) return;
+        practiceAvailable += 1;
+        if (passedSet(b.id + "-R" + (i + 1))) practiceEarned += 1;
+      });
+      (course.tests || []).forEach(function (block, i) {
+        if (block[0] < range.from || block[1] > range.to) return;
+        if (!(cur >= block[1])) return; // not open yet
+        examsTotal += 1;
+        if (res[b.id + "-T" + (i + 1)]) examsDone += 1;
+      });
+    });
+
+    const hwDone = Number(opts.homeworkDone) || 0, hwTotal = Number(opts.homeworkTotal) || 0;
+    const ttDone = Number(opts.testsDone) || 0, ttTotal = Number(opts.testsTotal) || 0;
+    earned = hwDone + ttDone + examsDone + practiceEarned;
+    available = hwTotal + ttTotal + examsTotal + practiceAvailable;
+    return {
+      pct: available > 0 ? Math.round((earned / available) * 100) : 0,
+      available: available,
+      homework: [hwDone, hwTotal],
+      tests: [ttDone + examsDone, ttTotal + examsTotal],
+      practice: [Math.round(practiceEarned * 10) / 10, Math.round(practiceAvailable * 10) / 10]
+    };
+  }
+
   root.LLS_COURSES = COURSES;
   root.LLS_PRACTICE = {
     SET_TYPES: SET_TYPES,
     PASS_MARK: 0.5,
     parseUnits: parseUnits,
+    progressPoints: progressPoints,
     practiceSetIdsFor: practiceSetIdsFor,
     combinedProgress: combinedProgress
   };

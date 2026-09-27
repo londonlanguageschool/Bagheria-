@@ -393,20 +393,30 @@
       const items = homeworkItems();
       const hwDone = items.filter((i) => i.done).length;
       const hwTotal = items.length;
-      const pr = practiceCounts();
-      const pct = PRACTICE
-        ? PRACTICE.combinedProgress(hwDone, hwTotal, pr.done, pr.total)
-        : (hwTotal ? Math.round((hwDone / hwTotal) * 100) : 0);
+      const tests = data.tests || [];
+      const testsDone = tests.filter((t) => testResultFor(t.testId)).length;
+      // Everything set counts equally: homework, tests, reviews, mini tests = 1 point;
+      // each lesson practice set = 1/3.
+      const p = PRACTICE
+        ? PRACTICE.progressPoints({
+            homeworkDone: hwDone, homeworkTotal: hwTotal,
+            testsDone, testsTotal: tests.length,
+            results: data.practice || [],
+            books: myBooks()
+          })
+        : { pct: hwTotal ? Math.round((hwDone / hwTotal) * 100) : 0, available: hwTotal, homework: [hwDone, hwTotal], tests: [0, 0], practice: [0, 0] };
+      const pct = p.pct;
 
       document.getElementById("progressCard").hidden = false;
-      document.getElementById("progressText").textContent = (hwTotal || pr.total) ? `${pct}%` : "Let's start! · Iniziamo!";
+      document.getElementById("progressText").textContent = p.available ? `${pct}%` : "Let's start! · Iniziamo!";
       const bar = document.getElementById("progressBar");
       bar.setAttribute("aria-valuenow", String(pct));
       bar.firstElementChild.style.width = pct + "%";
 
       const parts = [];
       parts.push(hwTotal ? `Homework ${hwDone}/${hwTotal}` : "No homework yet");
-      if (pr.total) parts.push(`Practice ${pr.done}/${pr.total}`);
+      if (p.tests[1]) parts.push(`Tests ${p.tests[0]}/${p.tests[1]}`);
+      if (p.practice[1]) parts.push(`Practice ${Math.round((p.practice[0] / p.practice[1]) * 100)}%`);
       document.getElementById("progressSplit").textContent = parts.join(" · ");
       document.getElementById("classList").textContent = data.classes.length
         ? "Class: " + data.classes.map((c) => c["Class Name"]).join(", ")
@@ -442,12 +452,32 @@
 
     /* ---------- homework ---------- */
 
+    function testsHtml() {
+      const tests = (data.tests || []).slice().sort((a, b) => String(a.dueDate || "9999").localeCompare(String(b.dueDate || "9999")));
+      if (!tests.length) return "";
+      const classById = {};
+      data.classes.forEach((c) => { classById[String(c["Class ID"])] = c; });
+      return `<h2>Tests · Verifiche (${tests.length})</h2>` + tests.map((t) => {
+        const r = testResultFor(t.testId);
+        return `
+          <article class="item ${r ? "done" : ""}">
+            <div>
+              <p class="title" style="text-decoration:none">📝 ${esc(t.title)}</p>
+              <p class="meta">${esc(classById[t.classId]?.["Class Name"] || "")} · ${t.count} questions · domande</p>
+              ${r ? `<span class="due ok">Your score · Punteggio: ${r.first}/${r.total}</span>` : dueBadge(t.dueDate, false)}
+            </div>
+            <button class="tick ${r ? "is-done" : ""}" type="button" data-test="${esc(t.testId)}">${r ? "Try again" : "Start · Inizia"}</button>
+          </article>`;
+      }).join("");
+    }
+
     function renderHomework() {
       const main = document.getElementById("main");
       const items = homeworkItems();
 
       if (!items.length) {
-        main.innerHTML = `<div class="empty">No homework yet. 🎉<br>Nessun compito per ora.<br><br>Why not try some practice? · Prova gli esercizi!</div>`;
+        main.innerHTML = testsHtml() + `<div class="empty" style="margin-top:18px">No homework yet. 🎉<br>Nessun compito per ora.<br><br>Why not try some practice? · Prova gli esercizi!</div>`;
+        main.querySelectorAll("[data-test]").forEach((b) => b.addEventListener("click", () => startTeacherTest(b.dataset.test)));
         return;
       }
 
@@ -470,14 +500,15 @@
           ${i["Description"] ? `<p class="desc">${esc(i["Description"])}</p>` : ""}
         </article>`;
 
-      main.innerHTML =
+      main.innerHTML = testsHtml() +
         `<h2>To do · Da fare (${todo.length})</h2>` +
         (todo.length ? todo.map(card_).join("") : `<div class="empty">All done! Well done. 🎉<br>Tutto fatto, bravo/a!</div>`) +
         (finished.length ? `<h2>Done · Fatti (${finished.length})</h2>` + finished.map(card_).join("") : "");
 
-      main.querySelectorAll(".tick").forEach((button) => {
+      main.querySelectorAll(".tick[data-id]").forEach((button) => {
         button.addEventListener("click", () => toggle(button));
       });
+      main.querySelectorAll("[data-test]").forEach((b) => b.addEventListener("click", () => startTeacherTest(b.dataset.test)));
     }
 
     async function toggle(button) {
@@ -764,13 +795,13 @@
     function renderQuiz() {
       const main = document.getElementById("main");
       const q = quiz;
-      const label = q.type === "t" ? "Mini test"
+      const label = q.type === "x" ? "Test · Verifica" : q.type === "t" ? "Mini test"
         : q.type === "r" ? `${TYPE_NAMES[q.type]} · ${TYPE_IT[q.type]}`
         : `${q.lesson.code} ${TYPE_NAMES[q.type]} · ${TYPE_IT[q.type]}`;
       const dots = q.items.map((_, i) => {
         const a = q.answers[i];
         const cls = a === undefined ? (i === q.index && !q.finished ? "cur" : "")
-          : (q.type === "t" && !q.finished ? "cur" : (a ? "ok" : "no"));
+          : (isExam(q) && !q.finished ? "cur" : (a ? "ok" : "no"));
         return `<span class="${cls}"></span>`;
       }).join("");
 
@@ -786,7 +817,7 @@
             <span>${esc(label)}</span>
           </div>
           <p class="lesson-topic" style="margin:0">${esc([q.lesson.title, q.type === "v" ? q.lesson.vocab : q.lesson.grammar].filter(Boolean).join(" · "))}</p>
-          ${q.type === "t" && !q.finished ? `<p class="note" style="margin-top:8px">Mini test: answer all the questions, then see your score and the answers. Your first score goes to your teacher. · Il primo risultato va all'insegnante.</p>` : ""}
+          ${isExam(q) && !q.finished ? `<p class="note" style="margin-top:8px">${q.type === "x" ? "Test" : "Mini test"}: answer all the questions, then see your score and the answers. Your first score goes to your teacher. · Il primo risultato va all'insegnante.</p>` : ""}
           <div class="dots">${dots}</div>
           ${body}
         </section>`;
@@ -807,7 +838,7 @@
         html += `<div class="options">` + item.o.map((option, i) => {
           let cls = "";
           if (answered) {
-            if (quiz.type === "t") cls = i === item.picked ? "picked" : "";
+            if (isExam(quiz)) cls = i === item.picked ? "picked" : "";
             else if (i === item.a) cls = "right";
             else if (i === item.picked) cls = "wrong";
           }
@@ -822,7 +853,7 @@
           </form>`;
       }
 
-      if (answered && q.type === "t") {
+      if (answered && isExam(q)) {
         html += `<div class="actions"><button class="primary" type="button" id="nextQ">${q.index + 1 < q.items.length ? "Next · Avanti →" : "Finish · Fine"}</button></div>`;
       } else if (answered) {
         const right = q.answers[q.index];
@@ -856,7 +887,7 @@
           e.preventDefault();
           if (!input.value.trim()) return;
           item.typed = input.value;
-          quiz.answers[quiz.index] = typedIsRight(item, input.value);
+          quiz.answers[quiz.index] = quiz.type === "x" ? false : typedIsRight(item, input.value);
           renderQuiz();
         });
       }
@@ -873,12 +904,16 @@
       renderQuiz();
     }
 
+    function isExam(q) { return q && (q.type === "t" || q.type === "x"); }
+
     function finishSet() {
       quiz.finished = true;
-      saveResult();
+      if (quiz.type === "x") submitTeacherTest();
+      else saveResult();
     }
 
     function score() {
+      if (quiz.type === "x") return quiz.serverScore ?? 0;
       if (quiz.type === "s") return quiz.items.filter((x) => x.best >= SPEAK_PASS).length;
       return quiz.answers.filter(Boolean).length;
     }
@@ -887,9 +922,16 @@
       const total = quiz.items.length;
       const got = score();
       const ok = got / total >= PRACTICE.PASS_MARK;
+      if (quiz.type === "x" && quiz.saveState !== "saved") {
+        return `<div class="result"><div class="saved">${quiz.saveState === "failed"
+          ? "Not sent: check your connection. · Non inviato."
+          : "Marking your test… · Correzione in corso…"}</div></div>
+          <div class="actions">${quiz.saveState === "failed" ? `<button class="primary" type="button" id="retrySave">Send again · Riprova</button>` : ""}
+          <button class="secondary" type="button" id="done">Back · Indietro</button></div>`;
+      }
       const saved = {
         saving: "Saving… · Salvataggio…",
-        saved: "✓ Saved to your progress · Salvato",
+        saved: quiz.type === "x" ? "✓ Sent to your teacher · Inviato all'insegnante" : "✓ Saved to your progress · Salvato",
         failed: "Not saved: check your connection. · Non salvato.",
         offline: "Practice scores will be saved soon. · Presto salveremo i risultati."
       }[quiz.saveState] || "";
@@ -898,13 +940,13 @@
           <div>${ok ? "🎉 Great work! · Ottimo lavoro!" : "💪 Keep practising! · Continua così!"}</div>
           <div class="big-score">${got} / ${total}</div>
           <div class="saved" id="savedText">${esc(saved)}</div>
-          ${ok || quiz.type === "t" ? "" : `<p class="note">You need ${Math.ceil(total * PRACTICE.PASS_MARK)} or more to count towards your progress. · Ne servono almeno ${Math.ceil(total * PRACTICE.PASS_MARK)}.</p>`}
-          ${quiz.type === "t" ? answerList() : ""}
+          ${ok || isExam(quiz) ? "" : `<p class="note">You need ${Math.ceil(total * PRACTICE.PASS_MARK)} or more to count towards your progress. · Ne servono almeno ${Math.ceil(total * PRACTICE.PASS_MARK)}.</p>`}
+          ${isExam(quiz) ? answerList() : ""}
         </div>
         <div class="actions">
           ${quiz.saveState === "failed" ? `<button class="secondary" type="button" id="retrySave">Save again · Riprova</button>` : ""}
           <button class="secondary" type="button" id="again">Try again · Riprova</button>
-          <button class="primary" type="button" id="done">Back to practice · Indietro</button>
+          <button class="primary" type="button" id="done">${quiz.type === "x" ? "Back · Indietro" : "Back to practice · Indietro"}</button>
         </div>`;
     }
 
@@ -912,7 +954,7 @@
       return `<div class="answers">` + quiz.items.map((item, i) => {
         const right = quiz.answers[i];
         const mine = Array.isArray(item.o) ? (item.o[item.picked] ?? "—") : (item.typed || "—");
-        const correct = Array.isArray(item.o) ? item.o[item.a] : item.a[0];
+        const correct = item.serverAnswer ?? (Array.isArray(item.o) ? item.o[item.a] : item.a[0]);
         return `<div class="answer ${right ? "ok" : "no"}">
           <p><strong>${i + 1}. ${right ? "✓" : "✗"}</strong> ${questionHtml(item.q)}</p>
           ${right ? "" : `<p>Your answer · La tua risposta: ${esc(mine)}</p><p><strong>Answer · Risposta: ${esc(correct)}</strong></p>`}
@@ -923,13 +965,61 @@
 
     function bindResult() {
       const main = document.getElementById("main");
-      main.querySelector("#again").addEventListener("click", () => {
-        if (quiz.type === "r" || quiz.type === "t") startExtra(quiz.courseId, quiz.type, quiz.n);
+      main.querySelector("#again")?.addEventListener("click", () => {
+        if (quiz.type === "x") startTeacherTest(quiz.testId);
+        else if (quiz.type === "r" || quiz.type === "t") startExtra(quiz.courseId, quiz.type, quiz.n);
         else startSet(quiz.courseId, quiz.code, quiz.type);
       });
       main.querySelector("#done").addEventListener("click", () => { quiz = null; render(); });
       const retry = main.querySelector("#retrySave");
-      if (retry) retry.addEventListener("click", saveResult);
+      if (retry) retry.addEventListener("click", quiz.type === "x" ? submitTeacherTest : saveResult);
+    }
+
+    /* ---------- teachers' own tests (marked on the server) ---------- */
+
+    function testResultFor(testId) {
+      return (data.testResults || []).find((r) => r.testId === testId) || null;
+    }
+
+    function startTeacherTest(testId) {
+      const test = (data.tests || []).find((t) => t.testId === testId);
+      if (!test) return;
+      const cls = data.classes.find((c) => String(c["Class ID"]) === test.classId);
+      quiz = {
+        type: "x", testId, code: testId,
+        lesson: { code: testId, title: test.title, grammar: cls ? cls["Class Name"] : "", vocab: "" },
+        items: test.questions.map((q) => ({ ...q })),
+        index: 0, answers: [], finished: false, saveState: ""
+      };
+      window.scrollTo(0, 0);
+      render();
+    }
+
+    async function submitTeacherTest() {
+      const q = quiz;
+      q.saveState = "saving";
+      render();
+      const answers = q.items.map((item) => Array.isArray(item.o) ? (item.picked ?? null) : (item.typed || ""));
+      try {
+        const result = await api({
+          action: "mutate",
+          payload: JSON.stringify({ action: "studentSubmitTest", key: KEY, testId: q.testId, answers })
+        });
+        q.serverScore = result.score;
+        result.review.forEach((r, i) => {
+          q.answers[i] = r.right;
+          q.items[i].serverAnswer = r.answer;
+          q.items[i].e = r.e;
+        });
+        data.testResults = data.testResults || [];
+        const existing = testResultFor(q.testId);
+        const row = { testId: q.testId, first: result.first, best: result.best, total: result.total, attempts: result.attempts };
+        if (existing) Object.assign(existing, row); else data.testResults.push(row);
+        q.saveState = "saved";
+      } catch (error) {
+        q.saveState = "failed";
+      }
+      if (quiz === q) render();
     }
 
     async function saveResult() {
@@ -1320,6 +1410,8 @@
       try {
         data = await api({ action: "getStudentHomework", key: KEY });
         data.practice = Array.isArray(data.practice) ? data.practice : [];
+        data.tests = Array.isArray(data.tests) ? data.tests : [];
+        data.testResults = Array.isArray(data.testResults) ? data.testResults : [];
         render();
       } catch (error) {
         if (/not valid/i.test(error.message || "")) {
