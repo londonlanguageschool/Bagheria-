@@ -1,0 +1,222 @@
+/* =========================================================
+   LLS PORTAL THEME — matches the public website (index.html)
+   Loaded AFTER portal.css. Look only: no layout logic lives here.
+   To undo the restyle, remove the <link> to this file in portal.html.
+   Website palette: navy #062f67, sky #48bdf2, red #ef2f2f,
+   yellow #ffd84d, soft blue #eaf7ff. Pills, 900-weight headings.
+========================================================= */
+
+:root {
+  --navy-950: #041f45;
+  --navy-900: #062f67;
+  --navy-800: #062f67;
+  --navy-700: #0d4a92;
+  --navy-100: #eaf7ff;
+  --navy-50: #f5fbff;
+  --red-700: #cf2222;
+  --red-600: #ef2f2f;
+  --red-100: #ffe8e8;
+  --sky: #48bdf2;
+  --sky-100: #eaf7ff;
+  --sun: #ffd84d;
+  --sun-100: #fff6cf;
+  --page-bg: #f5fbff;
+  --radius-md: 18px;
+  --radius-lg: 26px;
+  --shadow-sm: 0 4px 14px rgba(6, 47, 103, 0.06);
+  --shadow-md: 0 16px 36px rgba(6, 47, 103, 0.12);
+  --pop: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* ---------- page ground: the website's airy blue ---------- */
+body {
+  background:
+    radial-gradient(circle at 85% -10%, rgba(72, 189, 242, 0.18), transparent 38%),
+    radial-gradient(circle at 10% 110%, rgba(255, 216, 77, 0.14), transparent 30%),
+    linear-gradient(135deg, #ffffff 0%, #f7fbff 55%, #edf8ff 100%) fixed;
+}
+.main { background: transparent; }
+
+/* ---------- headings: bold navy like the site ---------- */
+.hero h2, .page-toolbar h2, .panel-header h2, .panel-header h3, .modal-header h2,
+.class-card h3, .admin-login-card h1, #page-lesson h2, #lessonClassName {
+  color: var(--navy-900);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+.eyebrow, .section-label, .hero-kicker { color: var(--red-600); letter-spacing: 0.14em; font-weight: 800; }
+
+/* ---------- sidebar ---------- */
+.sidebar {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(72, 189, 242, 0.35), transparent 34%),
+    radial-gradient(circle at 100% 100%, rgba(239, 47, 47, 0.22), transparent 30%),
+    linear-gradient(180deg, #062f67 0%, #041f45 100%);
+}
+.nav-item { border-radius: 999px; font-weight: 700; }
+.nav-item:hover { background: rgba(72, 189, 242, 0.16); transform: translateX(3px); }
+.nav-item.active {
+  background: #ffffff;
+  color: var(--navy-900);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+}
+.nav-item.active .nav-icon { color: var(--red-600); }
+.nav-item[data-page="lesson"] .nav-icon { color: var(--sun); }
+.nav-item.active[data-page="lesson"] .nav-icon { color: #e0a800; }
+.nav-badge { background: var(--sun); color: var(--navy-900); font-weight: 900; }
+.brand-tagline { color: var(--sun); opacity: 0.95; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: saturate(1.4) blur(10px);
+  border-bottom: 1px solid #e6edf5;
+}
+.global-search input { border-radius: 999px; }
+.user-button, .icon-button { border-radius: 999px; }
+.avatar { background: linear-gradient(135deg, var(--sky), var(--navy-900)); }
+
+/* ---------- buttons: website pills ---------- */
+.button { border-radius: 999px; font-weight: 800; transition: transform 160ms var(--pop), box-shadow 160ms ease, background 160ms ease; }
+.button:hover { transform: translateY(-2px); }
+.button:active { transform: translateY(0) scale(0.98); }
+.button-primary {
+  background: var(--red-600);
+  box-shadow: 0 10px 22px rgba(239, 47, 47, 0.28);
+}
+.button-primary:hover { background: var(--red-700); box-shadow: 0 14px 28px rgba(239, 47, 47, 0.34); }
+.button-secondary { background: #ffffff; border: 1.5px solid #d6e6f5; color: var(--navy-900); }
+.button-secondary:hover { border-color: var(--sky); background: var(--sky-100); }
+.row-action { border-radius: 999px; font-weight: 700; }
+
+/* ---------- dashboard hero: sky → navy with a sticker ---------- */
+.hero {
+  background:
+    radial-gradient(circle at 88% 20%, rgba(255, 255, 255, 0.22), transparent 18%),
+    radial-gradient(circle at 96% 110%, rgba(255, 216, 77, 0.55), transparent 26%),
+    linear-gradient(135deg, #48bdf2 -10%, #0d4a92 45%, #062f67 100%);
+  border-radius: var(--radius-lg);
+}
+.hero h2 { color: #ffffff; }
+.hero .hero-kicker { color: var(--sun); }
+#page-dashboard .hero::after {
+  content: "We make English fun!";
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  transform: rotate(3deg);
+  background: var(--sun);
+  color: var(--navy-900);
+  font-weight: 900;
+  font-size: 0.85rem;
+  padding: 8px 14px;
+  border-radius: 14px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+@media (max-width: 760px) { #page-dashboard .hero::after { display: none; } }
+
+/* ---------- cards: rounded, coloured top stripe (like the course cards) ---------- */
+.stat-card, .panel, .table-card, .class-card, .teacher-card, .finance-card, .report-card, .mini-stat, .pipeline-step {
+  border-radius: var(--radius-md);
+  border-color: #e6edf5;
+}
+.stat-card, .class-card, .teacher-card, .finance-card, .report-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 180ms var(--pop), box-shadow 180ms ease;
+}
+.stat-card::before, .class-card::before, .teacher-card::before, .finance-card::before, .report-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 5px;
+  background: var(--sun);
+}
+.stats-grid > :nth-child(4n+2)::before, .class-grid > :nth-child(3n+2)::before,
+.teacher-grid > :nth-child(3n+2)::before, .finance-stats > :nth-child(3n+2)::before, .reports-grid > :nth-child(3n+2)::before { background: var(--sky); }
+.stats-grid > :nth-child(4n+3)::before, .class-grid > :nth-child(3n)::before,
+.teacher-grid > :nth-child(3n)::before, .finance-stats > :nth-child(3n)::before, .reports-grid > :nth-child(3n)::before { background: var(--red-600); }
+.stats-grid > :nth-child(4n)::before { background: var(--navy-900); }
+.stat-card:hover, .class-card:hover, .teacher-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.stat-icon { border-radius: 16px; width: 50px; height: 50px; flex-basis: 50px; font-size: 1.3rem; }
+.stat-main strong { color: var(--navy-900); font-weight: 900; }
+
+/* ---------- progress bars: game XP bar ---------- */
+.progress-track, .capacity-bar { border-radius: 999px; background: #e3eef9; }
+.progress-fill, .capacity-bar > div {
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.22) 0 8px, transparent 8px 16px),
+    linear-gradient(90deg, var(--sky), var(--navy-700));
+}
+
+/* ---------- status badges ---------- */
+.status-badge { border-radius: 999px; font-weight: 800; }
+
+/* ---------- tables: keep the Actions column on screen ---------- */
+th { background: #f5fbff; color: #5a6b85; }
+tbody tr:hover { background: #f5fbff; }
+.table-wrap th:last-child, .table-wrap td.table-actions-cell {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background: #ffffff;
+  box-shadow: -10px 0 12px -10px rgba(6, 47, 103, 0.22);
+}
+.table-wrap th:last-child { background: #f5fbff; }
+.table-wrap tbody tr:hover td.table-actions-cell { background: #f5fbff; }
+
+/* ---------- forms ---------- */
+.form-field input:focus, .form-field select:focus, .form-field textarea:focus,
+.filter-search input:focus, .filter-bar select:focus, .reg-note:focus {
+  border-color: var(--sky);
+  box-shadow: 0 0 0 4px rgba(72, 189, 242, 0.22);
+  outline: none;
+}
+
+/* ---------- Lesson page: the teacher's "game board" ---------- */
+.lesson-chip { border-width: 1.5px; font-weight: 700; transition: transform 160ms var(--pop), background 160ms ease; }
+.lesson-chip:hover { transform: translateY(-2px); border-color: var(--sky); background: var(--sky-100); }
+.lesson-chip.active { background: var(--navy-900); border-color: var(--navy-900); box-shadow: 0 10px 20px rgba(6, 47, 103, 0.25); }
+.lesson-chip.active strong { color: var(--sun); }
+.lesson-unit { border-width: 1.5px; background: #ffffff; }
+.lesson-unit strong { color: var(--navy-900); font-weight: 900; }
+.lesson-unit button { background: var(--sky-100); border-color: #cfe8f8; color: var(--navy-900); font-weight: 900; }
+.lesson-unit button:hover { background: var(--sun); }
+.reg-row { border-radius: 14px; }
+.reg-btn { border-radius: 999px; border-width: 1.5px; font-weight: 700; transition: transform 160ms var(--pop), background 160ms ease; }
+.reg-btn:hover { transform: translateY(-1px); }
+.reg-btn.on { animation: llsPop 260ms var(--pop); }
+.reg-btn.on.reg-present { background: #dcf5e8; }
+.lesson-save-bar .button { box-shadow: 0 14px 30px rgba(239, 47, 47, 0.34); }
+.lesson-log-latest { border-left: 5px solid var(--sun); border-radius: 14px; background: var(--sun-100); }
+
+/* ---------- toasts: a little celebration on success ---------- */
+.toast { border-radius: 16px; border-left-width: 6px; }
+.toast.success { border-left-color: #18a86b; }
+.toast.success strong::before { content: "🎉 "; }
+
+/* ---------- modals ---------- */
+.modal { border-radius: var(--radius-lg); }
+.modal-header { border-bottom-color: #e6edf5; }
+
+/* ---------- login: the website's front door ---------- */
+.admin-login-gate {
+  background:
+    radial-gradient(circle at 80% 10%, rgba(72, 189, 242, 0.45), transparent 35%),
+    radial-gradient(circle at 10% 95%, rgba(255, 216, 77, 0.35), transparent 30%),
+    linear-gradient(135deg, #062f67, #0d4a92);
+}
+.admin-login-card { border-radius: 28px; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.3); }
+
+@keyframes llsPop { 0% { transform: scale(0.9); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .button, .nav-item, .stat-card, .class-card, .teacher-card, .lesson-chip, .reg-btn { transition: none; }
+  .button:hover, .nav-item:hover, .stat-card:hover, .class-card:hover, .teacher-card:hover, .lesson-chip:hover { transform: none; }
+  .reg-btn.on { animation: none; }
+}
+
+/* dashboard banner date: yellow on blue */
+.hero p.hero-kicker, #page-dashboard .hero .hero-kicker { color: var(--sun) !important; opacity: 1; }
