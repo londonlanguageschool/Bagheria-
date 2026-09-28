@@ -290,6 +290,9 @@
     .sub { color: #34405f; opacity: 1; font-weight: 700; }
     .progress-card { border: 3px solid var(--sun); border-radius: 26px; box-shadow: 0 16px 36px rgba(15, 27, 61, .10); margin-top: 0; }
     .progress-top strong { font-family: var(--display); color: var(--ink); font-weight: 800; }
+    .bar-course div { background: var(--navy-800) !important; }
+    #courseBlock { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--navy-100); }
+    #progressHint { font-weight: 700; color: var(--ink); }
     .progress-top span { background: var(--sky-tile); color: var(--ink); font-family: var(--display); font-weight: 900; border-radius: 99px; padding: 2px 12px; }
     .bar { height: 16px; background: var(--sky-tile); }
     .bar div {
@@ -406,12 +409,20 @@
 
   <div class="wrap" style="padding: 0 16px;">
     <section class="progress-card" id="progressCard" hidden>
-      <div class="progress-top">
-        <strong>Progress · Progressi</strong>
+      <div id="courseBlock" hidden>
+        <div class="progress-top">
+          <strong>Course · Corso</strong>
+          <span id="courseText"></span>
+        </div>
+        <div class="bar bar-course" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Course · Corso" id="courseBar"><div></div></div>
+      </div>
+      <div class="progress-top" id="keepTop">
+        <strong>Keeping up · Al passo</strong>
         <span id="progressText"></span>
       </div>
-      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="progressBar"><div></div></div>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Keeping up · Al passo" id="progressBar"><div></div></div>
       <div class="split" id="progressSplit"></div>
+      <div class="split" id="progressHint" hidden></div>
       <div class="classes" id="classList"></div>
     </section>
     <nav class="tabs" id="tabs" role="tablist" hidden>
@@ -552,7 +563,85 @@
       return { done, total: ids.size };
     }
 
+    /* 28 Sept: "Lesson 1 of 60" course bar. School year and closures as on
+       the website calendar (#calendar in index.html): keep them in step. */
+    const SCHOOL_YEAR = {
+      start: "2026-09-28",
+      end: "2027-05-30",
+      closed: [["2026-12-07", "2026-12-08"], ["2026-12-23", "2027-01-06"], ["2027-03-19", "2027-03-19"], ["2027-04-25", "2027-04-30"]]
+    };
+    const WEEKDAY = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+
+    function ymd(d) {
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+
+    // Every lesson date of a class this school year (from its Day / Day 2).
+    function classLessonDates(c) {
+      const days = [c["Day"], c["Day 2"]].map((d) => WEEKDAY[String(d || "").trim().toLowerCase()]).filter((d) => d !== undefined);
+      if (!days.length) return [];
+      const out = [];
+      const d = new Date(SCHOOL_YEAR.start + "T12:00:00");
+      const end = new Date(SCHOOL_YEAR.end + "T12:00:00");
+      for (; d <= end; d.setDate(d.getDate() + 1)) {
+        if (days.indexOf(d.getDay()) === -1) continue;
+        const iso = ymd(d);
+        if (SCHOOL_YEAR.closed.some((r) => iso >= r[0] && iso <= r[1])) continue;
+        out.push(iso);
+      }
+      return out;
+    }
+
+    // Lessons held so far = lessons the teacher saved (whether or not this
+    // student came), or the student's own register marks if more.
+    function courseProgress() {
+      let total = 0, held = 0;
+      data.classes.forEach((c) => {
+        const id = String(c["Class ID"]);
+        const dates = classLessonDates(c);
+        if (!dates.length) return;
+        total += dates.length;
+        const logged = {};
+        (data.lessons || []).forEach((l) => { if (String(l.classId) === id) logged[isoDay(l.lessonDate) || l.lessonDate] = true; });
+        (data.attendance || []).forEach((a) => { if (String(a.classId) === id) logged[isoDay(a.lessonDate) || a.lessonDate] = true; });
+        held += Math.min(Object.keys(logged).length, dates.length);
+      });
+      return { total, held };
+    }
+
+    function renderCourse() {
+      const cp = courseProgress();
+      const block = document.getElementById("courseBlock");
+      if (!cp.total) { block.hidden = true; return; }
+      block.hidden = false;
+      const shown = Math.max(1, cp.held);
+      document.getElementById("courseText").textContent = cp.held
+        ? `Lesson ${cp.held} of ${cp.total} · Lezione ${cp.held} di ${cp.total}`
+        : `${cp.total} lessons this year · ${cp.total} lezioni quest'anno`;
+      const pct = cp.held ? Math.max(2, Math.round((shown / cp.total) * 100)) : 0;
+      const bar = document.getElementById("courseBar");
+      bar.setAttribute("aria-valuenow", String(pct));
+      bar.firstElementChild.style.width = pct + "%";
+    }
+
+    // Practice for the unit the class is on now: done or not yet?
+    function currentUnitPracticeLeft() {
+      if (!PRACTICE) return null;
+      const res = resultsById();
+      for (const b of myBooks()) {
+        const course = COURSES[b.id];
+        const cur = Number(b.current) || 0;
+        if (!course || !cur) continue;
+        const sets = [];
+        course.lessons.forEach((l) => { if (l.unit === cur) PRACTICE.SET_TYPES.forEach((t) => sets.push(l.id + "-" + t)); });
+        const left = sets.filter((id) => !passed(res[id])).length;
+        if (left) return { unit: cur, left };
+      }
+      return null;
+    }
+
     function renderProgress() {
+      renderCourse();
       const items = homeworkItems();
       const hwDone = items.filter((i) => i.done).length;
       const hwTotal = items.length;
@@ -583,6 +672,14 @@
       if (p.practice[1]) parts.push(`Practice ${Math.round((p.practice[0] / p.practice[1]) * 100)}%`);
       if (p.lessons && p.lessons[1]) parts.push(`In class ${Math.round((p.lessons[0] / p.lessons[1]) * 100)}%`);
       document.getElementById("progressSplit").textContent = parts.join(" · ");
+      const hint = document.getElementById("progressHint");
+      const left = currentUnitPracticeLeft();
+      if (left) {
+        hint.textContent = `🎯 Unit ${left.unit} practice: ${left.left} to do for extra stars · Esercizi unità ${left.unit}: ancora ${left.left}`;
+        hint.hidden = false;
+      } else {
+        hint.hidden = true;
+      }
       document.getElementById("classList").textContent = data.classes.length
         ? "Class: " + data.classes.map((c) => c["Class Name"]).join(", ")
         : "";

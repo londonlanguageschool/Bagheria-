@@ -317,9 +317,15 @@
       const limit = cur >= range.from ? Math.min(cur, range.to) : range.to;
       course.lessons.forEach(function (l) {
         if (l.unit < range.from || l.unit > limit) return;
+        // 28 Sept: practice for the unit the class is on right now only
+        // counts once it's done (a bonus, never a penalty), so nobody drops
+        // on the day a unit opens. Earlier units count as before.
+        const onCurrentUnit = cur >= range.from && cur <= range.to && l.unit === cur;
         SET_TYPES.forEach(function (t) {
+          const done = passedSet(l.id + "-" + t);
+          if (onCurrentUnit && !done) return;
           practiceAvailable += 1 / 3;
-          if (passedSet(l.id + "-" + t)) practiceEarned += 1 / 3;
+          if (done) practiceEarned += 1 / 3;
         });
       });
       (course.reviews || []).forEach(function (block, i) {
