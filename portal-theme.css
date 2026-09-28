@@ -367,3 +367,5 @@ input[type="checkbox"] { border-radius: 4px; }
 
 /* 28 Sept: Save lesson button confirms the save */
 #lessonSaveButton.is-saved, #lessonSaveButton.is-saved:disabled { background: #18a86b; border-color: #18a86b; color: #fff; opacity: 1; }
+/* 28 Sept: messages appear at the top, so they never cover the Save lesson button */
+.toast-region { top: 84px; bottom: auto; }
