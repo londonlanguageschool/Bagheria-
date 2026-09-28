@@ -2235,11 +2235,11 @@ function renderPayments() {
               ${llsReminderLink(payment, student)}
 
               <button
-                class="row-action delete"
+                class="row-action"
                 type="button"
                 data-delete-payment="${payment.id}"
               >
-                Delete
+                Payments
               </button>
             </div>
           </td>
@@ -2356,6 +2356,7 @@ function openNewPayment() {
     "Record payment"
   );
 
+  llsPaymentFormReady();
   openModal("paymentModal");
 }
 
@@ -2398,6 +2399,7 @@ function openAddPayment(feeId) {
     `Add payment — ${getStudentName(student) || "Student"}`
   );
 
+  llsPaymentFormReady();
   openModal("paymentModal");
 }
 
@@ -2430,6 +2432,16 @@ async function savePaymentForm(event) {
 
   if (courseFee < 0 || paidNow < 0) {
     showToast("Payment amounts cannot be negative.", "error");
+    return;
+  }
+
+  // 28 Sept: say which payment this is, and warn before saving a duplicate.
+  const instalment = value("paymentInstalment");
+  if (paidNow > 0 && !instalment) {
+    showToast("Choose which payment this is (e.g. Instalment 1).", "error");
+    return;
+  }
+  if (mode === "payment" && paidNow > 0 && !llsDuplicateCheckPassed(value("paymentId"), paidNow, paymentDate, instalment)) {
     return;
   }
 
@@ -2484,7 +2496,7 @@ async function savePaymentForm(event) {
       });
 
       if (paidNow > 0) {
-        await llsApiPost({
+        const payResult = await llsApiPost({
           action: "createPayment",
           fields: {
             "Fee ID": feeId,
@@ -2492,16 +2504,19 @@ async function savePaymentForm(event) {
             "Payment Date": paymentDate,
             "Amount": paidNow,
             "Payment Method": method,
+            "Instalment": instalment,
             "Notes": notes
           }
         });
 
         llsLiveFinanceData.payments.push({
+          "Payment ID": String(payResult?.paymentId || ""),
           "Fee ID": feeId,
           "Student ID": studentId,
           "Payment Date": paymentDate,
           "Amount": paidNow,
           "Payment Method": method,
+          "Instalment": instalment,
           "Notes": notes
         });
       }
@@ -2510,7 +2525,7 @@ async function savePaymentForm(event) {
         throw new Error("No fee was selected for this payment.");
       }
 
-      await llsApiPost({
+      const payResult = await llsApiPost({
         action: "createPayment",
         fields: {
           "Fee ID": feeId,
@@ -2518,16 +2533,20 @@ async function savePaymentForm(event) {
           "Payment Date": paymentDate,
           "Amount": paidNow,
           "Payment Method": method,
+          "Instalment": instalment,
           "Notes": notes
         }
       });
 
       llsLiveFinanceData.payments.push({
+        "Payment ID": String(payResult?.paymentId || ""),
         "Fee ID": feeId,
         "Student ID": studentId,
         "Payment Date": paymentDate,
         "Amount": paidNow,
         "Payment Method": method,
+        "Instalment": instalment,
+        "Status": "Active",
         "Notes": notes
       });
     }
@@ -2562,11 +2581,10 @@ async function savePaymentForm(event) {
   }
 }
 
+// 28 Sept: the old "Delete" button now opens the list of this fee's
+// payments, where a mistaken one can be voided (never deleted).
 function deletePayment(id) {
-  showToast(
-    "Deleting fees or payments isn't available in the portal yet — correct or remove the row directly in the Fees/Payments tabs of the Google Sheet.",
-    "error"
-  );
+  llsOpenFeePayments(id);
 }
 
 function paymentStatus(payment) {
@@ -5182,8 +5200,9 @@ function llsRebuildPaymentsState() {
       const feeId = String(fee["Fee ID"] || "").trim();
       const studentId = String(fee["Student ID"] || "").trim();
 
+      // 28 Sept: voided payments stay in the sheet but never count.
       const feePayments = payments.filter(
-        (item) => String(item["Fee ID"] || "").trim() === feeId
+        (item) => String(item["Fee ID"] || "").trim() === feeId && !llsPaymentIsVoid(item)
       );
 
       const paid = sum(feePayments.map((item) => number(item["Amount"])));
@@ -7992,4 +8011,245 @@ document.addEventListener("DOMContentLoaded", () => {
   byId("lessonAllHere")?.addEventListener("click", () => {
     document.querySelectorAll("#lessonRegister .reg-row").forEach((r) => r.querySelector('.reg-btn[data-status="Present"]')?.click());
   });
+});
+
+
+/* =========================================================
+   28 Sept — VOID A PAYMENT (never delete money records)
+   Payments tab gets Status / Voided Date / Voided By / Void Reason
+   (Apps Script V26 adds the columns on first use). A voided payment
+   stays in the sheet, is shown crossed out, and no longer counts
+   towards the balance, reports or reminders. Rows with no Status
+   (everything before V26) count as Active.
+   Also: every payment says which instalment it is, and the form
+   warns before saving the same payment twice.
+========================================================= */
+
+function llsPaymentIsVoid(payment) {
+  return /^void/i.test(String((payment && payment["Status"]) || "").trim());
+}
+
+function llsFeeRecord(feeId) {
+  return (llsLiveFinanceData.fees || []).find(
+    (item) => String(item["Fee ID"] || "").trim() === String(feeId || "").trim()
+  ) || null;
+}
+
+function llsActivePaymentsForFee(feeId) {
+  return (llsLiveFinanceData.payments || []).filter(
+    (item) => String(item["Fee ID"] || "").trim() === String(feeId || "").trim() && !llsPaymentIsVoid(item)
+  );
+}
+
+// Best guess for "Which payment is this?", so the office rarely has to change it.
+function llsDefaultInstalment(plan, fee, paid) {
+  plan = String(plan || "");
+  if (/hour pack/i.test(plan)) return "Hour pack";
+  if (plan === "Monthly") return "Monthly";
+  if (plan === "Full payment") return "Full payment";
+  if (plan === "3 instalments") {
+    if (!fee) return "Instalment 1";
+    let cumulative = 0;
+    for (let i = 1; i <= 3; i++) {
+      const amount = number(fee[`Instalment ${i} Amount`]);
+      if (!(amount > 0)) continue;
+      cumulative += amount;
+      if (cumulative - number(paid) > 0.001) return `Instalment ${i}`;
+    }
+    return "Other";
+  }
+  return "Other";
+}
+
+function llsSetInstalmentDefault() {
+  const select = byId("paymentInstalment");
+  if (!select) return;
+  if (paymentModalMode === "payment") {
+    const feeId = value("paymentId");
+    const fee = llsFeeRecord(feeId);
+    const row = (state.payments || []).find((p) => p.id === feeId);
+    select.value = llsDefaultInstalment(fee ? fee["Payment Plan"] : "", fee, row ? row.paid : 0);
+  } else {
+    select.value = llsDefaultInstalment(value("paymentPlan") || "Full payment", null, 0);
+  }
+}
+
+function llsHideDuplicateWarning() {
+  const box = byId("paymentDuplicateWarning");
+  if (box) { box.hidden = true; box.textContent = ""; }
+  const form = byId("paymentForm");
+  if (form) delete form.dataset.dupOk;
+  const button = form?.querySelector('button[type="submit"]');
+  if (button && button.dataset.normalLabel) { button.textContent = button.dataset.normalLabel; delete button.dataset.normalLabel; }
+}
+
+function llsPaymentFormReady() {
+  llsHideDuplicateWarning();
+  llsSetInstalmentDefault();
+}
+
+// Returns true when it's fine to save. The first time a likely duplicate is
+// found it shows a warning and asks for a second press ("Save anyway").
+function llsDuplicateCheckPassed(feeId, amount, date, instalment) {
+  const form = byId("paymentForm");
+  const signature = [feeId, amount, date, instalment].join("|");
+  if (form && form.dataset.dupOk === signature) return true;
+
+  const matches = llsActivePaymentsForFee(feeId).filter((p) => {
+    const sameAmountAndDay = Math.abs(number(p["Amount"]) - number(amount)) < 0.005 &&
+      llsDateOnly(p["Payment Date"]) === date;
+    const sameInstalment = /^Instalment \d$/.test(instalment) &&
+      String(p["Instalment"] || "").trim() === instalment;
+    return sameAmountAndDay || sameInstalment;
+  });
+  if (!matches.length) return true;
+
+  const first = matches[0];
+  const box = byId("paymentDuplicateWarning");
+  if (box) {
+    box.textContent = `Possible duplicate: ${formatMoney(number(first["Amount"]))} on ${formatDate(llsDateOnly(first["Payment Date"]))}` +
+      (String(first["Instalment"] || "").trim() ? ` (${String(first["Instalment"]).trim()})` : "") +
+      " is already recorded for this fee. Check before saving. If it really is a second payment, press Save anyway.";
+    box.hidden = false;
+  }
+  const button = form?.querySelector('button[type="submit"]');
+  if (button) {
+    if (!button.dataset.normalLabel) button.dataset.normalLabel = button.textContent;
+    button.textContent = "Save anyway";
+  }
+  if (form) form.dataset.dupOk = signature;
+  return false;
+}
+
+let llsFeePaymentsOpenId = "";
+
+function llsOpenFeePayments(feeId) {
+  const fee = llsFeeRecord(feeId);
+  if (!fee) {
+    showToast("That fee record could not be found. Try refreshing.", "error");
+    return;
+  }
+  llsFeePaymentsOpenId = feeId;
+  const student = getStudent(String(fee["Student ID"] || "").trim());
+  text("feePaymentsTitle", `Payments — ${getStudentName(student) || "Student"}`);
+  llsRenderFeePayments();
+  openModal("feePaymentsModal");
+}
+
+function llsRenderFeePayments() {
+  const body = byId("feePaymentsBody");
+  if (!body) return;
+  const feeId = llsFeePaymentsOpenId;
+  const rows = (llsLiveFinanceData.payments || [])
+    .filter((p) => String(p["Fee ID"] || "").trim() === feeId)
+    .sort((a, b) => String(a["Payment Date"] || "").localeCompare(String(b["Payment Date"] || "")));
+
+  if (!rows.length) {
+    body.innerHTML = tableEmptyRow(6, "No payments recorded for this fee yet.");
+    return;
+  }
+
+  body.innerHTML = rows.map((p) => {
+    const id = String(p["Payment ID"] || "").trim();
+    const isVoid = llsPaymentIsVoid(p);
+    const strike = isVoid ? ' style="text-decoration: line-through; color: #8a93a6;"' : "";
+    let action;
+    if (isVoid) {
+      action = `<span style="font-size: 12px; color: #b3261e; font-weight: 700;">Void</span>
+        <div style="font-size: 12px; color: #56617a;">${escapeHtml(String(p["Void Reason"] || ""))}${p["Voided Date"] ? " · " + escapeHtml(formatDate(llsDateOnly(p["Voided Date"]))) : ""}${p["Voided By"] ? " · " + escapeHtml(String(p["Voided By"])) : ""}</div>`;
+    } else if (!id) {
+      action = `<span style="font-size: 12px; color: #56617a;">Still saving…</span>`;
+    } else {
+      action = `<button class="row-action delete" type="button" data-void-payment="${escapeHtml(id)}">Void payment</button>
+        <div class="lls-void-box" data-void-box="${escapeHtml(id)}" hidden style="margin-top: 8px; gap: 6px; min-width: 200px;">
+          <input type="text" data-void-reason placeholder="Reason, e.g. entered twice" maxlength="200">
+          <input type="text" data-void-name placeholder="Your name" maxlength="60">
+          <button class="button button-primary" type="button" data-void-confirm="${escapeHtml(id)}">Confirm void</button>
+        </div>`;
+    }
+    return `<tr>
+      <td${strike}>${escapeHtml(p["Payment Date"] ? formatDate(llsDateOnly(p["Payment Date"])) : "—")}</td>
+      <td${strike}><strong>${escapeHtml(formatMoney(number(p["Amount"])))}</strong></td>
+      <td${strike}>${escapeHtml(String(p["Instalment"] || "—"))}</td>
+      <td${strike}>${escapeHtml(String(p["Payment Method"] || "—"))}</td>
+      <td${strike}>${escapeHtml(String(p["Notes"] || ""))}</td>
+      <td class="table-actions-cell">${action}</td>
+    </tr>`;
+  }).join("");
+
+  let savedName = "";
+  try { savedName = localStorage.getItem("lls_staff_name") || ""; } catch (_) {}
+
+  body.querySelectorAll("[data-void-payment]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const box = body.querySelector(`[data-void-box="${CSS.escape(button.dataset.voidPayment)}"]`);
+      if (!box) return;
+      box.hidden = false;
+      box.style.display = "grid";
+      button.hidden = true;
+      const nameInput = box.querySelector("[data-void-name]");
+      if (nameInput && !nameInput.value) nameInput.value = savedName;
+      box.querySelector("[data-void-reason]")?.focus();
+    });
+  });
+  body.querySelectorAll("[data-void-confirm]").forEach((button) => {
+    button.addEventListener("click", () => llsVoidPayment(button.dataset.voidConfirm, button));
+  });
+}
+
+async function llsVoidPayment(paymentId, button) {
+  const box = button.closest("[data-void-box]");
+  const reason = String(box?.querySelector("[data-void-reason]")?.value || "").trim();
+  const name = String(box?.querySelector("[data-void-name]")?.value || "").trim();
+  if (reason.length < 3) {
+    showToast("Write why this payment is being voided (e.g. entered twice).", "error");
+    box?.querySelector("[data-void-reason]")?.focus();
+    return;
+  }
+  try { if (name) localStorage.setItem("lls_staff_name", name); } catch (_) {}
+
+  const label = button.textContent;
+  button.disabled = true;
+  button.textContent = "Voiding…";
+  llsBgSaving++;
+  try {
+    const result = await llsApiPost({ action: "voidPayment", paymentId, reason, voidedBy: name || "Office" });
+    const row = (llsLiveFinanceData.payments || []).find((p) => String(p["Payment ID"] || "").trim() === paymentId);
+    if (row) {
+      row["Status"] = "Void";
+      row["Void Reason"] = reason;
+      row["Voided By"] = (result && result.voidedBy) || name || "Office";
+      row["Voided Date"] = (result && result.voidedDate) || isoDate(new Date());
+    }
+    llsRebuildPaymentsState();
+    saveState();
+    renderAll();
+    llsRenderFeePayments();
+    showToast("Payment voided. It no longer counts towards the balance.", "success");
+    llsLoadFinanceFromSheets(true).then(() => { renderAll(); llsRenderFeePayments(); }).catch(() => {});
+  } catch (error) {
+    console.error(error);
+    const msg = String(error && error.message || "");
+    showToast(
+      /Unknown mutation action/i.test(msg)
+        ? "Voiding needs the new Apps Script (V26). Paste and deploy it, then try again."
+        : (msg || "The payment could not be voided."),
+      "error"
+    );
+    button.disabled = false;
+    button.textContent = label;
+  } finally {
+    llsBgSaving = Math.max(0, llsBgSaving - 1);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Runs after the V19 "open fee for this student" listener, so the
+  // instalment guess uses the fee it picked.
+  byId("paymentStudent")?.addEventListener("change", llsPaymentFormReady);
+  byId("paymentPlan")?.addEventListener("change", () => { if (paymentModalMode !== "payment") llsSetInstalmentDefault(); });
+  ["paymentPaid", "paymentDate", "paymentInstalment"].forEach((id) =>
+    byId(id)?.addEventListener("input", llsHideDuplicateWarning)
+  );
+  byId("paymentInstalment")?.addEventListener("change", llsHideDuplicateWarning);
 });

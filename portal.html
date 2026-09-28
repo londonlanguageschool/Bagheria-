@@ -1703,6 +1703,19 @@
             <input id="paymentPaid" type="number" min="0" step="0.01" required>
           </div>
 
+          <div class="form-field">
+            <label for="paymentInstalment">Which payment is this? *</label>
+            <select id="paymentInstalment" required>
+              <option value="Instalment 1">Instalment 1</option>
+              <option value="Instalment 2">Instalment 2</option>
+              <option value="Instalment 3">Instalment 3</option>
+              <option value="Full payment">Full payment</option>
+              <option value="Monthly">Monthly</option>
+              <option value="Hour pack">Hour pack</option>
+              <option value="Other">Other (see notes)</option>
+            </select>
+          </div>
+
           <div class="form-field form-field-wide" id="paymentPlanBox">
             <label for="paymentPlan">Payment plan for this course fee</label>
             <select id="paymentPlan">
@@ -1749,6 +1762,8 @@
           </div>
         </div>
 
+        <div id="paymentDuplicateWarning" role="alert" hidden style="margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: #fff4d6; border: 1px solid #f0c419; color: #5c4400; font-size: 14px;"></div>
+
         <div class="modal-actions">
           <button class="button button-secondary" type="button" data-close-modal="paymentModal">
             Cancel
@@ -1758,6 +1773,40 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- =========================
+       FEE PAYMENTS MODAL (28 Sept: list + void, never delete)
+  ========================== -->
+  <div class="modal-backdrop" id="feePaymentsModal">
+    <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="feePaymentsTitle">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">Finance</p>
+          <h2 id="feePaymentsTitle">Payments</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="feePaymentsModal">×</button>
+      </div>
+      <p style="margin: 0 0 12px; color: #56617a; font-size: 14px;">A payment entered by mistake is <strong>voided</strong>, not deleted: it stays in the sheet crossed out, with the reason, and no longer counts towards the balance.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Which payment</th>
+              <th>Method</th>
+              <th>Notes</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="feePaymentsBody"></tbody>
+        </table>
+      </div>
+      <div class="modal-actions">
+        <button class="button button-secondary" type="button" data-close-modal="feePaymentsModal">Close</button>
+      </div>
     </div>
   </div>
 
