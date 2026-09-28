@@ -124,6 +124,7 @@
     "Saving…": "Salvataggio…",
     "Loading…": "Caricamento…",
     "Loading class…": "Carico la classe…",
+    "⏳ Loading your classes from Google… (up to 30 seconds)": "⏳ Carico le tue classi da Google… (fino a 30 secondi)",
     "Saves the register, notes and homework together": "Salva insieme registro, note e compiti",
     "  ← rating needed": "  ← manca la valutazione",
     "No students enrolled in this class yet.": "Nessuno studente iscritto in questa classe.",

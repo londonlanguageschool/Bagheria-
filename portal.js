@@ -4824,6 +4824,7 @@ function llsNormaliseStage(stage) {
 }
 
 let llsCoreLoadPromise = null;
+let llsCoreSettled = false; // 28 Sept: true once the first class list from Google has arrived (or failed)
 
 function llsApplyCorePortalData(payload) {
   const studentRows = Array.isArray(payload.students) ? payload.students : [];
@@ -4922,6 +4923,10 @@ async function llsLoadCoreFromSheets(force = false) {
       return null;
     } finally {
       llsCoreLoadPromise = null;
+      if (!llsCoreSettled) {
+        llsCoreSettled = true;
+        if (document.getElementById("page-lesson")?.classList.contains("active") && typeof llsRenderLessonPicker === "function") llsRenderLessonPicker();
+      }
     }
   })();
 
@@ -7388,9 +7393,11 @@ function llsRenderLessonPicker() {
   const chip = (cls, label) =>
     `<button type="button" class="lesson-chip${cls.id === llsLesson.classId ? " active" : ""}" data-lesson-class="${escapeHtml(cls.id)}">${label}</button>`;
   const dayLabel = new Date(date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
+  // 28 Sept: while Google is still sending the class list, say so (not "No lessons").
+  const loading = !llsCoreSettled && !today.length;
   box.innerHTML = `
     <p class="section-label" style="margin:0 0 8px;">${onlyMine ? "My lessons" : "Lessons"} on ${escapeHtml(dayLabel)}</p>
-    <div class="lesson-chips">${today.length ? today.map(({ cls, time }) => chip(cls, `<strong>${escapeHtml(time)}</strong> ${escapeHtml(cls.name)}`)).join("") : `<span class="muted">No lessons on this day.</span>`}</div>
+    <div class="lesson-chips">${today.length ? today.map(({ cls, time }) => chip(cls, `<strong>${escapeHtml(time)}</strong> ${escapeHtml(cls.name)}`)).join("") : (loading ? `<span class="muted">⏳ Loading your classes from Google… (up to 30 seconds)</span>` : `<span class="muted">No lessons on this day.</span>`)}</div>
     <details class="lesson-all"${today.length ? "" : " open"}>
       <summary>${onlyMine ? "All my classes" : "All classes"} (${all.length})</summary>
       <div class="lesson-chips">${all.map((c) => chip(c, escapeHtml(c.name))).join("")}</div>
