@@ -1064,6 +1064,7 @@ async function saveStudentForm(event) {
   const firstName = value("studentFirstName").trim();
   const lastName = value("studentLastName").trim();
   const isConversion = !id && Boolean(pendingConversionEnquiryId);
+  const convEnquiryId = pendingConversionEnquiryId; // 28 Sept: kept for the background save
   const classId = value("studentClass").trim();
 
   if (!firstName || !lastName) {
@@ -1124,6 +1125,8 @@ async function saveStudentForm(event) {
     "Notes": value("studentNotes").trim()
   };
 
+  llsBgStart("studentModal");
+  let bgOk = false;
   try {
     const result = await llsApiPost(
       id
@@ -1202,14 +1205,14 @@ async function saveStudentForm(event) {
           studentId,
           classId,
           schoolYear: selectedSchoolYear,
-          startDate: value("studentJoined") || isoDate(new Date())
+          startDate: fields["Joined"] || isoDate(new Date())
         });
       }
     }
 
     if (isConversion) {
       const enquiry = state.enquiries.find(
-        (item) => item.id === pendingConversionEnquiryId
+        (item) => item.id === convEnquiryId
       );
 
       if (!enquiry) {
@@ -1326,6 +1329,7 @@ async function saveStudentForm(event) {
       "success"
     );
 
+    bgOk = true;
     // V12.8 silent verification. This never holds the Save UI.
     void llsRefreshCoreAfterSaveInBackground();
 
@@ -1355,6 +1359,7 @@ async function saveStudentForm(event) {
       button.disabled = false;
       button.textContent = oldLabel;
     }
+    llsBgEnd(bgOk, "studentModal");
   }
 }
 
@@ -2436,13 +2441,15 @@ async function savePaymentForm(event) {
     button.textContent = "Saving…";
   }
 
+  let feeId = value("paymentId");
+  const plan = value("paymentPlan") || "Full payment";
+  if (mode === "create" && plan === "Full payment" && !value("paymentDue1")) setValue("paymentDue1", paymentDate);
+  const planFields = mode === "create" ? { "Payment Plan": plan, ...llsInstalmentFields(plan, courseFee, "payment") } : {};
+  llsBgStart("paymentModal");
+  let bgOk = false;
   try {
-    let feeId = value("paymentId");
 
     if (mode === "create") {
-      const plan = value("paymentPlan") || "Full payment";
-      if (plan === "Full payment" && !value("paymentDue1")) setValue("paymentDue1", paymentDate);
-      const planFields = { "Payment Plan": plan, ...llsInstalmentFields(plan, courseFee, "payment") };
 
       const feeResult = await llsApiPost({
         action: "createFee",
@@ -2529,7 +2536,7 @@ async function savePaymentForm(event) {
     llsRebuildPaymentsState();
     saveState();
     renderAll();
-    closeModal("paymentModal");
+    bgOk = true;
 
     showToast(
       mode === "create" ? "Fee and payment recorded." : "Payment recorded.",
@@ -2550,6 +2557,8 @@ async function savePaymentForm(event) {
       button.textContent = oldLabel;
     }
     paymentModalMode = "create";
+    if (!bgOk) paymentModalMode = mode; // a failed save reopens in the same mode
+    llsBgEnd(bgOk, "paymentModal");
   }
 }
 
@@ -2928,24 +2937,30 @@ async function saveEnquiryForm(event) {
     ].filter(Boolean).join("\n")
   };
 
+  // 28 Sept: close now, show the change at once, save in the background.
+  llsBgStart("enquiryModal");
+  let bgOk = false;
+  if (id) {
+    const local = state.enquiries.find((item) => item.id === id);
+    if (local) { Object.assign(local, record); renderAll(); }
+  }
   try {
     await llsApiPost(
       id
         ? { action: "updateEnquiry", enquiryId: id, fields }
         : { action: "createEnquiry", fields }
     );
-
-    await llsLoadEnquiriesFromSheets();
-    closeModal("enquiryModal");
+    bgOk = true;
 
     showToast(
       id ? "Enquiry updated in Google Sheets." : "Enquiry added to Google Sheets.",
       "success"
     );
+    llsLoadEnquiriesFromSheets().then(() => renderAll()).catch((e) => console.warn("LLS: enquiry refresh deferred.", e));
   } catch (error) {
     console.error("LLS enquiry save failed:", error);
     if (error.uncertain) {
-      closeModal("enquiryModal");
+      bgOk = true; // probably saved: don't reopen the form
       showToast(error.message, "error");
     } else {
       showToast(
@@ -2958,6 +2973,7 @@ async function saveEnquiryForm(event) {
       submitButton.disabled = false;
       submitButton.textContent = oldLabel || "Save enquiry";
     }
+    llsBgEnd(bgOk, "enquiryModal");
   }
 }
 
@@ -4444,6 +4460,24 @@ function llsPing() {
     });
   } catch (_) {}
 }
+
+/* 28 Sept: office forms close as soon as Save is pressed and finish saving
+   in the background (Google takes ~30 s per step). A counter keeps track, the
+   page warns before closing while something is still saving, and a failed
+   save reopens its form with everything still filled in. */
+let llsBgSaving = 0;
+function llsBgStart(modalId) {
+  llsBgSaving++;
+  closeModal(modalId);
+  showToast("⏳ Saving… you can carry on, it finishes by itself.", "info");
+}
+function llsBgEnd(ok, modalId) {
+  llsBgSaving = Math.max(0, llsBgSaving - 1);
+  if (!ok && modalId && !document.querySelector(".modal-backdrop.open")) openModal(modalId);
+}
+window.addEventListener("beforeunload", (e) => {
+  if (llsBgSaving > 0) { e.preventDefault(); e.returnValue = ""; }
+});
 
 /* 28 Sept: a Save button that stays on screen turns green for a moment. */
 function llsFlashSaved(button, label) {
