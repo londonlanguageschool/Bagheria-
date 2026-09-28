@@ -4408,10 +4408,57 @@ function showToast(
   `;
 
   region.appendChild(toast);
+  if (type === "success") llsPing(); // 28 Sept: a short "ping" whenever something is saved
 
   setTimeout(() => {
     toast.remove();
   }, 3500);
+}
+
+/* 28 Sept: success sound. The audio context is opened on the first tap
+   (browsers only allow sound after the user has touched the page). */
+let llsAudio = null;
+function llsAudioUnlock() {
+  try {
+    if (!llsAudio) llsAudio = new (window.AudioContext || window.webkitAudioContext)();
+    if (llsAudio.state === "suspended") llsAudio.resume();
+  } catch (_) {}
+}
+document.addEventListener("pointerdown", llsAudioUnlock, { passive: true });
+document.addEventListener("keydown", llsAudioUnlock, { passive: true });
+function llsPing() {
+  try {
+    if (!llsAudio) return;
+    const t = llsAudio.currentTime;
+    [[880, 0], [1320, 0.09]].forEach(([freq, delay]) => {
+      const o = llsAudio.createOscillator();
+      const g = llsAudio.createGain();
+      o.type = "sine";
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t + delay);
+      g.gain.exponentialRampToValueAtTime(0.18, t + delay + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + delay + 0.28);
+      o.connect(g).connect(llsAudio.destination);
+      o.start(t + delay);
+      o.stop(t + delay + 0.3);
+    });
+  } catch (_) {}
+}
+
+/* 28 Sept: a Save button that stays on screen turns green for a moment. */
+function llsFlashSaved(button, label) {
+  if (!button) return;
+  const old = button.dataset.label || button.textContent;
+  button.dataset.label = old;
+  button.textContent = label || "✓ Saved";
+  button.classList.add("is-saved");
+  button.disabled = true;
+  setTimeout(() => {
+    button.textContent = old;
+    button.classList.remove("is-saved");
+    button.disabled = false;
+    delete button.dataset.label;
+  }, 3000);
 }
 
 /* =========================================================
@@ -5546,13 +5593,15 @@ async function saveLiveAttendance() {
 
   try {
     await llsApiPost({ action: "saveAttendance", classId, lessonDate, rows });
-    llsAttendanceLoadedKey = "";
+    // 28 Sept: keep the register on screen (no 30-second reload after saving).
+    llsLiveAttendance = rows.map((r) => ({ "Student ID": r.studentId, "Status": r.status, "Notes": r.notes }));
+    llsAttendanceLoadedKey = `${classId}|${lessonDate}`;
     showToast("Attendance saved to Google Sheets.", "success");
-    await renderLiveAttendance();
+    if (button) { button.disabled = false; button.textContent = "Save attendance"; }
+    llsFlashSaved(button, "✓ Attendance saved");
   } catch (error) {
     console.error(error);
     showToast(error.message || "Attendance could not be saved.", "error");
-  } finally {
     if (button) { button.disabled = false; button.textContent = "Save attendance"; }
   }
 }
