@@ -6960,9 +6960,10 @@ function llsAddTestQuestion(kind, data = {}) {
       </div>
       <div class="form-field" style="margin-top:8px"><label>Question</label><textarea rows="2" data-q placeholder="e.g. She ___ to school every day."></textarea></div>
       <div style="display:grid;gap:6px">
+        <label style="font-weight:700;margin-top:4px">Answers: type each answer, then tick the correct one</label>
         ${[0, 1, 2, 3].map((i) => `<label style="display:flex;gap:8px;align-items:center;font-weight:500">
           <input type="radio" name="correct-${uid}" value="${i}" ${i === 0 ? "checked" : ""} aria-label="Correct answer">
-          <input type="text" data-o="${i}" placeholder="Option ${String.fromCharCode(65 + i)}${i > 1 ? " (optional)" : ""}" style="flex:1">
+          <input type="text" data-o="${i}" placeholder="Type answer ${String.fromCharCode(65 + i)}${i > 1 ? " (optional)" : ""}${i === 0 ? ", e.g. go" : i === 1 ? ", e.g. goes" : ""}" style="flex:1">
         </label>`).join("")}
         <span style="font-size:12px;color:#56617a">Tick the correct option. Leave C and D empty for 2 options.</span>
       </div>
