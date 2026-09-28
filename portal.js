@@ -5433,9 +5433,22 @@ function populateLiveAttendanceClasses() {
   if (classes.some(item => String(item["Class ID"] || "") === previous)) select.value = previous;
 }
 
+// 28 Sept: each load is numbered; only the latest one may draw the register,
+// and rows remember which class+date they belong to, so a register can never
+// be saved under the wrong class while Google is still answering.
+let llsAttRenderSeq = 0;
+
 async function renderLiveAttendance() {
   const body = document.getElementById("attendanceTableBody");
   if (!body) return;
+  const seq = ++llsAttRenderSeq;
+  const saveBtn = document.getElementById("saveAttendanceButton");
+  const wantKey = `${document.getElementById("attendanceClassSelect")?.value || ""}|${document.getElementById("attendanceDate")?.value || ""}`;
+  if (llsAttendanceLoadedKey !== wantKey) {
+    body.innerHTML = `<tr><td colspan="4"><div class="empty-state">⏳ Loading the register…</div></td></tr>`;
+    llsSetAttendanceStats(0, 0, 0);
+    if (saveBtn) saveBtn.disabled = true;
+  }
 
   try {
     await loadLiveAttendanceFoundation();
@@ -5452,9 +5465,11 @@ async function renderLiveAttendance() {
     const key = `${classId}|${lessonDate}`;
     if (llsAttendanceLoadedKey !== key) {
       const data = await llsApiGet("getAttendance", { classId, lessonDate });
+      if (seq !== llsAttRenderSeq) return; // a newer class/date was chosen meanwhile
       llsLiveAttendance = Array.isArray(data.attendance) ? data.attendance : [];
       llsAttendanceLoadedKey = key;
     }
+    if (seq !== llsAttRenderSeq) return;
 
     const byStudent = new Map(llsLiveAttendance.map(item => [String(item["Student ID"] || "").trim(), item]));
 
@@ -5463,7 +5478,7 @@ async function renderLiveAttendance() {
       const existing = byStudent.get(studentId) || {};
       const status = String(existing["Status"] || "Present");
       return `
-        <tr data-live-attendance-row="${escapeHtml(studentId)}">
+        <tr data-live-attendance-row="${escapeHtml(studentId)}" data-att-key="${escapeHtml(key)}">
           <td><strong>${escapeHtml(llsStudentName(student))}</strong><div class="muted">${escapeHtml(studentId)}</div></td>
           <td>${escapeHtml(String(student["Level"] || "—"))}</td>
           <td>
@@ -5480,9 +5495,12 @@ async function renderLiveAttendance() {
 
     body.querySelectorAll(".live-attendance-status").forEach(el => el.addEventListener("change", llsRefreshAttendanceStats));
     llsRefreshAttendanceStats();
+    if (saveBtn) saveBtn.disabled = false;
     if (typeof llsLoadLessonLog === "function") llsLoadLessonLog();
   } catch (error) {
     console.error(error);
+    if (seq !== llsAttRenderSeq) return;
+    if (saveBtn) saveBtn.disabled = false;
     body.innerHTML = `<tr><td colspan="4"><div class="empty-state">Could not load live attendance: ${escapeHtml(error.message)}</div></td></tr>`;
   }
 }
@@ -5509,7 +5527,7 @@ async function saveLiveAttendance() {
     return;
   }
 
-  const rows = [...document.querySelectorAll("[data-live-attendance-row]")].map(row => {
+  const rows = [...document.querySelectorAll("[data-live-attendance-row]")].filter(row => row.dataset.attKey === `${classId}|${lessonDate}`).map(row => {
     const studentId = row.dataset.liveAttendanceRow;
     return {
       studentId,
@@ -5519,7 +5537,7 @@ async function saveLiveAttendance() {
   });
 
   if (!rows.length) {
-    showToast("There are no students in this class.", "error");
+    showToast(llsAttendanceLoadedKey === `${classId}|${lessonDate}` ? "There are no students in this class." : "Wait until the register has loaded, then save.", "error");
     return;
   }
 
