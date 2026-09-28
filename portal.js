@@ -7690,7 +7690,8 @@ async function llsSaveLesson() {
   const rows = rowEls.map((r) => ({
     studentId: r.dataset.student,
     status: r.dataset.status || "Present",
-    notes: llsJoinRating(r.querySelector(".reg-rating")?.value || "", r.querySelector(".reg-note")?.value.trim() || "")
+    // 28 Sept: a rating only counts for students who were there.
+    notes: llsJoinRating(["Present", "Late"].includes(r.dataset.status || "Present") ? (r.querySelector(".reg-rating")?.value || "") : "", r.querySelector(".reg-note")?.value.trim() || "")
   }));
   const hwTitle = value("lessonHwTitle").trim();
   const note = { unit: specialOn ? LLS_SPECIAL_PREFIX + specialTitle : value("lessonUnitPage").trim(), whatWeDid: doneText, notes: value("lessonNotes").trim() };
