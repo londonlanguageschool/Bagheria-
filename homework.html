@@ -360,6 +360,33 @@
     @keyframes llsPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 210, 63, .7); } 50% { box-shadow: 0 0 0 8px rgba(255, 210, 63, 0); } }
     @keyframes llsWiggle { 0%, 90%, 100% { transform: rotate(-6deg); } 94% { transform: rotate(6deg); } 97% { transform: rotate(-10deg); } }
     @media (prefers-reduced-motion: reduce) { .t-node.now, .t-flag.open { animation: none; } }
+
+    /* road map v2 (28 Sept): winding road + at a glance + goals + weeks */
+    .road-wrap { margin: 14px -6px 4px; background: linear-gradient(180deg, var(--sky-soft), #fff); border-radius: 22px; padding: 6px 2px 2px; }
+    .road-wrap .j-book { margin: 8px 14px 0; }
+    .road-svg { display: block; width: 100%; height: auto; }
+    .road-svg text { font-family: var(--display); }
+    .glance { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 14px 0 4px; }
+    .g-tile { border-radius: 16px; padding: 10px 8px; text-align: center; background: var(--sky-soft); }
+    .g-tile:nth-child(3n+2) { background: var(--butter-soft); }
+    .g-tile:nth-child(3n) { background: var(--mint); }
+    .g-tile b { display: block; font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1.1; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .g-tile span { display: block; font-size: 11px; font-weight: 700; color: #56617a; line-height: 1.25; margin-top: 2px; }
+    .j-sub { margin: 16px 0 8px; font-family: var(--display); font-weight: 800; font-size: 14px; color: var(--ink); }
+    .goals { display: flex; flex-wrap: wrap; gap: 6px; }
+    .goal-b { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 800; background: var(--sun); color: var(--ink); }
+    .goal-b.todo { background: #eef1f6; color: #7b8aa8; }
+    .goal-next { margin-top: 10px; background: var(--butter-soft); border: 1px solid #f5e39a; border-radius: 14px; padding: 10px 12px; font-size: 13px; }
+    .goal-next strong { font-family: var(--display); }
+    .goal-next .j-bar { margin-top: 6px; }
+    .weeks { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; align-items: end; height: 96px; padding: 0 2px; border-bottom: 1px solid var(--ink-200); }
+    .wk { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+    .wk i { display: block; width: 100%; max-width: 22px; border-radius: 4px 4px 0 0; background: var(--sky); min-height: 2px; }
+    .wk.wk-now i { background: var(--pill); }
+    .wk em { font-style: normal; font-size: 11px; font-weight: 800; color: var(--ink); margin-bottom: 3px; font-variant-numeric: tabular-nums; }
+    .wk-lab { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; font-size: 10px; color: #56617a; text-align: center; margin-top: 4px; }
+    .rates { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: 12px; font-weight: 700; color: #56617a; }
+    .rates span { background: #f3f6fb; border-radius: 999px; padding: 4px 10px; }
   </style>
 </head>
 <body>
@@ -688,6 +715,211 @@
       return steps.sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
     }
 
+    /* ---------- road map v2 (28 Sept) ----------
+       Winding road (book units, or the school year for classes without a
+       book), "At a glance" numbers, goals and an 8-week activity chart.
+       Only real data: nothing is shown that the school has not recorded. */
+
+    function safeHtml(fn) {
+      try { return fn(); } catch (e) { console.warn("road map", e); return ""; }
+    }
+
+    function attendedMarks() {
+      return (data.attendance || []).filter((a) => a.status === "Present" || a.status === "Late");
+    }
+
+    function roadStopsForBook(book) {
+      const course = COURSES[book.id];
+      const range = PRACTICE.parseUnits(book.id, book.units);
+      const cur = Number(book.current) || 0;
+      const res = resultsById();
+      const stops = [{ kind: "start", label: "START" }];
+      for (let n = range.from; n <= range.to; n++) {
+        const flags = [];
+        (course.reviews || []).forEach((b, i) => { if (b[1] === n && b[0] >= range.from) flags.push({ t: "r", id: `${book.id}-R${i + 1}` }); });
+        (course.tests || []).forEach((b, i) => { if (b[1] === n && b[0] >= range.from && b[1] <= range.to) flags.push({ t: "t", id: `${book.id}-T${i + 1}` }); });
+        const icons = flags.map((f) => {
+          const r = res[f.id];
+          const won = f.t === "t" ? Boolean(r) : passed(r);
+          return won ? "⭐" : (!cur || cur >= n) ? (f.t === "t" ? "🏁" : "🔁") : "🔒";
+        }).join("");
+        stops.push({ kind: "stop", label: `Unit ${n}`, mark: String(n), state: cur && n < cur ? "done" : n === cur ? "now" : "next", icons, practice: flags.length > 0 });
+      }
+      const exam = /exam/i.test(book.className || "");
+      stops.push({ kind: "goal", label: exam ? "EXAM 🎓" : "GOAL 🏆", state: cur > range.to ? "done" : "next" });
+      return { title: `${(COURSES[book.id] || {}).title || book.id} · ${book.className || ""}`, stops };
+    }
+
+    function roadStopsForYear() {
+      // Classes without a book: the school year, Sept 2026 → May 2027.
+      const months = [["2026-10", "Oct"], ["2026-11", "Nov"], ["2026-12", "Dec"], ["2027-01", "Jan"], ["2027-02", "Feb"], ["2027-03", "Mar"], ["2027-04", "Apr"], ["2027-05", "May"]];
+      const nowKey = isoDay(new Date().toISOString().slice(0, 10)).slice(0, 7);
+      const perMonth = {};
+      attendedMarks().forEach((a) => { const k = String(a.lessonDate || "").slice(0, 7); perMonth[k] = (perMonth[k] || 0) + 1; });
+      const stops = [{ kind: "start", label: "START", sub: "28 Sept" }];
+      months.forEach(([k, label]) => {
+        const state = k < nowKey ? "done" : k === nowKey ? "now" : "next";
+        stops.push({ kind: "stop", label, mark: label.slice(0, 1), state, icons: perMonth[k] ? `${perMonth[k]}✓` : "" });
+      });
+      if (nowKey < "2026-10") stops[0].state = "now";
+      stops.push({ kind: "goal", label: "GOAL 🏆", state: nowKey > "2027-05" ? "done" : "next" });
+      const name = (data.classes[0] || {})["Class Name"] || "";
+      return { title: `School year 2026/27 · Anno scolastico${name ? " · " + name : ""}`, stops };
+    }
+
+    function roadSvg(road) {
+      const PER = 4, W = 340, TOP = 50, ROW = 96, xs = [52, 132, 212, 292];
+      const rows = Math.ceil(road.stops.length / PER);
+      const H = TOP + (rows - 1) * ROW + 58;
+      const pos = road.stops.map((s, i) => {
+        const r = Math.floor(i / PER), c = i % PER;
+        return { x: r % 2 ? xs[PER - 1 - c] : xs[c], y: TOP + r * ROW };
+      });
+      // One continuous road: straight rows joined by U-turns at the ends.
+      let d = `M ${r0x(0)} ${TOP}`;
+      function r0x(r) { return r % 2 ? 318 : 22; }
+      for (let r = 0; r < rows; r++) {
+        const y = TOP + r * ROW;
+        const endX = r % 2 ? 22 : 318;
+        const lastRow = r === rows - 1;
+        if (lastRow) {
+          const lastIdx = road.stops.length - 1;
+          d += ` L ${pos[lastIdx].x + (r % 2 ? -26 : 26)} ${y}`;
+        } else {
+          d += ` L ${endX} ${y} A 20 ${ROW / 2} 0 0 ${r % 2 ? 0 : 1} ${endX} ${y + ROW}`;
+        }
+      }
+      const nowIdx = road.stops.findIndex((s) => s.state === "now");
+      const parts = road.stops.map((s, i) => {
+        const { x, y } = pos[i];
+        if (s.kind === "start" || s.kind === "goal") {
+          const w = s.kind === "goal" ? 74 : 58;
+          const fill = s.kind === "goal" ? (s.state === "done" ? "#18a86b" : "#ea2a2a") : "#16275c";
+          return `<g><rect x="${x - w / 2}" y="${y - 15}" width="${w}" height="30" rx="9" fill="${fill}"/>` +
+            `<path d="M ${x - 5} ${y + 15} L ${x} ${y + 22} L ${x + 5} ${y + 15} Z" fill="${fill}"/>` +
+            `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">${esc(s.label)}</text>` +
+            (s.sub ? `<text x="${x}" y="${y + 38}" text-anchor="middle" font-size="10" font-weight="700" fill="#56617a">${esc(s.sub)}</text>` : "") + `</g>`;
+        }
+        const st = s.state;
+        const circle = st === "done"
+          ? `<circle cx="${x}" cy="${y}" r="15" fill="#dff5e9" stroke="#18a86b" stroke-width="2.5"/><text x="${x}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="800" fill="#18a86b">★</text>`
+          : st === "now"
+            ? `<circle cx="${x}" cy="${y}" r="18" fill="#ffd23f" stroke="#16275c" stroke-width="3"/><text x="${x}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="800" fill="#0f1b3d">${esc(s.mark)}</text>`
+            : `<circle cx="${x}" cy="${y}" r="15" fill="#ffffff" stroke="#9fc4ea" stroke-width="2" stroke-dasharray="4 3"/><text x="${x}" y="${y + 5}" text-anchor="middle" font-size="13" font-weight="800" fill="#7b8aa8">${esc(s.mark)}</text>`;
+        const label = `<text x="${x}" y="${y + 34}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${st === "now" ? "#16275c" : "#56617a"}">${esc(s.label)}</text>`;
+        const icons = s.icons ? `<text x="${x + 17}" y="${y - 13}" font-size="12" font-weight="800" fill="#18a86b">${esc(s.icons)}</text>` : "";
+        const tap = s.practice ? ` data-journey-practice style="cursor:pointer"` : "";
+        return `<g${tap}>${circle}${label}${icons}</g>`;
+      }).join("");
+      const walker = nowIdx >= 0 ? `<g class="walker"><circle cx="${pos[nowIdx].x}" cy="${pos[nowIdx].y - 34}" r="14" fill="#fff" stroke="#ffd23f" stroke-width="3"/><text x="${pos[nowIdx].x}" y="${pos[nowIdx].y - 28}" text-anchor="middle" font-size="16">🧑‍🎓</text></g>` : "";
+      const doneCount = road.stops.filter((s) => s.state === "done").length;
+      const aria = `Road map: ${doneCount} of ${road.stops.length} stops done` + (nowIdx >= 0 ? `, you are at ${road.stops[nowIdx].label}` : "");
+      return `<div class="road-wrap"><p class="j-book">${esc(road.title)}</p>
+        <svg class="road-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria)}">
+          <path d="${d}" fill="none" stroke="#c9dcf2" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="${d}" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-dasharray="8 8" stroke-linecap="round"/>
+          ${parts}${walker}
+        </svg></div>`;
+    }
+
+    function roadHtml() {
+      const books = myBooks();
+      if (books.length && PRACTICE) return books.map((b) => roadSvg(roadStopsForBook(b))).join("");
+      if (!data.classes.length) return "";
+      return roadSvg(roadStopsForYear());
+    }
+
+    function glanceNumbers() {
+      const marks = data.attendance || [];
+      const attended = attendedMarks();
+      const marked = marks.filter((a) => ["Present", "Late", "Absent", "Excused"].includes(a.status)).length;
+      const classById = {};
+      data.classes.forEach((c) => { classById[String(c["Class ID"])] = c; });
+      // Hours only when every attended class has a Duration (Apps Script V26+).
+      let minutes = 0, hoursKnown = attended.length > 0;
+      attended.forEach((a) => { const m = Number((classById[a.classId] || {})["Duration"]); if (m > 0) minutes += m; else hoursKnown = false; });
+      const attendedKey = new Set(attended.map((a) => a.classId + "|" + a.lessonDate));
+      const topics = new Set();
+      (data.lessons || []).forEach((l) => {
+        if (!attendedKey.has(l.classId + "|" + l.lessonDate)) return;
+        const special = (String(l.unit || "").match(/^Special:\s*(.+)$/i) || [])[1];
+        const unit = (String(l.unit || "").match(/\d{1,2}\s*[A-D]?/i) || [""])[0].replace(/\s+/g, "").toUpperCase();
+        const key = special ? "S:" + special.toLowerCase() : unit ? "U:" + unit : String(l.whatWeDid || "").trim().toLowerCase().slice(0, 40);
+        if (key) topics.add(key);
+      });
+      const items = homeworkItems();
+      const res = resultsById();
+      const practicePassed = Object.keys(res).filter((id) => passed(res[id])).length;
+      const testsDone = (data.tests || []).filter((t) => testResultFor(t.testId)).length;
+      const excellent = marks.filter((a) => a.rating === "Excellent").length;
+      return { attended: attended.length, marked, hoursKnown, hours: minutes / 60, topics: topics.size,
+        hwDone: items.filter((i) => i.done).length, hwTotal: items.length, practicePassed, testsDone, excellent };
+    }
+
+    function glanceHtml() {
+      const n = glanceNumbers();
+      const pct = n.marked ? Math.round((n.attended / n.marked) * 100) : null;
+      const hrs = Math.round(n.hours * 10) / 10;
+      const tiles = [
+        [n.attended, "Lessons · Lezioni"],
+        n.hoursKnown ? [String(hrs).replace(".", ","), "Hours in class · Ore"] : [pct === null ? "–" : pct + "%", "Attendance · Presenze"],
+        [n.topics, "Topics covered · Argomenti"],
+        [`${n.hwDone}/${n.hwTotal}`, "Homework · Compiti"],
+        myBooks().length ? [n.practicePassed, "Practice sets · Esercizi"] : [n.excellent, "⭐ Excellent"],
+        [n.testsDone, "Tests · Verifiche"]
+      ];
+      return `<p class="j-sub">📊 At a glance · In breve</p><div class="glance">${tiles.map(([v, l]) => `<div class="g-tile"><b>${esc(String(v))}</b><span>${esc(l)}</span></div>`).join("")}</div>`;
+    }
+
+    function goalsHtml() {
+      const n = glanceNumbers();
+      const goals = [
+        ["🎒", "First lesson", n.attended, 1], ["🔥", "5 lessons", n.attended, 5], ["🚀", "20 lessons", n.attended, 20], ["🏅", "50 lessons", n.attended, 50],
+        ["📝", "First homework", n.hwDone, 1], ["📚", "10 homework", n.hwDone, 10],
+        ["🎯", "First practice set", n.practicePassed, 1], ["💪", "10 practice sets", n.practicePassed, 10],
+        ["💯", "First Excellent", n.excellent, 1], ["🏆", "First test", n.testsDone, 1]
+      ];
+      const won = goals.filter((g) => g[2] >= g[3]);
+      const open = goals.filter((g) => g[2] < g[3]).sort((a, b) => (b[2] / b[3]) - (a[2] / a[3]));
+      const next = open[0];
+      return `<p class="j-sub">🏁 Goals · Obiettivi (${won.length}/${goals.length})</p>
+        <div class="goals">${won.map((g) => `<span class="goal-b">${g[0]} ${esc(g[1])}</span>`).join("")}${open.slice(1, 4).map((g) => `<span class="goal-b todo">🔒 ${esc(g[1])}</span>`).join("")}</div>
+        ${next ? `<div class="goal-next">Next goal · Prossimo obiettivo: <strong>${next[0]} ${esc(next[1])}</strong> — ${next[2]}/${next[3]}
+          <div class="j-bar"><i style="width:${Math.round((next[2] / next[3]) * 100)}%"></i></div></div>` : `<div class="goal-next"><strong>🎉 Every goal reached! · Tutti gli obiettivi raggiunti!</strong></div>`}`;
+    }
+
+    function weeksHtml() {
+      const monday = (d) => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+      const start = monday(new Date());
+      const weeks = [];
+      const courseStart = new Date(2026, 8, 28);
+      for (let i = 7; i >= 0; i--) { const w = new Date(start); w.setDate(w.getDate() - i * 7); if (w >= courseStart || i === 0) weeks.push({ from: w, lessons: 0, hw: 0, practice: 0 }); }
+      const bucket = (text) => {
+        const d = parseDate(text);
+        if (!d) return null;
+        const m = monday(d).getTime();
+        return weeks.find((w) => w.from.getTime() === m) || null;
+      };
+      attendedMarks().forEach((a) => { const w = bucket(a.lessonDate); if (w) w.lessons++; });
+      (data.status || []).forEach((s) => { if (s["Status"] === "Done") { const w = bucket(s["Completed Date"]); if (w) w.hw++; } });
+      (data.practice || []).forEach((p) => { const w = bucket(p.date); if (w) w.practice++; });
+      (data.testResults || []).forEach((t) => { const w = bucket(t.date); if (w) w.practice++; });
+      const totals = weeks.map((w) => w.lessons + w.hw + w.practice);
+      const max = Math.max(1, ...totals);
+      if (!totals.some(Boolean)) return "";
+      const bars = weeks.map((w, i) => {
+        const t = totals[i];
+        const tip = `Week of ${w.from.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}: ${w.lessons} lessons, ${w.hw} homework, ${w.practice} practice/tests`;
+        return `<div class="wk ${i === weeks.length - 1 ? "wk-now" : ""}" title="${esc(tip)}" aria-label="${esc(tip)}">${t ? `<em>${t}</em>` : ""}<i style="height:${Math.round((t / max) * 72)}px"></i></div>`;
+      }).join("");
+      const labels = weeks.map((w, i) => `<span>${i === weeks.length - 1 ? "This wk" : w.from.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>`).join("");
+      const r = { Excellent: 0, Good: 0, OK: 0, "Needs support": 0 };
+      (data.attendance || []).forEach((a) => { if (a.rating in r) r[a.rating]++; });
+      const rates = Object.values(r).some(Boolean) ? `<div class="rates">${[["⭐", "Excellent"], ["👍", "Good"], ["🙂", "OK"], ["🤝", "Needs support"]].filter(([, k]) => r[k]).map(([i, k]) => `<span>${i} ${k} × ${r[k]}</span>`).join("")}</div>` : "";
+      return `<p class="j-sub">📈 My weeks · Le mie settimane <small style="font-weight:600;color:#56617a;font-size:11px">(lessons + homework + practice)</small></p>
+        <div class="weeks" style="grid-template-columns:repeat(${weeks.length},minmax(0,1fr))">${bars}</div><div class="wk-lab" style="grid-template-columns:repeat(${weeks.length},minmax(0,1fr))">${labels}</div>${rates}`;
+    }
+
     function journeyHtml() {
       const stars = journeyStars();
       const level = Math.floor(stars / 10) + 1;
@@ -700,7 +932,7 @@
       const shown = journeyOpen ? past : past.slice(-5);
       const stepHtml = (s, extra) => `<li class="step ${s.cls} ${extra || ""}"><span class="dot">${s.icon}</span><div><strong>${esc(s.title)}</strong><small>${s.date && s.date < "9999" ? esc(shortDay(s.date)) + " · " : ""}${esc(s.sub)}</small></div></li>`;
       const nextStep = open[0];
-      if (!books.length && !steps.length) return "";
+      if (!books.length && !steps.length && !data.classes.length) return "";
       return `
         <section class="journey" aria-label="My journey">
           <div class="j-head">
@@ -708,8 +940,11 @@
             <span class="j-level">Level ${level}</span>
           </div>
           <div class="j-stars"><span>⭐ ${stars} ${stars === 1 ? "star" : "stars"}</span><div class="j-bar"><i style="width:${inLevel * 10}%"></i></div><small>${10 - inLevel} to Level ${level + 1}</small></div>
-          ${books.map(trailHtml).join("")}
-          ${shown.length || nextStep ? `<ol class="path">
+          ${safeHtml(roadHtml)}
+          ${safeHtml(glanceHtml)}
+          ${safeHtml(goalsHtml)}
+          ${safeHtml(weeksHtml)}
+          ${shown.length || nextStep ? `<p class="j-sub">📘 What we did · Cosa abbiamo fatto</p><ol class="path">
             ${past.length > shown.length ? `<li class="more"><button type="button" data-journey-all>Show all ${past.length} · Vedi tutto</button></li>` : ""}
             ${shown.map((s) => stepHtml(s)).join("")}
             ${nextStep ? stepHtml(nextStep, "next") : `<li class="step next goal"><span class="dot">🎉</span><div><strong>All caught up! · Tutto in pari!</strong><small>Try a practice set to earn more stars.</small></div></li>`}
