@@ -5909,14 +5909,41 @@ function llsHasAdminSession() {
   return !!sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY);
 }
 
+// 28 Sept: while logged in, the page has NO password box. Otherwise Chrome
+// treats other boxes (homework title, search) as login fields and fills
+// in saved emails, which could be sent to students as homework.
+function llsLoginPasswordBoxes(on) {
+  ["adminLoginPassword", "teacherLoginPin"].forEach((id) => {
+    const el = byId(id);
+    if (!el) return;
+    el.type = on ? "password" : "text";
+    el.disabled = !on;
+    el.setAttribute("autocomplete", on ? "current-password" : "off");
+    if (!on) el.value = "";
+  });
+  const tid = byId("teacherLoginId");
+  if (tid) { tid.disabled = !on; tid.setAttribute("autocomplete", on ? "username" : "off"); }
+}
+
+function llsNoAutofill() {
+  document.querySelectorAll("input, textarea").forEach((el) => {
+    if (el.closest("#adminLoginForm")) return;
+    if (/^(checkbox|radio|date|file|hidden|button|submit|number)$/i.test(el.type || "")) return;
+    el.setAttribute("autocomplete", "off");
+  });
+}
+
 function llsAdminGateShow() {
   const gate = byId("adminLoginGate");
+  llsLoginPasswordBoxes(true);
   if (gate) gate.style.display = "flex";
 }
 
 function llsAdminGateHide() {
   const gate = byId("adminLoginGate");
   if (gate) gate.style.display = "none";
+  llsLoginPasswordBoxes(false);
+  try { llsNoAutofill(); } catch (_) {}
 }
 
 function llsHandleSessionExpired() {
@@ -7481,10 +7508,14 @@ async function llsRenderLesson() {
     regBody.prepend(n);
   });
 
-  // Lesson notes: this date's entry + last lesson + whole history
+  // Lesson notes: this date's entry + last lesson + whole history.
+  // 28 Sept: lessons saved on this device but still being sent show at once.
+  llsLesson.entries = llsWithPendingEntries(cls.id, []);
+  llsRenderLessonLogList(byId("lessonHistory"), llsLesson.entries);
+  byId("lessonHistoryCount").textContent = llsLesson.entries.length ? `(${llsLesson.entries.length})` : "";
   llsApiGet("getLessonLog", { classId: cls.id, limit: 1000 }).then((log) => {
     if (llsLesson.loadedKey !== key) return;
-    llsLesson.entries = Array.isArray(log.entries) ? log.entries : [];
+    llsLesson.entries = llsWithPendingEntries(cls.id, Array.isArray(log.entries) ? log.entries : []);
     const own = llsLesson.entries.find((e) => e.lessonDate === date);
     if (own && !pending && !llsLesson.noteTouched) llsFillLessonNote(own, cls);
     const last = llsLesson.entries.find((e) => e.lessonDate < date);
@@ -7563,7 +7594,7 @@ function llsDrawRegister(regBody, students, saved) {
           <option value="">How did they do?</option>
           ${["Excellent", "Good", "OK", "Needs support"].map((r) => `<option value="${r}" ${llsSplitRating(row["Notes"]).rating === r ? "selected" : ""}>${{ Excellent: "⭐ Excellent", Good: "👍 Good", OK: "🙂 OK", "Needs support": "🤝 Needs support" }[r]}</option>`).join("")}
         </select>
-        <input class="reg-note" type="text" placeholder="Note (optional)" value="${escapeHtml(llsSplitRating(row["Notes"]).note)}">
+        <input class="reg-note" type="text" autocomplete="off" placeholder="Note (optional)" value="${escapeHtml(llsSplitRating(row["Notes"]).note)}">
       </div>
     </div>`;
   }).join("") : `<p class="muted">No students enrolled in this class yet.</p>`;
@@ -7689,6 +7720,13 @@ async function llsSaveLesson() {
     llsRenderLessonHomework(rows.length);
     setValue("lessonHwTitle", ""); setValue("lessonHwText", "");
   }
+  const savedBtn = byId("lessonSaveButton");
+  if (savedBtn) {
+    savedBtn.textContent = "✓ Lesson saved";
+    savedBtn.classList.add("is-saved");
+    savedBtn.disabled = true;
+    setTimeout(() => { savedBtn.textContent = "💾 Save lesson"; savedBtn.classList.remove("is-saved"); savedBtn.disabled = false; }, 4000);
+  }
   showToast(`✓ ${cls.name} saved on this device. It's being sent to Google in the background: you can go to your next class.`, "success");
   llsOutboxRun();
 }
@@ -7793,6 +7831,18 @@ async function llsOutboxRun(manual) {
       llsOutboxTimer = setTimeout(() => llsOutboxRun(), Math.min(120000, 8000 * Math.max(1, tries)));
     }
   }
+}
+
+// Lesson-log entries for a class, with lessons still in the outbox on top
+// (newest first, one per date).
+function llsWithPendingEntries(classId, entries) {
+  const pending = llsOutboxLoad().filter((j) => j.classId === classId && j.note).map((j) => ({
+    lessonDate: j.date, teacherName: (llsGetTeacherSession() || {}).name || "", unit: j.note.unit || "",
+    whatWeDid: j.note.whatWeDid || "", homeworkSet: j.note.homeworkSet || "", notes: j.note.notes || ""
+  }));
+  const dates = new Set(pending.map((e) => e.lessonDate));
+  return [...pending, ...entries.filter((e) => !dates.has(e.lessonDate))]
+    .sort((a, b) => String(b.lessonDate || "").localeCompare(String(a.lessonDate || "")));
 }
 
 function llsIsCurrentLesson(job) {

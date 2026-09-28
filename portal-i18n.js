@@ -121,6 +121,7 @@
     "Unit": "Unità",
     "Notes": "Note",
     "💾 Save lesson": "💾 Salva lezione",
+    "✓ Lesson saved": "✓ Lezione salvata",
     "Saving…": "Salvataggio…",
     "Loading…": "Caricamento…",
     "Loading class…": "Carico la classe…",
