@@ -417,10 +417,9 @@
         <div class="bar bar-course" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Course · Corso" id="courseBar"><div></div></div>
       </div>
       <div class="progress-top" id="keepTop">
-        <strong>Keeping up · Al passo</strong>
+        <strong>How it's going · Come va</strong>
         <span id="progressText"></span>
       </div>
-      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Keeping up · Al passo" id="progressBar"><div></div></div>
       <div class="split" id="progressSplit"></div>
       <div class="split" id="progressHint" hidden></div>
       <div class="classes" id="classList"></div>
@@ -661,16 +660,20 @@
       const pct = p.pct;
 
       document.getElementById("progressCard").hidden = false;
-      document.getElementById("progressText").textContent = p.available ? `${pct}%` : "Let's start! · Iniziamo!";
-      const bar = document.getElementById("progressBar");
-      bar.setAttribute("aria-valuenow", String(pct));
-      bar.firstElementChild.style.width = pct + "%";
+      // 28 Sept (owner): no percentage here: next to a bar it reads as
+      // "% of the course done". Words only; the course bar shows how far.
+      const mood = !p.available ? "Let's start! · Iniziamo!"
+        : pct >= 80 ? "⭐ Great · Ottimo"
+        : pct >= 60 ? "👍 On track · In linea"
+        : pct >= 40 ? "🙂 Keep going · Continua così"
+        : "⚠️ Time to catch up · Da recuperare";
+      document.getElementById("progressText").textContent = mood;
 
       const parts = [];
-      parts.push(hwTotal ? `Homework ${hwDone}/${hwTotal}` : "No homework yet");
-      if (p.tests[1]) parts.push(`Tests ${p.tests[0]}/${p.tests[1]}`);
-      if (p.practice[1]) parts.push(`Practice ${Math.round((p.practice[0] / p.practice[1]) * 100)}%`);
-      if (p.lessons && p.lessons[1]) parts.push(`In class ${Math.round((p.lessons[0] / p.lessons[1]) * 100)}%`);
+      parts.push(hwTotal ? `Homework done ${hwDone} of ${hwTotal}` : "No homework yet");
+      if (p.tests[1]) parts.push(`Tests done ${p.tests[0]} of ${p.tests[1]}`);
+      const setsDone = Object.keys(resultsById()).filter((id) => !/-(R|T)\d+$/.test(id) && passed(resultsById()[id])).length;
+      if (setsDone) parts.push(`Practice sets done: ${setsDone}`);
       document.getElementById("progressSplit").textContent = parts.join(" · ");
       const hint = document.getElementById("progressHint");
       const left = currentUnitPracticeLeft();
