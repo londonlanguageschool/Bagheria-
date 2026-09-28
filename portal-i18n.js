@@ -169,6 +169,7 @@
     "Explanation (optional, shown after the test)": "Spiegazione (facoltativa, mostrata dopo il test)",
     "Correct answer(s), one per line": "Risposta/e corretta/e, una per riga",
     "Option A": "Opzione A",
+    "Not assigned": "Non assegnata",
     "⏳ Loading the register…": "⏳ Carico il registro…",
     "Wait until the register has loaded, then save.": "Aspetta che il registro sia caricato, poi salva.",
     "Attendance saved to Google Sheets.": "Presenze salvate su Google Sheets.",
