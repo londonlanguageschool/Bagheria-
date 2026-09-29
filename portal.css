@@ -2539,3 +2539,40 @@ tbody tr:hover {
   .reg-btns { display: grid; grid-template-columns: repeat(4, 1fr); }
   .lesson-save-bar .button { width: 100%; }
 }
+
+
+/* =========================================================
+   TIMETABLE (29 Sept 2026)
+========================================================= */
+.tt-filters { flex-wrap: wrap; }
+.tt-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-left: 6px; font-size: 0.8rem; color: var(--ink-700); }
+.tt-key { display: inline-flex; align-items: center; gap: 6px; }
+.tt-key i { width: 12px; height: 12px; border-radius: 3px; background: var(--tt-c); display: inline-block; }
+.tt-wrap { overflow-x: auto; background: var(--white); border: 1px solid var(--ink-200); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
+.tt-grid { display: grid; min-width: 820px; }
+.tt-corner, .tt-day { position: sticky; top: 0; z-index: 2; background: var(--navy-50); border-bottom: 1px solid var(--ink-200); }
+.tt-day { padding: 10px 10px 8px; border-left: 1px solid var(--ink-100); }
+.tt-day span { display: block; font-weight: 700; color: var(--navy-900); font-size: 0.9rem; }
+.tt-day small { color: var(--ink-500); font-size: 0.72rem; }
+.tt-day.tt-today { background: var(--navy-800); }
+.tt-day.tt-today span, .tt-day.tt-today small { color: #fff; }
+.tt-time-label { position: sticky; left: 0; z-index: 1; background: var(--white); padding: 10px 8px; font-weight: 700; font-size: 0.82rem; color: var(--ink-700); border-top: 1px solid var(--ink-100); }
+.tt-corner { left: 0; z-index: 3; }
+.tt-cell { padding: 6px; border-top: 1px solid var(--ink-100); border-left: 1px solid var(--ink-100); display: flex; flex-direction: column; gap: 6px; min-height: 44px; }
+.tt-cell.tt-today { background: #f6f9fe; }
+.tt-chip { --tt-c: var(--ink-500); border-left: 5px solid var(--tt-c); background: color-mix(in srgb, var(--tt-c) 10%, #fff); border-radius: 8px; padding: 7px 9px; line-height: 1.25; }
+.tt-chip strong { display: block; font-size: 0.84rem; color: var(--ink-900); }
+.tt-chip .tt-time { display: block; font-size: 0.74rem; font-weight: 600; color: var(--ink-700); margin-top: 2px; }
+.tt-chip .tt-who, .tt-chip .tt-count { display: block; font-size: 0.74rem; color: var(--ink-600); }
+.tt-chip .tt-flag { display: inline-block; margin-top: 3px; font-size: 0.68rem; font-weight: 700; color: var(--orange-700); text-transform: uppercase; letter-spacing: 0.03em; }
+.tt-provisional { border-style: dashed; border-left-style: solid; outline: 1px dashed var(--orange-700); outline-offset: -1px; }
+.tt-room-oxf { --tt-c: #0b3b78; }
+.tt-room-pic { --tt-c: #ee3124; }
+.tt-room-lei { --tt-c: #177b52; }
+.tt-room-online { --tt-c: #6d55a3; }
+.tt-room-other { --tt-c: #b76811; }
+@media print {
+  .sidebar, .topbar, .tt-filters, #page-timetable .page-toolbar .page-description { display: none !important; }
+  .tt-wrap { overflow: visible; box-shadow: none; }
+}
+.tt-chip .tt-clash { color: var(--red-700); display: block; }

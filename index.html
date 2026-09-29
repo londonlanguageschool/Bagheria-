@@ -1560,7 +1560,48 @@
     .calendar-item .tag { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--red); }
     .calendar-item.open .tag { color: #177b52; }
     .calendar-notes { max-width: 980px; margin: 22px auto 0; display: grid; gap: 8px; color: var(--muted); font-size: .95rem; text-align: center; }
-  </style>
+      /* ===== CURRENT OFFERS ===== */
+    .offers-section { background: linear-gradient(180deg, #fff9df 0%, #ffffff 100%); }
+    .offers-grid { display: grid; grid-template-columns: 1fr 1.05fr; gap: 40px; align-items: center; }
+    .offers-poster { width: 100%; border-radius: var(--radius); box-shadow: var(--shadow); display: block; }
+    .offer-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 34px 30px; box-shadow: var(--shadow-soft); }
+    .offer-badge { display: inline-block; background: var(--red); color: #fff; font-weight: 800; font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; padding: 7px 14px; border-radius: 999px; margin-bottom: 16px; }
+    .offer-card h2 { color: var(--navy); font-size: clamp(1.8rem, 3.2vw, 2.5rem); line-height: 1.1; margin: 0 0 14px; }
+    .offer-card > p { color: var(--muted); font-size: 1.05rem; line-height: 1.6; margin: 0 0 18px; }
+    .offer-points { display: grid; gap: 10px; margin: 0 0 24px; }
+    .offer-points div { background: var(--blue-soft); border-radius: 14px; padding: 11px 14px; color: var(--navy); font-weight: 600; }
+    .offer-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .offer-wa { color: var(--navy); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+    /* ===== NURSERY PROJECT EXAMPLE (schools) ===== */
+    .nursery-project { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 32px 30px; box-shadow: var(--shadow-soft); margin-bottom: 32px; }
+    .nursery-kicker { display: inline-block; background: #fff5c7; color: var(--navy); font-weight: 800; font-size: .8rem; letter-spacing: .05em; text-transform: uppercase; padding: 6px 12px; border-radius: 999px; margin-bottom: 12px; }
+    .nursery-project h3 { color: var(--navy); font-size: clamp(1.4rem, 2.6vw, 1.9rem); line-height: 1.15; margin: 0 0 12px; }
+    .nursery-intro { color: var(--muted); line-height: 1.65; margin: 0 0 22px; max-width: 760px; }
+    .nursery-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; margin-bottom: 20px; }
+    .nursery-cols h4 { color: var(--navy); font-size: 1.05rem; margin: 0 0 10px; }
+    .nursery-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .nursery-list li { color: var(--text); line-height: 1.45; }
+    .nursery-themes { display: flex; flex-wrap: wrap; gap: 8px; }
+    .nursery-themes span { background: var(--blue-soft); color: var(--navy); font-weight: 600; border-radius: 999px; padding: 7px 13px; font-size: .92rem; }
+    .nursery-note { color: var(--muted); font-size: .95rem; line-height: 1.55; margin: 6px 0 20px; }
+    .nursery-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+    /* ===== MEET HELEN (shown only once a video ID is set) ===== */
+    .helen-block[hidden] { display: none; }
+    .helen-block { display: grid; grid-template-columns: minmax(0, 340px) 1fr; gap: 32px; align-items: center; margin-top: 44px; }
+    .helen-video { position: relative; width: 100%; aspect-ratio: 9 / 16; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); background: #000; }
+    .helen-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    .helen-text h3 { color: var(--navy); font-size: clamp(1.5rem, 2.8vw, 2rem); margin: 0 0 10px; }
+    .helen-text p { color: var(--muted); line-height: 1.6; margin: 0; }
+
+    @media (max-width: 860px) {
+      .offers-grid, .helen-block, .nursery-cols { grid-template-columns: 1fr; }
+      .helen-video { max-width: 340px; margin: 0 auto; }
+      .offers-grid { gap: 24px; }
+      .offer-card, .nursery-project { padding: 26px 20px; }
+    }
+</style>
 </head>
 
 <body>
@@ -1710,6 +1751,28 @@
           </article>
         </div>
 
+      </div>
+    </section>
+
+    <!-- CURRENT OFFERS -->
+    <section class="offers-section" id="offers">
+      <div class="container offers-grid">
+        <img class="offers-poster" src="offer-free-trial.jpg" loading="lazy"
+          alt="Learn English in a friendly and supportive place – London Language School Bagheria">
+        <div class="offer-card">
+          <span class="offer-badge" data-it="Offerta in corso" data-en="Current offer">Offerta in corso</span>
+          <h2 data-it="2 settimane di prova gratuita" data-en="2-week free trial">2 settimane di prova gratuita</h2>
+          <p data-it="Vieni a provare le nostre lezioni per due settimane, gratis e senza impegno. Conosci gli insegnanti, il metodo e la classe prima di decidere." data-en="Try our lessons free for two weeks, with no commitment. Meet the teachers, the method and the class before you decide.">Vieni a provare le nostre lezioni per due settimane, gratis e senza impegno. Conosci gli insegnanti, il metodo e la classe prima di decidere.</p>
+          <div class="offer-points">
+            <div data-it="✅ Tutte le classi sono aperte alla prova" data-en="✅ Every class is open for a trial">✅ Tutte le classi sono aperte alla prova</div>
+            <div data-it="👩‍🏫 Insegnanti qualificati e disponibili" data-en="👩‍🏫 Qualified, approachable teachers">👩‍🏫 Insegnanti qualificati e disponibili</div>
+            <div data-it="🤝 Vieni con un amico o un familiare: tutti sono i benvenuti" data-en="🤝 Bring a friend or family member – everyone is welcome">🤝 Vieni con un amico o un familiare: tutti sono i benvenuti</div>
+          </div>
+          <div class="offer-actions">
+            <button class="button button-red" type="button" onclick="openLeadJourney()" data-it="Prenota la prova gratuita" data-en="Book your free trial">Prenota la prova gratuita</button>
+            <a class="offer-wa" href="https://wa.me/393791533754?text=Ciao%20London%20Language%20School%2C%20vorrei%20prenotare%20le%202%20settimane%20di%20prova%20gratuita." target="_blank" rel="noopener" data-it="oppure scrivici su WhatsApp" data-en="or message us on WhatsApp">oppure scrivici su WhatsApp</a>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1904,6 +1967,41 @@
 
     </div>
 
+    <div class="nursery-project" id="nursery-project">
+      <span class="nursery-kicker" data-it="Esempio di progetto" data-en="Sample project">Esempio di progetto</span>
+      <h3 data-it="Progetto Inglese – Scuola dell’Infanzia" data-en="English Project – Nursery and Pre-school">Progetto Inglese – Scuola dell’Infanzia</h3>
+      <p class="nursery-intro" data-it="Un percorso comunicativo, ludico ed esperienziale, con particolare attenzione all’ascolto e alla graduale partecipazione orale. I bambini non imparano una lista di vocaboli: usano parole ed espressioni semplici in contesti concreti, giocando, muovendosi, cantando e raccontando." data-en="A communicative, playful, hands-on programme with a strong focus on listening and gradually joining in orally. Children don’t memorise word lists: they use simple words and phrases in real situations while playing, moving, singing and telling stories.">Un percorso comunicativo, ludico ed esperienziale, con particolare attenzione all’ascolto e alla graduale partecipazione orale. I bambini non imparano una lista di vocaboli: usano parole ed espressioni semplici in contesti concreti, giocando, muovendosi, cantando e raccontando.</p>
+      <div class="nursery-cols">
+        <div>
+          <h4 data-it="Le attività" data-en="Activities">Le attività</h4>
+          <ul class="nursery-list">
+              <li data-it="🎵 Canzoni e nursery rhymes" data-en="🎵 Songs and nursery rhymes">🎵 Canzoni e nursery rhymes</li>
+              <li data-it="🧩 Giochi linguistici" data-en="🧩 Language games">🧩 Giochi linguistici</li>
+              <li data-it="🤸 TPR – Total Physical Response" data-en="🤸 TPR – Total Physical Response">🤸 TPR – Total Physical Response</li>
+              <li data-it="📖 Storytelling" data-en="📖 Storytelling">📖 Storytelling</li>
+              <li data-it="🎭 Role play" data-en="🎭 Role play">🎭 Role play</li>
+              <li data-it="🎨 Attività creative e manuali" data-en="🎨 Arts and crafts">🎨 Attività creative e manuali</li>
+              <li data-it="🤝 Giochi di gruppo" data-en="🤝 Group games">🤝 Giochi di gruppo</li>
+          </ul>
+        </div>
+        <div>
+          <h4 data-it="Come impariamo" data-en="How we learn">Come impariamo</h4>
+          <ul class="nursery-list">
+              <li data-it="🔁 Ripetizione: le stesse parole ritornano in attività diverse" data-en="🔁 Repetition: the same words come back in different activities">🔁 Ripetizione: le stesse parole ritornano in attività diverse</li>
+              <li data-it="🎯 Un tema per ogni incontro" data-en="🎯 One theme per session">🎯 Un tema per ogni incontro</li>
+              <li data-it="⏰ Routine in inglese per capire dal contesto e dai gesti" data-en="⏰ English routines, understood through context and gestures">⏰ Routine in inglese per capire dal contesto e dai gesti</li>
+          </ul>
+          <h4 style="margin-top:18px" data-it="Esempi di tematiche" data-en="Sample themes">Esempi di tematiche</h4>
+          <div class="nursery-themes"><span data-it="🦁 Jungle Animals" data-en="🦁 Jungle Animals">🦁 Jungle Animals</span><span data-it="🍎 Food" data-en="🍎 Food">🍎 Food</span><span data-it="🌦️ Weather" data-en="🌦️ Weather">🌦️ Weather</span><span data-it="🏃 Action Verbs" data-en="🏃 Action Verbs">🏃 Action Verbs</span><span data-it="👃 Parts of the Body" data-en="👃 Parts of the Body">👃 Parts of the Body</span><span data-it="👨‍👩‍👧 Family" data-en="👨‍👩‍👧 Family">👨‍👩‍👧 Family</span><span data-it="👕 Clothes" data-en="👕 Clothes">👕 Clothes</span><span data-it="🧸 Toys" data-en="🧸 Toys">🧸 Toys</span></div>
+        </div>
+      </div>
+      <p class="nursery-note" data-it="Il programma è flessibile: lo adattiamo al gruppo e lo integriamo con gli argomenti e le attività che le educatrici stanno già svolgendo." data-en="The programme is flexible: we adapt it to the group and link it to the topics and activities the teachers are already working on.">Il programma è flessibile: lo adattiamo al gruppo e lo integriamo con gli argomenti e le attività che le educatrici stanno già svolgendo.</p>
+      <div class="nursery-actions">
+        <a class="button button-red" href="https://wa.me/393791533754?text=Buongiorno%20London%20Language%20School%2C%20vorremmo%20informazioni%20sul%20progetto%20di%20inglese%20per%20la%20scuola%20dell%E2%80%99infanzia." target="_blank" rel="noopener" data-it="Richiedi il progetto per la vostra scuola" data-en="Ask about this project for your school">Richiedi il progetto per la vostra scuola</a>
+        <a class="button button-outline" href="progetto-inglese-infanzia.pdf" target="_blank" rel="noopener" data-it="Scarica il progetto (PDF)" data-en="Download the project (PDF, Italian)">Scarica il progetto (PDF)</a>
+      </div>
+    </div>
+
     <div class="schools-cta">
       <div>
         <span class="schools-kicker">Un partner locale per la vostra scuola</span>
@@ -2062,6 +2160,15 @@
             </div>
           </div>
 
+        </div>
+
+              <!-- MEET HELEN: paste the YouTube video ID into data-youtube-id to show this block -->
+        <div class="helen-block" id="meet-helen" data-youtube-id="GoJQuPdJNXA" hidden>
+          <div class="helen-video"></div>
+          <div class="helen-text">
+            <h3 data-it="Conosci Helen" data-en="Meet Helen">Conosci Helen</h3>
+            <p data-it="Helen, una delle nostre insegnanti, si presenta." data-en="Helen, one of our teachers, introduces herself.">Helen, una delle nostre insegnanti, si presenta.</p>
+          </div>
         </div>
 
       </div>
@@ -3074,6 +3181,21 @@
       if (event.target.id === "leadModal") closeLeadJourney();
     });
 
+  
+    // Meet Helen: build the YouTube player only when a video ID has been set
+    (function () {
+      const box = document.getElementById("meet-helen");
+      const id = box && (box.dataset.youtubeId || "").trim();
+      if (!id || !/^[A-Za-z0-9_-]{6,20}$/.test(id)) return;
+      const f = document.createElement("iframe");
+      f.src = "https://www.youtube-nocookie.com/embed/" + id + "?rel=0";
+      f.title = "Meet Helen – London Language School";
+      f.loading = "lazy";
+      f.allow = "accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+      f.allowFullscreen = true;
+      box.querySelector(".helen-video").appendChild(f);
+      box.hidden = false;
+    })();
   </script>
 
 </body>

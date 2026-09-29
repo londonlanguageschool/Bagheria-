@@ -387,7 +387,20 @@
     "Friday": "Venerdì", "Saturday": "Sabato", "Sunday": "Domenica",
     "Mon & Fri": "Lun e Ven", "Mon & Wed": "Lun e Mer", "Tue & Thu": "Mar e Gio",
     "Young Learners": "Bambini",
-    "We make English fun!": "We make English fun!"
+    "We make English fun!": "We make English fun!",
+
+    // ---- timetable (29 Sept)
+    "Timetable": "Orario",
+    "Every lesson of the week, like the board in the office. Built from Classes: change a class there and it moves here.": "Tutte le lezioni della settimana, come la lavagna in segreteria. Si basa su Classi: se modifichi una classe lì, si sposta anche qui.",
+    "All teachers": "Tutti gli insegnanti",
+    "All rooms": "Tutte le aule",
+    "Provisional": "Provvisoria",
+    "No lessons match these filters.": "Nessuna lezione con questi filtri.",
+    "No lessons yet. Add a day and time to a class in Classes.": "Ancora nessuna lezione. Aggiungi giorno e ora a una classe in Classi.",
+    "Loading classes…": "Caricamento classi…",
+    "1 lesson": "1 lezione",
+    "Room clash": "Aula già occupata",
+    "Teacher clash": "Insegnante già impegnato"
   };
 
   const DAYS = { Monday: "lunedì", Tuesday: "martedì", Wednesday: "mercoledì", Thursday: "giovedì", Friday: "venerdì", Saturday: "sabato", Sunday: "domenica" };
@@ -413,6 +426,7 @@
     [/^New test — (.+)$/, (m) => `Nuovo test — ${m[1]}`],
     [/^(\d+) students$/, (m) => `${m[1]} studenti`],
     [/^1 student$/, () => "1 studente"],
+    [/^(\d+) lessons$/, (m) => `${m[1]} lezioni`],
     [/^(\d+) min$/, (m) => `${m[1]} min`],
     [/^· due (.+)$/, (m) => `· consegna ${m[1]}`],
     [/^No classes scheduled for (\w+)\.$/, (m) => `Nessuna lezione di ${day(m[1])}.`],

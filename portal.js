@@ -32,6 +32,7 @@ const PAGE_TITLES = {
   lesson: "Lesson",
   students: "Students",
   classes: "Classes",
+  timetable: "Timetable",
   attendance: "Attendance",
   homework: "Homework",
   fees: "Fees & Payments",
@@ -300,6 +301,8 @@ function navigateTo(page, updateHash = true) {
     renderReports();
   }
 
+  if (page === "timetable" && typeof llsRenderTimetable === "function") llsRenderTimetable();
+
   window.scrollTo({
     top: 0,
     behavior: "smooth"
@@ -540,6 +543,7 @@ function renderAll() {
   renderDashboard();
   renderStudents();
   renderClasses();
+  if (typeof llsRenderTimetable === "function") llsRenderTimetable();
   // Attendance is rendered by the live Google-Sheets system (see V2.5 block
   // near the bottom of this file), not here. Calling the old local
   // renderAttendance() on every render cycle used to intermittently
@@ -7232,7 +7236,7 @@ document.addEventListener("DOMContentLoaded", () => {
    the office (admin) sees everything and can open any view.
 ========================================================= */
 
-const LLS_TEACHER_PAGES = ["lesson", "classes"]; // 27 Sept: register, feedback, homework and quizzes all on ★ Lesson
+const LLS_TEACHER_PAGES = ["lesson", "classes", "timetable"]; // 27 Sept: register, feedback, homework and quizzes all on ★ Lesson
 
 function llsCoachRequestLabel(student) {
   if (!student?.coachRequest) return "";
@@ -8252,4 +8256,155 @@ document.addEventListener("DOMContentLoaded", () => {
     byId(id)?.addEventListener("input", llsHideDuplicateWarning)
   );
   byId("paymentInstalment")?.addEventListener("change", llsHideDuplicateWarning);
+});
+
+
+/* =========================================================
+   TIMETABLE (29 Sept 2026)
+   The whole week on one screen, like the board in the office.
+   Read-only: built from state.classes (Classes sheet). Rows are
+   start times, columns are weekdays; each lesson is a chip with
+   class, time, teacher and room for THAT day ("Josie (Mon) /
+   Helen (Wed)" → Josie on Monday). Archived/Inactive classes are
+   left out; Provisional ones are shown dashed.
+========================================================= */
+
+const LLS_TT_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const LLS_TT_ROOM_CLASS = { oxf: "tt-room-oxf", pic: "tt-room-pic", lei: "tt-room-lei", online: "tt-room-online" };
+
+// Same rule as llsTeacherOnDay, for the Room field ("Lei (Mon) / Pic (Wed)").
+function llsRoomOnDay(cls, dayName) {
+  const field = String(cls.room || "");
+  if (!field.includes("(")) return field.trim();
+  const abbr = LLS_DAY_ABBR[String(dayName).toLowerCase()] || "";
+  const seg = field.split("/").find((p) => p.toLowerCase().includes(`(${abbr}`));
+  return (seg || field).replace(/\(.*?\)/g, "").trim();
+}
+
+function llsTtAddMinutes(time, minutes) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(time || ""));
+  if (!m) return "";
+  const total = Number(m[1]) * 60 + Number(m[2]) + (Number(minutes) || 0);
+  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+function llsTimetableLessons() {
+  const out = [];
+  llsLessonClasses().forEach((cls) => {
+    [[cls.day, cls.time], [cls.day2, cls.time2]].forEach(([d, t]) => {
+      const day = LLS_TT_DAYS.find((x) => x.toLowerCase() === String(d || "").trim().toLowerCase());
+      const time = String(t || cls.time || "").slice(0, 5);
+      if (!day || !/^\d{1,2}:\d{2}$/.test(time)) return;
+      const start = time.padStart(5, "0");
+      out.push({
+        cls,
+        day,
+        start,
+        end: llsTtAddMinutes(start, cls.duration || 60),
+        teacher: llsTeacherOnDay(cls, day) || "—",
+        room: llsRoomOnDay(cls, day) || "—"
+      });
+    });
+  });
+  return out;
+}
+
+function llsTtFillSelect(select, label, values, keep) {
+  if (!select) return "all";
+  const current = keep ?? select.value ?? "all";
+  select.innerHTML = [`<option value="all">${escapeHtml(label)}</option>`]
+    .concat(values.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`)).join("");
+  select.value = values.includes(current) ? current : "all";
+  return select.value;
+}
+
+let llsTtTeacherDefaultSet = false;
+
+function llsRenderTimetable() {
+  const board = byId("timetableBoard");
+  if (!board) return;
+  const all = llsTimetableLessons();
+
+  // Filters (teachers start on their own lessons; they can pick "All teachers").
+  const teachers = [...new Set(all.map((l) => l.teacher).filter((t) => t && t !== "—"))].sort();
+  const rooms = [...new Set(all.map((l) => l.room).filter((r) => r && r !== "—"))].sort();
+  let keepTeacher = null;
+  if (!llsTtTeacherDefaultSet && all.length) {
+    llsTtTeacherDefaultSet = true;
+    const names = typeof llsMyNames === "function" ? llsMyNames() : null;
+    if (names) keepTeacher = teachers.find((t) => llsIsMine(t, names)) || "all";
+  }
+  const teacher = llsTtFillSelect(byId("timetableTeacher"), "All teachers", teachers, keepTeacher);
+  const room = llsTtFillSelect(byId("timetableRoom"), "All rooms", rooms);
+
+  const legend = byId("timetableLegend");
+  if (legend) {
+    legend.innerHTML = rooms.map((r) =>
+      `<span class="tt-key ${LLS_TT_ROOM_CLASS[r.toLowerCase()] || "tt-room-other"}"><i></i>${escapeHtml(r)}</span>`
+    ).join("");
+  }
+
+  const lessons = all.filter((l) =>
+    (teacher === "all" || l.teacher === teacher) && (room === "all" || l.room === room)
+  );
+
+  if (!all.length) {
+    board.innerHTML = `<div class="empty-state"><p>${escapeHtml(llsCoreSettled ? "No lessons yet. Add a day and time to a class in Classes." : "Loading classes…")}</p></div>`;
+    return;
+  }
+
+  const days = LLS_TT_DAYS.filter((d) => d !== "Saturday" || all.some((l) => l.day === "Saturday"));
+  const times = [...new Set(lessons.map((l) => l.start))].sort();
+  const today = new Date().toLocaleDateString("en-GB", { weekday: "long" });
+
+  // Clashes: same day, overlapping times, and the same room (not Online) or the same teacher.
+  const mins = (t) => { const m = /^(\d{2}):(\d{2})/.exec(t || ""); return m ? Number(m[1]) * 60 + Number(m[2]) : 0; };
+  const clash = new Map();
+  all.forEach((a, i) => all.slice(i + 1).forEach((b) => {
+    if (a.day !== b.day || mins(a.start) >= mins(b.end) || mins(b.start) >= mins(a.end)) return;
+    const sameRoom = a.room !== "—" && a.room.toLowerCase() !== "online" && a.room.toLowerCase() === b.room.toLowerCase();
+    const sameTeacher = a.teacher !== "—" && a.teacher.toLowerCase() === b.teacher.toLowerCase();
+    if (!sameRoom && !sameTeacher) return;
+    const why = sameRoom ? "Room clash" : "Teacher clash";
+    clash.set(a, why); clash.set(b, why);
+  }));
+
+  const counts = {};
+  days.forEach((d) => { counts[d] = lessons.filter((l) => l.day === d).length; });
+
+  const chip = (l) => {
+    const n = getClassStudents(l.cls.id).length;
+    const provisional = /provisional/i.test(l.cls.status || "");
+    const roomClass = LLS_TT_ROOM_CLASS[l.room.toLowerCase()] || "tt-room-other";
+    return `<div class="tt-chip ${roomClass}${provisional ? " tt-provisional" : ""}" title="${escapeHtml([l.cls.name, l.cls.level, l.cls.notes].filter(Boolean).join(" · "))}">
+      <strong>${escapeHtml(l.cls.name)}</strong>
+      <span class="tt-time">${escapeHtml(l.start)}–${escapeHtml(l.end)}</span>
+      <span class="tt-who"><span>${escapeHtml(l.teacher)}</span> · <span>${escapeHtml(l.room)}</span></span>
+      <span class="tt-count">${n === 1 ? "1 student" : `${n} students`}</span>
+      ${provisional ? `<span class="tt-flag">Provisional</span>` : ""}
+      ${clash.has(l) ? `<span class="tt-flag tt-clash">${clash.get(l)}</span>` : ""}
+    </div>`;
+  };
+
+  const head = `<div class="tt-corner"></div>` + days.map((d) =>
+    `<div class="tt-day${d === today ? " tt-today" : ""}"><span>${d}</span><small>${counts[d] === 1 ? "1 lesson" : `${counts[d]} lessons`}</small></div>`
+  ).join("");
+
+  const rows = times.map((t) =>
+    `<div class="tt-time-label">${escapeHtml(t)}</div>` + days.map((d) => {
+      const here = lessons.filter((l) => l.day === d && l.start === t)
+        .sort((a, b) => a.room.localeCompare(b.room));
+      return `<div class="tt-cell${d === today ? " tt-today" : ""}">${here.map(chip).join("")}</div>`;
+    }).join("")
+  ).join("");
+
+  board.innerHTML = lessons.length
+    ? `<div class="tt-grid" style="grid-template-columns: 64px repeat(${days.length}, minmax(150px, 1fr))">${head}${rows}</div>`
+    : `<div class="empty-state"><p>No lessons match these filters.</p></div>`;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  ["timetableTeacher", "timetableRoom"].forEach((id) =>
+    byId(id)?.addEventListener("change", llsRenderTimetable)
+  );
 });
