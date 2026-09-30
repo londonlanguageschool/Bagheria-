@@ -11,6 +11,7 @@
   "use strict";
 
   const IT = {
+    "One moment: the link is being made.": "Un attimo: sto preparando il link.",
     "✓ All changes are safely in Google Sheets.": "✓ Tutte le modifiche sono al sicuro su Google Sheets.",
     "✓ Attendance saved. Sending to Google in the background.": "✓ Presenze salvate. Le invio a Google in sottofondo.",
     "✓ Lesson notes saved. Sending to Google in the background.": "✓ Note della lezione salvate. Le invio a Google in sottofondo.",

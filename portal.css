@@ -2576,3 +2576,10 @@ tbody tr:hover {
   .tt-wrap { overflow: visible; box-shadow: none; }
 }
 .tt-chip .tt-clash { color: var(--red-700); display: block; }
+
+/* 30 Sept: App link window: normal-width buttons (they were squashed into
+   circles), and a greyed look while the link is still being made. */
+#homeworkLinkModal .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#homeworkLinkModal .modal-actions .button { width: 100%; min-height: 48px; border-radius: 999px; padding: 10px 14px; line-height: 1.2; white-space: normal; text-align: center; display: inline-flex; align-items: center; justify-content: center; }
+#homeworkLinkModal .is-waiting, #homeworkLinkModal button:disabled { opacity: .45; cursor: wait; }
+@media (max-width: 420px) { #homeworkLinkModal .modal-actions { grid-template-columns: 1fr; } }

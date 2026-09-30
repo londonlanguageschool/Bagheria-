@@ -6276,15 +6276,30 @@ async function openHomeworkLink(studentId, reset = false) {
   text("homeworkLinkTitle", `App link — ${getStudentName(student)}`);
   setValue("homeworkLinkUrl", "Creating link…");
   text("homeworkLinkNote", "");
+  // 30 Sept: buttons stay locked until this student's link is ready.
+  // (Pressing "Open app" too early used to open the staff portal instead.)
+  llsLinkButtonsReady_(false);
   openModal("homeworkLinkModal");
 
+  // 30 Sept: a student who already has a key opens instantly: the key is
+  // already in the data the portal loaded, so there's no need to ask Google.
+  const raw = (llsLivePortalData.students || []).find((r) => String(r["Student ID"] || "").trim() === studentId) || {};
+  const knownKey = String(raw["Access Key"] || "").trim();
+  const knownCode = String(raw["Login Code"] || "").trim();
+
   try {
-    const result = await llsApiPost({ action: "createStudentLink", studentId, reset });
+    const result = !reset && knownKey.length >= 20
+      ? { key: knownKey, code: knownCode }
+      : await llsApiPost({ action: "createStudentLink", studentId, reset });
+    if (llsHomeworkLinkStudentId !== studentId) return; // another student was opened meanwhile
+    raw["Access Key"] = result.key;
+    if (result.code) raw["Login Code"] = result.code;
     const link = llsHomeworkPageUrl(result.key);
     setValue("homeworkLinkUrl", link);
 
     byId("homeworkLinkWhatsApp").href = llsAppWhatsAppHref(student, link, result.code);
     if (byId("homeworkLinkOpen")) byId("homeworkLinkOpen").href = link;
+    llsLinkButtonsReady_(true);
     const codeText = result.code ? `Student Portal code: ${result.code}. ` : "";
     text(
       "homeworkLinkNote",
@@ -8805,3 +8820,23 @@ function llsOutboxPatch_(job) {
     llsOutboxSave(list);
   }
 }
+
+// 30 Sept: App link window: Open / WhatsApp / Copy only work once the link is ready.
+function llsLinkButtonsReady_(ready) {
+  ["homeworkLinkOpen", "homeworkLinkWhatsApp"].forEach((id) => {
+    const el = byId(id);
+    if (!el) return;
+    if (!ready) el.removeAttribute("href"); // no link at all: nothing can open
+    el.setAttribute("aria-disabled", String(!ready));
+    el.classList.toggle("is-waiting", !ready);
+  });
+  const copy = byId("homeworkLinkCopy");
+  if (copy) copy.disabled = !ready;
+}
+document.addEventListener("click", (e) => {
+  const a = e.target.closest && e.target.closest("#homeworkLinkOpen, #homeworkLinkWhatsApp");
+  if (a && a.getAttribute("aria-disabled") === "true") {
+    e.preventDefault();
+    showToast("One moment: the link is being made.", "info");
+  }
+}, true);
