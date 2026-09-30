@@ -2895,7 +2895,7 @@ async function llsApiPost(body) {
       body: form,
       cache: "no-store",
       redirect: "follow"
-    });
+    }, { timeoutMs: LLS_SAVE_TIMEOUT_MS });
   } catch (_) {
     throw new Error("Could not send the change to Apps Script.");
   }
@@ -5144,7 +5144,7 @@ window.addEventListener("load", async () => {
   // Finance needs student/class data to label fees, so re-render once
   // everything has arrived.
   // V22: teachers only load teaching data (no enquiries or money).
-  await Promise.all(llsIsTeacher()
+  const startup = Promise.all(llsIsTeacher()
     ? [llsLoadCoreFromSheets(true), llsLoadTeachersFromSheets()]
     : [
         llsLoadCoreFromSheets(true),
@@ -5152,6 +5152,11 @@ window.addEventListener("load", async () => {
         llsLoadFinanceFromSheets(true),
         llsLoadTeachersFromSheets()
       ]);
+  // 30 Sept (speed): the class list is what people wait for, so the
+  // register is drawn as soon as it arrives (the rest keeps loading).
+  const core = llsCoreLoadPromise;
+  if (core) core.then(() => { try { renderLiveAttendance(); } catch (_) {} });
+  await startup;
   llsRebuildPaymentsState();
   renderAll();
 });
@@ -5335,18 +5340,48 @@ let llsLiveAttendance = [];
 let llsAttendanceLoadedKey = "";
 
 /* 27 Sept: Google Apps Script drops replies (HTTP 404 / an HTML page)
-   when a browser fires many requests at once. Send at most 2 at a time. */
+   when a browser fires many requests at once. Send at most 2 at a time.
+   30 Sept (speed): 1) every request now gives up after a time limit, so
+   one reply Google never sends can't block a lane for minutes (the cause
+   of "the portal takes minutes"); the usual retry then runs. 2) Requests
+   the person is waiting for (register, lesson, saves, login) go ahead of
+   background loads (finance, enquiries, teachers, version check). */
 let llsActiveRequests = 0;
-const llsRequestWaiters = [];
-async function llsFetch_(url, options) {
-  if (llsActiveRequests >= 2) await new Promise((resolve) => llsRequestWaiters.push(resolve));
+const llsRequestWaiters = [];      // someone is waiting on screen
+const llsBackgroundWaiters = [];   // can wait
+const LLS_BACKGROUND_ACTIONS = new Set(["ping", "getEnquiries", "getFinanceData", "getTeachers", "getOneToOneHours"]);
+const LLS_READ_TIMEOUT_MS = 20000;
+const LLS_SAVE_TIMEOUT_MS = 60000;
+
+function llsNextRequest_() {
+  const next = llsRequestWaiters.shift() || llsBackgroundWaiters.shift();
+  if (next) next();
+}
+
+async function llsFetch_(url, options, opts = {}) {
+  if (llsActiveRequests >= 2) {
+    await new Promise((resolve) => (opts.background ? llsBackgroundWaiters : llsRequestWaiters).push(resolve));
+  }
   llsActiveRequests++;
+  const controller = (typeof AbortController === "function") ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), opts.timeoutMs || LLS_READ_TIMEOUT_MS) : null;
   try {
-    return await fetch(url, options);
+    const response = await fetch(url, Object.assign({}, options, controller ? { signal: controller.signal } : {}));
+    // Read the body inside the time limit and the lane, so a reply that
+    // stops half-way can't hang either.
+    const body = await response.text();
+    return { ok: response.ok, status: response.status, text: async () => body };
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      const e = new Error("Google took too long to answer");
+      e.timeout = true;
+      throw e;
+    }
+    throw error;
   } finally {
+    if (timer) clearTimeout(timer);
     llsActiveRequests--;
-    const next = llsRequestWaiters.shift();
-    if (next) next();
+    llsNextRequest_();
   }
 }
 
@@ -5382,13 +5417,14 @@ async function llsApiGet(action, params = {}) {
       await new Promise((resolve) => setTimeout(resolve, attempt * 1200));
     }
     try {
-      const response = await llsFetch_(url.toString(), { method: "GET", cache: "no-store", redirect: "follow" });
+      const response = await llsFetch_(url.toString(), { method: "GET", cache: "no-store", redirect: "follow" },
+        { background: LLS_BACKGROUND_ACTIONS.has(action) });
       if (!response.ok) { problem = `HTTP ${response.status}`; continue; }
       const raw = await response.text();
       try { data = JSON.parse(raw); } catch (_) { problem = "Apps Script did not return JSON."; continue; }
       break;
-    } catch (_) {
-      problem = "no connection";
+    } catch (error) {
+      problem = error && error.timeout ? "no reply in 20 seconds" : "no connection";
     }
   }
   if (!data) throw new Error(`Google didn't answer this time (${problem}). Wait a few seconds and try again.`);
@@ -5457,7 +5493,7 @@ async function llsSendMutation_(payload) {
       method: "GET",
       cache: "no-store",
       redirect: "follow"
-    });
+    }, { timeoutMs: LLS_SAVE_TIMEOUT_MS });
   } else {
     const form = new URLSearchParams();
     form.set("action", String(payload.action || ""));
@@ -5469,10 +5505,10 @@ async function llsSendMutation_(payload) {
       body: form,
       cache: "no-store",
       redirect: "follow"
-    });
+    }, { timeoutMs: LLS_SAVE_TIMEOUT_MS });
   }
-  } catch (_) {
-    throw transportError("no connection");
+  } catch (error) {
+    throw transportError(error && error.timeout ? "no reply in 60 seconds" : "no connection");
   }
 
   if (!response.ok) throw transportError(`HTTP ${response.status}`);
@@ -5514,6 +5550,12 @@ function llsStudentsForClass(classId) {
 
 async function loadLiveAttendanceFoundation(force = false) {
   if (!force && llsLivePortalData.classes.length) return llsLivePortalData;
+  // 30 Sept (speed): if the class list is already on its way, wait for it
+  // instead of asking Google a second time.
+  if (!force && llsCoreLoadPromise) {
+    try { await llsCoreLoadPromise; } catch (_) {}
+    if (llsLivePortalData.classes.length) { populateLiveAttendanceClasses(); return llsLivePortalData; }
+  }
   const data = await llsApiGet("getPortalData");
   llsLivePortalData = {
     students: Array.isArray(data.students) ? data.students : [],
@@ -5689,9 +5731,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }, true);
   }
 
-  if (llsHasAdminSession()) {
-    loadLiveAttendanceFoundation(true).then(renderLiveAttendance).catch(console.error);
-  }
+  // 30 Sept (speed): the page-load fetch (window "load") already brings
+  // the class list; draw the register once it arrives instead of asking
+  // Google for the same data twice.
 });
 
 /* =========================================================
@@ -7227,7 +7269,9 @@ document.addEventListener("DOMContentLoaded", () => {
   byId("testForm")?.addEventListener("submit", llsSaveTest);
   byId("deleteTestButton")?.addEventListener("click", llsDeleteOpenTest);
   byId("homeworkClassSelect")?.addEventListener("change", () => { llsTestFromLesson = false; renderTeacherTests(); });
-  llsCheckAiPanel();
+  // 30 Sept (speed): not on the login screen, where it would compete with the login itself.
+  // Runs after the page-load data has been asked for, so it never takes a lane first.
+  if (llsHasAdminSession()) window.addEventListener("load", () => setTimeout(llsCheckAiPanel, 0));
 });
 
 
