@@ -5390,7 +5390,7 @@ async function llsFetch_(url, options, opts = {}) {
 // is only retried with Apps Script V25, which recognises the receipt.
 const LLS_SAFE_TO_RESEND = new Set([
   "adminLogin", "teacherPortalLogin", "teacherLogin", "studentCodeLogin",
-  "saveAttendance", "saveLessonLog", "updateClass", "updateStudent", "updateEnquiry",
+  "saveAttendance", "saveLessonLog", "saveLesson", "updateClass", "updateStudent", "updateEnquiry",
   "updateFee", "updateTeacher", "updateHomework", "markHomeworkStatus", "setSpeakingCoach"
 ]);
 const LLS_LOGIN_ACTIONS = new Set(["adminLogin", "teacherPortalLogin", "teacherLogin"]);
@@ -7966,7 +7966,29 @@ async function llsOutboxRun(manual) {
       if (job.error && !manual) continue;
       job.sending = true; job.error = ""; llsOutboxSave(box);
       let problem = "";
+      // 30 Sept (Apps Script V27): the whole lesson in ONE call instead of
+      // three. Older Apps Script answers "Unknown mutation action": then the
+      // parts are sent one by one as before.
+      const combined = llsCombinedLessonBody_(job);
+      if (combined) {
+        try {
+          await llsApiPost(combined);
+          job.steps.forEach((st) => { st.done = true; });
+          llsOutboxSave(box);
+        } catch (e) {
+          // Apps Script before V27: "Unknown mutation action" (office) or
+          // "Teachers can't do that" (teacher login, action not on its list).
+          if (/Unknown mutation action|Teachers can't do that/i.test(e?.message || "")) {
+            window.llsNoSaveLesson = true;
+          } else if (e && (e.transport || e.uncertain || /didn't answer|didn't confirm|no connection|HTTP/i.test(e.message || ""))) {
+            problem = "retry";
+          } else {
+            problem = e?.message || "error";
+          }
+        }
+      }
       for (const step of job.steps) {
+        if (problem) break;
         if (step.done) continue;
         try {
           await llsApiPost(step.body);
@@ -8003,6 +8025,54 @@ async function llsOutboxRun(manual) {
   }
 }
 
+// 30 Sept: one saveLesson call for a whole outbox job (register + homework
+// + notes). Its receipt number is kept with the job, so sending it again
+// (retry, or the "closing the page" send below) never saves twice.
+function llsCombinedLessonBody_(job) {
+  if (window.llsNoSaveLesson || !job || !Array.isArray(job.steps)) return null;
+  if (job.steps.some((st) => st.done)) return null;
+  const reg = job.steps.find((st) => st.what === "register");
+  const notes = job.steps.find((st) => st.what === "notes");
+  const hws = job.steps.filter((st) => st.what === "homework");
+  if (!notes || hws.length > 1) return null;
+  if (!job.combinedId) {
+    job.combinedId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `r${Date.now()}${Math.random().toString(36).slice(2)}`;
+    const box = llsOutboxLoad();
+    const same = box.find((j) => j.id === job.id);
+    if (same) { same.combinedId = job.combinedId; try { localStorage.setItem(LLS_OUTBOX_KEY, JSON.stringify(box)); } catch (_) {} }
+  }
+  const n = notes.body, h = hws[0] && hws[0].body;
+  return {
+    action: "saveLesson",
+    classId: job.classId,
+    lessonDate: job.date,
+    rows: reg ? reg.body.rows : [],
+    homework: h ? { title: h.title, description: h.description, assignedDate: h.assignedDate, dueDate: h.dueDate, teacherId: h.teacherId } : null,
+    log: { unit: n.unit, whatWeDid: n.whatWeDid, notes: n.notes, homeworkSet: n.homeworkSet, teacherId: n.teacherId },
+    requestId: job.combinedId
+  };
+}
+
+// 30 Sept: if the page is closed (or the phone switches app) while lessons
+// are still waiting, hand them to Google one last time. The browser sends
+// this even as the page closes. The lesson stays in the outbox until Google
+// confirms it on the next visit, so nothing depends on this working.
+function llsOutboxBeacon_() {
+  try {
+    if (!navigator.sendBeacon || window.llsNoSaveLesson) return;
+    const token = sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY);
+    if (!token) return;
+    llsOutboxLoad().filter((j) => !j.error).forEach((job) => {
+      const body = llsCombinedLessonBody_(job);
+      if (!body) return;
+      const form = new URLSearchParams();
+      form.set("action", "saveLesson");
+      form.set("payload", JSON.stringify(Object.assign({}, body, { token })));
+      navigator.sendBeacon(LLS_API_URL, form);
+    });
+  } catch (_) { /* the normal outbox still has it */ }
+}
+
 // Lesson-log entries for a class, with lessons still in the outbox on top
 // (newest first, one per date).
 function llsWithPendingEntries(classId, entries) {
@@ -8023,6 +8093,12 @@ document.addEventListener("DOMContentLoaded", () => {
   llsOutboxPaint();
   setTimeout(() => llsOutboxRun(), 1500);
   window.addEventListener("online", () => llsOutboxRun());
+  // 30 Sept: back on the page (phone unlocked, tab re-opened): send at once.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") llsOutboxRun();
+    else llsOutboxBeacon_();
+  });
+  window.addEventListener("pagehide", llsOutboxBeacon_);
   window.addEventListener("beforeunload", (e) => {
     if (llsOutboxLoad().some((j) => !j.error)) { e.preventDefault(); e.returnValue = ""; }
   });
