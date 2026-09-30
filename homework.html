@@ -835,7 +835,7 @@
           icon: special ? "⭐" : missed ? "💤" : "📘",
           cls: special ? "special" : missed ? "missed" : "lesson",
           title: special ? `Special lesson: ${special}` : (l.unit ? `Lesson · Unit ${l.unit}` : "Lesson · Lezione"),
-          sub: (missed ? "Missed · Assente — " : (RATE_LABEL[rate[l.classId + "|" + l.lessonDate]] ? RATE_LABEL[rate[l.classId + "|" + l.lessonDate]] + " — " : "")) + (parsed.rest || (parsed.skills.length ? "" : classById[l.classId]?.["Class Name"] || ""))
+          sub: [missed ? "Missed · Assente" : (RATE_LABEL[rate[l.classId + "|" + l.lessonDate]] || ""), parsed.rest || (parsed.skills.length ? "" : classById[l.classId]?.["Class Name"] || "")].filter(Boolean).join(" — ")
         });
       });
       homeworkItems().forEach((h) => {
@@ -989,6 +989,9 @@
         if (!attendedKey.has(l.classId + "|" + l.lessonDate)) return;
         const special = (String(l.unit || "").match(/^Special:\s*(.+)$/i) || [])[1];
         const unit = (String(l.unit || "").match(/\d{1,2}\s*[A-D]?/i) || [""])[0].replace(/\s+/g, "").toUpperCase();
+        // 30 Sept: every ticked topic counts (grammar point, reading topic...).
+        const ticked = parseSkills(l.whatWeDid).skills.filter((k) => k.topic);
+        if (ticked.length) { ticked.forEach((k) => topics.add(k.k + ":" + k.topic.split(" · ")[0].trim().toLowerCase())); return; }
         const key = special ? "S:" + special.toLowerCase() : unit ? "U:" + unit : String(l.whatWeDid || "").trim().toLowerCase().slice(0, 40);
         if (key) topics.add(key);
       });
