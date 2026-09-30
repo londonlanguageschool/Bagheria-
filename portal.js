@@ -2895,7 +2895,7 @@ async function llsApiPost(body) {
       body: form,
       cache: "no-store",
       redirect: "follow"
-    }, { timeoutMs: LLS_SAVE_TIMEOUT_MS });
+    }, { timeoutMs: LLS_SAVE_TIMEOUT_MS, save: true });
   } catch (_) {
     throw new Error("Could not send the change to Apps Script.");
   }
@@ -5359,10 +5359,13 @@ function llsNextRequest_() {
 }
 
 async function llsFetch_(url, options, opts = {}) {
-  if (llsActiveRequests >= 2) {
+  // 30 Sept: saves never queue behind reads. Opening a lesson starts two
+  // slow reads, which used to hold the save back for 20–30 seconds.
+  const lane = !opts.save;
+  if (lane && llsActiveRequests >= 2) {
     await new Promise((resolve) => (opts.background ? llsBackgroundWaiters : llsRequestWaiters).push(resolve));
   }
-  llsActiveRequests++;
+  if (lane) llsActiveRequests++;
   const controller = (typeof AbortController === "function") ? new AbortController() : null;
   const timer = controller ? setTimeout(() => controller.abort(), opts.timeoutMs || LLS_READ_TIMEOUT_MS) : null;
   try {
@@ -5380,8 +5383,10 @@ async function llsFetch_(url, options, opts = {}) {
     throw error;
   } finally {
     if (timer) clearTimeout(timer);
-    llsActiveRequests--;
-    llsNextRequest_();
+    if (lane) {
+      llsActiveRequests--;
+      llsNextRequest_();
+    }
   }
 }
 
@@ -5493,7 +5498,7 @@ async function llsSendMutation_(payload) {
       method: "GET",
       cache: "no-store",
       redirect: "follow"
-    }, { timeoutMs: LLS_SAVE_TIMEOUT_MS });
+    }, { timeoutMs: LLS_SAVE_TIMEOUT_MS, save: true });
   } else {
     const form = new URLSearchParams();
     form.set("action", String(payload.action || ""));
@@ -5505,7 +5510,7 @@ async function llsSendMutation_(payload) {
       body: form,
       cache: "no-store",
       redirect: "follow"
-    }, { timeoutMs: LLS_SAVE_TIMEOUT_MS });
+    }, { timeoutMs: LLS_SAVE_TIMEOUT_MS, save: true });
   }
   } catch (error) {
     throw transportError(error && error.timeout ? "no reply in 60 seconds" : "no connection");
@@ -7586,8 +7591,11 @@ function llsRenderLessonPicker() {
   const all = llsLessonClasses()
     .filter((c) => !onlyMine || llsIsMine(c.teacherName, names))
     .sort((a, b) => a.name.localeCompare(b.name));
-  const chip = (cls, label) =>
-    `<button type="button" class="lesson-chip${cls.id === llsLesson.classId ? " active" : ""}" data-lesson-class="${escapeHtml(cls.id)}">${label}</button>`;
+  const chip = (cls, label) => {
+    const st = llsLessonSaveState(cls.id, date);
+    const mark = st === "saved" ? " ✓" : st === "sending" ? " ⏳" : "";
+    return `<button type="button" class="lesson-chip${cls.id === llsLesson.classId ? " active" : ""}${st ? " is-saved-" + st : ""}" data-lesson-class="${escapeHtml(cls.id)}">${label}${mark}</button>`;
+  };
   const dayLabel = new Date(date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
   // 28 Sept: while Google is still sending the class list, say so (not "No lessons").
   const loading = !llsCoreSettled && !today.length;
@@ -7648,6 +7656,11 @@ async function llsRenderLesson() {
   // have; saved marks and notes fill in when Google answers. A lesson saved on
   // this device but still being sent (outbox) wins over what Google has.
   const pending = llsOutboxFor(cls.id, date);
+  // 30 Sept: a lesson Google has already confirmed is also kept on this
+  // device, so reopening it shows everything at once (Google's reads can
+  // take 20–30 s). Google's copy still fills in when it answers.
+  const local = pending || llsSavedFor(cls.id, date);
+  llsPaintLessonState();
   try {
     if (!llsStudentsForClass(cls.id).length && !(llsLivePortalData.classes || []).length) {
       regBody.innerHTML = `<p class="muted">Loading…</p>`;
@@ -7656,9 +7669,9 @@ async function llsRenderLesson() {
     }
   } catch (_) { /* fall through: the register shows what we have */ }
   const students = llsStudentsForClass(cls.id);
-  const fromPending = new Map(((pending && pending.rows) || []).map((r) => [r.studentId, { Status: r.status, Notes: r.notes }]));
+  const fromPending = new Map(((local && local.rows) || []).map((r) => [r.studentId, { Status: r.status, Notes: r.notes }]));
   llsDrawRegister(regBody, students, fromPending);
-  if (pending && pending.note) llsFillLessonNote(pending.note, cls);
+  if (local && local.note) llsFillLessonNote(local.note, cls);
 
   // Saved register (only fills rows the teacher hasn't touched yet)
   llsApiGet("getAttendance", { classId: cls.id, lessonDate: date }).then((att) => {
@@ -7680,6 +7693,9 @@ async function llsRenderLesson() {
   // Lesson notes: this date's entry + last lesson + whole history.
   // 28 Sept: lessons saved on this device but still being sent show at once.
   llsLesson.entries = llsWithPendingEntries(cls.id, []);
+  if (local && local.note && !llsLesson.entries.some((e) => e.lessonDate === date)) {
+    llsLesson.entries = [{ lessonDate: date, ...local.note }, ...llsLesson.entries];
+  }
   llsRenderLessonLogList(byId("lessonHistory"), llsLesson.entries);
   byId("lessonHistoryCount").textContent = llsLesson.entries.length ? `(${llsLesson.entries.length})` : "";
   llsApiGet("getLessonLog", { classId: cls.id, limit: 1000 }).then((log) => {
@@ -7898,6 +7914,8 @@ async function llsSaveLesson() {
     setTimeout(() => { savedBtn.textContent = "💾 Save lesson"; savedBtn.classList.remove("is-saved"); savedBtn.disabled = false; }, 4000);
   }
   showToast(`✓ ${cls.name} saved on this device. It's being sent to Google in the background: you can go to your next class.`, "success");
+  llsRenderLessonPicker();
+  llsPaintLessonState();
   llsOutboxRun();
 }
 
@@ -7953,6 +7971,7 @@ function llsOutboxPaint() {
     el.textContent = text;
     el.classList.toggle("is-error", Boolean(failed.length));
   });
+  llsPaintLessonState();
 }
 
 async function llsOutboxRun(manual) {
@@ -8004,8 +8023,10 @@ async function llsOutboxRun(manual) {
       job.tries = (job.tries || 0) + 1;
       if (!problem) {
         box = box.filter((j) => j !== job);
+        llsSavedRemember(job);
         llsOutboxSave(box);
         if (llsIsCurrentLesson(job)) llsAttendanceLoadedKey = "";
+        llsRenderLessonPicker();
         showToast(`✓ ${job.className} (${job.date}) is safely in Google Sheets.`, "success");
       } else if (problem === "retry") {
         llsOutboxSave(box);
@@ -8528,3 +8549,53 @@ document.addEventListener("DOMContentLoaded", () => {
     byId(id)?.addEventListener("change", llsRenderTimetable)
   );
 });
+
+
+/* 30 Sept — lessons stay "saved" on screen.
+   When Google confirms a lesson, a copy stays on this device (last 30 days,
+   up to 120 lessons), so going back to it shows the register and notes at
+   once and says "✓ Saved", instead of looking empty while Google's slow
+   reads arrive. The lesson buttons get ✓ (in Google) or ⏳ (sending). */
+const LLS_SAVED_KEY = "lls_saved_lessons";
+
+function llsSavedLoad() {
+  try { return JSON.parse(localStorage.getItem(LLS_SAVED_KEY) || "[]") || []; } catch (_) { return []; }
+}
+function llsSavedFor(classId, date) {
+  return llsSavedLoad().find((j) => j.classId === classId && j.date === date) || null;
+}
+function llsSavedRemember(job) {
+  try {
+    const cutoff = Date.now() - 30 * 24 * 3600 * 1000;
+    const list = llsSavedLoad().filter((j) => !(j.classId === job.classId && j.date === job.date) && (j.savedAt || 0) > cutoff);
+    list.unshift({ classId: job.classId, className: job.className, date: job.date, rows: job.rows || [], note: job.note || null, savedAt: Date.now() });
+    localStorage.setItem(LLS_SAVED_KEY, JSON.stringify(list.slice(0, 120)));
+  } catch (_) { /* storage full or blocked: Google still has it */ }
+}
+function llsLessonSaveState(classId, date) {
+  const job = llsOutboxFor(classId, date);
+  if (job) return job.error ? "error" : "sending";
+  return llsSavedFor(classId, date) ? "saved" : "";
+}
+
+function llsPaintLessonState() {
+  const meta = byId("lessonClassMeta");
+  if (!meta) return;
+  let badge = byId("lessonSavedState");
+  if (!badge) {
+    badge = document.createElement("div");
+    badge.id = "lessonSavedState";
+    badge.setAttribute("role", "status");
+    badge.style.cssText = "display:inline-block;margin-top:8px;padding:6px 12px;border-radius:999px;font-weight:700;font-size:14px;";
+    meta.insertAdjacentElement("afterend", badge);
+  }
+  const date = byId("lessonDate")?.value || "";
+  const st = llsLesson.classId ? llsLessonSaveState(llsLesson.classId, date) : "";
+  const look = {
+    saved: ["✓ Saved · in Google Sheets", "#e3f6ec", "#177b52"],
+    sending: ["✓ Saved on this device · sending to Google…", "#fff4d6", "#6b5200"],
+    error: ["⚠ Not sent yet: tap the orange pill to retry", "#fde8e6", "#b3261e"]
+  }[st];
+  badge.hidden = !look;
+  if (look) { badge.textContent = look[0]; badge.style.background = look[1]; badge.style.color = look[2]; }
+}
