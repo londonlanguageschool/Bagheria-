@@ -459,10 +459,21 @@
 
     // 27 Sept: Google sometimes loses the reply. Reading, logging in and
     // ticking homework are safe to repeat, so retry those up to 3 times.
-    const SAFE_TO_RESEND = ["studentCodeLogin", "studentMarkHomework", "studentRequestCoach"];
+    // 30 Sept: every save carries a receipt number (Apps Script V25+), so
+    // practice scores and tests are safe to re-send too.
+    const SAFE_TO_RESEND = ["studentCodeLogin", "studentMarkHomework", "studentRequestCoach", "studentSavePractice", "studentSubmitTest"];
+    function rid() {
+      return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "r" + Date.now() + Math.random().toString(36).slice(2);
+    }
     async function api(params) {
       let inner = "";
-      try { inner = params.action === "mutate" ? JSON.parse(params.payload || "{}").action : ""; } catch (_) {}
+      try {
+        if (params.action === "mutate") {
+          const body = JSON.parse(params.payload || "{}");
+          inner = body.action;
+          if (!body.requestId) { body.requestId = rid(); params = Object.assign({}, params, { payload: JSON.stringify(body) }); }
+        }
+      } catch (_) {}
       const safe = params.action !== "mutate" || SAFE_TO_RESEND.indexOf(inner) !== -1;
       let result = null, problem = "";
       for (let attempt = 0; attempt < (safe ? 3 : 1); attempt++) {
@@ -1120,28 +1131,105 @@
       bindJourney(main);
     }
 
-    async function toggle(button) {
+    // 30 Sept: the tick shows at once; it is kept on the phone and sent to
+    // Google in the background until Google confirms (even after closing).
+    function toggle(button) {
       const id = button.dataset.id;
       const next = button.dataset.next;
-      button.disabled = true;
-      button.textContent = "Saving…";
+      const existing = data.status.find((s) => String(s["Homework ID"]) === id);
+      if (existing) existing["Status"] = next;
+      else data.status.push({ "Homework ID": id, "Status": next });
+      const rect = button.getBoundingClientRect();
+      render();
+      if (next === "Done" && window.llsCelebrate) window.llsCelebrate(rect);
+      queueSave({ action: "studentMarkHomework", key: KEY, homeworkId: id, status: next });
+    }
 
-      try {
-        await api({
-          action: "mutate",
-          payload: JSON.stringify({ action: "studentMarkHomework", key: KEY, homeworkId: id, status: next })
-        });
-        const existing = data.status.find((s) => String(s["Homework ID"]) === id);
-        if (existing) existing["Status"] = next;
-        else data.status.push({ "Homework ID": id, "Status": next });
-        const rect = button.getBoundingClientRect();
-        render();
-        if (next === "Done" && window.llsCelebrate) window.llsCelebrate(rect);
-      } catch (error) {
-        button.disabled = false;
-        button.textContent = next === "Done" ? "Mark done" : "Done ✓";
-        alert("Could not save. Please try again.\nNon è stato possibile salvare. Riprova.");
+    /* ---------- 30 Sept: save queue (ticks and practice scores) ---------- */
+    const QUEUE_STORE = "lls_student_queue";
+    let queueBusy = false, queueTimer = null;
+    function queueLoad() { try { return JSON.parse(localStorage.getItem(QUEUE_STORE) || "[]") || []; } catch (_) { return []; } }
+    function queueStore(list) { try { localStorage.setItem(QUEUE_STORE, JSON.stringify(list)); } catch (_) {} paintQueue(); }
+    function queueSave(body) {
+      const list = queueLoad();
+      list.push({ body: Object.assign({ requestId: rid() }, body), tries: 0 });
+      queueStore(list);
+      runQueue();
+    }
+    function paintQueue() {
+      let pill = document.getElementById("queuePill");
+      const n = queueLoad().length;
+      if (!pill) {
+        if (!n) return;
+        pill = document.createElement("button");
+        pill.type = "button";
+        pill.id = "queuePill";
+        pill.style.cssText = "position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:50;border:0;border-radius:999px;padding:10px 16px;font:600 14px system-ui,sans-serif;background:#fff4d6;color:#5c4400;box-shadow:0 6px 18px rgba(0,0,0,.15);max-width:calc(100% - 32px)";
+        pill.addEventListener("click", () => runQueue());
+        document.body.appendChild(pill);
       }
+      pill.hidden = !n;
+      pill.textContent = "⏳ Saving to school… · Salvataggio in corso…";
+    }
+    async function runQueue() {
+      clearTimeout(queueTimer);
+      if (queueBusy) return;
+      queueBusy = true;
+      try {
+        // Always re-read the list before changing it, so a tick made while
+        // another is being sent is never overwritten.
+        const drop = (item) => queueStore(queueLoad().filter((x) => x.body.requestId !== item.body.requestId));
+        for (const item of queueLoad()) {
+          try {
+            await api({ action: "mutate", payload: JSON.stringify(item.body) });
+            drop(item);
+          } catch (e) {
+            const msg = String(e.message || "");
+            if (/connection dropped|no reply|HTTP/i.test(msg)) {
+              const fresh = queueLoad();
+              const same = fresh.find((x) => x.body.requestId === item.body.requestId);
+              if (same) { same.tries = (same.tries || 0) + 1; queueStore(fresh); }
+              break;
+            }
+            drop(item); // refused (e.g. link no longer valid): drop it
+          }
+        }
+      } finally {
+        queueBusy = false;
+        const left = queueLoad();
+        if (left.length) queueTimer = setTimeout(runQueue, Math.min(60000, 4000 * Math.max(1, ...left.map((x) => x.tries || 1))));
+      }
+    }
+    window.addEventListener("online", () => runQueue());
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") { runQueue(); return; }
+      try {
+        if (!navigator.sendBeacon) return;
+        queueLoad().forEach((item) => {
+          const form = new URLSearchParams();
+          form.set("action", String(item.body.action || ""));
+          form.set("payload", JSON.stringify(item.body));
+          navigator.sendBeacon(API_URL, form);
+        });
+      } catch (_) {}
+    });
+    setTimeout(() => { paintQueue(); runQueue(); }, 800);
+
+    // Ticks and scores still on their way to Google stay visible after a reload.
+    function applyQueued() {
+      queueLoad().forEach((item) => {
+        const b = item.body || {};
+        if (b.key !== KEY) return;
+        if (b.action === "studentMarkHomework") {
+          data.status = Array.isArray(data.status) ? data.status : [];
+          const ex = data.status.find((x) => String(x["Homework ID"]) === String(b.homeworkId));
+          if (ex) ex["Status"] = b.status; else data.status.push({ "Homework ID": b.homeworkId, "Status": b.status });
+        } else if (b.action === "studentSavePractice") {
+          const ex = data.practice.find((r) => r.setId === b.setId);
+          if (ex) ex.best = Math.max(Number(ex.best) || 0, Number(b.score) || 0);
+          else data.practice.push({ setId: b.setId, best: b.score, total: b.total, attempts: 1, first: b.score });
+        }
+      });
     }
 
     /* ---------- practice: choose a unit ---------- */
@@ -1633,25 +1721,27 @@
       if (quiz === q) render();
     }
 
-    async function saveResult() {
+    // 30 Sept: the score counts at once (stars, progress); it is kept on the
+    // phone and sent to Google in the background until Google confirms.
+    function saveResult() {
       const q = quiz;
       const total = q.items.length;
       const got = score();
-      q.saveState = "saving";
-      try {
-        const result = await api({
-          action: "mutate",
-          payload: JSON.stringify({ action: "studentSavePractice", key: KEY, setId: q.setId, score: got, total })
-        });
-        data.practice = data.practice || [];
-        const existing = data.practice.find((r) => r.setId === q.setId);
-        const row = { setId: q.setId, best: result.best, total: result.total, attempts: result.attempts, date: result.date, first: existing && existing.first != null ? existing.first : got };
-        if (existing) Object.assign(existing, row);
-        else data.practice.push(row);
-        q.saveState = "saved";
-      } catch (error) {
-        q.saveState = /unknown mutation/i.test(error.message || "") ? "offline" : "failed";
-      }
+      data.practice = data.practice || [];
+      const existing = data.practice.find((r) => r.setId === q.setId);
+      const today = new Date().toISOString().slice(0, 10);
+      const row = {
+        setId: q.setId,
+        best: Math.max(Number(existing && existing.best) || 0, got),
+        total,
+        attempts: (Number(existing && existing.attempts) || 0) + 1,
+        date: today,
+        first: existing && existing.first != null ? existing.first : got
+      };
+      if (existing) Object.assign(existing, row);
+      else data.practice.push(row);
+      q.saveState = "saved";
+      queueSave({ action: "studentSavePractice", key: KEY, setId: q.setId, score: got, total });
       if (quiz === q) render();
     }
 
@@ -2108,6 +2198,7 @@
         data.practice = Array.isArray(data.practice) ? data.practice : [];
         data.tests = Array.isArray(data.tests) ? data.tests : [];
         data.testResults = Array.isArray(data.testResults) ? data.testResults : [];
+        applyQueued();
         render();
         document.getElementById("switchWrap").hidden = false;
       } catch (error) {

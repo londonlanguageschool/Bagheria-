@@ -11,6 +11,17 @@
   "use strict";
 
   const IT = {
+    "✓ All changes are safely in Google Sheets.": "✓ Tutte le modifiche sono al sicuro su Google Sheets.",
+    "✓ Attendance saved. Sending to Google in the background.": "✓ Presenze salvate. Le invio a Google in sottofondo.",
+    "✓ Lesson notes saved. Sending to Google in the background.": "✓ Note della lezione salvate. Le invio a Google in sottofondo.",
+    "Class saved.": "Classe salvata.",
+    "Teacher updated.": "Insegnante aggiornato.",
+    "Enquiry deleted.": "Richiesta eliminata.",
+    "Test deleted.": "Test eliminato.",
+    "Homework assigned.": "Compito assegnato.",
+    "Course fee saved.": "Quota salvata.",
+    "Class archived.": "Classe archiviata.",
+    "Student marked inactive.": "Studente segnato come non attivo.",
     // ---- login
     "Staff portal login": "Accesso portale staff",
     "Office / Admin": "Segreteria / Direzione",
@@ -435,6 +446,9 @@
     [/^No classes scheduled for (\w+)\.$/, (m) => `Nessuna lezione di ${day(m[1])}.`],
     [/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday) (\d+) (\w+) (\d{4})$/, (m) => `${day(m[1])} ${m[2]} ${month(m[3])} ${m[4]}`],
     [/^Add payment — (.+)$/, (m) => `Aggiungi pagamento — ${m[1]}`],
+    [/^⏳ Sending (\d+) changes to Google…$/, (m) => `⏳ Invio ${m[1]} modifiche a Google…`],
+    [/^⚠ (.+) not sent: (.+)\. Tap to retry$/, (m) => `⚠ ${m[1]} non inviato: ${m[2]}. Tocca per riprovare`],
+    [/^Google didn't accept the change to (.+): (.+)\. Showing Google's data again\.$/, (m) => `Google non ha accettato la modifica (${m[1]}): ${m[2]}. Mostro di nuovo i dati di Google.`],
     [/^Payments — (.+)$/, (m) => `Pagamenti — ${m[1]}`],
     [/^Possible duplicate: (.+) on (.+?)( \((.+)\))? is already recorded for this fee\. Check before saving\. If it really is a second payment, press Save anyway\.$/, (m) => `Possibile doppione: ${m[1]} del ${m[2]}${m[4] ? " (" + (IT[m[4]] || m[4]) + ")" : ""} è già registrato per questa quota. Controlla prima di salvare. Se è davvero un secondo pagamento, premi Salva comunque.`],
     [/^Student (\S+) created\. Google Sheets is updating in the background\.$/, (m) => `Studente ${m[1]} creato.`],

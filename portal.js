@@ -1047,6 +1047,11 @@ async function llsRefreshCoreAfterSaveInBackground() {
 
   for (const delay of delays) {
     await new Promise((resolve) => setTimeout(resolve, delay));
+    // 30 Sept: don't reload while changes are still on their way to Google,
+    // or the old values would briefly come back.
+    for (let i = 0; i < 60 && typeof llsSaveQLoad === "function" && llsSaveQLoad().some((j) => !j.error); i++) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
 
     try {
       const payload = await llsApiGet("getPortalData");
@@ -1131,6 +1136,19 @@ async function saveStudentForm(event) {
 
   llsBgStart("studentModal");
   let bgOk = false;
+  // 30 Sept: an edited student shows the new details at once.
+  if (id) {
+    const early = state.students.find((item) => String(item.id || "").trim() === id);
+    if (early) {
+      Object.assign(early, {
+        firstName, lastName, email: fields["Email"], phone: fields["Phone"], dob: fields["Date of Birth"],
+        level: fields["Level"], status: fields["Status"], joined: fields["Joined"],
+        parent: fields["Parent / Guardian"], notes: fields["Notes"]
+      });
+      saveState();
+      renderAll();
+    }
+  }
   try {
     const result = await llsApiPost(
       id
@@ -1385,24 +1403,20 @@ function deleteStudent(id) {
     `${student.firstName} ${student.lastName} will be marked Inactive and removed from their class. Their payment and attendance history is kept. You can set them back to Active later with Edit.`,
     async () => {
       try {
-        await llsApiPost({
-          action: "updateStudent",
-          studentId: id,
-          fields: { "Status": "Inactive" }
-        });
-
+        // 30 Sept: shown at once, sent to Google in the background.
         const activeEnrolments = (llsLivePortalData.enrolments || []).filter((item) =>
           String(item["Student ID"] || "").trim() === id &&
           String(item["Status"] || "").trim().toLowerCase() === "active"
         );
-
+        const bodies = [{ action: "updateStudent", studentId: id, fields: { "Status": "Inactive" } }];
         for (const enrolment of activeEnrolments) {
           const enrolmentId = String(enrolment["Enrolment ID"] || "").trim();
           if (enrolmentId) {
-            await llsApiPost({ action: "endEnrolment", enrolmentId });
+            bodies.push({ action: "endEnrolment", enrolmentId });
             enrolment["Status"] = "Completed";
           }
         }
+        llsQueueSave(`${student.firstName} ${student.lastName}`, bodies);
 
         // Re-find: a background refresh may have replaced state.students.
         const current = state.students.find((item) => item.id === id);
@@ -1700,9 +1714,37 @@ async function saveClassForm(event) {
 
   if (extraFields["Day 2"] && !extraFields["Time 2"]) {
     showToast("Add a start time for the second day.", "error");
+    if (submitButton) { submitButton.disabled = false; submitButton.textContent = oldLabel; }
     return;
   }
 
+  // 30 Sept: editing a class shows at once and goes to Google in the background.
+  if (id) {
+    const existing = state.classes.find((item) => String(item.id || "").trim() === id);
+    if (existing) {
+      Object.assign(existing, {
+        name: className, schoolYear, level: fields["Level"], teacherName: fields["Teacher"],
+        day: fields["Day"], time: fields["Time"], room: fields["Room"], capacity,
+        registerSheet: fields["Register Sheet"], status: fields["Status"],
+        day2: extraFields["Day 2"], time2: extraFields["Time 2"],
+        duration: Number(extraFields["Duration"]) || existing.duration,
+        book: extraFields["Book"], units: extraFields["Units"],
+        currentUnit: extraFields["Current Unit"], notes: extraFields["Notes"]
+      });
+    }
+    llsQueueSave(className, { action: "updateClass", classId: id, fields: { ...fields, ...extraFields } });
+    saveState();
+    closeModal("classModal");
+    renderAll();
+    showToast("Class saved.", "success");
+    if (submitButton) { submitButton.disabled = false; submitButton.textContent = oldLabel; }
+    return;
+  }
+
+  // A new class needs its Class ID from Google: the form closes now and
+  // reopens, filled in, only if Google refuses it.
+  llsBgStart("classModal");
+  let bgOk = false;
   try {
     const result = await llsApiPost(
       id
@@ -1772,6 +1814,7 @@ async function saveClassForm(event) {
     saveState();
     closeModal("classModal");
     renderAll();
+    bgOk = true;
 
     showToast(
       id
@@ -1794,6 +1837,7 @@ async function saveClassForm(event) {
       submitButton.disabled = false;
       submitButton.textContent = oldLabel;
     }
+    llsBgEnd(bgOk, "classModal");
   }
 }
 
@@ -1821,11 +1865,7 @@ function deleteClass(id) {
     `${item.name} will be archived: hidden from Classes, Attendance and the dashboard. Its attendance history is kept.`,
     async () => {
       try {
-        await llsApiPost({
-          action: "updateClass",
-          classId: id,
-          fields: { "Status": "Archived" }
-        });
+        llsQueueSave(item.name, { action: "updateClass", classId: id, fields: { "Status": "Archived" } });
 
         const currentClass = state.classes.find((record) => record.id === id);
         if (currentClass) currentClass.status = "Archived";
@@ -3008,21 +3048,12 @@ function deleteEnquiry(id) {
     "Delete enquiry?",
     `Delete the enquiry for ${enquiry.name}?`,
     async () => {
-      try {
-        await llsApiPost({
-          action: "deleteEnquiry",
-          enquiryId: id
-        });
-
-        await llsLoadEnquiriesFromSheets();
-        showToast("Enquiry deleted from Google Sheets.", "success");
-      } catch (error) {
-        console.error("LLS enquiry delete failed:", error);
-        showToast(
-          error.uncertain ? error.message : `Could not delete the enquiry: ${error.message || "please try again"}.`,
-          "error"
-        );
-      }
+      // 30 Sept: gone from the list at once; Google catches up in the background.
+      state.enquiries = state.enquiries.filter((item) => item.id !== id);
+      saveState();
+      renderAll();
+      showToast("Enquiry deleted.", "success");
+      llsQueueSave(`the enquiry for ${enquiry.name}`, { action: "deleteEnquiry", enquiryId: id });
     }
   );
 }
@@ -3274,11 +3305,22 @@ async function saveTeacherForm(event) {
   const button = byId("teacherForm")?.querySelector('button[type="submit"]');
   const oldLabel = button?.textContent || "Save teacher";
 
-  if (button) {
-    button.disabled = true;
-    button.textContent = "Saving…";
+  // 30 Sept: editing a teacher shows at once and goes to Google in the background.
+  if (id) {
+    if (!Array.isArray(state.teachers)) state.teachers = [];
+    const i = state.teachers.findIndex((t) => t.id === id);
+    const localRecord = { id, name: fields["Name"], email: fields["Email"], phone: fields["Phone"], role: fields["Role"], status: fields["Status"], notes: fields["Notes"] };
+    if (i >= 0) state.teachers[i] = { ...state.teachers[i], ...localRecord };
+    llsQueueSave(fields["Name"] || "the teacher", { action: "updateTeacher", teacherId: id, fields });
+    saveState();
+    renderAll();
+    closeModal("teacherModal");
+    showToast("Teacher updated.", "success");
+    return;
   }
 
+  llsBgStart("teacherModal");
+  let bgOk = false;
   try {
     const result = await llsApiPost(
       id
@@ -3311,6 +3353,7 @@ async function saveTeacherForm(event) {
     saveState();
     renderAll();
     closeModal("teacherModal");
+    bgOk = true;
 
     showToast(
       id ? "Teacher updated." : "Teacher added.",
@@ -3327,6 +3370,7 @@ async function saveTeacherForm(event) {
       button.disabled = false;
       button.textContent = oldLabel;
     }
+    llsBgEnd(bgOk, "teacherModal");
   }
 }
 
@@ -5696,11 +5740,13 @@ async function saveLiveAttendance() {
   if (button) { button.disabled = true; button.textContent = "Saving…"; }
 
   try {
-    await llsApiPost({ action: "saveAttendance", classId, lessonDate, rows });
+    // 30 Sept: saved on this device at once, sent to Google in the background.
+    const clsName = (state.classes.find((c) => c.id === classId) || {}).name || "the register";
+    llsQueueSave(`${clsName} register`, { action: "saveAttendance", classId, lessonDate, rows });
     // 28 Sept: keep the register on screen (no 30-second reload after saving).
     llsLiveAttendance = rows.map((r) => ({ "Student ID": r.studentId, "Status": r.status, "Notes": r.notes }));
     llsAttendanceLoadedKey = `${classId}|${lessonDate}`;
-    showToast("Attendance saved to Google Sheets.", "success");
+    showToast("✓ Attendance saved. Sending to Google in the background.", "success");
     if (button) { button.disabled = false; button.textContent = "Save attendance"; }
     llsFlashSaved(button, "✓ Attendance saved");
   } catch (error) {
@@ -5881,7 +5927,7 @@ function populateHomeworkClassSelect() {
   else if (mine.length) select.value = String(mine[0]["Class ID"] || "");
 }
 
-async function renderHomeworkList() {
+async function renderHomeworkList(mode) {
   const body = byId("homeworkListBody");
   if (!body) return;
 
@@ -5893,8 +5939,12 @@ async function renderHomeworkList() {
   }
 
   try {
-    const data = await llsApiGet("getHomeworkForClass", { classId });
+    // 30 Sept: "cache" repaints without asking Google again.
+    const data = mode === "cache" && llsHomeworkCache.classId === classId
+      ? llsHomeworkCache
+      : await llsApiGet("getHomeworkForClass", { classId });
     llsHomeworkCache = { classId, homework: data.homework || [], status: data.status || [] };
+    llsApplyQueuedHomework_(llsHomeworkCache);
 
     const totalStudents = llsStudentsForClass(classId).length;
 
@@ -5976,21 +6026,15 @@ function openHomeworkStatusModal(homeworkId) {
     : `<div class="empty-state">No active students are enrolled in this class.</div>`;
 
   list.querySelectorAll("[data-mark-homework]").forEach(button => {
-    button.addEventListener("click", async () => {
-      button.disabled = true;
-      try {
-        await llsApiPost({
-          action: "markHomeworkStatus",
-          homeworkId: button.dataset.markHomework,
-          studentId: button.dataset.markStudent,
-          status: button.dataset.markNext
-        });
-        await renderHomeworkList();
-        openHomeworkStatusModal(homeworkId);
-      } catch (error) {
-        showToast(error.message || "Could not save that.", "error");
-        button.disabled = false;
-      }
+    button.addEventListener("click", () => {
+      // 30 Sept: ticks at once; Google catches up in the background.
+      const hwId = button.dataset.markHomework, stId = button.dataset.markStudent, next = button.dataset.markNext;
+      const rec = llsHomeworkCache.status.find((s) => String(s["Homework ID"] || "") === hwId && String(s["Student ID"] || "").trim() === stId);
+      if (rec) rec["Status"] = next;
+      else llsHomeworkCache.status.push({ "Homework ID": hwId, "Student ID": stId, "Status": next });
+      llsQueueSave("homework ticks", { action: "markHomeworkStatus", homeworkId: hwId, studentId: stId, status: next });
+      openHomeworkStatusModal(homeworkId);
+      llsRepaintHomeworkCounts_();
     });
   });
 
@@ -6014,30 +6058,17 @@ async function llsHomeworkAssign() {
     return;
   }
 
-  const button = byId("homeworkAssignButton");
-  if (button) { button.disabled = true; button.textContent = "Assigning…"; }
-
-  try {
-    await llsApiPost({
-      action: "createHomework",
-      classId,
-      teacherId: session.teacherId,
-      title,
-      description,
-      assignedDate: isoDate(new Date()),
-      dueDate
-    });
-
-    setValue("homeworkTitle", "");
-    setValue("homeworkDescription", "");
-    setValue("homeworkDueDate", "");
-    showToast("Homework assigned.", "success");
-    renderHomeworkList();
-  } catch (error) {
-    showToast(error.message || "Could not assign homework.", "error");
-  } finally {
-    if (button) { button.disabled = false; button.textContent = "+ Assign homework"; }
+  // 30 Sept: shows in the list at once; Google catches up in the background.
+  const assignedDate = isoDate(new Date());
+  llsQueueSave(`homework "${title}"`, { action: "createHomework", classId, teacherId: session.teacherId, title, description, assignedDate, dueDate });
+  if (llsHomeworkCache.classId === classId) {
+    llsHomeworkCache.homework.push({ "Homework ID": "pending-" + Date.now(), "Class ID": classId, "Title": title, "Description": description, "Assigned Date": assignedDate, "Due Date": dueDate });
+    llsRepaintHomeworkCounts_();
   }
+  setValue("homeworkTitle", "");
+  setValue("homeworkDescription", "");
+  setValue("homeworkDueDate", "");
+  showToast("Homework assigned.", "success");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -6537,7 +6568,7 @@ async function llsSaveCoach(until) {
   const buttons = [byId("studentCoachSave"), byId("studentCoachOff")];
   buttons.forEach((b) => { if (b) b.disabled = true; });
   try {
-    await llsApiPost({ action: "setSpeakingCoach", studentId, until });
+    llsQueueSave("the Speaking Coach", { action: "setSpeakingCoach", studentId, until });
     const student = state.students.find((s) => s.id === studentId);
     if (student) student.coachUntil = until;
     saveState();
@@ -6807,10 +6838,8 @@ async function llsSaveFeeEditor(event) {
   }
 
   const button = byId("feeForm").querySelector('button[type="submit"]');
-  button.disabled = true;
-  button.textContent = "Saving…";
   try {
-    await llsApiPost({ action: "updateFee", feeId, fields });
+    llsQueueSave("the course fee", { action: "updateFee", feeId, fields });
     const fee = (llsLiveFinanceData.fees || []).find((f) => String(f["Fee ID"] || "").trim() === feeId);
     if (fee) Object.assign(fee, fields);
     llsRebuildPaymentsState();
@@ -7071,7 +7100,7 @@ async function renderTeacherTests() {
   body.innerHTML = tableEmptyRow(5, "Loading…");
   try {
     const data = await llsApiGet("getTeacherTestsForClass", { classId });
-    llsTeacherTests = { classId, tests: data.tests || [], results: data.results || [] };
+    llsTeacherTests = { classId, tests: (data.tests || []).filter((t) => !(llsDeletedTests_ && llsDeletedTests_.has(t.testId))), results: data.results || [] };
     const totalStudents = llsStudentsForClass(classId).length;
     if (!llsTeacherTests.tests.length) {
       body.innerHTML = tableEmptyRow(5, "No tests yet for this class.");
@@ -7198,8 +7227,9 @@ async function llsSaveTest(event) {
   if (!questions.length) { showToast("Add at least one question.", "error"); return; }
 
   const button = byId("testForm").querySelector('button[type="submit"]');
-  button.disabled = true;
-  button.textContent = "Saving…";
+  // 30 Sept: the form closes at once; it reopens, filled in, only if Google refuses.
+  llsBgStart("testModal");
+  let bgOk = false;
   try {
     await llsApiPost({
       action: "createTeacherTest",
@@ -7210,6 +7240,7 @@ async function llsSaveTest(event) {
       questions
     });
     closeModal("testModal");
+    bgOk = true;
     showToast("Test saved. Students can take it in their app now.", "success");
     renderTeacherTests();
   } catch (error) {
@@ -7217,6 +7248,7 @@ async function llsSaveTest(event) {
   } finally {
     button.disabled = false;
     button.textContent = "Save and give to class";
+    llsBgEnd(bgOk, "testModal");
   }
 }
 
@@ -7231,14 +7263,14 @@ async function llsDeleteOpenTest() {
   }
   button.dataset.confirm = "";
   button.textContent = "Delete test";
-  try {
-    await llsApiPost({ action: "deleteTeacherTest", testId: llsOpenTestId });
-    closeModal("testResultsModal");
-    showToast("Test deleted.", "success");
-    renderTeacherTests();
-  } catch (error) {
-    showToast(error.message || "Could not delete the test.", "error");
-  }
+  // 30 Sept: gone at once; Google catches up in the background.
+  const testId = llsOpenTestId;
+  llsDeletedTests_.add(testId);
+  llsQueueSave("the test", { action: "deleteTeacherTest", testId });
+  closeModal("testResultsModal");
+  showToast("Test deleted.", "success");
+  document.querySelectorAll(`[data-test-results="${CSS.escape(testId)}"]`).forEach((el) => el.closest("tr")?.remove());
+  renderTeacherTests();
 }
 
 // Hide "Create with AI" until the AI key is set up (ping says aiReady).
@@ -7337,7 +7369,7 @@ function llsTeacherClassControls() {
       const n = String(next).trim();
       if (n && !/^\d{1,2}$/.test(n)) { showToast("Type a unit number, e.g. 3.", "error"); return; }
       try {
-        await llsApiPost({ action: "updateClass", classId, fields: { "Current Unit": n } });
+        llsQueueSave(`${cls.name} unit`, { action: "updateClass", classId, fields: { "Current Unit": n } });
         cls.currentUnit = n;
         saveState();
         renderClasses();
@@ -7480,9 +7512,9 @@ async function llsSaveLessonLog() {
   const label = btn ? btn.textContent : "";
   if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
   try {
-    await llsApiPost(body);
-    showToast("Lesson notes saved. Other teachers can see them now.", "success");
-    await llsLoadLessonLog(true);
+    llsQueueSave("lesson notes", body);
+    showToast("✓ Lesson notes saved. Sending to Google in the background.", "success");
+    if (btn) llsFlashSaved(btn, "✓ Saved");
   } catch (error) {
     console.error(error);
     showToast(/Unknown action/i.test(error.message || "") ? "Update the Apps Script to V23 first." : (error.message || "Notes could not be saved."), "error");
@@ -7734,7 +7766,7 @@ async function llsRenderLessonTests() {
   try {
     const data = await llsApiGet("getTeacherTestsForClass", { classId });
     if (llsLesson.classId !== classId) return;
-    llsTeacherTests = { classId, tests: data.tests || [], results: data.results || [] };
+    llsTeacherTests = { classId, tests: (data.tests || []).filter((t) => !(llsDeletedTests_ && llsDeletedTests_.has(t.testId))), results: data.results || [] };
     const total = llsStudentsForClass(classId).length;
     box.innerHTML = llsTeacherTests.tests.length ? llsTeacherTests.tests.map((t) => {
       const rs = llsTeacherTests.results.filter((r) => r.testId === t.testId);
@@ -7832,7 +7864,7 @@ async function llsChangeLessonUnit(step) {
   const next = Math.max(1, Math.min(12, current + step));
   if (next === current) return;
   try {
-    await llsApiPost({ action: "updateClass", classId: cls.id, fields: { "Current Unit": String(next) } });
+    llsQueueSave(`${cls.name} unit`, { action: "updateClass", classId: cls.id, fields: { "Current Unit": String(next) } });
     cls.currentUnit = String(next);
     saveState();
     byId("lessonUnitValue").textContent = next;
@@ -7948,7 +7980,7 @@ function llsOutboxPaint() {
     pill.type = "button";
     pill.id = "lessonOutbox";
     pill.className = "outbox-pill";
-    pill.addEventListener("click", () => { llsOutboxRun(true); });
+    pill.addEventListener("click", () => { llsOutboxRun(true); llsSaveQRun(true); });
     bar.prepend(pill);
   }
   let top = byId("topOutbox");
@@ -7958,18 +7990,24 @@ function llsOutboxPaint() {
     top.type = "button";
     top.id = "topOutbox";
     top.className = "outbox-pill in-topbar";
-    top.addEventListener("click", () => { llsOutboxRun(true); });
+    top.addEventListener("click", () => { llsOutboxRun(true); llsSaveQRun(true); });
     actions.insertBefore(top, actions.firstChild);
   }
   const failed = box.filter((j) => j.error);
-  const text = !box.length ? "" : failed.length
-    ? `⚠ ${failed.length === 1 ? failed[0].className + " " + failed[0].date : failed.length + " lessons"} not sent: ${failed[0].error}. Tap to retry`
-    : `⏳ Sending ${box.length === 1 ? box[0].className : box.length + " lessons"} to Google…`;
+  const queue = typeof llsSaveQLoad === "function" ? llsSaveQLoad() : [];
+  const qFailed = queue.filter((j) => j.error);
+  const count = box.length + queue.length;
+  let text = "";
+  if (failed.length) text = `⚠ ${failed.length === 1 ? failed[0].className + " " + failed[0].date : failed.length + " lessons"} not sent: ${failed[0].error}. Tap to retry`;
+  else if (qFailed.length) text = `⚠ ${qFailed.length === 1 ? qFailed[0].label : qFailed.length + " changes"} not sent: ${qFailed[0].error}. Tap to retry`;
+  else if (box.length && !queue.length) text = `⏳ Sending ${box.length === 1 ? box[0].className : box.length + " lessons"} to Google…`;
+  else if (count === 1) text = `⏳ Sending ${queue[0].label} to Google…`;
+  else if (count) text = `⏳ Sending ${count} changes to Google…`;
   [pill, top].forEach((el) => {
     if (!el) return;
-    el.hidden = !box.length;
+    el.hidden = !count;
     el.textContent = text;
-    el.classList.toggle("is-error", Boolean(failed.length));
+    el.classList.toggle("is-error", Boolean(failed.length || qFailed.length));
   });
   llsPaintLessonState();
 }
@@ -7980,10 +8018,14 @@ async function llsOutboxRun(manual) {
   if (!sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY)) return; // resumes after login
   llsOutboxBusy = true;
   try {
-    let box = llsOutboxLoad();
+    // 30 Sept: work from a snapshot but always write through llsOutboxPatch_,
+    // which re-reads the list first, so a lesson saved while another is being
+    // sent is never overwritten.
+    const box = llsOutboxLoad();
     for (const job of box) {
       if (job.error && !manual) continue;
-      job.sending = true; job.error = ""; llsOutboxSave(box);
+      if (!llsOutboxLoad().some((j) => j.id === job.id)) continue; // replaced by a newer save
+      job.sending = true; job.error = ""; llsOutboxPatch_(job);
       let problem = "";
       // 30 Sept (Apps Script V27): the whole lesson in ONE call instead of
       // three. Older Apps Script answers "Unknown mutation action": then the
@@ -7993,7 +8035,7 @@ async function llsOutboxRun(manual) {
         try {
           await llsApiPost(combined);
           job.steps.forEach((st) => { st.done = true; });
-          llsOutboxSave(box);
+          llsOutboxPatch_(job);
         } catch (e) {
           // Apps Script before V27: "Unknown mutation action" (office) or
           // "Teachers can't do that" (teacher login, action not on its list).
@@ -8012,7 +8054,7 @@ async function llsOutboxRun(manual) {
         try {
           await llsApiPost(step.body);
           step.done = true;
-          llsOutboxSave(box);
+          llsOutboxPatch_(job);
         } catch (e) {
           if (e && (e.transport || e.uncertain || /didn't answer|didn't confirm|no connection|HTTP/i.test(e.message || ""))) { problem = "retry"; }
           else problem = e?.message || "error";
@@ -8022,18 +8064,17 @@ async function llsOutboxRun(manual) {
       job.sending = false;
       job.tries = (job.tries || 0) + 1;
       if (!problem) {
-        box = box.filter((j) => j !== job);
         llsSavedRemember(job);
-        llsOutboxSave(box);
+        llsOutboxSave(llsOutboxLoad().filter((j) => j.id !== job.id));
         if (llsIsCurrentLesson(job)) llsAttendanceLoadedKey = "";
         llsRenderLessonPicker();
         showToast(`✓ ${job.className} (${job.date}) is safely in Google Sheets.`, "success");
       } else if (problem === "retry") {
-        llsOutboxSave(box);
+        llsOutboxPatch_(job);
         break; // Google is slow or unreachable: try again later
       } else {
         job.error = problem === "UNAUTHORIZED" ? "please log in again" : problem;
-        llsOutboxSave(box);
+        llsOutboxPatch_(job);
       }
     }
   } finally {
@@ -8354,11 +8395,10 @@ async function llsVoidPayment(paymentId, button) {
   try { if (name) localStorage.setItem("lls_staff_name", name); } catch (_) {}
 
   const label = button.textContent;
-  button.disabled = true;
-  button.textContent = "Voiding…";
   llsBgSaving++;
   try {
-    const result = await llsApiPost({ action: "voidPayment", paymentId, reason, voidedBy: name || "Office" });
+    llsQueueSave("the voided payment", { action: "voidPayment", paymentId, reason, voidedBy: name || "Office" });
+    const result = null;
     const row = (llsLiveFinanceData.payments || []).find((p) => String(p["Payment ID"] || "").trim() === paymentId);
     if (row) {
       row["Status"] = "Void";
@@ -8371,7 +8411,6 @@ async function llsVoidPayment(paymentId, button) {
     renderAll();
     llsRenderFeePayments();
     showToast("Payment voided. It no longer counts towards the balance.", "success");
-    llsLoadFinanceFromSheets(true).then(() => { renderAll(); llsRenderFeePayments(); }).catch(() => {});
   } catch (error) {
     console.error(error);
     const msg = String(error && error.message || "");
@@ -8598,4 +8637,171 @@ function llsPaintLessonState() {
   }[st];
   badge.hidden = !look;
   if (look) { badge.textContent = look[0]; badge.style.background = look[1]; badge.style.color = look[2]; }
+}
+
+
+/* =========================================================
+   30 Sept — SAVE QUEUE for every quick change (all pages)
+   The screen changes at once; the change is kept on this device
+   ("lls_save_queue") and sent to Google in the background, retrying
+   until Google confirms (the receipt number means a re-send never saves
+   twice). It survives closing the page and is sent as the page closes.
+   Same pill as lessons: "⏳ Sending … to Google…".
+   If Google refuses a change (a real error, not a slow reply) it is
+   dropped, the person is told, and the page reloads Google's data.
+========================================================= */
+const LLS_SAVEQ_KEY = "lls_save_queue";
+let llsSaveQBusy = false;
+let llsSaveQTimer = null;
+let llsSaveQSent = 0;
+let llsSaveQNeedsRefresh = false;
+
+function llsRid_() {
+  return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `r${Date.now()}${Math.random().toString(36).slice(2)}`;
+}
+function llsSaveQLoad() {
+  try { return JSON.parse(localStorage.getItem(LLS_SAVEQ_KEY) || "[]") || []; } catch (_) { return []; }
+}
+function llsSaveQStore(list) {
+  try { localStorage.setItem(LLS_SAVEQ_KEY, JSON.stringify(list)); } catch (_) {}
+  llsOutboxPaint();
+}
+
+// label: what the person would call it ("A2 Adults unit", "Giada's fee").
+// bodies: one or more changes, sent in order.
+function llsQueueSave(label, bodies) {
+  const list = llsSaveQLoad();
+  list.push({
+    id: llsRid_(),
+    label,
+    steps: (Array.isArray(bodies) ? bodies : [bodies]).map((b) => ({ body: { ...b, requestId: b.requestId || llsRid_() }, done: false })),
+    createdAt: Date.now(),
+    tries: 0
+  });
+  llsSaveQStore(list);
+  llsSaveQRun();
+}
+
+async function llsSaveQRun(manual) {
+  clearTimeout(llsSaveQTimer);
+  if (llsSaveQBusy) return;
+  if (!sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY)) return; // resumes after login
+  llsSaveQBusy = true;
+  try {
+    const list = llsSaveQLoad();
+    const patch = (job) => {
+      const fresh = llsSaveQLoad();
+      const i = fresh.findIndex((j) => j.id === job.id);
+      if (i >= 0) { fresh[i] = job; llsSaveQStore(fresh); }
+    };
+    const drop = (job) => llsSaveQStore(llsSaveQLoad().filter((j) => j.id !== job.id));
+    for (const job of list) {
+      if (job.error && !manual) continue;
+      job.error = "";
+      let problem = "";
+      for (const step of job.steps) {
+        if (step.done) continue;
+        try {
+          await llsApiPost(step.body);
+          step.done = true;
+          patch(job);
+        } catch (e) {
+          const msg = String(e?.message || "");
+          if (/not found/i.test(msg) && /^delete/i.test(String(step.body.action || ""))) { step.done = true; continue; } // already gone
+          if (e && (e.transport || e.uncertain || e.timeout || /didn't answer|didn't confirm|no connection|HTTP|too long/i.test(msg))) problem = "retry";
+          else if (/UNAUTHORIZED/i.test(msg)) problem = "login";
+          else problem = msg || "error";
+          break;
+        }
+      }
+      job.tries = (job.tries || 0) + 1;
+      if (!problem) {
+        drop(job);
+        llsSaveQSent++;
+        if (job.steps.some((st) => /^(updateClass|updateStudent|endEnrolment|updateTeacher)$/.test(String(st.body.action || "")))) llsSaveQNeedsRefresh = true;
+      } else if (problem === "retry") {
+        patch(job);
+        break; // Google slow or unreachable: try again shortly
+      } else if (problem === "login") {
+        job.error = "please log in again";
+        patch(job);
+      } else {
+        drop(job);
+        showToast(`Google didn't accept the change to ${job.label}: ${problem}. Showing Google's data again.`, "error");
+        void llsRefreshCoreAfterSaveInBackground();
+      }
+    }
+  } finally {
+    llsSaveQBusy = false;
+    const left = llsSaveQLoad().filter((j) => !j.error);
+    if (left.length) {
+      const tries = Math.max(...left.map((j) => j.tries || 0));
+      llsSaveQTimer = setTimeout(() => llsSaveQRun(), Math.min(60000, 4000 * Math.max(1, tries)));
+    } else if (llsSaveQSent) {
+      llsSaveQSent = 0;
+      showToast("✓ All changes are safely in Google Sheets.", "success");
+      if (llsSaveQNeedsRefresh) { llsSaveQNeedsRefresh = false; void llsRefreshCoreAfterSaveInBackground(); }
+    }
+  }
+}
+
+// Page closing / phone switching app: hand what's waiting to Google one
+// last time. It stays queued until Google confirms on the next visit.
+function llsSaveQBeacon_() {
+  try {
+    if (!navigator.sendBeacon) return;
+    const token = sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY);
+    if (!token) return;
+    llsSaveQLoad().filter((j) => !j.error).forEach((job) => {
+      const step = job.steps.find((st) => !st.done);
+      if (!step) return;
+      const form = new URLSearchParams();
+      form.set("action", String(step.body.action || ""));
+      form.set("payload", JSON.stringify(Object.assign({}, step.body, { token })));
+      navigator.sendBeacon(LLS_API_URL, form);
+    });
+  } catch (_) {}
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(() => llsSaveQRun(), 1200);
+  window.addEventListener("online", () => llsSaveQRun());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") llsSaveQRun();
+    else llsSaveQBeacon_();
+  });
+  window.addEventListener("pagehide", llsSaveQBeacon_);
+  window.addEventListener("beforeunload", (e) => {
+    if (llsSaveQLoad().some((j) => !j.error)) { e.preventDefault(); e.returnValue = ""; }
+  });
+});
+
+// 30 Sept: repaint the homework table from what we have (no Google call).
+function llsRepaintHomeworkCounts_() {
+  renderHomeworkList("cache");
+}
+// Ticks and new homework still on their way to Google stay visible after a reload.
+function llsApplyQueuedHomework_(cache) {
+  llsSaveQLoad().forEach((job) => job.steps.forEach((st) => {
+    const b = st.body || {};
+    if (b.action === "markHomeworkStatus") {
+      const rec = cache.status.find((x) => String(x["Homework ID"] || "") === b.homeworkId && String(x["Student ID"] || "").trim() === b.studentId);
+      if (rec) rec["Status"] = b.status;
+      else cache.status.push({ "Homework ID": b.homeworkId, "Student ID": b.studentId, "Status": b.status });
+    }
+  }));
+}
+
+// 30 Sept: tests deleted on this device stay hidden while Google catches up.
+var llsDeletedTests_ = new Set();
+
+// 30 Sept: update one lesson in the outbox without touching the others.
+function llsOutboxPatch_(job) {
+  const list = llsOutboxLoad();
+  const i = list.findIndex((j) => j.id === job.id);
+  if (i >= 0) {
+    // keep a newer receipt number if one was stored meanwhile
+    list[i] = { ...list[i], steps: job.steps, sending: job.sending, error: job.error, tries: job.tries, combinedId: list[i].combinedId || job.combinedId };
+    llsOutboxSave(list);
+  }
 }
