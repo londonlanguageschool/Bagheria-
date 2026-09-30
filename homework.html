@@ -393,12 +393,24 @@
     /* 30 Sept: skills on the road map */
     .sk-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
     .sk-badge { background: #eef5ff; border: 1px solid #d6e6fb; border-radius: 999px; padding: 3px 9px; font-size: 12px; color: #16275c; }
-    .learnt { display: grid; gap: 8px; margin-top: 8px; }
-    .l-row { display: flex; gap: 10px; align-items: flex-start; background: #f6fbff; border: 1px solid #dcefff; border-radius: 16px; padding: 10px 12px; }
-    .l-ic { font-size: 22px; line-height: 1; }
-    .l-row strong { font-size: 14px; }
-    .l-row em { font-style: normal; font-size: 12px; color: #56617a; margin-left: 4px; }
-    .l-row small { display: block; font-size: 13px; color: #33415c; margin-top: 3px; }
+    .rings { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 10px 0 12px; text-align: center; }
+    .ring-wrap { display: grid; justify-items: center; gap: 2px; }
+    .ring-wrap.off { opacity: .35; filter: grayscale(1); }
+    .ring { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; }
+    .ring span { width: 36px; height: 36px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: 19px; }
+    .ring-wrap b { font-size: 15px; line-height: 1; margin-top: 2px; }
+    .ring-wrap small { font-size: 9px; color: #56617a; line-height: 1.1; white-space: nowrap; }
+    @media (max-width: 400px) { .ring { width: 40px; height: 40px; } .ring span { width: 31px; height: 31px; font-size: 16px; } .ring-wrap small { font-size: 8px; } }
+    .l-cards { display: grid; gap: 10px; }
+    .l-card { border-radius: 18px; padding: 12px 14px; background: color-mix(in srgb, var(--c) 10%, #fff); border: 2px solid color-mix(in srgb, var(--c) 35%, #fff); }
+    .l-top { display: flex; align-items: center; gap: 8px; }
+    .l-top .l-ic { font-size: 24px; line-height: 1; }
+    .l-top strong { font-size: 15px; flex: 1; }
+    .l-top em { font-style: normal; font-weight: 800; color: #fff; background: var(--c); border-radius: 999px; padding: 2px 10px; font-size: 13px; }
+    .l-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+    .l-tag { background: #fff; border: 1.5px solid color-mix(in srgb, var(--c) 45%, #fff); color: #16275c; border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 600; }
+    .l-tag i { font-style: normal; font-size: 10px; font-weight: 800; color: #fff; background: #e2231a; border-radius: 999px; padding: 1px 6px; margin-right: 6px; }
+    .l-tag.more { color: #56617a; }
   </style>
 </head>
 <body>
@@ -796,13 +808,13 @@
     /* 30 Sept: the teacher ticks skills on the Lesson page; they arrive as
        lines at the top of "What we did", e.g. "Grammar: past simple". */
     const SKILLS = [
-      { k: "Grammar", icon: "📘", it: "Grammatica" },
-      { k: "Vocabulary", icon: "🔤", it: "Vocabolario" },
-      { k: "Reading", icon: "📖", it: "Lettura" },
-      { k: "Listening", icon: "🎧", it: "Ascolto" },
-      { k: "Speaking", icon: "🗣️", it: "Parlato" },
-      { k: "Writing", icon: "✍️", it: "Scrittura" },
-      { k: "Games & songs", icon: "🎲", it: "Giochi e canzoni" }
+      { k: "Grammar", icon: "📘", it: "Grammatica", short: "Grammar" },
+      { k: "Vocabulary", icon: "🔤", it: "Vocabolario", short: "Words" },
+      { k: "Reading", icon: "📖", it: "Lettura", short: "Reading" },
+      { k: "Listening", icon: "🎧", it: "Ascolto", short: "Listening" },
+      { k: "Speaking", icon: "🗣️", it: "Parlato", short: "Speaking" },
+      { k: "Writing", icon: "✍️", it: "Scrittura", short: "Writing" },
+      { k: "Games & songs", icon: "🎲", it: "Giochi e canzoni", short: "Games" }
     ];
     function parseSkills(text) {
       const skills = [];
@@ -1019,26 +1031,51 @@
       return `<p class="j-sub">📊 At a glance · In breve</p><div class="glance">${tiles.map(([v, l]) => `<div class="g-tile"><b>${esc(String(v))}</b><span>${esc(l)}</span></div>`).join("")}</div>`;
     }
 
-    // 30 Sept: "What I've learnt": every skill the teacher ticked in the
-    // lessons this student attended, newest topics first.
+    // 30 Sept (v2, owner: "more visual"): a ring per skill that fills up with
+    // every lesson, then a colourful card per skill with its topics as
+    // stickers (topics from the latest lesson marked NEW).
+    const SKILL_COLOURS = {
+      "Grammar": "#3b82f6", "Vocabulary": "#8b5cf6", "Reading": "#14b8a6", "Listening": "#f59e0b",
+      "Speaking": "#ec4899", "Writing": "#22c55e", "Games & songs": "#ef4444"
+    };
     function learntHtml() {
       const here = new Set(attendedMarks().map((a) => a.classId + "|" + isoDay(a.lessonDate)));
       const by = {};
+      let latest = "";
       (data.lessons || []).slice().sort((a, b) => String(b.lessonDate).localeCompare(String(a.lessonDate))).forEach((l) => {
-        if (!here.has(l.classId + "|" + isoDay(l.lessonDate))) return;
-        parseSkills(l.whatWeDid).skills.forEach((k) => {
+        const day = isoDay(l.lessonDate);
+        if (!here.has(l.classId + "|" + day)) return;
+        const skills = parseSkills(l.whatWeDid).skills;
+        if (skills.length && !latest) latest = day;
+        skills.forEach((k) => {
           const e = by[k.k] || (by[k.k] = { n: 0, topics: [] });
           e.n++;
           const t = k.topic.split(" · ")[0].trim();
-          if (t && !e.topics.some((x) => x.toLowerCase() === t.toLowerCase())) e.topics.push(t);
+          if (t && !e.topics.some((x) => x.t.toLowerCase() === t.toLowerCase())) e.topics.push({ t, isNew: day === latest });
         });
       });
-      const rows = SKILLS.filter((d) => by[d.k]);
-      if (!rows.length) return "";
-      return `<p class="j-sub">🧠 What I've learnt · Cosa ho imparato</p><div class="learnt">${rows.map((d) => {
+      const done = SKILLS.filter((d) => by[d.k]);
+      if (!done.length) return "";
+      const max = Math.max(...done.map((d) => by[d.k].n));
+      const rings = SKILLS.map((d) => {
+        const n = by[d.k] ? by[d.k].n : 0;
+        const pct = n ? Math.max(12, Math.round((n / max) * 100)) : 0;
+        const col = SKILL_COLOURS[d.k];
+        return `<div class="ring-wrap${n ? "" : " off"}" title="${esc(d.k)}: ${n} ${n === 1 ? "lesson" : "lessons"}">
+          <div class="ring" style="background:conic-gradient(${col} ${pct}%, #e8eef8 0)"><span>${d.icon}</span></div>
+          <b>${n}</b><small>${esc(d.short || d.k)}</small></div>`;
+      }).join("");
+      const cards = done.map((d) => {
         const e = by[d.k];
-        return `<div class="l-row"><span class="l-ic">${d.icon}</span><div><strong>${esc(d.k)} · ${esc(d.it)}</strong> <em>${e.n} ${e.n === 1 ? "lesson" : "lessons"}</em><small>${e.topics.slice(0, 6).map(esc).join(" · ")}${e.topics.length > 6 ? " …" : ""}</small></div></div>`;
-      }).join("")}</div>`;
+        const col = SKILL_COLOURS[d.k];
+        return `<div class="l-card" style="--c:${col}">
+          <div class="l-top"><span class="l-ic">${d.icon}</span><strong>${esc(d.k)} · ${esc(d.it)}</strong><em>${e.n}×</em></div>
+          <div class="l-tags">${e.topics.slice(0, 8).map((x) => `<span class="l-tag">${x.isNew ? '<i>NEW</i>' : ""}${esc(x.t)}</span>`).join("")}${e.topics.length > 8 ? `<span class="l-tag more">+${e.topics.length - 8}</span>` : ""}</div>
+        </div>`;
+      }).join("");
+      return `<p class="j-sub">🧠 What I've learnt · Cosa ho imparato</p>
+        <div class="rings">${rings}</div>
+        <div class="l-cards">${cards}</div>`;
     }
 
     function goalsHtml() {
