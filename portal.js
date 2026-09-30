@@ -5037,6 +5037,8 @@ function llsApplyCorePortalData(payload) {
     classes: classRows,
     enrolments: enrolmentRows
   };
+  // 30 Sept: kept on this device so registers open at once next time.
+  try { localStorage.setItem("lls_core_rows", JSON.stringify(llsLivePortalData)); } catch (_) {}
 
   saveState();
   populateStudentClassSelect();
@@ -6244,6 +6246,7 @@ document.addEventListener("DOMContentLoaded", () => {
       sessionStorage.removeItem(LLS_ROLE_KEY);
       // V15.1: don't leave student/parent data cached on this computer.
       try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+      llsForgetCachedData_();
       try { sessionStorage.removeItem(LLS_TEACHER_SESSION_KEY); } catch (_) {}
       window.location.reload();
     });
@@ -7441,9 +7444,14 @@ function llsMarkSpecialChip() {
 
 function llsLessonLogEntryHtml(entry) {
   const special = llsSpecialTitle(entry.unit);
+  // 30 Sept: skill lines show as one line each with their icon.
+  const parsed = typeof llsParseSkills === "function" ? llsParseSkills(entry.whatWeDid) : { skills: {}, rest: entry.whatWeDid };
+  const skillText = typeof LLS_SKILLS !== "undefined"
+    ? LLS_SKILLS.filter((s) => parsed.skills[s.k]).map((s) => `${s.icon} ${s.k}: ${[parsed.skills[s.k].topic, parsed.skills[s.k].focus].filter(Boolean).join(" · ")}`).join("\n")
+    : "";
   const rows = [
     [special ? "⭐ Special lesson" : "Unit", special || entry.unit],
-    ["What we did", entry.whatWeDid],
+    ["What we did", [skillText, parsed.rest].filter(Boolean).join("\n")],
     ["Homework", entry.homeworkSet],
     ["Notes", entry.notes]
   ].filter(([, v]) => String(v || "").trim());
@@ -7451,7 +7459,7 @@ function llsLessonLogEntryHtml(entry) {
   return `
     <div class="lesson-log-entry">
       <div class="lesson-log-meta"><strong>${escapeHtml(date)}</strong> · ${escapeHtml(entry.teacherName || "—")}</div>
-      <dl>${rows.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join("")}</dl>
+      <dl>${rows.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd style="white-space:pre-line">${escapeHtml(v)}</dd>`).join("")}</dl>
     </div>`;
 }
 
@@ -7691,10 +7699,13 @@ async function llsRenderLesson() {
   if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "💾 Save lesson"; }
   byId("lessonLast").hidden = true;
   ["lessonDone", "lessonNotes", "lessonHwTitle", "lessonHwText"].forEach((id) => setValue(id, ""));
+  llsSkillState = {};
+  byId("lessonSkills")?.classList.remove("needs");
   setValue("lessonUnitPage", cls.currentUnit || "");
   llsSetSpecial(false);
   setValue("lessonHwDue", llsNextLessonDate(cls, date));
   llsLesson.entries = [];
+  llsRenderSkills();
   llsLesson.noteTouched = false;
   llsLesson.homework = [];
   llsLesson.status = [];
@@ -7745,18 +7756,26 @@ async function llsRenderLesson() {
   }
   llsRenderLessonLogList(byId("lessonHistory"), llsLesson.entries);
   byId("lessonHistoryCount").textContent = llsLesson.entries.length ? `(${llsLesson.entries.length})` : "";
-  llsApiGet("getLessonLog", { classId: cls.id, limit: 1000 }).then((log) => {
+  const logCacheKey = "lls_cache_log_" + cls.id;
+  const applyLog = (log) => {
     if (llsLesson.loadedKey !== key) return;
     llsLesson.entries = llsWithPendingEntries(cls.id, Array.isArray(log.entries) ? log.entries : []);
     const own = llsLesson.entries.find((e) => e.lessonDate === date);
     if (own && !pending && !llsLesson.noteTouched) llsFillLessonNote(own, cls);
+    else llsRenderSkills(); // class history now gives better suggestions
     const last = llsLesson.entries.find((e) => e.lessonDate < date);
     const lastBox = byId("lessonLast");
     if (last) { lastBox.hidden = false; lastBox.innerHTML = `<h3>📝 Last lesson</h3>${llsLessonLogEntryHtml(last)}`; }
     llsRenderLessonLogList(byId("lessonHistory"), llsLesson.entries);
     byId("lessonHistoryCount").textContent = llsLesson.entries.length ? `(${llsLesson.entries.length})` : "";
+  };
+  // 30 Sept: this class's notes as saved on this device, at once; Google's copy replaces them.
+  try { const c = JSON.parse(localStorage.getItem(logCacheKey) || "null"); if (c && Array.isArray(c.entries)) applyLog(c); } catch (_) {}
+  llsApiGet("getLessonLog", { classId: cls.id, limit: 1000 }).then((log) => {
+    try { localStorage.setItem(logCacheKey, JSON.stringify({ entries: (log.entries || []).slice(0, 60) })); } catch (_) {}
+    applyLog(log);
   }).catch((e) => {
-    if (llsLesson.loadedKey !== key) return;
+    if (llsLesson.loadedKey !== key || llsLesson.entries.length) return;
     byId("lessonHistory").innerHTML = `<p class="muted">${escapeHtml(e.message || "")}</p>`;
   });
 
@@ -7764,11 +7783,17 @@ async function llsRenderLesson() {
   llsRenderLessonTests();
 
   // Homework already set for this class
-  llsApiGet("getHomeworkForClass", { classId: cls.id }).then((hw) => {
+  const hwCacheKey = "lls_cache_hw_" + cls.id;
+  const applyHw = (hw) => {
     if (llsLesson.loadedKey !== key) return;
     llsLesson.homework = Array.isArray(hw.homework) ? hw.homework : [];
     llsLesson.status = Array.isArray(hw.status) ? hw.status : [];
     llsRenderLessonHomework(students.length);
+  };
+  try { const c = JSON.parse(localStorage.getItem(hwCacheKey) || "null"); if (c) applyHw(c); } catch (_) {}
+  llsApiGet("getHomeworkForClass", { classId: cls.id }).then((hw) => {
+    try { localStorage.setItem(hwCacheKey, JSON.stringify({ homework: (hw.homework || []).slice(-30), status: (hw.status || []).slice(-400) })); } catch (_) {}
+    applyHw(hw);
   }).catch(() => {});
 }
 
@@ -7800,8 +7825,11 @@ function llsFillLessonNote(entry, cls) {
   const sp = llsSpecialTitle(entry.unit);
   if (sp) { llsSetSpecial(true, sp); setValue("lessonUnitPage", cls.currentUnit || ""); }
   else setValue("lessonUnitPage", entry.unit || "");
-  setValue("lessonDone", entry.whatWeDid || "");
+  const parsed = llsParseSkills(entry.whatWeDid || "");
+  llsSkillState = parsed.skills;
+  setValue("lessonDone", parsed.rest);
   setValue("lessonNotes", entry.notes || "");
+  llsRenderSkills();
 }
 
 function llsSetRegisterRow(row, status, notes) {
@@ -7907,14 +7935,22 @@ async function llsSaveLesson() {
   const rowEls = [...document.querySelectorAll("#lessonRegister .reg-row")];
   const unrated = rowEls.filter((r) => ["Present", "Late"].includes(r.dataset.status) && !r.querySelector(".reg-rating")?.value);
   rowEls.forEach((r) => r.classList.toggle("needs", unrated.includes(r)));
-  const doneText = value("lessonDone").trim() || (specialOn ? specialTitle + " lesson" : "");
-  byId("lessonDone")?.classList.toggle("needs", !doneText);
-  if (unrated.length || !doneText) {
+  // 30 Sept: normal lessons need at least one skill ticked, each with a topic.
+  const skillBox = byId("lessonSkills");
+  const ticked = LLS_SKILLS.filter((s) => llsSkillState[s.k]?.on);
+  const noTopic = ticked.filter((s) => !String(llsSkillState[s.k].topic || "").trim());
+  skillBox?.querySelectorAll(".sk-row").forEach((r) => r.classList.toggle("needs", noTopic.some((s) => s.k === r.dataset.skillRow)));
+  const needSkill = !specialOn && !ticked.length;
+  skillBox?.classList.toggle("needs", needSkill);
+  const doneText = [...llsSkillLines(llsSkillState), value("lessonDone").trim()].filter(Boolean).join("\n") || (specialOn ? specialTitle + " lesson" : "");
+  byId("lessonDone")?.classList.remove("needs");
+  if (unrated.length || needSkill || noTopic.length) {
     const missing = [];
     if (unrated.length) missing.push(`"How did they do?" for ${unrated.length} ${unrated.length === 1 ? "student" : "students"}`);
-    if (!doneText) missing.push(`"What we did"`);
+    if (needSkill) missing.push(`"What did you do today?" (tap Grammar, Reading…)`);
+    if (noTopic.length) missing.push(`a topic for ${noTopic.map((s) => s.k).join(", ")}`);
     showToast(`Almost done: fill in ${missing.join(" and ")}. They count towards each student's progress.`, "error");
-    (unrated[0]?.querySelector(".reg-rating") || byId("lessonDone"))?.focus();
+    (unrated[0]?.querySelector(".reg-rating") || byId("lessonSkills")?.querySelector(".sk-row.needs input") || byId("lessonSkills")?.querySelector(".sk-toggle"))?.focus();
     return;
   }
 
@@ -8840,3 +8876,236 @@ document.addEventListener("click", (e) => {
     showToast("One moment: the link is being made.", "info");
   }
 }, true);
+
+
+/* =========================================================
+   30 Sept — "What did you do today?" skill ticks (Lesson page)
+   Teachers tap the skills they covered and add a short topic (tap a
+   suggestion: from the book unit, or for classes without a book / special
+   lessons from this class's own recent lessons). Saved as short lines at
+   the top of "What we did", e.g.
+       Grammar: past simple
+       Reading: a holiday blog · gist
+   so the sheet stays readable and no Apps Script change is needed.
+   The student app turns these lines into the road map's skill badges.
+========================================================= */
+const LLS_SKILLS = [
+  { k: "Grammar", icon: "📘", ph: "e.g. past simple", focus: [] },
+  { k: "Vocabulary", icon: "🔤", ph: "e.g. holidays, food", focus: [] },
+  { k: "Reading", icon: "📖", ph: "topic, e.g. a holiday blog", focus: ["gist", "detail", "new words"] },
+  { k: "Listening", icon: "🎧", ph: "topic, e.g. at the airport", focus: ["gist", "detail", "song"] },
+  { k: "Speaking", icon: "🗣️", ph: "topic, e.g. my last weekend", focus: ["pairs", "groups", "role-play", "presentation"] },
+  { k: "Writing", icon: "✍️", ph: "e.g. an email to a friend", focus: ["sentences", "email", "story", "paragraph"] },
+  { k: "Games & songs", icon: "🎲", ph: "e.g. animals bingo, colours song", focus: [] }
+];
+const LLS_SKILL_RE = new RegExp("^(" + LLS_SKILLS.map((s) => s.k.replace(/[&]/g, "\\&")).join("|") + "):\\s*(.*)$", "i");
+let llsSkillState = {};
+
+// "Grammar: past simple\nReading: blog · gist\nfree text" -> { skills, rest }
+function llsParseSkills(text) {
+  const skills = {};
+  const rest = [];
+  String(text || "").split(/\r?\n/).forEach((line) => {
+    const m = line.trim().match(LLS_SKILL_RE);
+    if (m) {
+      const def = LLS_SKILLS.find((s) => s.k.toLowerCase() === m[1].toLowerCase());
+      const parts = m[2].split(" · ");
+      let focus = "";
+      if (def.focus.length && parts.length > 1 && def.focus.includes(parts[parts.length - 1].trim())) focus = parts.pop().trim();
+      skills[def.k] = { on: true, topic: parts.join(" · ").trim(), focus };
+    } else if (line.trim()) rest.push(line);
+  });
+  return { skills, rest: rest.join("\n") };
+}
+function llsSkillLines(state) {
+  return LLS_SKILLS.filter((s) => state[s.k]?.on).map((s) => {
+    const st = state[s.k];
+    return `${s.k}: ${[st.topic.trim(), st.focus].filter(Boolean).join(" · ")}`;
+  });
+}
+
+function llsSkillSuggestions(skill, cls) {
+  const out = [];
+  const add = (t) => { t = String(t || "").trim(); if (t && !out.some((x) => x.toLowerCase() === t.toLowerCase())) out.push(t); };
+  const course = cls && cls.book && window.LLS_COURSES && LLS_COURSES[cls.book];
+  const unit = Number(cls && cls.currentUnit) || 0;
+  if (course && unit && !byId("lessonSpecialOn")?.checked) {
+    const lessons = course.lessons.filter((l) => parseInt(l.code, 10) === unit);
+    lessons.forEach((l) => {
+      if (skill === "Grammar") l.grammar.split(/,\s*(?![^()]*\))/).forEach(add);
+      else if (skill === "Vocabulary") l.vocab.split(/,\s*(?![^()]*\))/).forEach(add);
+      else if (skill !== "Games & songs") add(`${l.code} ${l.title}`);
+    });
+  }
+  // This class's own recent topics (the only source for classes without a book).
+  (llsLesson.entries || []).slice(0, 12).forEach((e) => {
+    const p = llsParseSkills(e.whatWeDid).skills[skill];
+    if (p && p.topic) add(p.topic);
+  });
+  if (byId("lessonSpecialOn")?.checked && value("lessonSpecialTitle").trim()) add(value("lessonSpecialTitle").trim());
+  return out.slice(0, 8);
+}
+
+function llsRenderSkills() {
+  const box = byId("lessonSkills");
+  if (!box) return;
+  const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
+  const rows = LLS_SKILLS.filter((s) => llsSkillState[s.k]?.on);
+  box.innerHTML = `
+    <p class="sk-q">What did you do today? <span class="muted" style="font-weight:600">Tap all that apply · students see this on their road map</span></p>
+    <div class="sk-toggles">${LLS_SKILLS.map((s) => `<button type="button" class="sk-toggle" data-skill="${escapeHtml(s.k)}" aria-pressed="${Boolean(llsSkillState[s.k]?.on)}">${s.icon} ${escapeHtml(s.k)}</button>`).join("")}</div>
+    ${rows.length ? `<div class="sk-rows">${rows.map((s) => {
+      const st = llsSkillState[s.k];
+      const sug = llsSkillSuggestions(s.k, cls);
+      return `<div class="sk-row" data-skill-row="${escapeHtml(s.k)}">
+        <label>${s.icon} ${escapeHtml(s.k)}${s.k === "Grammar" ? ": which grammar?" : s.k === "Vocabulary" ? ": which words?" : ": topic"}</label>
+        <input type="text" maxlength="80" autocomplete="off" data-skill-topic="${escapeHtml(s.k)}" placeholder="${escapeHtml(s.ph)}" value="${escapeHtml(st.topic || "")}">
+        ${sug.length ? `<div class="sk-chips">${sug.map((t) => `<button type="button" class="sk-chip${st.topic === t ? " on" : ""}" data-skill-sug="${escapeHtml(s.k)}" title="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join("")}</div>` : ""}
+        ${s.focus.length ? `<div class="sk-chips">${s.focus.map((f) => `<button type="button" class="sk-chip${st.focus === f ? " on" : ""}" data-skill-focus="${escapeHtml(s.k)}" data-value="${escapeHtml(f)}">${escapeHtml(f)}</button>`).join("")}</div>` : ""}
+      </div>`;
+    }).join("")}</div>` : ""}`;
+  box.querySelectorAll("[data-skill]").forEach((b) => b.addEventListener("click", () => {
+    const k = b.dataset.skill;
+    const st = llsSkillState[k] || { on: false, topic: "", focus: "" };
+    st.on = !st.on;
+    llsSkillState[k] = st;
+    llsLesson.noteTouched = true;
+    box.classList.remove("needs");
+    llsRenderSkills();
+    if (st.on) box.querySelector(`[data-skill-topic="${CSS.escape(k)}"]`)?.focus();
+  }));
+  box.querySelectorAll("[data-skill-topic]").forEach((i) => i.addEventListener("input", () => {
+    llsSkillState[i.dataset.skillTopic].topic = i.value;
+    llsLesson.noteTouched = true;
+    i.closest(".sk-row")?.classList.remove("needs");
+  }));
+  box.querySelectorAll("[data-skill-sug]").forEach((b) => b.addEventListener("click", () => {
+    llsSkillState[b.dataset.skillSug].topic = b.title;
+    llsLesson.noteTouched = true;
+    llsRenderSkills();
+  }));
+  box.querySelectorAll("[data-skill-focus]").forEach((b) => b.addEventListener("click", () => {
+    const st = llsSkillState[b.dataset.skillFocus];
+    st.focus = st.focus === b.dataset.value ? "" : b.dataset.value;
+    llsRenderSkills();
+  }));
+}
+
+// 30 Sept: restore the student/class lists saved on this device, so the
+// register opens without waiting for Google; Google's copy replaces them.
+document.addEventListener("DOMContentLoaded", () => {
+  try {
+    if (!sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY)) return;
+    if ((llsLivePortalData.classes || []).length) return;
+    const c = JSON.parse(localStorage.getItem("lls_core_rows") || "null");
+    if (c && Array.isArray(c.classes) && c.classes.length) llsLivePortalData = c;
+  } catch (_) {}
+});
+// Logging out forgets the school data kept on this device (shared computers).
+function llsForgetCachedData_() {
+  try {
+    Object.keys(localStorage).filter((k) => k === "lls_core_rows" || k === "lls_saved_lessons" || k.startsWith("lls_cache_")).forEach((k) => localStorage.removeItem(k));
+  } catch (_) {}
+}
+
+
+/* =========================================================
+   30 Sept — "TUT TUT" reminder (owner's request)
+   When a teacher logs in, check their lessons on the last school days
+   (up to 7 days back, from 28 Sept, skipping closures). Any lesson with
+   no notes in the Lesson Log gets a cheeky reminder with a "Fill it in
+   now" button. Once per login. Reads Google in the background, so
+   logging in is never slowed down.
+========================================================= */
+const LLS_SCHOOL_START = "2026-09-28";
+const LLS_CLOSED_DAYS = [["2026-12-07", "2026-12-08"], ["2026-12-23", "2027-01-06"], ["2027-03-19", "2027-03-19"], ["2027-04-25", "2027-04-30"], ["2027-05-31", "2027-06-02"]];
+
+function llsSchoolClosed_(iso) {
+  return iso < LLS_SCHOOL_START || LLS_CLOSED_DAYS.some(([a, b]) => iso >= a && iso <= b);
+}
+
+async function llsTutTutCheck() {
+  if (llsRole() !== "teacher") return;
+  const session = llsGetTeacherSession();
+  if (!session) return;
+  const flag = "lls_tuttut_" + (session.teacherId || session.name || "t");
+  try { if (sessionStorage.getItem(flag)) return; sessionStorage.setItem(flag, "1"); } catch (_) {}
+
+  // The teacher's lessons on the last school days before today.
+  const today = isoDate(new Date());
+  const due = [];
+  const d = new Date(today + "T12:00:00");
+  for (let i = 1; i <= 7; i++) {
+    d.setDate(d.getDate() - 1);
+    const iso = isoDate(d);
+    if (llsSchoolClosed_(iso)) continue;
+    llsLessonsOn(iso, true).forEach(({ cls, time }) => due.push({ cls, time, date: iso }));
+  }
+  if (!due.length) return;
+
+  // Saved on this device (sending or confirmed) already counts as done.
+  const todo = due.filter((x) => !llsLessonSaveState(x.cls.id, x.date));
+  const missing = [];
+  const byClass = {};
+  todo.forEach((x) => { (byClass[x.cls.id] = byClass[x.cls.id] || []).push(x); });
+  for (const classId of Object.keys(byClass)) {
+    try {
+      const log = await llsApiGet("getLessonLog", { classId, limit: 20 });
+      const done = new Set((log.entries || []).map((e) => String(e.lessonDate || "").slice(0, 10)));
+      byClass[classId].forEach((x) => { if (!done.has(x.date)) missing.push(x); });
+    } catch (_) { /* Google didn't answer: don't nag on a guess */ }
+  }
+  if (!missing.length) return;
+  missing.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  llsShowTutTut(session, missing);
+}
+
+function llsShowTutTut(session, missing) {
+  const first = String(session.name || "").split(/\s+/)[0] || "you";
+  let modal = byId("tutTutModal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.className = "modal-backdrop";
+    modal.id = "tutTutModal";
+    document.body.appendChild(modal);
+  }
+  const when = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  modal.innerHTML = `
+    <div class="modal modal-small" role="dialog" aria-modal="true" aria-labelledby="tutTutTitle" style="text-align:center;">
+      <div style="font-size:54px;line-height:1;margin:4px 0 6px;">👀</div>
+      <h2 id="tutTutTitle" style="margin:0 0 6px;">TUT TUT, ${escapeHtml(first)}!</h2>
+      <p style="margin:0 0 12px;">Cole can see you haven't filled in ${missing.length === 1 ? "this lesson" : "these lessons"}:</p>
+      <div style="display:grid;gap:8px;text-align:left;margin-bottom:14px;">
+        ${missing.map((x, i) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #dfe9f5;border-radius:14px;padding:8px 12px;">
+          <span><strong>${escapeHtml(when(x.date))}</strong> · ${escapeHtml(x.time)} ${escapeHtml(x.cls.name)}</span>
+          <button type="button" class="button button-primary" data-tuttut="${i}" style="min-height:40px;padding:6px 14px;">Fill it in now</button>
+        </div>`).join("")}
+      </div>
+      <p style="margin:0 0 4px;font-weight:800;font-size:18px;">PWWWEEEAAASSSEEEE do it when you get a chance 🙏</p>
+      <p style="margin:0 0 16px;">Cole is watching you ❤️</p>
+      <button type="button" class="button button-secondary" data-tuttut-later>Later, I promise</button>
+    </div>`;
+  modal.querySelectorAll("[data-tuttut]").forEach((b) => b.addEventListener("click", () => {
+    const x = missing[Number(b.dataset.tuttut)];
+    closeModal("tutTutModal");
+    navigateTo("lesson");
+    const dateInput = byId("lessonDate");
+    if (dateInput) dateInput.value = x.date;
+    llsLesson.loadedKey = "";
+    llsRenderLessonPicker();
+    llsOpenLesson(x.cls.id);
+  }));
+  modal.querySelector("[data-tuttut-later]")?.addEventListener("click", () => closeModal("tutTutModal"));
+  openModal("tutTutModal");
+}
+
+// Run once the class list is there (from this device or Google).
+document.addEventListener("DOMContentLoaded", () => {
+  let tries = 0;
+  const wait = setInterval(() => {
+    tries++;
+    const ready = (state.classes || []).length && sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY) && llsRole() === "teacher";
+    if (ready) { clearInterval(wait); setTimeout(() => llsTutTutCheck().catch(() => {}), 2500); }
+    else if (tries > 600) clearInterval(wait); // ~10 minutes: covers logging in later
+  }, 1000);
+});

@@ -390,6 +390,15 @@
     .wk-lab { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; font-size: 10px; color: #56617a; text-align: center; margin-top: 4px; }
     .rates { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: 12px; font-weight: 700; color: #56617a; }
     .rates span { background: #f3f6fb; border-radius: 999px; padding: 4px 10px; }
+    /* 30 Sept: skills on the road map */
+    .sk-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .sk-badge { background: #eef5ff; border: 1px solid #d6e6fb; border-radius: 999px; padding: 3px 9px; font-size: 12px; color: #16275c; }
+    .learnt { display: grid; gap: 8px; margin-top: 8px; }
+    .l-row { display: flex; gap: 10px; align-items: flex-start; background: #f6fbff; border: 1px solid #dcefff; border-radius: 16px; padding: 10px 12px; }
+    .l-ic { font-size: 22px; line-height: 1; }
+    .l-row strong { font-size: 14px; }
+    .l-row em { font-style: normal; font-size: 12px; color: #56617a; margin-left: 4px; }
+    .l-row small { display: block; font-size: 13px; color: #33415c; margin-top: 3px; }
   </style>
 </head>
 <body>
@@ -784,6 +793,29 @@
       return `<p class="j-book">${esc(course.title || book.id)} · ${esc(book.className || "")}</p><div class="trail" role="list">${html}</div>`;
     }
 
+    /* 30 Sept: the teacher ticks skills on the Lesson page; they arrive as
+       lines at the top of "What we did", e.g. "Grammar: past simple". */
+    const SKILLS = [
+      { k: "Grammar", icon: "📘", it: "Grammatica" },
+      { k: "Vocabulary", icon: "🔤", it: "Vocabolario" },
+      { k: "Reading", icon: "📖", it: "Lettura" },
+      { k: "Listening", icon: "🎧", it: "Ascolto" },
+      { k: "Speaking", icon: "🗣️", it: "Parlato" },
+      { k: "Writing", icon: "✍️", it: "Scrittura" },
+      { k: "Games & songs", icon: "🎲", it: "Giochi e canzoni" }
+    ];
+    function parseSkills(text) {
+      const skills = [];
+      const rest = [];
+      String(text || "").split(/\r?\n/).forEach((line) => {
+        const m = line.trim().match(/^([A-Za-z& ]+):\s*(.*)$/);
+        const def = m && SKILLS.find((x) => x.k.toLowerCase() === m[1].trim().toLowerCase());
+        if (def) skills.push({ ...def, topic: m[2].trim() });
+        else if (line.trim()) rest.push(line.trim());
+      });
+      return { skills, rest: rest.join(" ") };
+    }
+
     function journeySteps() {
       const classById = {};
       data.classes.forEach((c) => { classById[String(c["Class ID"])] = c; });
@@ -796,12 +828,14 @@
         const special = (String(l.unit || "").match(/^Special:\s*(.+)$/i) || [])[1];
         const status = att[l.classId + "|" + l.lessonDate] || "";
         const missed = status === "Absent" || status === "Excused";
+        const parsed = parseSkills(l.whatWeDid);
         steps.push({
+          skills: parsed.skills,
           date: l.lessonDate,
           icon: special ? "⭐" : missed ? "💤" : "📘",
           cls: special ? "special" : missed ? "missed" : "lesson",
           title: special ? `Special lesson: ${special}` : (l.unit ? `Lesson · Unit ${l.unit}` : "Lesson · Lezione"),
-          sub: (missed ? "Missed · Assente — " : (RATE_LABEL[rate[l.classId + "|" + l.lessonDate]] ? RATE_LABEL[rate[l.classId + "|" + l.lessonDate]] + " — " : "")) + (l.whatWeDid || classById[l.classId]?.["Class Name"] || "")
+          sub: (missed ? "Missed · Assente — " : (RATE_LABEL[rate[l.classId + "|" + l.lessonDate]] ? RATE_LABEL[rate[l.classId + "|" + l.lessonDate]] + " — " : "")) + (parsed.rest || (parsed.skills.length ? "" : classById[l.classId]?.["Class Name"] || ""))
         });
       });
       homeworkItems().forEach((h) => {
@@ -982,6 +1016,28 @@
       return `<p class="j-sub">📊 At a glance · In breve</p><div class="glance">${tiles.map(([v, l]) => `<div class="g-tile"><b>${esc(String(v))}</b><span>${esc(l)}</span></div>`).join("")}</div>`;
     }
 
+    // 30 Sept: "What I've learnt": every skill the teacher ticked in the
+    // lessons this student attended, newest topics first.
+    function learntHtml() {
+      const here = new Set(attendedMarks().map((a) => a.classId + "|" + isoDay(a.lessonDate)));
+      const by = {};
+      (data.lessons || []).slice().sort((a, b) => String(b.lessonDate).localeCompare(String(a.lessonDate))).forEach((l) => {
+        if (!here.has(l.classId + "|" + isoDay(l.lessonDate))) return;
+        parseSkills(l.whatWeDid).skills.forEach((k) => {
+          const e = by[k.k] || (by[k.k] = { n: 0, topics: [] });
+          e.n++;
+          const t = k.topic.split(" · ")[0].trim();
+          if (t && !e.topics.some((x) => x.toLowerCase() === t.toLowerCase())) e.topics.push(t);
+        });
+      });
+      const rows = SKILLS.filter((d) => by[d.k]);
+      if (!rows.length) return "";
+      return `<p class="j-sub">🧠 What I've learnt · Cosa ho imparato</p><div class="learnt">${rows.map((d) => {
+        const e = by[d.k];
+        return `<div class="l-row"><span class="l-ic">${d.icon}</span><div><strong>${esc(d.k)} · ${esc(d.it)}</strong> <em>${e.n} ${e.n === 1 ? "lesson" : "lessons"}</em><small>${e.topics.slice(0, 6).map(esc).join(" · ")}${e.topics.length > 6 ? " …" : ""}</small></div></div>`;
+      }).join("")}</div>`;
+    }
+
     function goalsHtml() {
       const n = glanceNumbers();
       const goals = [
@@ -1041,7 +1097,7 @@
       const past = steps.filter((s) => s.date && s.date <= todayIso && !(s.cls === "hw" || s.cls === "test"));
       const open = steps.filter((s) => s.cls === "hw" || s.cls === "test");
       const shown = journeyOpen ? past : past.slice(-5);
-      const stepHtml = (s, extra) => `<li class="step ${s.cls} ${extra || ""}"><span class="dot">${s.icon}</span><div><strong>${esc(s.title)}</strong><small>${s.date && s.date < "9999" ? esc(shortDay(s.date)) + " · " : ""}${esc(s.sub)}</small></div></li>`;
+      const stepHtml = (s, extra) => `<li class="step ${s.cls} ${extra || ""}"><span class="dot">${s.icon}</span><div><strong>${esc(s.title)}</strong><small>${s.date && s.date < "9999" ? esc(shortDay(s.date)) + " · " : ""}${esc(s.sub)}</small>${(s.skills || []).length ? `<div class="sk-badges">${s.skills.map((k) => `<span class="sk-badge">${k.icon} <b>${esc(k.k)}</b> ${esc(k.topic)}</span>`).join("")}</div>` : ""}</div></li>`;
       const nextStep = open[0];
       if (!books.length && !steps.length && !data.classes.length) return "";
       return `
@@ -1053,6 +1109,7 @@
           <div class="j-stars"><span>⭐ ${stars} ${stars === 1 ? "star" : "stars"}</span><div class="j-bar"><i style="width:${inLevel * 10}%"></i></div><small>${10 - inLevel} to Level ${level + 1}</small></div>
           ${safeHtml(roadHtml)}
           ${safeHtml(glanceHtml)}
+          ${safeHtml(learntHtml)}
           ${safeHtml(goalsHtml)}
           ${safeHtml(weeksHtml)}
           ${shown.length || nextStep ? `<p class="j-sub">📘 What we did · Cosa abbiamo fatto</p><ol class="path">
@@ -2184,7 +2241,7 @@
 
     document.getElementById("switchStudent")?.addEventListener("click", (event) => {
       event.preventDefault();
-      try { localStorage.removeItem(STORE); } catch (_) {}
+      try { localStorage.removeItem(STORE); localStorage.removeItem("lls_student_cache"); } catch (_) {}
       location.href = "homework.html";
     });
 
@@ -2193,17 +2250,38 @@
         showLogin();
         return;
       }
+      // 30 Sept: open at once with the copy saved on this phone last time,
+      // then update quietly when Google answers (Google can take 10-30 s).
+      const CACHE = "lls_student_cache";
+      const prep = (d) => {
+        d.practice = Array.isArray(d.practice) ? d.practice : [];
+        d.tests = Array.isArray(d.tests) ? d.tests : [];
+        d.testResults = Array.isArray(d.testResults) ? d.testResults : [];
+        return d;
+      };
+      let shownFromCache = false;
       try {
-        data = await api({ action: "getStudentHomework", key: KEY });
-        data.practice = Array.isArray(data.practice) ? data.practice : [];
-        data.tests = Array.isArray(data.tests) ? data.tests : [];
-        data.testResults = Array.isArray(data.testResults) ? data.testResults : [];
+        const cached = JSON.parse(localStorage.getItem(CACHE) || "null");
+        if (cached && cached.key === KEY && cached.data && cached.data.student) {
+          data = prep(cached.data);
+          applyQueued();
+          render();
+          document.getElementById("switchWrap").hidden = false;
+          shownFromCache = true;
+        }
+      } catch (_) {}
+      try {
+        const fresh = await api({ action: "getStudentHomework", key: KEY });
+        try { localStorage.setItem(CACHE, JSON.stringify({ key: KEY, data: fresh, at: Date.now() })); } catch (_) {}
+        const openQuiz = typeof quiz !== "undefined" && quiz && !quiz.finished;
+        data = prep(fresh);
         applyQueued();
-        render();
+        if (!openQuiz) render(); // don't jump out of an exercise the student is doing
         document.getElementById("switchWrap").hidden = false;
       } catch (error) {
+        if (shownFromCache && !/not valid/i.test(error.message || "")) return; // keep showing the saved copy
         if (/not valid/i.test(error.message || "")) {
-          try { if (localStorage.getItem(STORE) === KEY) localStorage.removeItem(STORE); } catch (_) {}
+          try { if (localStorage.getItem(STORE) === KEY) localStorage.removeItem(STORE); localStorage.removeItem("lls_student_cache"); } catch (_) {}
           KEY = "";
           showLogin("Questo link non è più valido: entra con il tuo codice. · This link no longer works: log in with your code.");
           return;

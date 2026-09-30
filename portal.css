@@ -2583,3 +2583,19 @@ tbody tr:hover {
 #homeworkLinkModal .modal-actions .button { width: 100%; min-height: 48px; border-radius: 999px; padding: 10px 14px; line-height: 1.2; white-space: normal; text-align: center; display: inline-flex; align-items: center; justify-content: center; }
 #homeworkLinkModal .is-waiting, #homeworkLinkModal button:disabled { opacity: .45; cursor: wait; }
 @media (max-width: 420px) { #homeworkLinkModal .modal-actions { grid-template-columns: 1fr; } }
+
+/* 30 Sept: "What did you do today?" skill ticks on the Lesson page. */
+.lesson-skills { margin: 4px 0 14px; }
+.lesson-skills .sk-q { font-weight: 800; margin: 0 0 8px; }
+.lesson-skills .sk-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+.lesson-skills .sk-toggle { border: 2px solid #dfe9f5; background: #fff; border-radius: 999px; padding: 8px 14px; font: inherit; font-weight: 700; cursor: pointer; min-height: 44px; }
+.lesson-skills .sk-toggle[aria-pressed="true"] { background: #16275c; border-color: #16275c; color: #fff; }
+.lesson-skills .sk-rows { display: grid; gap: 10px; margin-top: 12px; }
+.lesson-skills .sk-row { border: 1px solid #dfe9f5; border-radius: 14px; padding: 10px 12px; background: #f8fbff; }
+.lesson-skills .sk-row.needs { border-color: #e2554a; background: #fff5f4; }
+.lesson-skills .sk-row label { font-weight: 800; display: block; margin-bottom: 6px; }
+.lesson-skills .sk-row input { width: 100%; }
+.lesson-skills .sk-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.lesson-skills .sk-chip { border: 1px solid #cfdcee; background: #fff; border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lesson-skills .sk-chip.on { background: #ffd23f; border-color: #e0b400; font-weight: 700; }
+.lesson-skills.needs .sk-toggles { outline: 2px solid #e2554a; outline-offset: 4px; border-radius: 12px; }
