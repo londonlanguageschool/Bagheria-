@@ -1557,8 +1557,21 @@
       try {
         const bank = await loadBank(courseId);
         const lesson = COURSES[courseId].lessons.find((l) => l.code === code);
-        const items = bank.lessons?.[code]?.[type];
+        let items = bank.lessons?.[code]?.[type];
         if (!lesson || !Array.isArray(items) || !items.length) throw new Error("missing");
+        // 1 Oct: bigger pools. Each try takes 6 questions, first the ones
+        // this student didn't see last time, so a second try is mostly new.
+        const PICK = 6;
+        if (type !== "s" && items.length > PICK) {
+          const seenKey = `lls_seen_${lesson.id}-${type}`;
+          const idOf = (q) => q.q + "|" + (Array.isArray(q.o) ? q.o[0] : (q.a || [])[0]);
+          let seen = [];
+          try { seen = JSON.parse(localStorage.getItem(seenKey) || "[]"); } catch (_) {}
+          const fresh = shuffle(items.filter((q) => !seen.includes(idOf(q))));
+          const again = shuffle(items.filter((q) => seen.includes(idOf(q))));
+          items = fresh.concat(again).slice(0, PICK);
+          try { localStorage.setItem(seenKey, JSON.stringify(items.map(idOf))); } catch (_) {}
+        }
 
         quiz = {
           courseId, code, type, lesson,
