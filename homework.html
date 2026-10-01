@@ -718,7 +718,7 @@
       for (const b of myBooks()) {
         const course = COURSES[b.id];
         const cur = Number(b.current) || 0;
-        if (!course || !cur) continue;
+        if (!course || !cur || course.practice === false) continue;
         const sets = [];
         course.lessons.forEach((l) => { if (l.unit === cur) PRACTICE.SET_TYPES.forEach((t) => sets.push(l.id + "-" + t)); });
         const left = sets.filter((id) => !passed(res[id])).length;
@@ -956,7 +956,10 @@
           const won = f.t === "t" ? Boolean(r) : passed(r);
           return won ? "⭐" : (!cur || cur >= n) ? (f.t === "t" ? "🏁" : "🔁") : "🔒";
         }).join("");
-        stops.push({ kind: "stop", label: `Unit ${n}`, mark: String(n), state: cur && n < cur ? "done" : n === cur ? "now" : "next", icons, practice: flags.length > 0 });
+        // 1 Oct: picture books (Power Up) show the unit's name and a picture.
+        const lesson = course.practice === false ? course.lessons.find((l) => l.unit === n) : null;
+        const pic = lesson && course.emoji ? course.emoji[n] : "";
+        stops.push({ kind: "stop", label: lesson ? lesson.title : `Unit ${n}`, mark: pic || String(n), state: cur && n < cur ? "done" : n === cur ? "now" : "next", icons, practice: flags.length > 0 });
       }
       const exam = /exam/i.test(book.className || "");
       stops.push({ kind: "goal", label: exam ? "EXAM 🎓" : "GOAL 🏆", state: cur > range.to ? "done" : "next" });
@@ -1019,7 +1022,15 @@
           : st === "now"
             ? `<circle cx="${x}" cy="${y}" r="18" fill="#ffd23f" stroke="#16275c" stroke-width="3"/><text x="${x}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="800" fill="#0f1b3d">${esc(s.mark)}</text>`
             : `<circle cx="${x}" cy="${y}" r="15" fill="#ffffff" stroke="#9fc4ea" stroke-width="2" stroke-dasharray="4 3"/><text x="${x}" y="${y + 5}" text-anchor="middle" font-size="13" font-weight="800" fill="#7b8aa8">${esc(s.mark)}</text>`;
-        const label = `<text x="${x}" y="${y + 34}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${st === "now" ? "#16275c" : "#56617a"}">${esc(s.label)}</text>`;
+        // 1 Oct: long unit names (Power Up) wrap onto two lines.
+        let lines = [s.label];
+        if (s.label.length > 11 && s.label.includes(" ")) {
+          const w = s.label.split(" ");
+          let best = 1, diff = 1e9;
+          for (let i = 1; i < w.length; i++) { const d = Math.abs(w.slice(0, i).join(" ").length - w.slice(i).join(" ").length); if (d < diff) { diff = d; best = i; } }
+          lines = [w.slice(0, best).join(" "), w.slice(best).join(" ")];
+        }
+        const label = `<text x="${x}" y="${y + 34}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${st === "now" ? "#16275c" : "#56617a"}">${lines.map((t, i) => `<tspan x="${x}" dy="${i ? 12 : 0}">${esc(t)}</tspan>`).join("")}</text>`;
         const icons = s.icons ? `<text x="${x + 17}" y="${y - 13}" font-size="12" font-weight="800" fill="#18a86b">${esc(s.icons)}</text>` : "";
         const tap = s.practice ? ` data-journey-practice style="cursor:pointer"` : "";
         return `<g${tap}>${circle}${label}${icons}</g>`;
@@ -1081,7 +1092,7 @@
         n.hoursKnown ? [String(hrs).replace(".", ","), "Hours in class · Ore"] : [pct === null ? "–" : pct + "%", "Attendance · Presenze"],
         [n.topics, "Topics covered · Argomenti"],
         [`${n.hwDone}/${n.hwTotal}`, "Homework · Compiti"],
-        myBooks().length ? [n.practicePassed, "Practice sets · Esercizi"] : [n.excellent, "⭐ Excellent"],
+        myBooks().some((b) => COURSES[b.id].practice !== false) ? [n.practicePassed, "Practice sets · Esercizi"] : [n.excellent, "⭐ Excellent"],
         [n.testsDone, "Tests · Verifiche"]
       ];
       return `<p class="j-sub">📊 At a glance · In breve</p><div class="glance">${tiles.map(([v, l]) => `<div class="g-tile"><b>${esc(String(v))}</b><span>${esc(l)}</span></div>`).join("")}</div>`;
@@ -1398,11 +1409,15 @@
         return;
       }
 
-      const books = myBooks();
+      const books = myBooks().filter((b) => COURSES[b.id].practice !== false); // 1 Oct: Power Up has no sets yet
       const extra = chosenBook();
       let html = "";
 
-      if (!books.length) {
+      const pictureBook = myBooks().find((b) => COURSES[b.id].practice === false);
+      if (!books.length && pictureBook) {
+        html += `<div class="note" style="margin-top:18px">🚀 Gli esercizi di ${esc(COURSES[pictureBook.id].title)} arriveranno presto! Intanto guarda il tuo percorso nella scheda Compiti. ·
+          ${esc(COURSES[pictureBook.id].title)} practice is coming soon! Meanwhile, see your journey on the Homework tab.</div>`;
+      } else if (!books.length) {
         html += `<div class="note" style="margin-top:18px">Your teacher hasn't chosen your practice book yet. Choose one below. ·
           Il tuo insegnante non ha ancora scelto il libro: scegline uno qui sotto.</div>`;
       }
@@ -1413,7 +1428,7 @@
       if (extra && COURSES[extra] && !shown.has(extra)) html += courseCard(extra, "", "", "Extra practice · Esercizi extra");
 
       const options = Object.values(COURSES)
-        .filter((c) => c.lessons.length)
+        .filter((c) => c.lessons.length && c.practice !== false)
         .map((c) => `<option value="${esc(c.id)}" ${c.id === extra ? "selected" : ""}>${esc(c.title)}</option>`)
         .join("");
       html += `
@@ -2045,7 +2060,7 @@
 
     function coachTopics() {
       const topics = [];
-      const books = myBooks();
+      const books = myBooks().filter((b) => COURSES[b.id].practice !== false); // 1 Oct: Power Up has no sets yet
       const extra = chosenBook();
       const book = books[0] || (COURSES[extra] ? { id: extra, units: "", current: "" } : null);
       if (book && COURSES[book.id]) {

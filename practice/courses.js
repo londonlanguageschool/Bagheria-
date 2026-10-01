@@ -213,6 +213,30 @@
         L("10A", "On your marks, set, go!", "relative clauses", "word building: adjectives, nouns, and verbs"),
         L("10B", "No direction home", "adding emphasis (2): cleft sentences", "words that are often confused")
       ]
+    },
+
+    /* 1 Oct 2026: Power Up 1 (Cambridge, Nixon & Tomlinson), used with
+       Starters. Only unit titles and Pupil's Book pages (from the book's
+       table of contents). No practice sets yet (practice: false): the
+       road map, lesson suggestions and homework suggestions use it. */
+    "PU-1": {
+      title: "Power Up 1",
+      level: "Pre-A1 (Starters)",
+      practice: false,
+      pagesLabel: "Pupil's Book",
+      lessons: [
+        L("1", "Our new school", "", ""),
+        L("2", "All about us", "", ""),
+        L("3", "Fun on the farm", "", ""),
+        L("4", "Food with friends", "", ""),
+        L("5", "Happy birthday!", "", ""),
+        L("6", "A day out", "", ""),
+        L("7", "Let's play!", "", ""),
+        L("8", "At home", "", ""),
+        L("9", "Happy holidays", "", "")
+      ],
+      pages: { 1: 6, 2: 18, 3: 30, 4: 44, 5: 56, 6: 68, 7: 82, 8: 94, 9: 106, 10: 120 }, // 10 = "Numbers and letters"
+      emoji: { 1: "🏫", 2: "👫", 3: "🐄", 4: "🍎", 5: "🎂", 6: "🌳", 7: "⚽", 8: "🏠", 9: "🏖️" }
     }
   };
 
@@ -267,7 +291,7 @@
 
   function practiceSetIdsFor(courseId, unitsText, currentUnit) {
     const course = COURSES[courseId];
-    if (!course) return [];
+    if (!course || course.practice === false) return [];
     const range = parseUnits(courseId, unitsText);
     const cur = Number(currentUnit);
     const limit = cur >= range.from ? Math.min(cur, range.to) : range.to;
@@ -311,7 +335,7 @@
 
     (opts.books || []).forEach(function (b) {
       const course = COURSES[b.id];
-      if (!course || !course.lessons.length) return;
+      if (!course || !course.lessons.length || course.practice === false) return;
       const range = parseUnits(b.id, b.units);
       const cur = Number(b.current);
       const limit = cur >= range.from ? Math.min(cur, range.to) : range.to;

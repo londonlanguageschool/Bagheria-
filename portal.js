@@ -7706,6 +7706,7 @@ async function llsRenderLesson() {
   setValue("lessonHwDue", llsNextLessonDate(cls, date));
   llsLesson.entries = [];
   llsRenderSkills();
+  llsRenderHwSuggest(cls);
   llsLesson.noteTouched = false;
   llsLesson.homework = [];
   llsLesson.status = [];
@@ -7904,13 +7905,16 @@ async function llsChangeLessonUnit(step) {
   const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
   if (!cls) return;
   const current = Number(cls.currentUnit) || 0;
-  const next = Math.max(1, Math.min(12, current + step));
+  const maxUnit = (window.LLS_COURSES && LLS_COURSES[cls.book] && LLS_COURSES[cls.book].unitCount) || 12;
+  const next = Math.max(1, Math.min(maxUnit, current + step));
   if (next === current) return;
   try {
     llsQueueSave(`${cls.name} unit`, { action: "updateClass", classId: cls.id, fields: { "Current Unit": String(next) } });
     cls.currentUnit = String(next);
     saveState();
     byId("lessonUnitValue").textContent = next;
+    llsRenderHwSuggest(cls);
+    llsRenderSkills();
     if (/^\d+$/.test(value("lessonUnitPage")) || !value("lessonUnitPage")) setValue("lessonUnitPage", String(next));
     showToast(`${cls.name} is now on unit ${next}. Practice in the app follows it.`, "success");
   } catch (error) {
@@ -8934,7 +8938,8 @@ function llsSkillSuggestions(skill, cls) {
     lessons.forEach((l) => {
       if (skill === "Grammar") l.grammar.split(/,\s*(?![^()]*\))/).forEach(add);
       else if (skill === "Vocabulary") l.vocab.split(/,\s*(?![^()]*\))/).forEach(add);
-      else if (skill !== "Games & songs") add(`${l.code} ${l.title}`);
+      else if (skill !== "Games & songs") add(course.practice === false ? l.title : `${l.code} ${l.title}`);
+      if (course.practice === false && (skill === "Vocabulary" || skill === "Games & songs")) add(l.title);
     });
   }
   // This class's own recent topics (the only source for classes without a book).
@@ -9234,3 +9239,28 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-guide-tab]").forEach((b) => b.addEventListener("click", () => { llsGuideState.tab = b.dataset.guideTab; llsRenderGuide(); }));
   document.querySelector("[data-guide-lang]")?.addEventListener("click", () => { llsGuideState.lang = llsGuideState.lang === "it" ? "en" : "it"; llsRenderGuide(); });
 });
+
+
+/* 1 Oct — homework suggestion from the book (Power Up 1 for Starters):
+   one tap fills the homework with the current unit and its Pupil's Book
+   pages. The teacher can change anything before saving. */
+function llsRenderHwSuggest(cls) {
+  const box = byId("lessonHwSuggest");
+  if (!box) return;
+  const course = cls && cls.book && window.LLS_COURSES && LLS_COURSES[cls.book];
+  const unit = Number(cls && cls.currentUnit) || 0;
+  const lesson = course && course.pages && course.lessons.find((l) => l.unit === unit);
+  if (!lesson) { box.hidden = true; box.innerHTML = ""; return; }
+  const from = course.pages[unit];
+  const next = course.pages[unit + 1];
+  const pages = from ? (next ? `p. ${from}–${next - 1}` : `p. ${from}`) : "";
+  const title = `${course.title} · Unit ${unit}: ${lesson.title}`;
+  const text = [pages ? `${course.pagesLabel || "Book"} ${pages}` : "", "Activity Book: Unit " + unit].filter(Boolean).join(" · ");
+  box.hidden = false;
+  box.innerHTML = `<button type="button" class="sk-chip" title="${escapeHtml(text)}">📗 Unit ${unit} · ${escapeHtml(lesson.title)}${pages ? ` (${escapeHtml(pages)})` : ""}</button>`;
+  box.querySelector("button").addEventListener("click", () => {
+    setValue("lessonHwTitle", title);
+    if (!value("lessonHwText").trim()) setValue("lessonHwText", text);
+    byId("lessonHwText")?.focus();
+  });
+}
