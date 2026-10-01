@@ -9109,3 +9109,22 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (tries > 600) clearInterval(wait); // ~10 minutes: covers logging in later
   }, 1000);
 });
+
+
+// 1 Oct: who is reporting a problem (report.js). Never contact details.
+window.llsReportWho = function () {
+  const t = typeof llsGetTeacherSession === "function" ? llsGetTeacherSession() : null;
+  const role = typeof llsRole === "function" ? llsRole() : "";
+  return t ? `Teacher: ${t.name || t.teacherId || ""}` : (role ? `Office (${role})` : "Not logged in");
+};
+window.llsReportExtra = function () {
+  const page = document.querySelector(".page.active")?.id || "";
+  const parts = [];
+  if (page) parts.push("Portal page: " + page.replace(/^page-/, ""));
+  if (window.llsServerVersion) parts.push("Apps Script: V" + window.llsServerVersion);
+  try {
+    const waiting = (typeof llsOutboxLoad === "function" ? llsOutboxLoad().length : 0) + (typeof llsSaveQLoad === "function" ? llsSaveQLoad().length : 0);
+    if (waiting) parts.push("Changes still waiting to be sent: " + waiting);
+  } catch (_) {}
+  return parts.join("\n");
+};

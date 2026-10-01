@@ -11,6 +11,7 @@
   "use strict";
 
   const IT = {
+    "Report a problem": "Segnala un problema",
     "Fill it in now": "Compilala ora",
     "Later, I promise": "Dopo, lo prometto",
     "Cole is watching you ❤️": "Cole ti sta guardando ❤️",

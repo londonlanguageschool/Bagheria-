@@ -455,9 +455,10 @@
     <div class="empty">Loading your homework… · Caricamento…</div>
   </main>
 
-  <footer>Questions? Ask your teacher or the school office. <span id="switchWrap" hidden>· <a href="#" id="switchStudent">Non sei tu? Cambia studente · Switch student</a></span></footer>
+  <footer>Questions? Ask your teacher or the school office. · <a href="#" data-report-problem="Student app">🐞 Segnala un problema · Report a problem</a> <span style="font-size:10px;font-weight:800;background:#ffd23f;color:#16275c;border-radius:999px;padding:1px 6px;">Beta</span> <span id="switchWrap" hidden>· <a href="#" id="switchStudent">Non sei tu? Cambia studente · Switch student</a></span></footer>
 
   <script src="practice/courses.js"></script>
+  <script src="report.js"></script>
   <script>
     "use strict";
 
@@ -513,6 +514,13 @@
       if (result.success !== true) throw new Error(result?.error || "Something went wrong.");
       return result;
     }
+
+    // 1 Oct: who is reporting a problem (report.js): first name and class only.
+    window.llsReportWho = () => {
+      if (!data || !data.student) return "Student (not logged in)";
+      return "Student: " + (data.student.firstName || "") + ((data.classes || []).length ? " · " + data.classes.map((c) => c["Class Name"]).join(", ") : "");
+    };
+    window.llsReportExtra = () => "Tab: " + (typeof tab !== "undefined" ? tab : "");
 
     function parseDate(text) {
       const raw = String(text || "").trim();
