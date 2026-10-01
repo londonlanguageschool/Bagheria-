@@ -9128,3 +9128,109 @@ window.llsReportExtra = function () {
   } catch (_) {}
   return parts.join("\n");
 };
+
+
+/* =========================================================
+   1 Oct — in-app GUIDE (❓ Guide in the left menu)
+   Two short how-tos, Teachers and Office, in English and Italian.
+   Opens on the right tab for who is logged in and in the portal's
+   language. The words in quotes match the buttons on screen.
+========================================================= */
+const LLS_GUIDE = {
+  teacher: {
+    en: {
+      intro: "Everything for a lesson is on one page. It takes a couple of minutes between classes.",
+      steps: [
+        ["Log in", "Choose Teacher, then your Teacher ID (e.g. TCH0002) or email, and your PIN."],
+        ["★ Lesson", "Today's lessons are buttons at the top. Tap yours. ✓ = saved, ⏳ = still sending."],
+        ["1 · Register", "Tap Here / Late / Absent / Excused (\"Everyone here\" does it in one go). Choose \"How did they do?\" for everyone who came: it counts towards their progress."],
+        ["2 · What did you do today?", "Tap the skills you covered (Grammar, Reading, Speaking…) and tap a suggested topic or type one. Students see this on their road map. For a ⭐ Special lesson (Halloween, Christmas…) tick the box instead."],
+        ["Notes for the next teacher", "Private: only staff see them. \"Anything else?\" is optional and students can see it."],
+        ["3 · Homework (optional)", "Title + instructions. The due date is the next lesson. It goes straight to the students' app."],
+        ["💾 Save lesson", "It's saved on your device at once and sent to Google in the background: you can go to your next class. The badge turns \"✓ Saved · in Google Sheets\"."],
+        ["Unit − / +", "When the class starts a new unit of the book, press + (the practice in the students' app follows)."],
+        ["Tests", "Homework page → \"+ New test\": multiple choice or typed answers. Students take it in their app; you see the results."],
+        ["Forgot a lesson?", "When you log in, a \"TUT TUT\" reminder lists lessons without notes. Tap \"Fill it in now\"."]
+      ],
+      tip: "Something not working? Use 🐞 Report a problem in the left menu: it emails the school with the details."
+    },
+    it: {
+      intro: "Tutto quello che serve per una lezione è in una pagina. Bastano un paio di minuti tra una classe e l'altra.",
+      steps: [
+        ["Accesso", "Scegli Insegnante, poi il tuo ID (es. TCH0002) o la tua email, e il PIN."],
+        ["★ Lezione", "Le lezioni di oggi sono i pulsanti in alto. Tocca la tua. ✓ = salvata, ⏳ = in invio."],
+        ["1 · Appello", "Tocca Presente / In ritardo / Assente / Giustificato (\"Tutti presenti\" li segna tutti). Scegli \"Com'è andata?\" per ogni studente presente: conta nei suoi progressi."],
+        ["2 · Cosa avete fatto oggi?", "Tocca le abilità (Grammatica, Lettura, Parlato…) e tocca un argomento suggerito o scrivilo. Gli studenti lo vedono nel loro percorso. Per una ⭐ lezione speciale (Halloween, Natale…) spunta la casella."],
+        ["Note per il prossimo insegnante", "Private: le vede solo lo staff. \"Altro?\" è facoltativo e lo vedono gli studenti."],
+        ["3 · Compiti (facoltativi)", "Titolo + istruzioni. La consegna è la lezione successiva. Vanno subito nell'app degli studenti."],
+        ["💾 Salva lezione", "Si salva subito sul dispositivo e parte verso Google in sottofondo: puoi andare alla classe successiva. Il badge diventa \"✓ Salvata · su Google Sheets\"."],
+        ["Unità − / +", "Quando la classe inizia una nuova unità del libro, premi + (gli esercizi nell'app seguono)."],
+        ["Test", "Pagina Compiti → \"+ Nuovo test\": scelta multipla o risposta scritta. Gli studenti lo fanno nell'app; tu vedi i risultati."],
+        ["Lezione dimenticata?", "Quando entri, il promemoria \"TUT TUT\" mostra le lezioni senza note. Tocca \"Compilala ora\"."]
+      ],
+      tip: "Qualcosa non funziona? Usa 🐞 Segnala un problema nel menu a sinistra: manda un'email alla scuola con i dettagli."
+    }
+  },
+  office: {
+    en: {
+      intro: "The office side of the portal: students, payments, enquiries and app links.",
+      steps: [
+        ["Log in", "Choose Office / Admin and the office password."],
+        ["Students", "\"+ Add student\" and choose the class. \"Edit\" to change details. \"Deactivate\" when someone leaves (their history is kept)."],
+        ["📱 App link", "On a student: open their app (\"Open app\"), copy the link or \"Send on WhatsApp\" (private chats only, never groups). \"Make new link\" if a slip is lost: the old one stops working."],
+        ["Fees & Payments · new course", "\"+ Record payment\": total fee, payment plan and due dates, plus the first payment if they pay now."],
+        ["Fees & Payments · later payments", "\"Add payment\" on the fee and choose \"Which payment is this?\". A yellow warning appears if it looks like a duplicate."],
+        ["A payment entered by mistake", "\"Payments\" on the fee → \"Void payment\" with a reason. It's never deleted: it stays crossed out and stops counting."],
+        ["Reminders", "Filter \"Overdue\" and use the WhatsApp reminder button on the fee."],
+        ["Enquiries", "\"+ New enquiry\" for calls and visits (the website form adds them by itself). Move the stage, then \"Convert to Student\" when they enrol."],
+        ["Classes & Teachers", "Edit days, times, rooms and book unit. \"📱 App links\" on a class gives every student's link. Teachers: \"+ Add teacher\" with a PIN."],
+        ["The ⏳ pill at the top", "Changes still on their way to Google. Wait for it to go before closing the page. If it turns ⚠, tap it to try again."]
+      ],
+      tip: "Something not working? 🐞 Report a problem (left menu) emails the school with the details."
+    },
+    it: {
+      intro: "La parte segreteria del portale: studenti, pagamenti, richieste e link dell'app.",
+      steps: [
+        ["Accesso", "Scegli Segreteria / Direzione e la password della segreteria."],
+        ["Studenti", "\"+ Aggiungi studente\" e scegli la classe. \"Modifica\" per cambiare i dati. \"Disattiva\" chi lascia la scuola (lo storico resta)."],
+        ["📱 Link app", "Su uno studente: apri la sua app, copia il link o \"Invia su WhatsApp\" (solo in privato, mai nei gruppi). \"Nuovo link\" se perde il foglietto: quello vecchio smette di funzionare."],
+        ["Quote e pagamenti · nuovo corso", "\"+ Registra pagamento\": quota totale, piano di pagamento e scadenze, più il primo pagamento se paga subito."],
+        ["Quote e pagamenti · pagamenti successivi", "\"Aggiungi pagamento\" sulla quota e scegli \"Quale pagamento è?\". Se sembra un doppione compare un avviso giallo."],
+        ["Pagamento inserito per errore", "\"Pagamenti\" sulla quota → \"Annulla pagamento\" con il motivo. Non si cancella mai: resta barrato e non conta più."],
+        ["Promemoria", "Filtra \"Scaduto\" e usa il pulsante WhatsApp di promemoria sulla quota."],
+        ["Richieste", "\"+ Nuova richiesta\" per telefonate e visite (il modulo del sito le aggiunge da solo). Aggiorna la fase, poi \"Trasforma in studente\" quando si iscrive."],
+        ["Classi e insegnanti", "Modifica giorni, orari, aule e unità del libro. \"📱 Link app\" su una classe dà i link di tutti gli studenti. Insegnanti: \"+ Add teacher\" con un PIN."],
+        ["Il pulsante ⏳ in alto", "Modifiche ancora in viaggio verso Google. Aspetta che sparisca prima di chiudere la pagina. Se diventa ⚠, toccalo per riprovare."]
+      ],
+      tip: "Qualcosa non funziona? 🐞 Segnala un problema (menu a sinistra) manda un'email alla scuola con i dettagli."
+    }
+  }
+};
+let llsGuideState = { tab: "", lang: "" };
+
+function llsRenderGuide() {
+  const g = LLS_GUIDE[llsGuideState.tab][llsGuideState.lang];
+  const body = byId("guideBody");
+  if (!body) return;
+  body.innerHTML = `<p class="guide-intro">${escapeHtml(g.intro)}</p>
+    <ol>${g.steps.map(([t, d]) => `<li><div><strong>${escapeHtml(t)}</strong><span>${escapeHtml(d)}</span></div></li>`).join("")}</ol>
+    <p class="guide-tip">🐞 ${escapeHtml(g.tip.replace(/^🐞\s*/, ""))}</p>`;
+  document.querySelectorAll("[data-guide-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.guideTab === llsGuideState.tab)));
+  const lb = document.querySelector("[data-guide-lang]");
+  if (lb) lb.textContent = llsGuideState.lang === "it" ? "🇬🇧 English" : "🇮🇹 Italiano";
+}
+
+function llsOpenGuide() {
+  let lang = "en";
+  try { lang = localStorage.getItem("lls_lang") === "it" ? "it" : "en"; } catch (_) {}
+  const teacher = typeof llsRole === "function" && llsRole() === "teacher";
+  llsGuideState = { tab: llsGuideState.tab || (teacher ? "teacher" : "office"), lang: llsGuideState.lang || lang };
+  llsRenderGuide();
+  openModal("guideModal");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  byId("openGuide")?.addEventListener("click", (e) => { e.preventDefault(); llsOpenGuide(); });
+  document.querySelectorAll("[data-guide-tab]").forEach((b) => b.addEventListener("click", () => { llsGuideState.tab = b.dataset.guideTab; llsRenderGuide(); }));
+  document.querySelector("[data-guide-lang]")?.addEventListener("click", () => { llsGuideState.lang = llsGuideState.lang === "it" ? "en" : "it"; llsRenderGuide(); });
+});

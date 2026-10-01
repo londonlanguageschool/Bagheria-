@@ -139,6 +139,10 @@
       </nav>
 
       <div class="sidebar-footer">
+        <a class="nav-item" href="#" id="openGuide">
+          <span class="nav-icon" aria-hidden="true">❓</span>
+          <span>Guide</span>
+        </a>
         <a class="nav-item" href="#" data-report-problem="Staff portal">
           <span class="nav-icon" aria-hidden="true">🐞</span>
           <span>Report a problem <small style="font-size:10px;font-weight:800;background:#ffd23f;color:#16275c;border-radius:999px;padding:1px 6px;margin-left:4px;">Beta</small></span>
@@ -1837,6 +1841,30 @@
       </div>
       <div class="modal-actions">
         <button class="button button-secondary" type="button" data-close-modal="feePaymentsModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================
+       GUIDE MODAL (1 Oct): how-to for teachers and office
+  ========================== -->
+  <div class="modal-backdrop" id="guideModal">
+    <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">Help</p>
+          <h2 id="guideTitle">Guide</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="guideModal">×</button>
+      </div>
+      <div class="guide-tabs" role="tablist" data-no-translate>
+        <button type="button" class="guide-tab" data-guide-tab="teacher" role="tab">👩‍🏫 Teachers · Insegnanti</button>
+        <button type="button" class="guide-tab" data-guide-tab="office" role="tab">🗂️ Office · Segreteria</button>
+        <button type="button" class="guide-tab guide-lang" data-guide-lang>IT / EN</button>
+      </div>
+      <div id="guideBody" class="guide-body" data-no-translate></div>
+      <div class="modal-actions">
+        <button class="button button-secondary" type="button" data-close-modal="guideModal">Close</button>
       </div>
     </div>
   </div>

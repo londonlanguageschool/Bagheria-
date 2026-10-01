@@ -455,10 +455,58 @@
     <div class="empty">Loading your homework… · Caricamento…</div>
   </main>
 
-  <footer>Questions? Ask your teacher or the school office. · <a href="#" data-report-problem="Student app">🐞 Segnala un problema · Report a problem</a> <span style="font-size:10px;font-weight:800;background:#ffd23f;color:#16275c;border-radius:999px;padding:1px 6px;">Beta</span> <span id="switchWrap" hidden>· <a href="#" id="switchStudent">Non sei tu? Cambia studente · Switch student</a></span></footer>
+  <footer><a href="#" id="openGuide">❓ Come funziona · How it works</a> · Questions? Ask your teacher or the school office. · <a href="#" data-report-problem="Student app">🐞 Segnala un problema · Report a problem</a> <span style="font-size:10px;font-weight:800;background:#ffd23f;color:#16275c;border-radius:999px;padding:1px 6px;">Beta</span> <span id="switchWrap" hidden>· <a href="#" id="switchStudent">Non sei tu? Cambia studente · Switch student</a></span></footer>
 
   <script src="practice/courses.js"></script>
   <script src="report.js"></script>
+  <script>
+    /* 1 Oct — "❓ Come funziona · How it works": a short guide for students
+       and parents, Italian first with English underneath. */
+    (function () {
+      const STEPS = [
+        ["🔑", "Entra", "Inquadra il QR sul tuo foglietto, oppure scrivi il tuo codice. Poi salva la pagina sulla schermata Home (iPhone: Condividi → «Aggiungi alla schermata Home»; Android: ⋮ → «Installa app»).",
+               "Log in", "Scan the QR on your slip or type your code, then add the page to your Home screen."],
+        ["📝", "Compiti", "Qui trovi i compiti della tua classe. Quando li hai fatti, tocca «Mark done»: il tuo insegnante lo vede.",
+               "Homework", "Your class's homework. When it's done, tap «Mark done»: your teacher can see it."],
+        ["🎯", "Esercizi", "Nella scheda «Practice · Esercizi» ti alleni con il tuo libro: grammatica, vocabolario e pronuncia. Superi un esercizio con almeno metà delle risposte giuste.",
+               "Practice", "In «Practice» you train with your book: grammar, vocabulary and speaking. Half the answers right = passed."],
+        ["🗺️", "Il mio percorso", "Le unità del libro come una strada, le stelle che guadagni, i tuoi obiettivi e, in «Cosa ho imparato», tutto quello che avete fatto in classe.",
+               "My journey", "Your book units as a road, your stars, your goals and, in «What I've learnt», everything you did in class."],
+        ["🏆", "Test", "Quando l'insegnante ti dà un test, lo trovi tra i compiti. Fallo con calma: vedi il punteggio alla fine.",
+               "Tests", "Tests from your teacher appear with your homework. You see your score at the end."],
+        ["👨‍👩‍👧", "Fratelli e sorelle", "Se usate lo stesso telefono, in fondo alla pagina tocca «Cambia studente».",
+               "Brothers and sisters", "Sharing a phone? Tap «Switch student» at the bottom of the page."],
+        ["🐞", "Qualcosa non va?", "Tocca «Segnala un problema» in fondo alla pagina, oppure chiedi in segreteria.",
+               "Something wrong?", "Tap «Report a problem» at the bottom of the page, or ask the office."]
+      ];
+      function open() {
+        let box = document.getElementById("guideBox");
+        if (box) box.remove();
+        box = document.createElement("div");
+        box.id = "guideBox";
+        box.setAttribute("role", "dialog");
+        box.setAttribute("aria-modal", "true");
+        box.setAttribute("aria-label", "Come funziona · How it works");
+        box.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(15,27,61,.55);display:flex;align-items:flex-end;justify-content:center;padding:16px";
+        box.innerHTML = `<div style="background:#fff;border-radius:24px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:18px 16px 16px;box-shadow:0 20px 50px rgba(0,0,0,.25)">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
+            <h2 style="margin:0;font-size:20px">❓ Come funziona · How it works</h2>
+            <button type="button" data-close style="border:0;background:#eef3fb;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer" aria-label="Chiudi · Close">×</button>
+          </div>
+          ${STEPS.map(([icon, t, d, te, de]) => `<div style="display:grid;grid-template-columns:40px 1fr;gap:10px;padding:10px 0;border-top:1px solid #e6edf7">
+            <div style="font-size:26px;line-height:1">${icon}</div>
+            <div><strong style="display:block">${t}</strong><span style="display:block;font-size:14px;color:#33415c;line-height:1.45">${d}</span>
+            <small style="display:block;margin-top:4px;font-size:12.5px;color:#6a7690;line-height:1.4">🇬🇧 <b>${te}</b>: ${de}</small></div>
+          </div>`).join("")}
+          <button type="button" data-close style="margin-top:12px;width:100%;border:0;border-radius:999px;padding:13px;background:#16275c;color:#fff;font:inherit;font-weight:700;cursor:pointer">Ho capito! · Got it!</button>
+        </div>`;
+        document.body.appendChild(box);
+        box.addEventListener("click", (e) => { if (e.target === box || e.target.closest("[data-close]")) box.remove(); });
+      }
+      document.getElementById("openGuide")?.addEventListener("click", (e) => { e.preventDefault(); open(); });
+      window.llsOpenStudentGuide = open;
+    })();
+  </script>
   <script>
     "use strict";
 

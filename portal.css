@@ -2599,3 +2599,16 @@ tbody tr:hover {
 .lesson-skills .sk-chip { border: 1px solid #cfdcee; background: #fff; border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lesson-skills .sk-chip.on { background: #ffd23f; border-color: #e0b400; font-weight: 700; }
 .lesson-skills.needs .sk-toggles { outline: 2px solid #e2554a; outline-offset: 4px; border-radius: 12px; }
+
+/* 1 Oct: in-app guide */
+.guide-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.guide-tab { border: 2px solid #dfe9f5; background: #fff; border-radius: 999px; padding: 8px 14px; font: inherit; font-weight: 700; cursor: pointer; min-height: 42px; }
+.guide-tab[aria-selected="true"] { background: #16275c; border-color: #16275c; color: #fff; }
+.guide-lang { margin-left: auto; }
+.guide-body ol { list-style: none; counter-reset: g; padding: 0; margin: 0; display: grid; gap: 10px; }
+.guide-body li { counter-increment: g; display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; background: #f6fbff; border: 1px solid #dcefff; border-radius: 14px; padding: 10px 12px; }
+.guide-body li::before { content: counter(g); width: 30px; height: 30px; border-radius: 50%; background: #ffd23f; color: #16275c; font-weight: 800; display: grid; place-items: center; }
+.guide-body li strong { display: block; margin-bottom: 2px; }
+.guide-body li span { color: #33415c; font-size: 14px; line-height: 1.45; }
+.guide-body .guide-intro { margin: 0 0 12px; color: #33415c; }
+.guide-body .guide-tip { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: #fff8d6; border: 1px solid #f0d878; font-size: 14px; }
