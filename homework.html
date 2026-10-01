@@ -1563,9 +1563,11 @@
         quiz = {
           courseId, code, type, lesson,
           setId: `${lesson.id}-${type}`,
+          // 1 Oct: questions come in a new order each time (options too),
+          // so repeating a set feels a little different.
           items: type === "s"
             ? items.map((text) => ({ text, best: 0, heard: "", marks: null }))
-            : items.map((q) => {
+            : shuffle(items.slice()).map((q) => {
                 if (!Array.isArray(q.o)) return { ...q };
                 const order = shuffle(q.o.map((_, i) => i));
                 return { ...q, o: order.map((i) => q.o[i]), a: order.indexOf(q.a) };
