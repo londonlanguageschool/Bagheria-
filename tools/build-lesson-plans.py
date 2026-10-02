@@ -74,7 +74,10 @@ def order(p):
 
 root = sys.argv[1]
 FOLDER = "https://drive.google.com/drive/folders/1_AyE9xHLZX-tR057npuZEDeoPWiVDOgB"  # "LLS Lesson Plans (teachers)"
-out = {"folder": FOLDER, "names": {}, "courses": {}}
+# Drive file IDs of the uploaded decks (tools/plan-links.json: "Folder/File.pptx": id).
+LINKS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "plan-links.json")
+ids = json.load(open(LINKS_FILE)) if os.path.exists(LINKS_FILE) else {}
+out = {"folder": FOLDER, "links": {k: f"https://drive.google.com/file/d/{v}/view" for k, v in ids.items()}, "names": {}, "courses": {}}
 for folder, (code, cname) in COURSES.items():
     path = os.path.join(root, folder)
     if not os.path.isdir(path): continue

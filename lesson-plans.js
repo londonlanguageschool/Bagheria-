@@ -2,6 +2,29 @@
    id = the code teachers see and type in "Unit / page"; file = path in the slides folder. */
 window.LLS_PLANS = {
  "folder": "https://drive.google.com/drive/folders/1_AyE9xHLZX-tR057npuZEDeoPWiVDOgB",
+ "links": {
+  "B1_Green_Course_6B-10B/B1_7-8_Revise_and_Check.pptx": "https://drive.google.com/file/d/12QajZgtQSOee-qDZPf-Yc8opm5uLaEYs/view",
+  "B1_Green_Course_6B-10B/B1_9B-2_Tidy_up_your_digital_life.pptx": "https://drive.google.com/file/d/1WlRME8xfBodmUtHAytDkvEzMJk9D4OUQ/view",
+  "B1_Green_Course_6B-10B/B1_7A-1_Live_and_learn_education.pptx": "https://drive.google.com/file/d/18Xvt9gC4mhVk_kEtury_JYX2mEh2I-do/view",
+  "B1_Green_Course_6B-10B/B1_10A-1_Idols_and_icons_relative_clauses.pptx": "https://drive.google.com/file/d/19Dg9cTEHH8DN0RzR8Z1nckaISzC4D4te/view",
+  "B1_Green_Course_6B-10B/B1_7B-1_The_hotel_of_Mum_and_Dad.pptx": "https://drive.google.com/file/d/1NbHm1tvGYMmSmTTi9OkO3GQySF3Pmzh7/view",
+  "B1_Green_Course_6B-10B/B1_9A-2_How_to_improve_your_luck.pptx": "https://drive.google.com/file/d/1oPHT_0oyuf1uAnn018TXUnXXQkIWdRUy/view",
+  "B1_Green_Course_6B-10B/B1_8B-1_Have_a_nice_day_reported_speech.pptx": "https://drive.google.com/file/d/1xb-abeQP6xD1CTzlsHYGuLgHyGrimBN3/view",
+  "B1_Green_Course_6B-10B/B1_8A-2_Dragons_Den.pptx": "https://drive.google.com/file/d/1jX_gv-mApWA_Cfed0PhbiQzhs4Ndults/view",
+  "B1_Green_Course_6B-10B/B1_7A-2_First_conditional_and_university.pptx": "https://drive.google.com/file/d/1kxiPpNfjR1DFU06QVah1Vv6ScWPLrTRl/view",
+  "B1_Green_Course_6B-10B/B1_6B-2_Can_you_learn_charisma.pptx": "https://drive.google.com/file/d/1qASOAJmbadsmDcAeCNbrOnwiAsS9iIDy/view",
+  "B1_Green_Course_6B-10B/B1_6B-1_Every_picture_tells_a_story.pptx": "https://drive.google.com/file/d/1evq5yai5J6nRVxIwj3DpsVuTuZlYZxWo/view",
+  "B1_Green_Course_6B-10B/B1_10B-1_Crime_and_question_tags.pptx": "https://drive.google.com/file/d/1gcZQZFEooM9xnDWMU2pthFZPOdgzdUrZ/view",
+  "B1_Green_Course_6B-10B/B1_10B-2_May_and_June.pptx": "https://drive.google.com/file/d/1MmWrzDggMrEnuhRK4-8cJNJq3xb-SwDU/view",
+  "B1_Green_Course_6B-10B/B1_8B-2_Going_the_extra_mile.pptx": "https://drive.google.com/file/d/1TYwNfCP6GxdZrXlKb4AKUvDJofPprJRb/view",
+  "B1_Green_Course_6B-10B/B1_9B-1_Digital_detox_devices.pptx": "https://drive.google.com/file/d/1NsRRE5OMIum4aHR91frqnQkGmcKXM3vl/view",
+  "B1_Green_Course_6B-10B/B1_9A-1_Lucky_encounters_third_conditional.pptx": "https://drive.google.com/file/d/1rR6FmCFk3TsD9_DYiQYxfxR5tpIr_1NK/view",
+  "B1_Green_Course_6B-10B/B1_10A-2_British_design_compound_nouns.pptx": "https://drive.google.com/file/d/1chcBvqYPCQkgRUv0-rBXSFdDKLI2QMCc/view",
+  "B1_Green_Course_6B-10B/B1_8A-1_The_right_job_for_you.pptx": "https://drive.google.com/file/d/1aRTy6XJjl2_izCK0PI0T9txUgR91mn29/view",
+  "B1_Green_Course_6B-10B/B1_7B-2_Houses_Handel_and_Hendrix.pptx": "https://drive.google.com/file/d/1zMRIiU4AR0V-SDyzw7I6b0hFGkzTqjRD/view",
+  "B1_Green_Course_6B-10B/B1_5-6_Revise_and_Check.pptx": "https://drive.google.com/file/d/1I3kFGfO1SzVklEyU1GnOh8VQKqwOBDGm/view",
+  "B1_Green_Course_6B-10B/B1_9-10_Revise_and_Check.pptx": "https://drive.google.com/file/d/1vsv0FVNgGDvgIQDqaF6ABFyTD6s2CPK2/view"
+ },
  "names": {
   "EF-A2B1": "English File A2/B1 (blue) – full course",
   "EF-B1": "English File B1 (green) – exam course, units 6–10",
