@@ -9817,7 +9817,7 @@ function llsRenderPlanPanel() {
   const shown = llsPlanShowAll ? plans : plans.filter((p, i) => p.id === todayCode || i === lastIdx || (nextIdx >= 0 && i >= nextIdx && i <= nextIdx + 2));
   const name = (LLS_PLANS.names && LLS_PLANS.names[cls.book]) || cls.book;
   box.innerHTML = `
-    <div class="plan-head"><p class="section-label" style="margin:0;">📚 Lesson plans</p><span class="muted">${escapeHtml(name)} · <strong>${doneCount}/${plans.length}</strong> taught</span></div>
+    <div class="plan-head"><p class="section-label" style="margin:0;">📚 Lesson plans</p><span class="muted">${escapeHtml(name)} · <strong>${doneCount}/${plans.length}</strong> taught${window.LLS_PLANS && LLS_PLANS.folder ? ` · <a href="${escapeAttribute(LLS_PLANS.folder)}" target="_blank" rel="noopener">📂 Slides on Google Drive</a>` : ""}</span></div>
     <div class="plan-bar" aria-hidden="true"><i style="width:${Math.round(doneCount / plans.length * 100)}%"></i></div>
     <div class="plan-list">${shown.map((p) => {
       const t = taught[p.id];

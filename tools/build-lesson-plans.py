@@ -73,7 +73,8 @@ def order(p):
     return (p["unit"], 1 if p["id"].startswith("R") else 0, m.group(2) or "", int(m.group(3) or 0))
 
 root = sys.argv[1]
-out = {"names": {}, "courses": {}}
+FOLDER = "https://drive.google.com/drive/folders/1_AyE9xHLZX-tR057npuZEDeoPWiVDOgB"  # "LLS Lesson Plans (teachers)"
+out = {"folder": FOLDER, "names": {}, "courses": {}}
 for folder, (code, cname) in COURSES.items():
     path = os.path.join(root, folder)
     if not os.path.isdir(path): continue
