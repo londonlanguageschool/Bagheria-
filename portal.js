@@ -622,6 +622,8 @@ function renderDashboard() {
   renderTodayClasses();
   renderStudentBreakdown();
   renderRecentEnquiries();
+  if (typeof llsRenderNoFeePanel === "function") llsRenderNoFeePanel();
+  if (typeof llsScheduleWeekPanels_ === "function") llsScheduleWeekPanels_();
 
   text(
     "dashboardPaidAmount",
@@ -3743,6 +3745,16 @@ function renderNotifications() {
       });
     });
 
+  // 2 Oct: students coming to lessons with no course fee recorded.
+  const noFee = typeof llsStudentsWithoutFee_ === "function" ? llsStudentsWithoutFee_() : [];
+  if (noFee.length) {
+    notifications.unshift({
+      icon: "💶",
+      title: "No payment details",
+      message: `${noFee.length} student${noFee.length === 1 ? " is" : "s are"} in a class with no course fee recorded (see the Dashboard)`
+    });
+  }
+
   byId("notificationDot").classList.toggle(
     "visible",
     notifications.length > 0
@@ -5289,6 +5301,7 @@ async function llsLoadFinanceFromSheets(force = false) {
       fees: Array.isArray(data.fees) ? data.fees : [],
       payments: Array.isArray(data.payments) ? data.payments : []
     };
+    window.llsFinanceReady = true; // 2 Oct: the "no payment details" reminder waits for this
 
     llsRebuildPaymentsState();
     saveState();
@@ -7748,6 +7761,7 @@ async function llsRenderLesson() {
   llsSetSpecial(false);
   setValue("lessonHwDue", llsNextLessonDate(cls, date));
   llsLesson.entries = [];
+  llsPlanConfirm = "";
   llsRenderSkills();
   llsRenderHwSuggest(cls);
   llsLesson.noteTouched = false;
@@ -7812,6 +7826,7 @@ async function llsRenderLesson() {
     if (last) { lastBox.hidden = false; lastBox.innerHTML = `<h3>📝 Last lesson</h3>${llsLessonLogEntryHtml(last)}`; }
     llsRenderLessonLogList(byId("lessonHistory"), llsLesson.entries);
     byId("lessonHistoryCount").textContent = llsLesson.entries.length ? `(${llsLesson.entries.length})` : "";
+    llsRenderPlanPanel();
   };
   // 30 Sept: this class's notes as saved on this device, at once; Google's copy replaces them.
   try { const c = JSON.parse(localStorage.getItem(logCacheKey) || "null"); if (c && Array.isArray(c.entries)) applyLog(c); } catch (_) {}
@@ -7823,6 +7838,7 @@ async function llsRenderLesson() {
     byId("lessonHistory").innerHTML = `<p class="muted">${escapeHtml(e.message || "")}</p>`;
   });
 
+  llsRenderPlanPanel();
   llsTestFromLesson = true;
   llsRenderLessonTests();
 
@@ -8280,6 +8296,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function llsInitLessonPage() {
+  if (llsRole() === "teacher") llsScheduleWeekPanels_();
   const dateInput = byId("lessonDate");
   if (dateInput && !dateInput.value) dateInput.value = isoDate(new Date());
   if (!llsLesson.classId) {
@@ -9281,7 +9298,9 @@ const LLS_GUIDE = {
       intro: "Everything for a lesson is on one page. It takes a couple of minutes between classes.",
       steps: [
         ["Log in", "Choose Teacher, then your Teacher ID (e.g. TCH0002) or email, and your PIN."],
-        ["★ Lesson", "Today's lessons are buttons at the top. Tap yours. ✓ = saved, ⏳ = still sending."],
+        ["★ Lesson", "Today's lessons are buttons at the top. Tap yours. ✓ = saved, ⏳ = still sending."],,
+        ["📋 My week", "At the top of the Lesson page: every lesson you had this week. ✅ filled in, ⚠ to complete. Tap \"Fill it in\" to open that lesson. ‹ goes back a week. The office sees the same list."],
+        ["📚 Lesson plans", "Classes with a course (English File A2, B1 exam, Kitchen English) show the PowerPoint lessons in order. ✓ = this class has already had it (date and teacher), ➡ = next one. \"Teach today\" fills in Unit / page, What we did and the skills for you: check them and save as usual. A lesson already taught asks you to tap twice, so nobody repeats it by mistake."]
         ["1 · Register", "Tap Here / Late / Absent / Excused (\"Everyone here\" does it in one go). Choose \"How did they do?\" for everyone who came: it counts towards their progress."],
         ["2 · What did you do today?", "Tap the skills you covered (Grammar, Reading, Speaking…) and tap a suggested topic or type one. Students see this on their road map. For a ⭐ Special lesson (Halloween, Christmas…) tick the box instead."],
         ["Notes for the next teacher", "Private: only staff see them. \"Anything else?\" is optional and students can see it."],
@@ -9298,7 +9317,9 @@ const LLS_GUIDE = {
       intro: "Tutto quello che serve per una lezione è in una pagina. Bastano un paio di minuti tra una classe e l'altra.",
       steps: [
         ["Accesso", "Scegli Insegnante, poi il tuo ID (es. TCH0002) o la tua email, e il PIN."],
-        ["★ Lezione", "Le lezioni di oggi sono i pulsanti in alto. Tocca la tua. ✓ = salvata, ⏳ = in invio."],
+        ["★ Lezione", "Le lezioni di oggi sono i pulsanti in alto. Tocca la tua. ✓ = salvata, ⏳ = in invio."],,
+        ["📋 La mia settimana", "In cima alla pagina Lezione: tutte le tue lezioni della settimana. ✅ compilata, ⚠ da compilare. Tocca \"Compilala\" per aprirla. ‹ torna alla settimana prima. La segreteria vede lo stesso elenco."],
+        ["📚 Piani di lezione", "Le classi con un corso (English File A2, B1 esame, Kitchen English) mostrano le lezioni PowerPoint in ordine. ✓ = la classe l'ha già fatta (data e insegnante), ➡ = la prossima. \"Faccio questa oggi\" compila Unità / pagina, Cosa abbiamo fatto e le abilità: controlla e salva come sempre. Una lezione già fatta chiede due tocchi, così nessuno la ripete per sbaglio."]
         ["1 · Appello", "Tocca Presente / In ritardo / Assente / Giustificato (\"Tutti presenti\" li segna tutti). Scegli \"Com'è andata?\" per ogni studente presente: conta nei suoi progressi."],
         ["2 · Cosa avete fatto oggi?", "Tocca le abilità (Grammatica, Lettura, Parlato…) e tocca un argomento suggerito o scrivilo. Gli studenti lo vedono nel loro percorso. Per una ⭐ lezione speciale (Halloween, Natale…) spunta la casella."],
         ["Note per il prossimo insegnante", "Private: le vede solo lo staff. \"Altro?\" è facoltativo e lo vedono gli studenti."],
@@ -9325,7 +9346,9 @@ const LLS_GUIDE = {
         ["Reminders", "Filter \"Overdue\" and use the WhatsApp reminder button on the fee."],
         ["Enquiries", "\"+ New enquiry\" for calls and visits (the website form adds them by itself). Move the stage, then \"Convert to Student\" when they enrol."],
         ["Classes & Teachers", "Edit days, times, rooms and book unit. \"📱 App links\" on a class gives every student's link. Teachers: \"+ Add teacher\" with a PIN."],
-        ["🛠 Lessons to sort out", "On the Dashboard: lessons a teacher says were covered by someone else, cancelled, or not theirs. Do what it says (\"Open lesson\" / \"Open class\"), then press \"Sorted ✓\"."],
+        ["🛠 Lessons to sort out", "On the Dashboard: lessons a teacher says were covered by someone else, cancelled, or not theirs. Do what it says (\"Open lesson\" / \"Open class\"), then press \"Sorted ✓\"."],,
+        ["💶 In class, but no payment details", "On the Dashboard (and in 🔔): students coming to lessons with no course fee recorded. Press \"+ Record payment\", put the total fee and payment plan, Amount paid = what they paid today (or 0), Save. They leave the list. \"How to fix it\" on the panel has the steps."],
+        ["📋 This week's lessons", "On the Dashboard: which lessons teachers haven't filled in yet this week, with a count per teacher. \"Show all\" lists every lesson. A gentle WhatsApp to the teacher is usually enough."]
         ["The ⏳ pill at the top", "Changes still on their way to Google. Wait for it to go before closing the page. If it turns ⚠, tap it to try again."]
       ],
       tip: "Something not working? 🐞 Report a problem (left menu) emails the school with the details."
@@ -9342,7 +9365,9 @@ const LLS_GUIDE = {
         ["Promemoria", "Filtra \"Scaduto\" e usa il pulsante WhatsApp di promemoria sulla quota."],
         ["Richieste", "\"+ Nuova richiesta\" per telefonate e visite (il modulo del sito le aggiunge da solo). Aggiorna la fase, poi \"Trasforma in studente\" quando si iscrive."],
         ["Classi e insegnanti", "Modifica giorni, orari, aule e unità del libro. \"📱 Link app\" su una classe dà i link di tutti gli studenti. Insegnanti: \"+ Add teacher\" con un PIN."],
-        ["🛠 Lezioni da sistemare", "Nella Dashboard: lezioni che un insegnante segnala come coperte da un collega, annullate o non sue. Fai quello che dice (\"Open lesson\" / \"Open class\"), poi premi \"Sorted ✓\"."],
+        ["🛠 Lezioni da sistemare", "Nella Dashboard: lezioni che un insegnante segnala come coperte da un collega, annullate o non sue. Fai quello che dice (\"Open lesson\" / \"Open class\"), poi premi \"Sorted ✓\"."],,
+        ["💶 In classe, ma senza dati di pagamento", "Nella Dashboard (e nelle 🔔): studenti che vengono a lezione senza quota del corso registrata. Premi \"+ Registra pagamento\", inserisci quota totale e piano di pagamento, Importo pagato = quanto hanno pagato oggi (o 0), Salva. Spariscono dall'elenco. \"Come sistemarlo\" nel riquadro ha i passaggi."],
+        ["📋 Le lezioni della settimana", "Nella Dashboard: le lezioni che gli insegnanti non hanno ancora compilato questa settimana, con il conto per insegnante. \"Mostra tutte\" elenca ogni lezione. Di solito basta un WhatsApp gentile all'insegnante."]
         ["Il pulsante ⏳ in alto", "Modifiche ancora in viaggio verso Google. Aspetta che sparisca prima di chiudere la pagina. Se diventa ⚠, toccalo per riprovare."]
       ],
       tip: "Qualcosa non funziona? 🐞 Segnala un problema (menu a sinistra) manda un'email alla scuola con i dettagli."
@@ -9709,3 +9734,305 @@ function llsLessonFilesPicked_() {
 document.addEventListener("DOMContentLoaded", () => {
   byId("lessonHwFiles")?.addEventListener("change", llsLessonFilesPicked_);
 });
+
+
+/* =========================================================
+   2 Oct — owner's requests:
+   1. Lesson plans: the owner's PowerPoint lessons for each course appear
+      on the Lesson page. Teachers open the slides, press "Teach today",
+      and see which lessons this class has already had (and when, and by
+      whom), so the same lesson is never taught twice by mistake.
+      A lesson counts as taught when its code (e.g. 4B, 6B-1, L3, R1-2)
+      starts "Unit / page" in the class's lesson notes.
+   2. The week's lessons: every scheduled lesson this week, filled in or
+      still to complete. Teachers see theirs (Lesson page), the office
+      sees everyone's (Dashboard).
+   3. Office reminder: students in a class with no course fee recorded.
+========================================================= */
+
+// ---------- 1. Lesson plans ----------
+function llsPlanCode_(unit) {
+  const m = String(unit || "").trim().replace(/^(unit|lesson)\s+/i, "").match(/^(R\d{1,2}-\d{1,2}|\d{1,2}[A-C](?:-\d)?|L\d{1,2})(?![\w])/i);
+  return m ? m[1].toUpperCase() : "";
+}
+function llsPlansFor_(cls) {
+  const all = (window.LLS_PLANS && LLS_PLANS.courses && cls && LLS_PLANS.courses[cls.book]) || [];
+  const m = String((cls && cls.units) || "").match(/^(\d+)\s*-\s*(\d+)$/);
+  return m ? all.filter((p) => p.unit >= Number(m[1]) && p.unit <= Number(m[2])) : all;
+}
+function llsPlanUrl_(p) {
+  const P = window.LLS_PLANS || {};
+  if (P.links && P.links[p.file]) return P.links[p.file];
+  return P.base ? P.base + p.file.split("/").map(encodeURIComponent).join("/") : "";
+}
+// When each plan was taught with this class: { code: [{ date, teacher }] }.
+function llsPlanTaught_(entries) {
+  const out = {};
+  (entries || []).forEach((e) => {
+    const code = llsPlanCode_(e.unit);
+    if (!code) return;
+    (out[code] = out[code] || []).push({ date: String(e.lessonDate || "").slice(0, 10), teacher: String(e.teacherName || "").split(/\s+/)[0] });
+  });
+  return out;
+}
+let llsPlanShowAll = false;
+let llsPlanConfirm = "";
+function llsRenderPlanPanel() {
+  const box = byId("lessonPlanPanel");
+  if (!box) return;
+  const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
+  const plans = cls ? llsPlansFor_(cls) : [];
+  box.hidden = !plans.length;
+  if (!plans.length) { box.innerHTML = ""; return; }
+  const date = byId("lessonDate")?.value || "";
+  const taught = llsPlanTaught_((llsLesson.entries || []).filter((e) => String(e.lessonDate || "").slice(0, 10) !== date));
+  const todayCode = llsPlanCode_(value("lessonUnitPage"));
+  const doneCount = plans.filter((p) => taught[p.id]).length;
+  let lastIdx = -1;
+  plans.forEach((p, i) => { if (taught[p.id]) lastIdx = i; });
+  const nextIdx = plans.findIndex((p, i) => i > lastIdx && !taught[p.id]);
+  const when = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const shown = llsPlanShowAll ? plans : plans.filter((p, i) => p.id === todayCode || i === lastIdx || (nextIdx >= 0 && i >= nextIdx && i <= nextIdx + 2));
+  const name = (LLS_PLANS.names && LLS_PLANS.names[cls.book]) || cls.book;
+  box.innerHTML = `
+    <div class="plan-head"><p class="section-label" style="margin:0;">📚 Lesson plans</p><span class="muted">${escapeHtml(name)} · <strong>${doneCount}/${plans.length}</strong> taught</span></div>
+    <div class="plan-bar" aria-hidden="true"><i style="width:${Math.round(doneCount / plans.length * 100)}%"></i></div>
+    <div class="plan-list">${shown.map((p) => {
+      const t = taught[p.id];
+      const i = plans.indexOf(p);
+      const isToday = p.id === todayCode;
+      const url = llsPlanUrl_(p);
+      const cls2 = isToday ? "today" : t ? "done" : i === nextIdx ? "next" : "";
+      const badge = isToday ? "📌 Today's lesson" : t ? "✓ Taught " + t.map((x) => when(x.date) + (x.teacher ? " (" + x.teacher + ")" : "")).join(", ") : i === nextIdx ? "➡ Next" : "";
+      const confirm = llsPlanConfirm === p.id;
+      return `<div class="plan-row ${cls2}">
+        <span class="plan-code">${escapeHtml(p.id)}</span>
+        <span class="plan-text"><strong>${escapeHtml(p.title)}</strong><small>${escapeHtml(p.focus)}${p.pages ? " · " + escapeHtml(p.pages) : ""}</small>${badge ? `<em>${escapeHtml(badge)}</em>` : ""}${confirm ? `<b class="plan-warn">⚠ This class has already had this lesson. Tap again to teach it again.</b>` : ""}</span>
+        <span class="plan-actions">
+          ${url ? `<a class="row-action" href="${escapeAttribute(url)}" target="_blank" rel="noopener">🖥 Slides</a>` : ""}
+          ${isToday ? "" : `<button type="button" class="row-action${t ? " warn" : ""}" data-plan-use="${escapeAttribute(p.id)}">${confirm ? "Yes, teach again" : t ? "Teach again" : "Teach today"}</button>`}
+        </span></div>`;
+    }).join("")}</div>
+    ${plans.length > shown.length || llsPlanShowAll ? `<button type="button" class="row-action plan-all" data-plan-all>${llsPlanShowAll ? "Show fewer" : `Show all ${plans.length} lessons`}</button>` : ""}`;
+  box.querySelector("[data-plan-all]")?.addEventListener("click", () => { llsPlanShowAll = !llsPlanShowAll; llsRenderPlanPanel(); });
+  box.querySelectorAll("[data-plan-use]").forEach((b) => b.addEventListener("click", () => {
+    const p = plans.find((x) => x.id === b.dataset.planUse);
+    if (!p) return;
+    if (taught[p.id] && llsPlanConfirm !== p.id) { llsPlanConfirm = p.id; llsRenderPlanPanel(); return; }
+    llsPlanConfirm = "";
+    if (byId("lessonSpecialOn")?.checked) llsSetSpecial(false);
+    setValue("lessonUnitPage", p.id + (p.pages ? " · " + p.pages : ""));
+    if (!value("lessonDone").trim()) setValue("lessonDone", `${p.title}: ${p.focus}`);
+    // Tick the skills this deck covers, with its topics (teachers can untick or edit).
+    Object.entries(p.skills || {}).forEach(([k, topic]) => {
+      const st = llsSkillState[k];
+      if (st && st.on && String(st.topic || "").trim()) return;
+      llsSkillState[k] = { on: true, topic: String(topic || ""), focus: (st && st.focus) || "" };
+    });
+    if (p.skills) { byId("lessonSkills")?.classList.remove("needs"); llsRenderSkills(); }
+    llsLesson.noteTouched = true;
+    byId("lessonDone")?.classList.remove("needs");
+    llsRenderPlanPanel();
+    showToast(`${p.id} "${p.title}" is today's lesson. Take the register and save as usual.`, "info");
+  }));
+}
+document.addEventListener("DOMContentLoaded", () => {
+  byId("lessonUnitPage")?.addEventListener("input", () => { llsPlanConfirm = ""; llsRenderPlanPanel(); });
+});
+
+// ---------- 2. The week's lessons ----------
+let llsWeekOffset = 0;
+const llsWeekCache = {};
+let llsWeekShowAll = false;
+function llsMonday_(offset) {
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + offset * 7);
+  return isoDate(d);
+}
+function llsWeekLessons_(monday, mine) {
+  const out = [];
+  const d = new Date(monday + "T12:00:00");
+  for (let i = 0; i < 6; i++) {
+    const iso = isoDate(d);
+    const dayName = d.toLocaleDateString("en-GB", { weekday: "long" });
+    if (!llsSchoolClosed_(iso)) {
+      llsLessonsOn(iso, mine).forEach(({ cls, time }) => {
+        if (/^demo/i.test(cls.name || "")) return;
+        out.push({ cls, time, date: iso, teacher: llsTeacherOnDay(cls, dayName) });
+      });
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+async function llsLoadWeek_(monday, classIds, force) {
+  const key = monday + "|" + classIds.slice().sort().join(",");
+  const hit = llsWeekCache[key];
+  if (hit && !force && Date.now() - hit.at < 5 * 60 * 1000) return hit;
+  for (let i = 0; i < 20 && window.llsServerVersion === undefined; i++) await new Promise((r) => setTimeout(r, 500));
+  const info = { dates: {}, issues: [], at: Date.now(), failed: false };
+  if ((window.llsServerVersion || 0) >= 29) {
+    try {
+      const res = await llsApiGet("getLessonDates", { classIds: classIds.join(","), since: monday }, { background: true });
+      info.dates = res.dates || {};
+      info.issues = res.issues || [];
+    } catch (_) { info.failed = true; }
+  } else {
+    for (const id of classIds) {
+      try {
+        const log = await llsApiGet("getLessonLog", { classId: id, limit: 30 }, { background: true });
+        info.dates[id] = (log.entries || []).map((e) => String(e.lessonDate || "").slice(0, 10));
+      } catch (_) { info.failed = true; }
+    }
+  }
+  if (!info.failed) llsWeekCache[key] = info;
+  return info;
+}
+function llsWeekStatus_(x, info) {
+  const now = new Date();
+  const today = isoDate(now);
+  const hhmm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+  const saved = llsLessonSaveState(x.cls.id, x.date);
+  if (saved === "saved" || ((info && info.dates[x.cls.id]) || []).includes(x.date)) return "done";
+  if (saved === "sending") return "sending";
+  if (info && (info.issues || []).some((i) => i.classId === x.cls.id && i.lessonDate === x.date)) return "reported";
+  if (x.date > today || (x.date === today && String(x.time || "") > hhmm)) return "upcoming";
+  return info ? "todo" : "checking";
+}
+const LLS_WEEK_LABEL = { done: "✅ Filled in", sending: "⏳ Sending", reported: "🛠 Reported", upcoming: "🔜 Coming up", todo: "⚠ To complete", checking: "…" };
+async function llsRenderWeekPanel(boxId, mine) {
+  const box = byId(boxId);
+  if (!box) return;
+  const monday = llsMonday_(llsWeekOffset);
+  const lessons = llsWeekLessons_(monday, mine);
+  const classIds = [...new Set(lessons.map((x) => x.cls.id))];
+  const draw = (info) => {
+    const rows = lessons.map((x) => ({ ...x, status: llsWeekStatus_(x, info) }));
+    const count = (s) => rows.filter((r) => r.status === s).length;
+    const sat = new Date(monday + "T12:00:00"); sat.setDate(sat.getDate() + 5);
+    const range = `${new Date(monday + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${sat.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+    const when = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
+    // Office: one line per teacher, then only the lessons that need doing (unless "Show all").
+    const teachers = mine ? [] : [...new Set(rows.map((r) => r.teacher || "?"))].sort();
+    const list = mine || llsWeekShowAll ? rows : rows.filter((r) => r.status === "todo" || r.status === "reported");
+    box.hidden = false;
+    box.innerHTML = `
+      <div class="week-head">
+        <p class="section-label" style="margin:0;">📋 ${mine ? "My week" : "This week's lessons"}</p>
+        <span class="week-nav">
+          <button type="button" class="row-action" data-week="-1" aria-label="Previous week">‹</button>
+          <strong>${escapeHtml(range)}</strong>
+          <button type="button" class="row-action" data-week="1" aria-label="Next week"${llsWeekOffset >= 0 ? " disabled" : ""}>›</button>
+        </span>
+      </div>
+      <div class="week-chips">
+        <span class="week-chip done">✅ ${count("done")} filled in</span>
+        <span class="week-chip todo">⚠ ${count("todo")} to complete</span>
+        ${count("reported") ? `<span class="week-chip">🛠 ${count("reported")} reported</span>` : ""}
+        ${count("upcoming") ? `<span class="week-chip">🔜 ${count("upcoming")} coming up</span>` : ""}
+        ${!info ? `<span class="muted">checking with Google…</span>` : info.failed ? `<span class="muted">Google didn't answer: some lessons may show as "to complete" by mistake.</span>` : ""}
+      </div>
+      ${teachers.length ? `<div class="week-teachers">${teachers.map((t) => {
+        const mineRows = rows.filter((r) => (r.teacher || "?") === t);
+        const todo = mineRows.filter((r) => r.status === "todo").length;
+        return `<span class="week-teacher${todo ? " has-todo" : ""}"><strong>${escapeHtml(t)}</strong> ${mineRows.filter((r) => r.status === "done").length}/${mineRows.filter((r) => r.status !== "upcoming").length} done${todo ? ` · ⚠ ${todo}` : ""}</span>`;
+      }).join("")}</div>` : ""}
+      <div class="week-list">${list.length ? list.map((r) => `
+        <div class="week-row ${r.status}">
+          <span class="week-when">${escapeHtml(when(r.date))} ${escapeHtml(r.time)}</span>
+          <span class="week-class">${escapeHtml(r.cls.name)}${mine ? "" : ` <span class="muted">· ${escapeHtml(r.teacher || "?")}</span>`}</span>
+          <span class="week-status">${LLS_WEEK_LABEL[r.status]}</span>
+          ${r.status === "todo" || r.status === "done" ? `<button type="button" class="row-action" data-week-open="${escapeAttribute(r.cls.id + "|" + r.date)}">${r.status === "todo" ? (mine ? "Fill it in" : "Open") : "View"}</button>` : "<span></span>"}
+        </div>`).join("") : `<p class="muted" style="margin:6px 0 0;">${rows.length ? "Nothing to complete. 🎉" : "No lessons in the timetable this week."}</p>`}</div>
+      ${!mine && rows.length ? `<button type="button" class="row-action" data-week-all style="margin-top:8px;">${llsWeekShowAll ? "Show only what needs doing" : `Show all ${rows.length} lessons`}</button>` : ""}`;
+    box.querySelectorAll("[data-week]").forEach((b) => b.addEventListener("click", () => { llsWeekOffset = Math.min(0, llsWeekOffset + Number(b.dataset.week)); llsRenderWeekPanel(boxId, mine); }));
+    box.querySelector("[data-week-all]")?.addEventListener("click", () => { llsWeekShowAll = !llsWeekShowAll; draw(info); });
+    box.querySelectorAll("[data-week-open]").forEach((b) => b.addEventListener("click", () => {
+      const [classId, date] = b.dataset.weekOpen.split("|");
+      navigateTo("lesson");
+      const dateInput = byId("lessonDate");
+      if (dateInput) dateInput.value = date;
+      llsLesson.loadedKey = "";
+      llsRenderLessonPicker();
+      llsOpenLesson(classId);
+    }));
+  };
+  draw(null);
+  if (!classIds.length) return;
+  const info = await llsLoadWeek_(monday, classIds, false);
+  if (llsMonday_(llsWeekOffset) === monday) draw(info);
+}
+let llsWeekPanelTimer = null;
+function llsScheduleWeekPanels_() {
+  clearTimeout(llsWeekPanelTimer);
+  llsWeekPanelTimer = setTimeout(() => {
+    if (!llsHasAdminSession()) return;
+    if (llsRole() === "teacher") llsRenderWeekPanel("myWeekPanel", true);
+    else llsRenderWeekPanel("weekPanel", false);
+  }, 1500);
+}
+
+// ---------- 3. Students in class with no payment details ----------
+let llsNoFeeShowAll = false;
+function llsStudentsWithoutFee_() {
+  if (llsRole() !== "admin" || !window.llsFinanceReady) return [];
+  const today = isoDate(new Date());
+  const classById = new Map((state.classes || []).map((c) => [String(c.id), c]));
+  const feeTotal = new Map();
+  (llsLiveFinanceData.fees || []).forEach((f) => {
+    const sid = String(f["Student ID"] || "").trim();
+    feeTotal.set(sid, (feeTotal.get(sid) || 0) + number(f["Amount Due"]));
+  });
+  const bySid = new Map();
+  (llsLivePortalData.enrolments || []).forEach((e) => {
+    if (String(e["Status"] || "").trim().toLowerCase() !== "active") return;
+    const start = String(e["Start Date"] || "").slice(0, 10);
+    if (start && start > today) return;
+    const cls = classById.get(String(e["Class ID"] || "").trim());
+    if (!cls || /inactive|archived/i.test(cls.status || "") || /^demo/i.test(cls.name || "")) return;
+    const sid = String(e["Student ID"] || "").trim();
+    const st = getStudent(sid);
+    if (!st || String(st.status || "Active") !== "Active") return;
+    if (feeTotal.has(sid) && feeTotal.get(sid) > 0) return;
+    const row = bySid.get(sid) || { sid, name: getStudentName(st) || sid, classes: [], zero: feeTotal.has(sid) };
+    row.classes.push(cls.name);
+    bySid.set(sid, row);
+  });
+  return [...bySid.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+function llsRenderNoFeePanel() {
+  const box = byId("noFeePanel");
+  if (!box) return;
+  const list = llsStudentsWithoutFee_();
+  box.hidden = !list.length;
+  if (!list.length) { box.innerHTML = ""; return; }
+  const shown = llsNoFeeShowAll ? list : list.slice(0, 8);
+  box.innerHTML = `
+    <p class="section-label" style="margin-top:0;">💶 In class, but no payment details (${list.length})</p>
+    <p class="muted" style="margin:4px 0 10px;">These students are coming to lessons, but no course fee has been recorded for them yet.</p>
+    <details class="nofee-how"><summary>How to fix it</summary>
+      <ol>
+        <li>Press "+ Record payment" next to the student (or: Fees &amp; payments → "+ Record payment").</li>
+        <li>Fill in the total fee agreed with the family and the payment plan (one payment, 3 instalments, monthly…).</li>
+        <li>If they paid something today, put it in "Amount paid". If not, put 0: the fee is recorded and the portal reminds you when each instalment is due.</li>
+        <li>Press "Save payment". The student disappears from this list.</li>
+      </ol>
+      <p class="muted">"Fee is €0" means a fee exists but has no amount: press "Edit plan" on Fees &amp; payments and put the real amount.</p>
+    </details>
+    <div class="nofee-list">${shown.map((r) => `
+      <div class="nofee-row">
+        <span><strong>${escapeHtml(r.name)}</strong> <span class="muted">· ${escapeHtml(r.classes.join(", "))}${r.zero ? " · fee is €0" : ""}</span></span>
+        <button type="button" class="row-action" data-nofee="${escapeAttribute(r.sid)}">${r.zero ? "Fees & payments" : "+ Record payment"}</button>
+      </div>`).join("")}</div>
+    ${list.length > 8 ? `<button type="button" class="row-action" data-nofee-all style="margin-top:8px;">${llsNoFeeShowAll ? "Show fewer" : `Show all ${list.length}`}</button>` : ""}`;
+  box.querySelector("[data-nofee-all]")?.addEventListener("click", () => { llsNoFeeShowAll = !llsNoFeeShowAll; llsRenderNoFeePanel(); });
+  box.querySelectorAll("[data-nofee]").forEach((b) => b.addEventListener("click", () => {
+    const row = list.find((r) => r.sid === b.dataset.nofee);
+    if (row && row.zero) { navigateTo("fees"); return; }
+    openNewPayment();
+    setValue("paymentStudent", b.dataset.nofee);
+    if (!value("paymentDescription")) setValue("paymentDescription", "Course 2026/27");
+    setValue("paymentPaid", "0");
+  }));
+}

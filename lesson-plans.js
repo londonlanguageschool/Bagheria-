@@ -1,0 +1,1090 @@
+/* Lesson plans (PowerPoint) per course — generated 2 Oct 2026 from the owner's decks.
+   id = the code teachers see and type in "Unit / page"; file = path in the slides folder. */
+window.LLS_PLANS = {
+ "names": {
+  "EF-A2B1": "English File A2/B1 (blue) – full course",
+  "EF-B1": "English File B1 (green) – exam course, units 6–10",
+  "CHEF": "Kitchen English for chefs – 10 lessons"
+ },
+ "courses": {
+  "EF-A2B1": [
+   {
+    "id": "1B",
+    "unit": 1,
+    "title": "The perfect date?",
+    "focus": "Present simple • describing people",
+    "pages": "SB pp.8–9",
+    "slides": 13,
+    "file": "A2_Blue_Part1_Units1-6/A2_1B_The_perfect_date.pptx",
+    "skills": {
+     "Grammar": "Present simple",
+     "Vocabulary": "describing people",
+     "Reading": "Please date my dad!",
+     "Listening": "Elspbeth's dates",
+     "Speaking": "Find them a partner!"
+    }
+   },
+   {
+    "id": "1C",
+    "unit": 1,
+    "title": "The Remake Project",
+    "focus": "Present continuous • clothes • prepositions of place",
+    "pages": "SB pp.10–11",
+    "slides": 13,
+    "file": "A2_Blue_Part1_Units1-6/A2_1C_The_Remake_Project.pptx",
+    "skills": {
+     "Grammar": "Present continuous, prepositions of place",
+     "Vocabulary": "clothes",
+     "Listening": "The Milkmaid",
+     "Speaking": "What do you usually wear…?",
+     "Games & songs": "Picture memory"
+    }
+   },
+   {
+    "id": "2A",
+    "unit": 2,
+    "title": "OMG! Where's my passport?",
+    "focus": "Past simple • holidays",
+    "pages": "SB pp.14–15",
+    "slides": 11,
+    "file": "A2_Blue_Part1_Units1-6/A2_2A_Wheres_my_passport.pptx",
+    "skills": {
+     "Grammar": "Past simple",
+     "Vocabulary": "holidays",
+     "Reading": "Passport, tickets, money, phone",
+     "Listening": "Marta's story",
+     "Speaking": "Your last holiday",
+     "Games & songs": "Holiday disaster!"
+    }
+   },
+   {
+    "id": "2B",
+    "unit": 2,
+    "title": "That's me in the picture!",
+    "focus": "Past continuous • at, in, on",
+    "pages": "SB pp.16–17",
+    "slides": 12,
+    "file": "A2_Blue_Part1_Units1-6/A2_2B_Thats_me_in_the_picture.pptx",
+    "skills": {
+     "Grammar": "Past continuous, at, in, on",
+     "Reading": "A famous photo",
+     "Listening": "Anya's photos",
+     "Games & songs": "Alibi!"
+    }
+   },
+   {
+    "id": "2C",
+    "unit": 2,
+    "title": "One dark October evening",
+    "focus": "Time sequencers and connectors",
+    "pages": "SB pp.18–19",
+    "slides": 10,
+    "file": "A2_Blue_Part1_Units1-6/A2_2C_One_dark_October_evening.pptx",
+    "skills": {
+     "Grammar": "Time sequencers and connectors",
+     "Listening": "Happy or sad ending?",
+     "Speaking": "Retell the story"
+    }
+   },
+   {
+    "id": "R1-2",
+    "unit": 2,
+    "title": "Revise and Check – units 1 & 2",
+    "focus": "Units 1 & 2 – test and games",
+    "pages": "SB pp.20–21",
+    "slides": 10,
+    "file": "A2_Blue_Part1_Units1-6/A2_1-2_Revise_and_Check.pptx",
+    "skills": {
+     "Grammar": "Review of units 1–2",
+     "Speaking": "Can you say this in English?",
+     "Games & songs": "Back to the board"
+    }
+   },
+   {
+    "id": "3A",
+    "unit": 3,
+    "title": "TripAside",
+    "focus": "be going to • airports",
+    "pages": "SB pp.22–23",
+    "slides": 8,
+    "file": "A2_Blue_Part1_Units1-6/A2_3A_TripAside_going_to.pptx",
+    "skills": {
+     "Grammar": "be going to",
+     "Vocabulary": "airports",
+     "Reading": "No more boring stopovers!",
+     "Speaking": "Plan a stopover tour!"
+    }
+   },
+   {
+    "id": "3B",
+    "unit": 3,
+    "title": "Put it in your calendar!",
+    "focus": "Present continuous (future arrangements)",
+    "pages": "SB pp.24–25",
+    "slides": 9,
+    "file": "A2_Blue_Part1_Units1-6/A2_3B_Put_it_in_your_calendar.pptx",
+    "skills": {
+     "Grammar": "Present continuous (future arrangements)",
+     "Listening": "Jake and Sarah",
+     "Games & songs": "How organized are you?"
+    }
+   },
+   {
+    "id": "3C",
+    "unit": 3,
+    "title": "Word games",
+    "focus": "Defining relative clauses • paraphrasing",
+    "pages": "SB pp.26–27",
+    "slides": 9,
+    "file": "A2_Blue_Part1_Units1-6/A2_3C_Word_games_relative_clauses.pptx",
+    "skills": {
+     "Grammar": "Defining relative clauses",
+     "Vocabulary": "paraphrasing",
+     "Reading": "A to Z",
+     "Games & songs": "A to Z challenge"
+    }
+   },
+   {
+    "id": "4A",
+    "unit": 4,
+    "title": "Who does what?",
+    "focus": "Present perfect + yet, just, already",
+    "pages": "SB pp.30–31",
+    "slides": 12,
+    "file": "A2_Blue_Part1_Units1-6/A2_4A_Who_does_what_housework.pptx",
+    "skills": {
+     "Grammar": "Present perfect + yet, just, already",
+     "Reading": "Housework headlines",
+     "Listening": "The Lazy Person's Guide",
+     "Speaking": "Your country / You"
+    }
+   },
+   {
+    "id": "4B",
+    "unit": 4,
+    "title": "In your basket",
+    "focus": "Present perfect or past simple? • shopping",
+    "pages": "SB pp.32–33",
+    "slides": 12,
+    "file": "A2_Blue_Part1_Units1-6/A2_4B_In_your_basket_shopping.pptx",
+    "skills": {
+     "Grammar": "Present perfect or past simple?",
+     "Vocabulary": "shopping",
+     "Reading": "The ice cream sellers",
+     "Speaking": "Global chain stores"
+    }
+   },
+   {
+    "id": "4C",
+    "unit": 4,
+    "title": "#greatweekend",
+    "focus": "something, anything, nothing • -ed / -ing adjectives",
+    "pages": "SB pp.34–35",
+    "slides": 9,
+    "file": "A2_Blue_Part1_Units1-6/A2_4C_greatweekend.pptx",
+    "skills": {
+     "Grammar": "something, anything, nothing, -ed / -ing adjectives",
+     "Reading": "A boring weekend?",
+     "Listening": "The history of the weekend",
+     "Games & songs": "One answer is a lie!"
+    }
+   },
+   {
+    "id": "R3-4",
+    "unit": 4,
+    "title": "Revise and Check – units 3 & 4",
+    "focus": "Units 3 & 4 – test and games",
+    "pages": "SB pp.36–37",
+    "slides": 10,
+    "file": "A2_Blue_Part1_Units1-6/A2_3-4_Revise_and_Check.pptx",
+    "skills": {
+     "Grammar": "Review of units 3–4",
+     "Speaking": "Can you say this in English?",
+     "Games & songs": "Revise and Check – units 3 & 4"
+    }
+   },
+   {
+    "id": "5A",
+    "unit": 5,
+    "title": "I want it NOW!",
+    "focus": "Comparatives, as…as • numbers",
+    "pages": "SB pp.38–39",
+    "slides": 13,
+    "file": "A2_Blue_Part1_Units1-6/A2_5A_I_want_it_NOW.pptx",
+    "skills": {
+     "Grammar": "Comparatives, as…as",
+     "Vocabulary": "numbers",
+     "Reading": "I want it, and I want it NOW!",
+     "Listening": "How has your life changed?",
+     "Speaking": "How fast is your life?",
+     "Games & songs": "Compare us!"
+    }
+   },
+   {
+    "id": "5B",
+    "unit": 5,
+    "title": "Twelve lost wallets",
+    "focus": "Superlatives (+ ever + present perfect)",
+    "pages": "SB pp.40–41",
+    "slides": 10,
+    "file": "A2_Blue_Part1_Units1-6/A2_5B_Twelve_lost_wallets.pptx",
+    "skills": {
+     "Grammar": "Superlatives (+ ever + present perfect)",
+     "Listening": "The most honest city?",
+     "Speaking": "The most… you've ever…"
+    }
+   },
+   {
+    "id": "5C",
+    "unit": 5,
+    "title": "How much is enough?",
+    "focus": "Quantifiers, too, (not) enough",
+    "pages": "SB pp.42–43",
+    "slides": 11,
+    "file": "A2_Blue_Part1_Units1-6/A2_5C_How_much_is_enough.pptx",
+    "skills": {
+     "Grammar": "Quantifiers, too, (not) enough",
+     "Reading": "Are they really good and bad?",
+     "Speaking": "What do you drink?"
+    }
+   },
+   {
+    "id": "6A",
+    "unit": 6,
+    "title": "Think positive – or negative?",
+    "focus": "will / won't (predictions) • opposite verbs",
+    "pages": "SB pp.46–47",
+    "slides": 10,
+    "file": "A2_Blue_Part1_Units1-6/A2_6A_Think_positive.pptx",
+    "skills": {
+     "Grammar": "will / won't (predictions)",
+     "Vocabulary": "opposite verbs",
+     "Reading": "Why negative thinking can be positive",
+     "Speaking": "Are you a positive thinker?",
+     "Games & songs": "Optimist vs pessimist"
+    }
+   },
+   {
+    "id": "6B",
+    "unit": 6,
+    "title": "I'll always love you",
+    "focus": "will / won't / shall (other uses) • verb + back",
+    "pages": "SB pp.48–49",
+    "slides": 10,
+    "file": "A2_Blue_Part1_Units1-6/A2_6B_Ill_always_love_you.pptx",
+    "skills": {
+     "Grammar": "will / won't / shall (other uses)",
+     "Vocabulary": "verb + back",
+     "Reading": "\"I'll never forget you\"",
+     "Speaking": "Do you…?",
+     "Games & songs": "Promises, offers, decisions"
+    }
+   },
+   {
+    "id": "6C",
+    "unit": 6,
+    "title": "The meaning of dreaming",
+    "focus": "Review of verb forms • modifiers",
+    "pages": "SB pp.50–51",
+    "slides": 11,
+    "file": "A2_Blue_Part1_Units1-6/A2_6C_The_meaning_of_dreaming.pptx",
+    "skills": {
+     "Grammar": "Review of verb forms",
+     "Vocabulary": "modifiers",
+     "Listening": "Dr Melloni and the patient",
+     "Speaking": "Dreams"
+    }
+   },
+   {
+    "id": "R5-6",
+    "unit": 6,
+    "title": "Revise and Check – units 5 & 6",
+    "focus": "Units 5 & 6 – test and games",
+    "pages": "SB pp.52–53",
+    "slides": 10,
+    "file": "A2_Blue_Part1_Units1-6/A2_5-6_Revise_and_Check.pptx",
+    "skills": {
+     "Grammar": "Review of units 5–6",
+     "Speaking": "Can you say this in English?",
+     "Games & songs": "Superlative auction"
+    }
+   },
+   {
+    "id": "7A",
+    "unit": 7,
+    "title": "First day nerves",
+    "focus": "Uses of the infinitive with to",
+    "pages": "SB pp.54–55",
+    "slides": 11,
+    "file": "A2_Blue_Part2_Units7-12/A2_7A_First_day_nerves.pptx",
+    "skills": {
+     "Grammar": "Uses of the infinitive with to",
+     "Reading": "How to survive your first day",
+     "Listening": "Simon and Claire",
+     "Speaking": "Ask me!",
+     "Games & songs": "How to survive…"
+    }
+   },
+   {
+    "id": "7B",
+    "unit": 7,
+    "title": "Happiness is…",
+    "focus": "Uses of the gerund (verb + -ing)",
+    "pages": "SB pp.56–57",
+    "slides": 9,
+    "file": "A2_Blue_Part2_Units7-12/A2_7B_Happiness_is.pptx",
+    "skills": {
+     "Grammar": "Uses of the gerund (verb + -ing)",
+     "Reading": "Happiness is…",
+     "Listening": "The Bank of Happiness",
+     "Speaking": "Something / somewhere…",
+     "Games & songs": "Happiness is… gallery"
+    }
+   },
+   {
+    "id": "7C",
+    "unit": 7,
+    "title": "Could you pass the test?",
+    "focus": "have to, don't have to, must, mustn't",
+    "pages": "SB pp.58–59",
+    "slides": 10,
+    "file": "A2_Blue_Part2_Units7-12/A2_7C_Could_you_pass_the_test.pptx",
+    "skills": {
+     "Grammar": "have to, don't have to, must, mustn't",
+     "Reading": "Are the British really so bad at languages?",
+     "Listening": "Max's tests",
+     "Speaking": "Have you ever…?",
+     "Games & songs": "Classroom rules"
+    }
+   },
+   {
+    "id": "8A",
+    "unit": 8,
+    "title": "Should I stay or should I go?",
+    "focus": "should • get",
+    "pages": "SB pp.62–63",
+    "slides": 10,
+    "file": "A2_Blue_Part2_Units7-12/A2_8A_Should_I_stay_or_go.pptx",
+    "skills": {
+     "Grammar": "should, get",
+     "Reading": "Dear Graham",
+     "Speaking": "What's the problem?",
+     "Games & songs": "Agony aunt"
+    }
+   },
+   {
+    "id": "8B",
+    "unit": 8,
+    "title": "Murphy's Law",
+    "focus": "if + present, will + infinitive",
+    "pages": "SB pp.64–65",
+    "slides": 9,
+    "file": "A2_Blue_Part2_Units7-12/A2_8B_Murphys_Law_first_conditional.pptx",
+    "skills": {
+     "Grammar": "if + present, will + infinitive",
+     "Reading": "If something can go wrong…",
+     "Listening": "Peter and Sue",
+     "Games & songs": "Murphy's Law challenge"
+    }
+   },
+   {
+    "id": "8C",
+    "unit": 8,
+    "title": "Who is Vivienne?",
+    "focus": "Possessive pronouns • adverbs of manner",
+    "pages": "SB pp.66–67",
+    "slides": 10,
+    "file": "A2_Blue_Part2_Units7-12/A2_8C_Who_is_Vivienne.pptx",
+    "skills": {
+     "Grammar": "Possessive pronouns, adverbs of manner",
+     "Listening": "Who is Vivienne? – The ending",
+     "Games & songs": "Say it… angrily!"
+    }
+   },
+   {
+    "id": "R7-8",
+    "unit": 8,
+    "title": "Revise and Check – units 7 & 8",
+    "focus": "Units 7 & 8 – test and games",
+    "pages": "SB pp.68–69",
+    "slides": 10,
+    "file": "A2_Blue_Part2_Units7-12/A2_7-8_Revise_and_Check.pptx",
+    "skills": {
+     "Grammar": "Review of units 7–8",
+     "Speaking": "Can you say this in English?",
+     "Games & songs": "Queue race"
+    }
+   },
+   {
+    "id": "9A",
+    "unit": 9,
+    "title": "Beware of the dog",
+    "focus": "if + past, would + infinitive • animals",
+    "pages": "SB pp.70–71",
+    "slides": 11,
+    "file": "A2_Blue_Part2_Units7-12/A2_9A_Beware_of_the_dog.pptx",
+    "skills": {
+     "Grammar": "if + past, would + infinitive",
+     "Vocabulary": "animals",
+     "Speaking": "Animals and you",
+     "Games & songs": "Would you know what to do?"
+    }
+   },
+   {
+    "id": "9B",
+    "unit": 9,
+    "title": "Fearof.net",
+    "focus": "Present perfect + for and since",
+    "pages": "SB pp.72–73",
+    "slides": 11,
+    "file": "A2_Blue_Part2_Units7-12/A2_9B_Fearof_net.pptx",
+    "skills": {
+     "Grammar": "Present perfect + for and since",
+     "Reading": "Fearof.net",
+     "Listening": "Julia and Chloe",
+     "Games & songs": "Find someone who…"
+    }
+   },
+   {
+    "id": "9C",
+    "unit": 9,
+    "title": "Scream queens",
+    "focus": "Present perfect or past simple? (2) • biographies",
+    "pages": "SB pp.74–75",
+    "slides": 10,
+    "file": "A2_Blue_Part2_Units7-12/A2_9C_Scream_queens.pptx",
+    "skills": {
+     "Grammar": "Present perfect or past simple? (2)",
+     "Vocabulary": "biographies",
+     "Reading": "Like mother, like daughter",
+     "Listening": "Famous father, famous son",
+     "Speaking": "An older person you know"
+    }
+   },
+   {
+    "id": "10A",
+    "unit": 10,
+    "title": "Into the net",
+    "focus": "Expressing movement • sports",
+    "pages": "SB pp.78–79",
+    "slides": 11,
+    "file": "A2_Blue_Part2_Units7-12/A2_10A_Into_the_net_sport.pptx",
+    "skills": {
+     "Grammar": "Expressing movement",
+     "Vocabulary": "sports",
+     "Reading": "Why aren't women's sports as popular as men's?",
+     "Speaking": "Sport – you love it or you hate it",
+     "Games & songs": "Sports commentator"
+    }
+   },
+   {
+    "id": "10B",
+    "unit": 10,
+    "title": "Early birds",
+    "focus": "Word order of phrasal verbs",
+    "pages": "SB pp.80–81",
+    "slides": 10,
+    "file": "A2_Blue_Part2_Units7-12/A2_10B_Early_birds_phrasal_verbs.pptx",
+    "skills": {
+     "Grammar": "Word order of phrasal verbs",
+     "Listening": "Getting up early",
+     "Speaking": "Getting up",
+     "Games & songs": "Phrasal verb charades"
+    }
+   },
+   {
+    "id": "10C",
+    "unit": 10,
+    "title": "International inventions",
+    "focus": "The passive • people from different countries",
+    "pages": "SB pp.82–83",
+    "slides": 10,
+    "file": "A2_Blue_Part2_Units7-12/A2_10C_International_inventions_passive.pptx",
+    "skills": {
+     "Grammar": "The passive",
+     "Vocabulary": "people from different countries",
+     "Listening": "Invented by women",
+     "Games & songs": "Who invented it?"
+    }
+   },
+   {
+    "id": "R9-10",
+    "unit": 10,
+    "title": "Revise and Check – units 9 & 10",
+    "focus": "Units 9 & 10 – test and games",
+    "pages": "SB pp.84–85",
+    "slides": 10,
+    "file": "A2_Blue_Part2_Units7-12/A2_9-10_Revise_and_Check.pptx",
+    "skills": {
+     "Grammar": "Review of units 9–10",
+     "Speaking": "Can you say this in English?",
+     "Games & songs": "Animal 20 questions"
+    }
+   },
+   {
+    "id": "11A",
+    "unit": 11,
+    "title": "Ask the teacher",
+    "focus": "used to • school subjects",
+    "pages": "SB pp.86–87",
+    "slides": 9,
+    "file": "A2_Blue_Part2_Units7-12/A2_11A_Ask_the_teacher_used_to.pptx",
+    "skills": {
+     "Grammar": "used to",
+     "Vocabulary": "school subjects",
+     "Reading": "Fame Academy",
+     "Listening": "Did you like school?",
+     "Speaking": "When you were at school…",
+     "Games & songs": "When I was little…"
+    }
+   },
+   {
+    "id": "11B",
+    "unit": 11,
+    "title": "Help! I can't decide!",
+    "focus": "might • noun formation",
+    "pages": "SB pp.88–89",
+    "slides": 10,
+    "file": "A2_Blue_Part2_Units7-12/A2_11B_I_cant_decide_might.pptx",
+    "skills": {
+     "Grammar": "might, noun formation",
+     "Listening": "Nancy is packing",
+     "Speaking": "Are you indecisive?",
+     "Games & songs": "I'm not sure…"
+    }
+   },
+   {
+    "id": "11C",
+    "unit": 11,
+    "title": "Twinstrangers.net",
+    "focus": "so, neither + auxiliaries • similarities",
+    "pages": "SB pp.90–91",
+    "slides": 9,
+    "file": "A2_Blue_Part2_Units7-12/A2_11C_Twinstrangers_so_neither.pptx",
+    "skills": {
+     "Grammar": "so, neither + auxiliaries",
+     "Vocabulary": "similarities",
+     "Reading": "Twin Strangers",
+     "Listening": "Meeting my doppelgänger",
+     "Games & songs": "Find your twin!"
+    }
+   },
+   {
+    "id": "12A",
+    "unit": 12,
+    "title": "Unbelievable!",
+    "focus": "Past perfect • time expressions",
+    "pages": "SB pp.94–95",
+    "slides": 8,
+    "file": "A2_Blue_Part2_Units7-12/A2_12A_Unbelievable_past_perfect.pptx",
+    "skills": {
+     "Grammar": "Past perfect, time expressions",
+     "Reading": "Three news stories",
+     "Speaking": "Tell the story!"
+    }
+   },
+   {
+    "id": "12B",
+    "unit": 12,
+    "title": "Think before you speak",
+    "focus": "Reported speech • say or tell?",
+    "pages": "SB pp.96–97",
+    "slides": 9,
+    "file": "A2_Blue_Part2_Units7-12/A2_12B_Think_before_you_speak.pptx",
+    "skills": {
+     "Grammar": "Reported speech, say or tell?",
+     "Reading": "Blowing in the wind",
+     "Listening": "Rosemary and Iris",
+     "Games & songs": "One answer is invented!"
+    }
+   },
+   {
+    "id": "12C",
+    "unit": 12,
+    "title": "The English File quiz",
+    "focus": "Questions without auxiliaries",
+    "pages": "SB pp.98–99",
+    "slides": 8,
+    "file": "A2_Blue_Part2_Units7-12/A2_12C_The_English_File_quiz.pptx",
+    "skills": {
+     "Grammar": "Questions without auxiliaries",
+     "Listening": "Pub quiz",
+     "Games & songs": "The English File quiz"
+    }
+   },
+   {
+    "id": "R11-12",
+    "unit": 12,
+    "title": "Revise and Check – units 11 & 12",
+    "focus": "Units 11 & 12 – final test and games",
+    "pages": "SB pp.100–101",
+    "slides": 10,
+    "file": "A2_Blue_Part2_Units7-12/A2_11-12_Revise_and_Check.pptx",
+    "skills": {
+     "Grammar": "Review of units 11–12",
+     "Speaking": "Can you say this in English?",
+     "Games & songs": "The big final quiz!"
+    }
+   }
+  ],
+  "EF-B1": [
+   {
+    "id": "6B-1",
+    "unit": 6,
+    "title": "Every picture tells a story",
+    "focus": "Modals of deduction: might, can't, must",
+    "pages": "SB pp.60–61",
+    "slides": 13,
+    "file": "B1_Green_Course_6B-10B/B1_6B-1_Every_picture_tells_a_story.pptx",
+    "skills": {
+     "Grammar": "Modals of deduction: might, can't, must",
+     "Reading": "What your profile photo says",
+     "Speaking": "Who are they?",
+     "Games & songs": "What's in my bag?"
+    }
+   },
+   {
+    "id": "6B-2",
+    "unit": 6,
+    "title": "Can you learn charisma?",
+    "focus": "The body • describing people",
+    "pages": "SB pp.62–63",
+    "slides": 12,
+    "file": "B1_Green_Course_6B-10B/B1_6B-2_Can_you_learn_charisma.pptx",
+    "skills": {
+     "Vocabulary": "The body, describing people",
+     "Reading": "Can you learn charisma?",
+     "Listening": "A day with a personal stylist",
+     "Games & songs": "Which part of the body…?"
+    }
+   },
+   {
+    "id": "R5-6",
+    "unit": 6,
+    "title": "Revise and Check – units 5 & 6",
+    "focus": "Units 5 & 6 – test and games",
+    "pages": "SB pp.64–65",
+    "slides": 10,
+    "file": "B1_Green_Course_6B-10B/B1_5-6_Revise_and_Check.pptx",
+    "skills": {
+     "Grammar": "Review of units 5–6",
+     "Speaking": "Can you say this in English?",
+     "Games & songs": "Two truths and a lie"
+    }
+   },
+   {
+    "id": "7A-1",
+    "unit": 7,
+    "title": "Live and learn",
+    "focus": "Education • school subjects",
+    "pages": "SB pp.66–67",
+    "slides": 10,
+    "file": "B1_Green_Course_6B-10B/B1_7A-1_Live_and_learn_education.pptx",
+    "skills": {
+     "Vocabulary": "Education, school subjects",
+     "Listening": "Chinese v British",
+     "Speaking": "Your education"
+    }
+   },
+   {
+    "id": "7A-2",
+    "unit": 7,
+    "title": "Is it worth going to uni?",
+    "focus": "First conditional & future time clauses",
+    "pages": "SB pp.68–69",
+    "slides": 10,
+    "file": "B1_Green_Course_6B-10B/B1_7A-2_First_conditional_and_university.pptx",
+    "skills": {
+     "Grammar": "First conditional & future time clauses",
+     "Reading": "Is it really worth going to uni?",
+     "Speaking": "Exams!",
+     "Games & songs": "Conditional chain"
+    }
+   },
+   {
+    "id": "7B-1",
+    "unit": 7,
+    "title": "The hotel of Mum and Dad",
+    "focus": "Second conditional",
+    "pages": "SB pp.70–71",
+    "slides": 11,
+    "file": "B1_Green_Course_6B-10B/B1_7B-1_The_hotel_of_Mum_and_Dad.pptx",
+    "skills": {
+     "Grammar": "Second conditional",
+     "Reading": "Where do they live?",
+     "Speaking": "Talk to a partner",
+     "Games & songs": "Would you rather…?"
+    }
+   },
+   {
+    "id": "7B-2",
+    "unit": 7,
+    "title": "Handel & Hendrix in London",
+    "focus": "Houses • describing your home",
+    "pages": "SB pp.72–73",
+    "slides": 9,
+    "file": "B1_Green_Course_6B-10B/B1_7B-2_Houses_Handel_and_Hendrix.pptx",
+    "skills": {
+     "Vocabulary": "Houses, describing your home",
+     "Listening": "Handel or Hendrix?",
+     "Speaking": "Your dream home"
+    }
+   },
+   {
+    "id": "8A-1",
+    "unit": 8,
+    "title": "The right job for you",
+    "focus": "Work • gerunds and infinitives",
+    "pages": "SB pp.76–77",
+    "slides": 10,
+    "file": "B1_Green_Course_6B-10B/B1_8A-1_The_right_job_for_you.pptx",
+    "skills": {
+     "Grammar": "gerunds and infinitives",
+     "Vocabulary": "Work",
+     "Speaking": "Someone you know",
+     "Games & songs": "What's my job?"
+    }
+   },
+   {
+    "id": "8A-2",
+    "unit": 8,
+    "title": "In the Dragons' Den",
+    "focus": "Business ideas • making a pitch",
+    "pages": "SB pp.78–79",
+    "slides": 10,
+    "file": "B1_Green_Course_6B-10B/B1_8A-2_Dragons_Den.pptx",
+    "skills": {
+     "Vocabulary": "Business ideas, making a pitch",
+     "Reading": "In the Dragons' Den",
+     "Listening": "The famous Tangle Teezer pitch",
+     "Speaking": "Your pitch!",
+     "Games & songs": "Dragons' Den – class vote"
+    }
+   },
+   {
+    "id": "8B-1",
+    "unit": 8,
+    "title": "Have a nice day!",
+    "focus": "Reported speech • shopping",
+    "pages": "SB pp.80–81",
+    "slides": 11,
+    "file": "B1_Green_Course_6B-10B/B1_8B-1_Have_a_nice_day_reported_speech.pptx",
+    "skills": {
+     "Grammar": "Reported speech",
+     "Vocabulary": "shopping",
+     "Reading": "Who says it?",
+     "Games & songs": "The reporter"
+    }
+   },
+   {
+    "id": "8B-2",
+    "unit": 8,
+    "title": "Going the extra mile",
+    "focus": "Customer service • making nouns from verbs",
+    "pages": "SB pp.82–83",
+    "slides": 11,
+    "file": "B1_Green_Course_6B-10B/B1_8B-2_Going_the_extra_mile.pptx",
+    "skills": {
+     "Grammar": "making nouns from verbs",
+     "Vocabulary": "Customer service",
+     "Reading": "Going the extra mile",
+     "Listening": "Bad customer service",
+     "Speaking": "I want to speak to the manager!",
+     "Games & songs": "United Breaks Guitars"
+    }
+   },
+   {
+    "id": "R7-8",
+    "unit": 8,
+    "title": "Revise and Check – units 7 & 8",
+    "focus": "Units 7 & 8 – test and games",
+    "pages": "SB pp.84–85",
+    "slides": 10,
+    "file": "B1_Green_Course_6B-10B/B1_7-8_Revise_and_Check.pptx",
+    "skills": {
+     "Grammar": "Review of units 7–8",
+     "Speaking": "Can you say this in English?",
+     "Games & songs": "Hot seat"
+    }
+   },
+   {
+    "id": "9A-1",
+    "unit": 9,
+    "title": "Lucky encounters",
+    "focus": "Third conditional",
+    "pages": "SB pp.86–87",
+    "slides": 10,
+    "file": "B1_Green_Course_6B-10B/B1_9A-1_Lucky_encounters_third_conditional.pptx",
+    "skills": {
+     "Grammar": "Third conditional",
+     "Listening": "What would you do if…?",
+     "Games & songs": "The chain of disaster"
+    }
+   },
+   {
+    "id": "9A-2",
+    "unit": 9,
+    "title": "How to improve your luck",
+    "focus": "Making adjectives and adverbs",
+    "pages": "SB pp.88–89",
+    "slides": 10,
+    "file": "B1_Green_Course_6B-10B/B1_9A-2_How_to_improve_your_luck.pptx",
+    "skills": {
+     "Grammar": "Making adjectives and adverbs",
+     "Reading": "How to improve your luck",
+     "Games & songs": "Deal or No Deal"
+    }
+   },
+   {
+    "id": "9B-1",
+    "unit": 9,
+    "title": "Digital detox",
+    "focus": "Electronic devices • phrasal verbs",
+    "pages": "SB pp.90–91",
+    "slides": 9,
+    "file": "B1_Green_Course_6B-10B/B1_9B-1_Digital_detox_devices.pptx",
+    "skills": {
+     "Vocabulary": "Electronic devices, phrasal verbs",
+     "Reading": "Less time online",
+     "Speaking": "Talk about your devices"
+    }
+   },
+   {
+    "id": "9B-2",
+    "unit": 9,
+    "title": "Tidy up your digital life",
+    "focus": "Quantifiers • un- prefix",
+    "pages": "SB pp.92–93",
+    "slides": 12,
+    "file": "B1_Green_Course_6B-10B/B1_9B-2_Tidy_up_your_digital_life.pptx",
+    "skills": {
+     "Grammar": "Quantifiers, un- prefix",
+     "Reading": "11 ways to tidy up your digital life",
+     "Speaking": "How organized is your digital life?"
+    }
+   },
+   {
+    "id": "10A-1",
+    "unit": 10,
+    "title": "Idols and icons",
+    "focus": "Relative clauses: defining and non-defining",
+    "pages": "SB pp.96–97",
+    "slides": 11,
+    "file": "B1_Green_Course_6B-10B/B1_10A-1_Idols_and_icons_relative_clauses.pptx",
+    "skills": {
+     "Grammar": "Relative clauses: defining and non-defining",
+     "Reading": "The year our heroes died",
+     "Games & songs": "What do you call…?"
+    }
+   },
+   {
+    "id": "10A-2",
+    "unit": 10,
+    "title": "British Design Classics",
+    "focus": "Compound nouns",
+    "pages": "SB pp.98–99",
+    "slides": 10,
+    "file": "B1_Green_Course_6B-10B/B1_10A-2_British_design_compound_nouns.pptx",
+    "skills": {
+     "Grammar": "Compound nouns",
+     "Listening": "British design",
+     "Speaking": "People, things & places",
+     "Games & songs": "Compound nouns race"
+    }
+   },
+   {
+    "id": "10B-1",
+    "unit": 10,
+    "title": "And the murderer is…",
+    "focus": "Crime • question tags",
+    "pages": "SB pp.100–101",
+    "slides": 12,
+    "file": "B1_Green_Course_6B-10B/B1_10B-1_Crime_and_question_tags.pptx",
+    "skills": {
+     "Grammar": "question tags",
+     "Vocabulary": "Crime",
+     "Reading": "The greatest unsolved crime",
+     "Listening": "Sherlock: the deduction"
+    }
+   },
+   {
+    "id": "10B-2",
+    "unit": 10,
+    "title": "May and June",
+    "focus": "A short story by Ruth Rendell",
+    "pages": "SB pp.102–103",
+    "slides": 10,
+    "file": "B1_Green_Course_6B-10B/B1_10B-2_May_and_June.pptx",
+    "skills": {
+     "Vocabulary": "A short story by Ruth Rendell",
+     "Listening": "Queens of Crime",
+     "Games & songs": "Alibi!"
+    }
+   },
+   {
+    "id": "R9-10",
+    "unit": 10,
+    "title": "Revise and Check – units 9 & 10",
+    "focus": "Units 9 & 10 – test and games",
+    "pages": "SB pp.104–105",
+    "slides": 10,
+    "file": "B1_Green_Course_6B-10B/B1_9-10_Revise_and_Check.pptx",
+    "skills": {
+     "Grammar": "Review of units 9–10",
+     "Speaking": "Can you say this in English?",
+     "Games & songs": "Board race"
+    }
+   }
+  ],
+  "CHEF": [
+   {
+    "id": "L1",
+    "unit": 1,
+    "title": "Welcome to the kitchen!",
+    "focus": "The kitchen team • the verb be • questions",
+    "pages": "",
+    "slides": 9,
+    "file": "Chef_Kitchen_English_Purple/Chef_L01_Welcome_to_the_kitchen.pptx",
+    "skills": {
+     "Grammar": "the verb be, questions",
+     "Vocabulary": "The kitchen team",
+     "Speaking": "Your first day",
+     "Games & songs": "Who am I?"
+    }
+   },
+   {
+    "id": "L2",
+    "unit": 2,
+    "title": "Kitchen equipment",
+    "focus": "there is / there are • this, these • prepositions",
+    "pages": "",
+    "slides": 8,
+    "file": "Chef_Kitchen_English_Purple/Chef_L02_Kitchen_equipment.pptx",
+    "skills": {
+     "Grammar": "there is / there are, this, these, prepositions",
+     "Games & songs": "Pass me the…!"
+    }
+   },
+   {
+    "id": "L3",
+    "unit": 3,
+    "title": "Ingredients",
+    "focus": "Countable & uncountable • some / any • How much / many?",
+    "pages": "",
+    "slides": 9,
+    "file": "Chef_Kitchen_English_Purple/Chef_L03_Ingredients_and_stock.pptx",
+    "skills": {
+     "Grammar": "Countable & uncountable, some / any, How much / many?",
+     "Speaking": "The delivery",
+     "Games & songs": "Shopping list memory"
+    }
+   },
+   {
+    "id": "L4",
+    "unit": 4,
+    "title": "Kitchen commands",
+    "focus": "Imperatives • cutting verbs",
+    "pages": "",
+    "slides": 11,
+    "file": "Chef_Kitchen_English_Purple/Chef_L04_Kitchen_commands_imperatives.pptx",
+    "skills": {
+     "Grammar": "Imperatives",
+     "Vocabulary": "cutting verbs",
+     "Listening": "How to chop an onion",
+     "Speaking": "Prep list",
+     "Games & songs": "Chef says…"
+    }
+   },
+   {
+    "id": "L5",
+    "unit": 5,
+    "title": "Cooking methods & recipes",
+    "focus": "Cooking verbs • sequencing: first, then, finally",
+    "pages": "",
+    "slides": 10,
+    "file": "Chef_Kitchen_English_Purple/Chef_L05_Cooking_methods_and_recipes.pptx",
+    "skills": {
+     "Grammar": "sequencing: first, then, finally",
+     "Vocabulary": "Cooking verbs",
+     "Listening": "A 3-minute pasta sauce",
+     "Speaking": "Your signature dish"
+    }
+   },
+   {
+    "id": "L6",
+    "unit": 6,
+    "title": "Numbers, quantities & time",
+    "focus": "Weights, temperatures, times • can / can't",
+    "pages": "",
+    "slides": 10,
+    "file": "Chef_Kitchen_English_Purple/Chef_L06_Numbers_quantities_time.pptx",
+    "skills": {
+     "Grammar": "can / can't",
+     "Vocabulary": "Weights, temperatures, times",
+     "Games & songs": "Kitchen bingo"
+    }
+   },
+   {
+    "id": "L7",
+    "unit": 7,
+    "title": "Health & safety",
+    "focus": "must / mustn't • hygiene • the 4 Cs",
+    "pages": "",
+    "slides": 10,
+    "file": "Chef_Kitchen_English_Purple/Chef_L07_Health_safety_hygiene.pptx",
+    "skills": {
+     "Grammar": "must / mustn't",
+     "Vocabulary": "hygiene, the 4 Cs",
+     "Reading": "The 4 Cs of food safety",
+     "Listening": "The four Cs of food safety",
+     "Games & songs": "Kitchen inspector"
+    }
+   },
+   {
+    "id": "L8",
+    "unit": 8,
+    "title": "Allergens & special diets",
+    "focus": "Present simple questions • Does it contain…?",
+    "pages": "",
+    "slides": 9,
+    "file": "Chef_Kitchen_English_Purple/Chef_L08_Allergens_and_dietary_needs.pptx",
+    "skills": {
+     "Grammar": "Present simple questions",
+     "Vocabulary": "Does it contain…?",
+     "Speaking": "The waiter asks…",
+     "Games & songs": "Allergen detective"
+    }
+   },
+   {
+    "id": "L9",
+    "unit": 9,
+    "title": "Service!",
+    "focus": "Present continuous • calls on the pass",
+    "pages": "",
+    "slides": 10,
+    "file": "Chef_Kitchen_English_Purple/Chef_L09_Service.pptx",
+    "skills": {
+     "Grammar": "Present continuous",
+     "Vocabulary": "calls on the pass",
+     "Listening": "A busy service",
+     "Games & songs": "Service simulation"
+    }
+   },
+   {
+    "id": "L10",
+    "unit": 10,
+    "title": "Problems & the final shift",
+    "focus": "Past simple • asking for help • course review",
+    "pages": "",
+    "slides": 9,
+    "file": "Chef_Kitchen_English_Purple/Chef_L10_Problems_and_final_shift.pptx",
+    "skills": {
+     "Grammar": "Past simple",
+     "Vocabulary": "asking for help, course review",
+     "Speaking": "Asking for help",
+     "Games & songs": "Kitchen quiz – the whole course!"
+    }
+   }
+  ]
+ }
+};

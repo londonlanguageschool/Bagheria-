@@ -370,3 +370,44 @@ input[type="checkbox"] { border-radius: 4px; }
 /* 28 Sept: messages appear at the top, so they never cover the Save lesson button */
 .toast-region { top: 84px; bottom: auto; }
 .toast.info { border-left-color: #3fb3f0; }
+
+/* 2 Oct: lesson plans, the week's lessons, no-fee reminder */
+.plan-head, .week-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.plan-bar { height: 8px; border-radius: 99px; background: #eef3fa; overflow: hidden; margin: 8px 0 10px; }
+.plan-bar i { display: block; height: 100%; background: #18a86b; border-radius: 99px; }
+.plan-list, .week-list, .nofee-list { display: grid; gap: 6px; }
+.plan-row { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 14px; background: #f6f9fd; }
+.plan-row.done { background: #eefaf3; }
+.plan-row.next { background: #fff8d6; box-shadow: inset 0 0 0 2px #ffd23f; }
+.plan-row.today { background: #e8f3ff; box-shadow: inset 0 0 0 2px #16275c; }
+.plan-code { min-width: 48px; text-align: center; font-weight: 800; font-size: 13px; padding: 4px 8px; border-radius: 10px; background: #16275c; color: #fff; }
+.plan-text { display: grid; gap: 1px; min-width: 0; }
+.plan-text strong { overflow-wrap: anywhere; }
+.plan-text small { color: #56617a; font-size: 12px; }
+.plan-text em { font-style: normal; font-size: 12px; font-weight: 700; color: #177b52; }
+.plan-row.next .plan-text em { color: #7a5200; }
+.plan-row.today .plan-text em { color: #16275c; }
+.plan-warn { color: #b3261e; font-size: 12px; }
+.plan-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.row-action.warn { border-color: #e0a100; color: #7a5200; }
+.plan-all { margin-top: 8px; }
+.week-nav { display: inline-flex; align-items: center; gap: 8px; }
+.week-chips, .week-teachers { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; align-items: center; }
+.week-chip, .week-teacher { border-radius: 999px; padding: 3px 10px; font-size: 13px; font-weight: 700; background: #eef3fa; }
+.week-chip.done { background: #dff5e9; }
+.week-chip.todo, .week-teacher.has-todo { background: #fff1d6; }
+.week-row { display: grid; grid-template-columns: 110px 1fr auto auto; gap: 10px; align-items: center; padding: 6px 10px; border-radius: 12px; background: #f6f9fd; font-size: 14px; }
+.week-row.todo { background: #fff4e0; }
+.week-row.done { background: #eefaf3; }
+.week-status { font-weight: 700; white-space: nowrap; }
+.week-when { font-variant-numeric: tabular-nums; color: #56617a; font-weight: 700; }
+.nofee-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 12px; background: #fff8ec; }
+.nofee-how { margin: 0 0 10px; }
+.nofee-how summary { cursor: pointer; font-weight: 700; }
+.nofee-how ol { margin: 8px 0; padding-left: 20px; display: grid; gap: 4px; }
+@media (max-width: 560px) {
+  .plan-row { grid-template-columns: auto 1fr; }
+  .plan-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .week-row { grid-template-columns: 1fr auto; }
+  .week-class { grid-column: 1 / -1; order: -1; }
+}
