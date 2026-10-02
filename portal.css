@@ -2612,3 +2612,33 @@ tbody tr:hover {
 .guide-body li span { color: #33415c; font-size: 14px; line-height: 1.45; }
 .guide-body .guide-intro { margin: 0 0 12px; color: #33415c; }
 .guide-body .guide-tip { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: #fff8d6; border: 1px solid #f0d878; font-size: 14px; }
+
+/* 2 Oct — homework files and handed-in work */
+.hw-file-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.hw-file-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #cfdcee; border-radius: 999px; padding: 4px 6px 4px 4px; background: #f6f9fe; max-width: 100%; }
+.hw-file-chip small { color: #5b6b8c; font-size: 12px; white-space: nowrap; }
+.hw-file-open { border: 0; background: #fff; border-radius: 999px; padding: 6px 12px; font: inherit; font-weight: 700; color: #16275c; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
+.hw-file-open:hover { background: #e8f0fc; }
+.hw-file-remove { border: 0; background: transparent; color: #b42318; font-weight: 800; cursor: pointer; padding: 4px 8px; border-radius: 999px; }
+.hw-file-remove:hover { background: #fde8e7; }
+.hw-files-in { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #eef3fb; color: #16275c; }
+.hw-files-in.has-new { background: #fff1d6; color: #8a5300; }
+.hw-mark { display: inline-block; font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: #e6f6ec; color: #1d6b3a; }
+.hw-work { padding: 4px 0 14px; border-bottom: 1px solid var(--border, #e5e7eb); display: grid; gap: 10px; }
+.hw-mark-form { display: grid; grid-template-columns: minmax(120px, 180px) 1fr auto; gap: 8px; align-items: start; }
+.hw-mark-form input, .hw-mark-form textarea { width: 100%; font: inherit; border: 1px solid #cfdcee; border-radius: 12px; padding: 8px 10px; }
+@media (max-width: 640px) { .hw-mark-form { grid-template-columns: 1fr; } }
+
+/* 2 Oct — TUT TUT "not mine / cancelled" and the office's "Lessons to sort out" */
+.tut-row { border: 1px solid #dfe9f5; border-radius: 14px; padding: 8px 12px; }
+.tut-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.tut-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+.tut-other { display: grid; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #dfe9f5; }
+.tut-other label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.tut-other select, .tut-other input[type="text"] { font: inherit; border: 1px solid #cfdcee; border-radius: 10px; padding: 8px 10px; }
+.tut-sent { color: #1d6b3a; font-weight: 700; font-size: 14px; }
+.issue-panel { border-left: 6px solid #f0a020; }
+.issue-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border, #e5e7eb); flex-wrap: wrap; }
+.issue-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.lesson-hw-actions { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.row-action.has-new { background: #fff1d6; color: #8a5300; }

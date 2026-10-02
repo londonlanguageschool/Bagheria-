@@ -259,6 +259,8 @@
             </div>
           </div>
 
+          <div class="panel issue-panel" id="lessonIssuesPanel" hidden></div>
+
           <div class="stats-grid">
             <article class="stat-card">
               <div class="stat-icon stat-blue">♙</div>
@@ -722,6 +724,11 @@
                   <label for="lessonHwDue">Due</label>
                   <input id="lessonHwDue" type="date">
                 </div>
+                <div class="form-field form-field-wide">
+                  <label for="lessonHwFiles">📎 Attach files <span class="muted">(optional: worksheet, photo of the page, audio · max 8 MB each)</span></label>
+                  <input id="lessonHwFiles" type="file" multiple accept="image/*,application/pdf,audio/*,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt">
+                  <small id="lessonHwFilesPicked" class="muted"></small>
+                </div>
               </div>
               <div id="lessonHwList"></div>
             </div>
@@ -821,6 +828,13 @@
                   <input id="homeworkDueDate" type="date">
                 </div>
 
+                <div class="form-field form-field-wide">
+                  <label for="homeworkFiles">Attach files (optional)</label>
+                  <input id="homeworkFiles" type="file" multiple accept="image/*,application/pdf,audio/*,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt">
+                  <small class="muted">Worksheet PDF, photo of the page or an audio file (max 8 MB each). Students open them in their app; other teachers see them here.</small>
+                  <small id="homeworkFilesPicked" class="muted"></small>
+                </div>
+
                 <div class="form-field" style="align-self:end;">
                   <button class="button button-primary" id="homeworkAssignButton" type="button">
                     + Assign homework
@@ -873,6 +887,7 @@
                       <th>Title</th>
                       <th>Due date</th>
                       <th>Completed</th>
+                      <th>Files</th>
                       <th class="table-actions-cell">Actions</th>
                     </tr>
                   </thead>
@@ -2060,6 +2075,31 @@
         <button class="button button-secondary" type="button" data-close-modal="homeworkStatusModal">
           Close
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================
+       HOMEWORK FILES MODAL (2 Oct)
+  ========================== -->
+  <div class="modal-backdrop" id="homeworkFilesModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="homeworkFilesTitle">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">📎 Homework files</p>
+          <h2 id="homeworkFilesTitle">Files</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="homeworkFilesModal">×</button>
+      </div>
+      <p class="muted" style="margin:0 0 12px;">Students of this class open these in their app. Every teacher can see them here.</p>
+      <div id="homeworkFilesList"></div>
+      <div class="form-field" style="margin-top:14px;">
+        <label for="homeworkFilesAdd">Add files</label>
+        <input id="homeworkFilesAdd" type="file" multiple accept="image/*,application/pdf,audio/*,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt">
+        <small class="muted">Max 8 MB each. Photos are made smaller automatically.</small>
+      </div>
+      <div class="modal-actions">
+        <button class="button button-secondary" type="button" data-close-modal="homeworkFilesModal">Close</button>
       </div>
     </div>
   </div>

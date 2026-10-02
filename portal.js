@@ -5442,11 +5442,11 @@ async function llsFetch_(url, options, opts = {}) {
 const LLS_SAFE_TO_RESEND = new Set([
   "adminLogin", "teacherPortalLogin", "teacherLogin", "studentCodeLogin",
   "saveAttendance", "saveLessonLog", "saveLesson", "updateClass", "updateStudent", "updateEnquiry",
-  "updateFee", "updateTeacher", "updateHomework", "markHomeworkStatus", "setSpeakingCoach"
+  "updateFee", "updateTeacher", "updateHomework", "markHomeworkStatus", "setSpeakingCoach", "markHomeworkFeedback", "removeFile", "reportLessonIssue", "resolveLessonIssue"
 ]);
 const LLS_LOGIN_ACTIONS = new Set(["adminLogin", "teacherPortalLogin", "teacherLogin"]);
 
-async function llsApiGet(action, params = {}) {
+async function llsApiGet(action, params = {}, opts = {}) {
   const url = new URL(LLS_API_URL);
   url.searchParams.set("action", action);
   url.searchParams.set("t", Date.now());
@@ -5469,7 +5469,7 @@ async function llsApiGet(action, params = {}) {
     }
     try {
       const response = await llsFetch_(url.toString(), { method: "GET", cache: "no-store", redirect: "follow" },
-        { background: LLS_BACKGROUND_ACTIONS.has(action) });
+        { background: Boolean(opts.background) || LLS_BACKGROUND_ACTIONS.has(action) });
       if (!response.ok) { problem = `HTTP ${response.status}`; continue; }
       const raw = await response.text();
       try { data = JSON.parse(raw); } catch (_) { problem = "Apps Script did not return JSON."; continue; }
@@ -5799,7 +5799,7 @@ document.addEventListener("DOMContentLoaded", () => {
 ========================================================= */
 
 const LLS_TEACHER_SESSION_KEY = "lls_teacher_session";
-let llsHomeworkCache = { classId: "", homework: [], status: [] };
+let llsHomeworkCache = { classId: "", homework: [], status: [], files: [] };
 
 function llsGetTeacherSession() {
   try {
@@ -5936,7 +5936,7 @@ async function renderHomeworkList(mode) {
   const classId = value("homeworkClassSelect");
 
   if (!classId) {
-    body.innerHTML = tableEmptyRow(4, "Choose a class.");
+    body.innerHTML = tableEmptyRow(5, "Choose a class.");
     return;
   }
 
@@ -5945,13 +5945,13 @@ async function renderHomeworkList(mode) {
     const data = mode === "cache" && llsHomeworkCache.classId === classId
       ? llsHomeworkCache
       : await llsApiGet("getHomeworkForClass", { classId });
-    llsHomeworkCache = { classId, homework: data.homework || [], status: data.status || [] };
+    llsHomeworkCache = { classId, homework: data.homework || [], status: data.status || [], files: data.files || [] };
     llsApplyQueuedHomework_(llsHomeworkCache);
 
     const totalStudents = llsStudentsForClass(classId).length;
 
     if (!llsHomeworkCache.homework.length) {
-      body.innerHTML = tableEmptyRow(4, "No homework assigned yet for this class.");
+      body.innerHTML = tableEmptyRow(5, "No homework assigned yet for this class.");
       return;
     }
 
@@ -5965,15 +5965,18 @@ async function renderHomeworkList(mode) {
           String(s["Status"] || "") === "Done"
         ).length;
 
+        const f = llsHwFileCounts_(homeworkId);
         return `
           <tr>
             <td><strong>${escapeHtml(String(item["Title"] || ""))}</strong></td>
             <td>${item["Due Date"] ? escapeHtml(formatDate(llsDateOnly(item["Due Date"]))) : "—"}</td>
             <td>${done} / ${totalStudents}</td>
+            <td>${f.teacher ? `📎 ${f.teacher}` : ""}${f.students ? ` <span class="hw-files-in${f.toMark ? " has-new" : ""}" title="Students who handed in work${f.toMark ? " (" + f.toMark + " to mark)" : ""}">📥 ${f.students}${f.toMark ? ` · ${f.toMark} to mark` : ""}</span>` : ""}${!f.teacher && !f.students ? "—" : ""}</td>
             <td class="table-actions-cell">
               <button class="row-action" type="button" data-view-homework="${escapeAttribute(homeworkId)}">
                 View / Mark
               </button>
+              ${homeworkId.startsWith("pending-") ? "" : `<button class="row-action" type="button" data-hw-files="${escapeAttribute(homeworkId)}">📎 Files</button>`}
             </td>
           </tr>
         `;
@@ -5983,9 +5986,12 @@ async function renderHomeworkList(mode) {
     body.querySelectorAll("[data-view-homework]").forEach(button => {
       button.addEventListener("click", () => openHomeworkStatusModal(button.dataset.viewHomework));
     });
+    body.querySelectorAll("[data-hw-files]").forEach(button => {
+      button.addEventListener("click", () => llsOpenHwFiles(button.dataset.hwFiles));
+    });
   } catch (error) {
     console.error(error);
-    body.innerHTML = tableEmptyRow(4, "Could not load homework: " + error.message);
+    body.innerHTML = tableEmptyRow(5, "Could not load homework: " + error.message);
   }
 }
 
@@ -6008,10 +6014,12 @@ function openHomeworkStatusModal(homeworkId) {
         const studentId = String(student["Student ID"] || "").trim();
         const record = statusByStudent.get(studentId);
         const isDone = record && String(record["Status"] || "") === "Done";
+        const work = llsHwWorkFor_(homeworkId, studentId);
+        const mark = String(record?.["Mark"] || ""), feedback = String(record?.["Feedback"] || "");
 
         return `
           <div class="homework-status-row">
-            <span>${escapeHtml(llsStudentName(student))}</span>
+            <span>${escapeHtml(llsStudentName(student))}${work.length ? ` <span class="hw-files-in${mark || feedback ? "" : " has-new"}">📥 ${work.length}</span>` : ""}${mark ? ` <span class="hw-mark">⭐ ${escapeHtml(mark)}</span>` : ""}</span>
             ${statusBadge(isDone ? "Done" : "Not started")}
             <button
               class="button ${isDone ? "button-secondary" : "button-primary"}"
@@ -6023,10 +6031,23 @@ function openHomeworkStatusModal(homeworkId) {
               ${isDone ? "Mark not done" : "Mark done"}
             </button>
           </div>
+          ${work.length || mark || feedback ? `<div class="hw-work" data-work-student="${escapeAttribute(studentId)}">
+            ${work.length ? `<div class="hw-file-chips">${work.map((x) => llsFileChip_(x)).join("")}</div>` : ""}
+            <div class="hw-mark-form">
+              <input type="text" maxlength="40" placeholder="Mark, e.g. 8/10 or ⭐⭐⭐" value="${escapeAttribute(mark)}" data-mark-input>
+              <textarea rows="2" maxlength="1500" placeholder="Comment for the student (they see it in their app)" data-feedback-input>${escapeHtml(feedback)}</textarea>
+              <button class="button button-primary" type="button" data-save-mark="${escapeAttribute(studentId)}">${mark || feedback ? "Update mark" : "Save mark"}</button>
+            </div>
+          </div>` : ""}
         `;
       }).join("")
     : `<div class="empty-state">No active students are enrolled in this class.</div>`;
 
+  llsWireFileChips_(list);
+  list.querySelectorAll("[data-save-mark]").forEach((button) => button.addEventListener("click", () => {
+    const box = button.closest("[data-work-student]");
+    llsSaveHwMark_(homeworkId, button.dataset.saveMark, box.querySelector("[data-mark-input]").value, box.querySelector("[data-feedback-input]").value);
+  }));
   list.querySelectorAll("[data-mark-homework]").forEach(button => {
     button.addEventListener("click", () => {
       // 30 Sept: ticks at once; Google catches up in the background.
@@ -6060,8 +6081,30 @@ async function llsHomeworkAssign() {
     return;
   }
 
-  // 30 Sept: shows in the list at once; Google catches up in the background.
   const assignedDate = isoDate(new Date());
+  // 2 Oct: with files, the homework is created first (it needs its number), then the files go up.
+  const picked = Array.from(byId("homeworkFiles")?.files || []);
+  if (picked.length) {
+    const btn = byId("homeworkAssignButton");
+    if (btn) { btn.disabled = true; btn.textContent = "Assigning…"; }
+    try {
+      const made = await llsApiPost({ action: "createHomework", classId, teacherId: session.teacherId, title, description, assignedDate, dueDate });
+      const sent = await llsUploadHwFiles_(made.homeworkId, picked);
+      setValue("homeworkTitle", "");
+      setValue("homeworkDescription", "");
+      setValue("homeworkDueDate", "");
+      if (byId("homeworkFiles")) byId("homeworkFiles").value = "";
+      llsHwFilesPickedLabel_();
+      showToast(sent === picked.length ? "Homework assigned with " + sent + " file" + (sent === 1 ? "" : "s") + "." : "Homework assigned. Some files didn't upload: add them with 📎 Files.", sent === picked.length ? "success" : "error");
+      renderHomeworkList();
+    } catch (error) {
+      showToast(error.message, "error");
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = "+ Assign homework"; }
+    }
+    return;
+  }
+  // 30 Sept: shows in the list at once; Google catches up in the background.
   llsQueueSave(`homework "${title}"`, { action: "createHomework", classId, teacherId: session.teacherId, title, description, assignedDate, dueDate });
   if (llsHomeworkCache.classId === classId) {
     llsHomeworkCache.homework.push({ "Homework ID": "pending-" + Date.now(), "Class ID": classId, "Title": title, "Description": description, "Assigned Date": assignedDate, "Due Date": dueDate });
@@ -7789,11 +7832,12 @@ async function llsRenderLesson() {
     if (llsLesson.loadedKey !== key) return;
     llsLesson.homework = Array.isArray(hw.homework) ? hw.homework : [];
     llsLesson.status = Array.isArray(hw.status) ? hw.status : [];
+    llsLesson.files = Array.isArray(hw.files) ? hw.files : [];
     llsRenderLessonHomework(students.length);
   };
   try { const c = JSON.parse(localStorage.getItem(hwCacheKey) || "null"); if (c) applyHw(c); } catch (_) {}
   llsApiGet("getHomeworkForClass", { classId: cls.id }).then((hw) => {
-    try { localStorage.setItem(hwCacheKey, JSON.stringify({ homework: (hw.homework || []).slice(-30), status: (hw.status || []).slice(-400) })); } catch (_) {}
+    try { localStorage.setItem(hwCacheKey, JSON.stringify({ homework: (hw.homework || []).slice(-30), status: (hw.status || []).slice(-400), files: (hw.files || []).slice(-200) })); } catch (_) {}
     applyHw(hw);
   }).catch(() => {});
 }
@@ -7881,8 +7925,15 @@ function llsRenderLessonHomework(classSize) {
     const id = String(h["Homework ID"] || "");
     const done = llsLesson.status.filter((s) => String(s["Homework ID"] || "") === id && String(s["Status"] || "") === "Done").length;
     const due = h["Due Date"] ? ` · due ${formatDate(String(h["Due Date"]))}` : "";
-    return `<div class="lesson-hw-item"><span>${escapeHtml(String(h["Title"] || ""))}<span class="muted">${escapeHtml(due)}</span></span><strong>${done}/${classSize} done</strong></div>`;
+    const f = id ? llsHwFileCounts_(id, llsLesson) : { teacher: 0, students: 0, toMark: 0 };
+    return `<div class="lesson-hw-item"><span>${escapeHtml(String(h["Title"] || ""))}<span class="muted">${escapeHtml(due)}</span></span>
+      <span class="lesson-hw-actions"><strong>${done}/${classSize} done</strong>
+      ${id ? `<button type="button" class="row-action" data-lhw-files="${escapeAttribute(id)}">📎 Files${f.teacher ? " (" + f.teacher + ")" : ""}</button>
+      <button type="button" class="row-action${f.toMark ? " has-new" : ""}" data-lhw-mark="${escapeAttribute(id)}">${f.students ? `📥 Work (${f.students})${f.toMark ? " · " + f.toMark + " to mark" : ""}` : "View / Mark"}</button>` : ""}</span></div>`;
   }).join("") : "";
+  const useLesson = () => { llsHomeworkCache = { classId: llsLesson.classId, homework: llsLesson.homework, status: llsLesson.status, files: llsLesson.files || [], fromLesson: true }; };
+  box.querySelectorAll("[data-lhw-files]").forEach((b) => b.addEventListener("click", () => { useLesson(); llsOpenHwFiles(b.dataset.lhwFiles); }));
+  box.querySelectorAll("[data-lhw-mark]").forEach((b) => b.addEventListener("click", () => { useLesson(); openHomeworkStatusModal(b.dataset.lhwMark); }));
 }
 
 // "How did they do?" lives at the start of the attendance note: "[Good] note".
@@ -7974,6 +8025,9 @@ async function llsSaveLesson() {
   const steps = [];
   if (rows.length) steps.push({ what: "register", body: { action: "saveAttendance", classId: cls.id, lessonDate: date, rows, requestId: rid() } });
   if (hwTitle) steps.push({ what: "homework", body: { action: "createHomework", classId: cls.id, teacherId: session?.teacherId || "", title: hwTitle, description: value("lessonHwText").trim(), assignedDate: date, dueDate: value("lessonHwDue"), requestId: rid() } });
+  // 2 Oct: files chosen for this homework go up once Google gives it a number.
+  const hwFiles = Array.from(byId("lessonHwFiles")?.files || []);
+  if (hwTitle && hwFiles.length) llsPendingHwFiles[steps[steps.length - 1].body.requestId] = { files: hwFiles, classId: cls.id };
   steps.push({ what: "notes", body: { action: "saveLessonLog", classId: cls.id, lessonDate: date, ...note, homeworkSet, requestId: rid() } });
 
   // A newer save of the same lesson replaces one still waiting to be sent
@@ -7992,6 +8046,7 @@ async function llsSaveLesson() {
     llsLesson.homework = [{ Title: hwTitle, "Due Date": value("lessonHwDue"), "Created At": new Date().toISOString() }, ...llsLesson.homework];
     llsRenderLessonHomework(rows.length);
     setValue("lessonHwTitle", ""); setValue("lessonHwText", "");
+    if (byId("lessonHwFiles")) { byId("lessonHwFiles").value = ""; llsLessonFilesPicked_(); }
   }
   const savedBtn = byId("lessonSaveButton");
   if (savedBtn) {
@@ -8088,7 +8143,9 @@ async function llsOutboxRun(manual) {
       const combined = llsCombinedLessonBody_(job);
       if (combined) {
         try {
-          await llsApiPost(combined);
+          const res = await llsApiPost(combined);
+          const hwStep = job.steps.find((st) => st.what === "homework");
+          if (hwStep && res && res.homework && res.homework.homeworkId) llsAfterHomeworkSaved_(hwStep.body.requestId, res.homework.homeworkId);
           job.steps.forEach((st) => { st.done = true; });
           llsOutboxPatch_(job);
         } catch (e) {
@@ -8107,7 +8164,8 @@ async function llsOutboxRun(manual) {
         if (problem) break;
         if (step.done) continue;
         try {
-          await llsApiPost(step.body);
+          const res = await llsApiPost(step.body);
+          if (step.what === "homework" && res && res.homeworkId) llsAfterHomeworkSaved_(step.body.requestId, res.homeworkId);
           step.done = true;
           llsOutboxPatch_(job);
         } catch (e) {
@@ -8833,6 +8891,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // 30 Sept: repaint the homework table from what we have (no Google call).
 function llsRepaintHomeworkCounts_() {
+  // 2 Oct: the same file/mark windows open from the Lesson page too.
+  if (llsHomeworkCache.fromLesson) {
+    if (llsLesson.classId === llsHomeworkCache.classId) {
+      llsLesson.files = llsHomeworkCache.files; llsLesson.status = llsHomeworkCache.status;
+      llsRenderLessonHomework(llsStudentsForClass(llsLesson.classId).length);
+    }
+    return;
+  }
   renderHomeworkList("cache");
 }
 // Ticks and new homework still on their way to Google stay visible after a reload.
@@ -8843,6 +8909,11 @@ function llsApplyQueuedHomework_(cache) {
       const rec = cache.status.find((x) => String(x["Homework ID"] || "") === b.homeworkId && String(x["Student ID"] || "").trim() === b.studentId);
       if (rec) rec["Status"] = b.status;
       else cache.status.push({ "Homework ID": b.homeworkId, "Student ID": b.studentId, "Status": b.status });
+    }
+    if (b.action === "markHomeworkFeedback") {
+      const rec = cache.status.find((x) => String(x["Homework ID"] || "") === b.homeworkId && String(x["Student ID"] || "").trim() === b.studentId);
+      if (rec) Object.assign(rec, { Status: "Done", Mark: b.mark, Feedback: b.feedback });
+      else cache.status.push({ "Homework ID": b.homeworkId, "Student ID": b.studentId, Status: "Done", Mark: b.mark, Feedback: b.feedback });
     }
   }));
 }
@@ -9048,17 +9119,50 @@ async function llsTutTutCheck() {
   }
   if (!due.length) return;
 
-  // Saved on this device (sending or confirmed) already counts as done.
-  const todo = due.filter((x) => !llsLessonSaveState(x.cls.id, x.date));
+  // Saved on this device (sending or confirmed) already counts as done,
+  // and so do notes this device already knows about.
+  const knownDone = (classId, date) => {
+    try {
+      const c = JSON.parse(localStorage.getItem("lls_cache_log_" + classId) || "null");
+      return Boolean(c && Array.isArray(c.entries) && c.entries.some((e) => String(e.lessonDate || "").slice(0, 10) === date));
+    } catch (_) { return false; }
+  };
+  const todo = due.filter((x) => !llsLessonSaveState(x.cls.id, x.date) && !knownDone(x.cls.id, x.date));
+  if (!todo.length) return;
   const missing = [];
   const byClass = {};
   todo.forEach((x) => { (byClass[x.cls.id] = byClass[x.cls.id] || []).push(x); });
-  for (const classId of Object.keys(byClass)) {
+  // 2 Oct: this check waits in the background lane, so it never holds up
+  // what the teacher opens. With Apps Script V29 it is ONE call for all
+  // classes (it used to be one call per class, ~10 calls after each login).
+  for (let i = 0; i < 20 && window.llsServerVersion === undefined; i++) await new Promise((r) => setTimeout(r, 500));
+  if ((window.llsServerVersion || 0) >= 29) {
     try {
-      const log = await llsApiGet("getLessonLog", { classId, limit: 20 });
-      const done = new Set((log.entries || []).map((e) => String(e.lessonDate || "").slice(0, 10)));
-      byClass[classId].forEach((x) => { if (!done.has(x.date)) missing.push(x); });
-    } catch (_) { /* Google didn't answer: don't nag on a guess */ }
+      const since = todo.map((x) => x.date).sort()[0];
+      const res = await llsApiGet("getLessonDates", { classIds: Object.keys(byClass).join(","), since: LLS_SCHOOL_START > since ? LLS_SCHOOL_START : since }, { background: true });
+      // A lesson someone reported (covered / cancelled / not my class) isn't nagged about.
+      const reported = new Set((res.issues || []).map((i) => i.classId + "|" + i.lessonDate));
+      Object.keys(byClass).forEach((classId) => {
+        const done = new Set((res.dates && res.dates[classId]) || []);
+        byClass[classId].forEach((x) => { if (!done.has(x.date) && !reported.has(classId + "|" + x.date)) missing.push(x); });
+      });
+      // Lessons this teacher covered for someone else.
+      (res.cover || []).forEach((c) => {
+        const cls = (llsLessonClasses() || []).find((k) => k.id === c.classId);
+        const done = new Set((res.dates && res.dates[c.classId]) || []);
+        if (cls && c.lessonDate < today && !done.has(c.lessonDate) && !llsLessonSaveState(c.classId, c.lessonDate) && !missing.some((m) => m.cls.id === c.classId && m.date === c.lessonDate)) {
+          missing.push({ cls, time: c.lessonTime || "", date: c.lessonDate, cover: c.reportedBy || true });
+        }
+      });
+    } catch (_) { return; /* Google didn't answer: don't nag on a guess */ }
+  } else {
+    for (const classId of Object.keys(byClass)) {
+      try {
+        const log = await llsApiGet("getLessonLog", { classId, limit: 20 }, { background: true });
+        const done = new Set((log.entries || []).map((e) => String(e.lessonDate || "").slice(0, 10)));
+        byClass[classId].forEach((x) => { if (!done.has(x.date)) missing.push(x); });
+      } catch (_) { /* Google didn't answer: don't nag on a guess */ }
+    }
   }
   if (!missing.length) return;
   missing.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
@@ -9081,11 +9185,25 @@ function llsShowTutTut(session, missing) {
       <h2 id="tutTutTitle" style="margin:0 0 6px;">TUT TUT, ${escapeHtml(first)}!</h2>
       <p style="margin:0 0 12px;">Cole can see you haven't filled in ${missing.length === 1 ? "this lesson" : "these lessons"}:</p>
       <div style="display:grid;gap:8px;text-align:left;margin-bottom:14px;">
-        ${missing.map((x, i) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #dfe9f5;border-radius:14px;padding:8px 12px;">
-          <span><strong>${escapeHtml(when(x.date))}</strong> · ${escapeHtml(x.time)} ${escapeHtml(x.cls.name)}</span>
-          <button type="button" class="button button-primary" data-tuttut="${i}" style="min-height:40px;padding:6px 14px;">Fill it in now</button>
+        ${missing.map((x, i) => `<div class="tut-row" data-tut-row="${i}">
+          <div class="tut-line">
+            <span><strong>${escapeHtml(when(x.date))}</strong> · ${escapeHtml(x.time)} ${escapeHtml(x.cls.name)}${x.cover ? ` <em class="muted">(you covered${typeof x.cover === "string" ? " for " + escapeHtml(x.cover) : ""})</em>` : ""}</span>
+            <span class="tut-buttons">
+              <button type="button" class="button button-primary" data-tuttut="${i}" style="min-height:40px;padding:6px 14px;">Fill it in now</button>
+              ${x.cover || (window.llsServerVersion || 0) < 29 ? "" : `<button type="button" class="button button-secondary" data-tut-other="${i}" style="min-height:40px;padding:6px 12px;">Not mine / cancelled?</button>`}
+            </span>
+          </div>
+          <div class="tut-other" hidden>
+            <label><input type="radio" name="tutKind${i}" value="Covered" checked> 👥 Another teacher covered it:</label>
+            <select data-tut-cover>${llsTutTeacherOptions_(session)}</select>
+            <label><input type="radio" name="tutKind${i}" value="Cancelled"> 🚫 The lesson was cancelled</label>
+            <label><input type="radio" name="tutKind${i}" value="Not my class"> ❓ This isn't my class</label>
+            <input type="text" data-tut-note maxlength="300" placeholder="Anything Rosanna should know? (optional)">
+            <button type="button" class="button button-primary" data-tut-send="${i}">Tell Rosanna</button>
+          </div>
         </div>`).join("")}
       </div>
+      ${(window.llsServerVersion || 0) < 29 ? "" : `<p class="muted" style="margin:0 0 10px;font-size:14px;">Not your lesson, or it didn't happen? Press <strong>Not mine / cancelled?</strong> and Rosanna will sort it out.</p>`}
       <p style="margin:0 0 4px;font-weight:800;font-size:18px;">PWWWEEEAAASSSEEEE do it when you get a chance 🙏</p>
       <p style="margin:0 0 16px;">Cole is watching you ❤️</p>
       <button type="button" class="button button-secondary" data-tuttut-later>Later, I promise</button>
@@ -9099,6 +9217,22 @@ function llsShowTutTut(session, missing) {
     llsLesson.loadedKey = "";
     llsRenderLessonPicker();
     llsOpenLesson(x.cls.id);
+  }));
+  modal.querySelectorAll("[data-tut-other]").forEach((b) => b.addEventListener("click", () => {
+    const box = b.closest("[data-tut-row]").querySelector(".tut-other");
+    box.hidden = !box.hidden;
+  }));
+  modal.querySelectorAll("[data-tut-send]").forEach((b) => b.addEventListener("click", () => {
+    const row = b.closest("[data-tut-row]");
+    const x = missing[Number(b.dataset.tutSend)];
+    const kind = row.querySelector('input[type="radio"]:checked')?.value || "Covered";
+    const sel = row.querySelector("[data-tut-cover]");
+    if (kind === "Covered" && !sel.value) { showToast("Choose who covered the lesson.", "error"); return; }
+    const opt = sel.options[sel.selectedIndex];
+    const coveredById = kind === "Covered" && sel.value !== "other" ? sel.value : "";
+    const coveredBy = kind === "Covered" ? (sel.value === "other" ? "Someone else" : opt.textContent.trim()) : "";
+    llsQueueSave("lesson report", { action: "reportLessonIssue", classId: x.cls.id, lessonDate: x.date, lessonTime: x.time, kind, coveredBy, coveredById, note: row.querySelector("[data-tut-note]").value.trim() });
+    row.innerHTML = `<div class="tut-line"><span><strong>${escapeHtml(when(x.date))}</strong> · ${escapeHtml(x.cls.name)}</span><span class="tut-sent">✓ Sent to Rosanna${kind === "Covered" ? " · " + escapeHtml(coveredBy) + " will be reminded" : ""}</span></div>`;
   }));
   modal.querySelector("[data-tuttut-later]")?.addEventListener("click", () => closeModal("tutTutModal"));
   openModal("tutTutModal");
@@ -9151,11 +9285,12 @@ const LLS_GUIDE = {
         ["1 · Register", "Tap Here / Late / Absent / Excused (\"Everyone here\" does it in one go). Choose \"How did they do?\" for everyone who came: it counts towards their progress."],
         ["2 · What did you do today?", "Tap the skills you covered (Grammar, Reading, Speaking…) and tap a suggested topic or type one. Students see this on their road map. For a ⭐ Special lesson (Halloween, Christmas…) tick the box instead."],
         ["Notes for the next teacher", "Private: only staff see them. \"Anything else?\" is optional and students can see it."],
-        ["3 · Homework (optional)", "Title + instructions. The due date is the next lesson. It goes straight to the students' app."],
+        ["3 · Homework (optional)", "Title + instructions. The due date is the next lesson. It goes straight to the students' app. \"📎 Attach files\" adds a worksheet, a photo of the page or audio."],
+        ["📎 Files and 📥 work to mark", "Under \"Recent homework\": \"📎 Files\" adds or removes files. When students hand in photos of their work you see \"📥 Work · to mark\": open each photo, write a mark and a comment, press \"Save mark\". Students see it in their app."],
         ["💾 Save lesson", "It's saved on your device at once and sent to Google in the background: you can go to your next class. The badge turns \"✓ Saved · in Google Sheets\"."],
         ["Unit − / +", "When the class starts a new unit of the book, press + (the practice in the students' app follows)."],
         ["Tests", "Homework page → \"+ New test\": multiple choice or typed answers. Students take it in their app; you see the results."],
-        ["Forgot a lesson?", "When you log in, a \"TUT TUT\" reminder lists lessons without notes. Tap \"Fill it in now\"."]
+        ["Forgot a lesson?", "When you log in, a \"TUT TUT\" reminder lists lessons without notes. Tap \"Fill it in now\". Not your lesson, or cancelled? Tap \"Not mine / cancelled?\" and choose: another teacher covered it, it was cancelled, or it isn't your class. Rosanna sorts it out; whoever covered gets the reminder."]
       ],
       tip: "Something not working? Use 🐞 Report a problem in the left menu: it emails the school with the details."
     },
@@ -9167,11 +9302,12 @@ const LLS_GUIDE = {
         ["1 · Appello", "Tocca Presente / In ritardo / Assente / Giustificato (\"Tutti presenti\" li segna tutti). Scegli \"Com'è andata?\" per ogni studente presente: conta nei suoi progressi."],
         ["2 · Cosa avete fatto oggi?", "Tocca le abilità (Grammatica, Lettura, Parlato…) e tocca un argomento suggerito o scrivilo. Gli studenti lo vedono nel loro percorso. Per una ⭐ lezione speciale (Halloween, Natale…) spunta la casella."],
         ["Note per il prossimo insegnante", "Private: le vede solo lo staff. \"Altro?\" è facoltativo e lo vedono gli studenti."],
-        ["3 · Compiti (facoltativi)", "Titolo + istruzioni. La consegna è la lezione successiva. Vanno subito nell'app degli studenti."],
+        ["3 · Compiti (facoltativi)", "Titolo + istruzioni. La consegna è la lezione successiva. Vanno subito nell'app degli studenti. \"📎 Attach files\" aggiunge una scheda, la foto della pagina o un audio."],
+        ["📎 File e 📥 lavori da correggere", "Sotto \"Recent homework\": \"📎 Files\" aggiunge o toglie file. Quando gli studenti consegnano le foto dei compiti vedi \"📥 Work · to mark\": apri ogni foto, scrivi voto e commento, premi \"Save mark\". Gli studenti li vedono nell'app."],
         ["💾 Salva lezione", "Si salva subito sul dispositivo e parte verso Google in sottofondo: puoi andare alla classe successiva. Il badge diventa \"✓ Salvata · su Google Sheets\"."],
         ["Unità − / +", "Quando la classe inizia una nuova unità del libro, premi + (gli esercizi nell'app seguono)."],
         ["Test", "Pagina Compiti → \"+ Nuovo test\": scelta multipla o risposta scritta. Gli studenti lo fanno nell'app; tu vedi i risultati."],
-        ["Lezione dimenticata?", "Quando entri, il promemoria \"TUT TUT\" mostra le lezioni senza note. Tocca \"Compilala ora\"."]
+        ["Lezione dimenticata?", "Quando entri, il promemoria \"TUT TUT\" mostra le lezioni senza note. Tocca \"Fill it in now\". Non era tua, o è stata annullata? Tocca \"Not mine / cancelled?\" e scegli: l'ha coperta un altro insegnante, è stata annullata, o non è la tua classe. Rosanna sistema; il promemoria va a chi l'ha coperta."]
       ],
       tip: "Qualcosa non funziona? Usa 🐞 Segnala un problema nel menu a sinistra: manda un'email alla scuola con i dettagli."
     }
@@ -9189,6 +9325,7 @@ const LLS_GUIDE = {
         ["Reminders", "Filter \"Overdue\" and use the WhatsApp reminder button on the fee."],
         ["Enquiries", "\"+ New enquiry\" for calls and visits (the website form adds them by itself). Move the stage, then \"Convert to Student\" when they enrol."],
         ["Classes & Teachers", "Edit days, times, rooms and book unit. \"📱 App links\" on a class gives every student's link. Teachers: \"+ Add teacher\" with a PIN."],
+        ["🛠 Lessons to sort out", "On the Dashboard: lessons a teacher says were covered by someone else, cancelled, or not theirs. Do what it says (\"Open lesson\" / \"Open class\"), then press \"Sorted ✓\"."],
         ["The ⏳ pill at the top", "Changes still on their way to Google. Wait for it to go before closing the page. If it turns ⚠, tap it to try again."]
       ],
       tip: "Something not working? 🐞 Report a problem (left menu) emails the school with the details."
@@ -9205,6 +9342,7 @@ const LLS_GUIDE = {
         ["Promemoria", "Filtra \"Scaduto\" e usa il pulsante WhatsApp di promemoria sulla quota."],
         ["Richieste", "\"+ Nuova richiesta\" per telefonate e visite (il modulo del sito le aggiunge da solo). Aggiorna la fase, poi \"Trasforma in studente\" quando si iscrive."],
         ["Classi e insegnanti", "Modifica giorni, orari, aule e unità del libro. \"📱 Link app\" su una classe dà i link di tutti gli studenti. Insegnanti: \"+ Add teacher\" con un PIN."],
+        ["🛠 Lezioni da sistemare", "Nella Dashboard: lezioni che un insegnante segnala come coperte da un collega, annullate o non sue. Fai quello che dice (\"Open lesson\" / \"Open class\"), poi premi \"Sorted ✓\"."],
         ["Il pulsante ⏳ in alto", "Modifiche ancora in viaggio verso Google. Aspetta che sparisca prima di chiudere la pagina. Se diventa ⚠, toccalo per riprovare."]
       ],
       tip: "Qualcosa non funziona? 🐞 Segnala un problema (menu a sinistra) manda un'email alla scuola con i dettagli."
@@ -9264,3 +9402,310 @@ function llsRenderHwSuggest(cls) {
     byId("lessonHwText")?.focus();
   });
 }
+
+
+
+/* =========================================================
+   2 Oct — HOMEWORK FILES (needs Apps Script V29)
+   Teachers attach worksheets / photos / audio to a homework; every
+   teacher and the students of that class can open them. Students hand
+   in photos or PDFs of their work from the app; here the teacher opens
+   it and saves a mark + comment the student sees in the app.
+   Files live privately in the school's Google Drive; they are opened
+   through Apps Script after a login check (no public links).
+========================================================= */
+const LLS_FILE_MAX = 8 * 1024 * 1024;
+const LLS_FILE_ICON = (type) => /^image\//.test(type) ? "🖼️" : /pdf/.test(type) ? "📄" : /^audio\//.test(type) ? "🎧" : "📎";
+
+function llsHwFileCounts_(homeworkId, from) {
+  from = from || llsHomeworkCache;
+  const files = (from.files || []).filter((f) => f.homeworkId === homeworkId);
+  const studentsIn = new Set(files.filter((f) => f.kind === "Work").map((f) => f.studentId));
+  let toMark = 0;
+  studentsIn.forEach((sid) => {
+    const rec = (from.status || []).find((s) => String(s["Homework ID"] || "") === homeworkId && String(s["Student ID"] || "").trim() === sid);
+    if (!rec || (!String(rec["Mark"] || "").trim() && !String(rec["Feedback"] || "").trim())) toMark++;
+  });
+  return { teacher: files.filter((f) => f.kind === "Homework").length, students: studentsIn.size, toMark };
+}
+
+function llsHwWorkFor_(homeworkId, studentId) {
+  return (llsHomeworkCache.files || []).filter((f) => f.kind === "Work" && f.homeworkId === homeworkId && f.studentId === studentId);
+}
+
+function llsFileChip_(f, removable) {
+  const when = f.addedAt ? new Date(f.addedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "";
+  return `<span class="hw-file-chip"><button type="button" class="hw-file-open" data-open-file="${escapeAttribute(f.fileId)}" title="Open">${LLS_FILE_ICON(f.type)} ${escapeHtml(f.name)}</button>${when ? `<small>${escapeHtml(when)}${f.addedBy && f.kind === "Homework" ? " · " + escapeHtml(f.addedBy) : ""}</small>` : ""}${removable ? `<button type="button" class="hw-file-remove" data-remove-file="${escapeAttribute(f.fileId)}" title="Remove" aria-label="Remove ${escapeAttribute(f.name)}">✕</button>` : ""}</span>`;
+}
+
+function llsWireFileChips_(root, onRemoved) {
+  root.querySelectorAll("[data-open-file]").forEach((b) => b.addEventListener("click", () => {
+    const f = (llsHomeworkCache.files || []).find((x) => x.fileId === b.dataset.openFile);
+    llsOpenFile_(b.dataset.openFile, f);
+  }));
+  root.querySelectorAll("[data-remove-file]").forEach((b) => b.addEventListener("click", async () => {
+    const f = (llsHomeworkCache.files || []).find((x) => x.fileId === b.dataset.removeFile);
+    if (!window.confirm(`Remove "${f ? f.name : "this file"}"? Students won't see it any more.`)) return;
+    b.disabled = true;
+    try {
+      await llsApiPost({ action: "removeFile", fileId: b.dataset.removeFile });
+      llsHomeworkCache.files = (llsHomeworkCache.files || []).filter((x) => x.fileId !== b.dataset.removeFile);
+      showToast("File removed.", "success");
+      if (onRemoved) onRemoved();
+      llsRepaintHomeworkCounts_();
+    } catch (error) {
+      b.disabled = false;
+      showToast(llsFileError_(error), "error");
+    }
+  }));
+}
+
+function llsFileError_(error) {
+  const m = String(error && error.message || error || "");
+  return /Unknown (mutation )?action/.test(m) ? "Files need the Google update V29. Ask Cole to install it." : m;
+}
+
+// Opens the file in a new tab (the tab is opened straight away so the
+// browser doesn't block it, then filled when Google sends the file).
+async function llsOpenFile_(fileId, meta) {
+  const win = window.open("", "_blank");
+  if (win) { try { win.document.title = "Opening…"; win.document.body.innerHTML = '<p style="font:16px system-ui;padding:24px;color:#16275c">Opening the file…</p>'; } catch (_) {} }
+  try {
+    const url = new URL(LLS_API_URL);
+    url.searchParams.set("action", "getFile");
+    url.searchParams.set("fileId", fileId);
+    url.searchParams.set("token", sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY) || "");
+    url.searchParams.set("t", Date.now());
+    const response = await llsFetch_(url.toString(), { method: "GET", cache: "no-store", redirect: "follow" }, { timeoutMs: 90000, save: true });
+    const data = JSON.parse(await response.text());
+    if (!data.success) throw new Error(data.error || "Could not open the file.");
+    const file = data.file || meta || {};
+    const bytes = Uint8Array.from(atob(data.data), (c) => c.charCodeAt(0));
+    const blobUrl = URL.createObjectURL(new Blob([bytes], { type: file.type || "application/octet-stream" }));
+    const viewable = /^(image\/|audio\/|application\/pdf|text\/plain)/.test(file.type || "");
+    if (win && viewable) { win.location.href = blobUrl; }
+    else {
+      if (win) win.close();
+      const a = document.createElement("a");
+      a.href = blobUrl; a.download = file.name || "file"; document.body.appendChild(a); a.click(); a.remove();
+    }
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
+  } catch (error) {
+    if (win) win.close();
+    showToast(llsFileError_(error.timeout ? new Error("The file took too long to arrive. Try again.") : error), "error");
+  }
+}
+
+// Photos are made smaller (max 1800 px, JPEG) so they upload fast on a phone.
+async function llsReadUpload_(file) {
+  let blob = file, type = file.type || "", name = file.name || "file";
+  if (/^image\/(jpeg|png|webp|heic|heif)$/i.test(type) && file.size > 500 * 1024 && typeof createImageBitmap === "function") {
+    try {
+      const img = await createImageBitmap(file);
+      const scale = Math.min(1, 1800 / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const small = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+      if (small && small.size < file.size) { blob = small; type = "image/jpeg"; name = name.replace(/\.[a-z0-9]+$/i, "") + ".jpg"; }
+    } catch (_) { /* keep the original */ }
+  }
+  if (!type && /\.pdf$/i.test(name)) type = "application/pdf";
+  if (blob.size > LLS_FILE_MAX) throw new Error(`"${name}" is too big (max 8 MB).`);
+  const data = await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).replace(/^data:[^,]*,/, ""));
+    r.onerror = () => reject(new Error(`Couldn't read "${name}".`));
+    r.readAsDataURL(blob);
+  });
+  return { name, type, data };
+}
+
+async function llsUploadHwFiles_(homeworkId, files) {
+  let sent = 0;
+  for (let i = 0; i < files.length; i++) {
+    try {
+      showToast(`Uploading ${i + 1} of ${files.length}: ${files[i].name}…`, "info");
+      const up = await llsReadUpload_(files[i]);
+      const res = await llsApiPost(Object.assign({ action: "uploadHomeworkFile", homeworkId }, up));
+      if (res.file) llsHomeworkCache.files = (llsHomeworkCache.files || []).concat(res.file);
+      sent++;
+    } catch (error) {
+      showToast(llsFileError_(error), "error");
+    }
+  }
+  return sent;
+}
+
+function llsOpenHwFiles(homeworkId) {
+  const hw = (llsHomeworkCache.homework || []).find((h) => String(h["Homework ID"] || "") === homeworkId);
+  if (!hw) return;
+  const render = () => {
+    const files = (llsHomeworkCache.files || []).filter((f) => f.kind === "Homework" && f.homeworkId === homeworkId);
+    text("homeworkFilesTitle", String(hw["Title"] || "Homework"));
+    const list = byId("homeworkFilesList");
+    list.innerHTML = files.length
+      ? `<div class="hw-file-chips">${files.map((f) => llsFileChip_(f, true)).join("")}</div>`
+      : `<p class="muted" style="margin:0;">No files yet. Add a worksheet, a photo of the page or an audio file.</p>`;
+    llsWireFileChips_(list, render);
+  };
+  render();
+  const input = byId("homeworkFilesAdd");
+  input.value = "";
+  input.onchange = async () => {
+    const picked = Array.from(input.files || []);
+    if (!picked.length) return;
+    input.disabled = true;
+    const sent = await llsUploadHwFiles_(homeworkId, picked);
+    input.disabled = false; input.value = "";
+    if (sent) showToast(sent + " file" + (sent === 1 ? "" : "s") + " added. Students can open " + (sent === 1 ? "it" : "them") + " in their app.", "success");
+    render();
+    llsRepaintHomeworkCounts_();
+  };
+  openModal("homeworkFilesModal");
+}
+
+async function llsSaveHwMark_(homeworkId, studentId, mark, feedback) {
+  mark = String(mark || "").trim(); feedback = String(feedback || "").trim();
+  if (!mark && !feedback) { showToast("Write a mark or a comment first.", "error"); return; }
+  const rec = llsHomeworkCache.status.find((s) => String(s["Homework ID"] || "") === homeworkId && String(s["Student ID"] || "").trim() === studentId);
+  if (rec) Object.assign(rec, { Status: "Done", Mark: mark, Feedback: feedback });
+  else llsHomeworkCache.status.push({ "Homework ID": homeworkId, "Student ID": studentId, Status: "Done", Mark: mark, Feedback: feedback });
+  llsQueueSave("homework mark", { action: "markHomeworkFeedback", homeworkId, studentId, mark, feedback });
+  showToast("Mark saved. The student sees it in their app.", "success");
+  openHomeworkStatusModal(homeworkId);
+  llsRepaintHomeworkCounts_();
+}
+
+function llsHwFilesPickedLabel_() {
+  const input = byId("homeworkFiles");
+  const label = byId("homeworkFilesPicked");
+  if (!input || !label) return;
+  const n = (input.files || []).length;
+  label.textContent = n ? `${n} file${n === 1 ? "" : "s"} chosen: ${Array.from(input.files).map((f) => f.name).join(", ")}` : "";
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  byId("homeworkFiles")?.addEventListener("change", llsHwFilesPickedLabel_);
+});
+
+
+
+/* =========================================================
+   2 Oct — LESSON PROBLEMS (needs Apps Script V29)
+   From the TUT TUT reminder a teacher can say a lesson was covered by
+   another teacher, cancelled, or isn't their class. The covering teacher
+   gets the reminder instead; the office sees a "Lessons to sort out"
+   box on the Dashboard with what to do and a button to go there.
+========================================================= */
+function llsTutTeacherOptions_(session) {
+  const me = String(session?.teacherId || "");
+  const list = (state.teachers || []).filter((t) => t.id && t.id !== me && String(t.status || "Active") === "Active");
+  return `<option value="">Choose…</option>${list.map((t) => `<option value="${escapeAttribute(t.id)}">${escapeHtml(t.name || t.id)}</option>`).join("")}<option value="other">Someone else</option>`;
+}
+
+let llsIssues = { open: [], sorted: [] };
+async function llsLoadLessonIssues() {
+  if (llsRole() !== "admin" || !llsHasAdminSession()) return;
+  try {
+    const res = await llsApiGet("getLessonIssues", {}, { background: true });
+    llsIssues = { open: res.open || [], sorted: res.sorted || [] };
+  } catch (_) { llsIssues = { open: [], sorted: [] }; }
+  llsRenderLessonIssues();
+}
+
+function llsIssueWhatToDo_(i) {
+  if (i.kind === "Covered") return `${escapeHtml(i.coveredBy || "The covering teacher")} covered it. ${i.coveredById ? "They get a reminder to fill in the lesson notes." : "Fill in the lesson notes (or ask who covered)."} If the class has a new teacher for good, change it in Classes.`;
+  if (i.kind === "Cancelled") return "Decide if it needs a make-up lesson and tell the families. Then press Sorted.";
+  return "The timetable may be wrong: check who teaches this class (Classes → Edit → Teacher).";
+}
+
+function llsRenderLessonIssues() {
+  const box = byId("lessonIssuesPanel");
+  if (!box) return;
+  const open = llsIssues.open || [];
+  box.hidden = !open.length;
+  if (!open.length) { box.innerHTML = ""; return; }
+  const when = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  const icon = { Covered: "👥", Cancelled: "🚫", "Not my class": "❓" };
+  box.innerHTML = `
+    <p class="section-label" style="margin-top:0;">🛠 Lessons to sort out (${open.length})</p>
+    <p class="muted" style="margin:4px 0 12px;">Teachers told us about these lessons. Do what it says, then press <strong>Sorted</strong>.</p>
+    ${open.map((i) => `<div class="issue-row">
+      <div>
+        <strong>${icon[i.kind] || "•"} ${escapeHtml(i.kind === "Covered" ? "Covered by " + (i.coveredBy || "another teacher") : i.kind === "Cancelled" ? "Lesson cancelled" : "Not my class")}</strong>
+        · ${escapeHtml(i.className || i.classId)} · ${escapeHtml(when(i.lessonDate))}${i.lessonTime ? " " + escapeHtml(i.lessonTime) : ""}
+        <div class="muted" style="font-size:14px;margin-top:2px;">Reported by ${escapeHtml(i.reportedBy || "a teacher")}${i.note ? ` — “${escapeHtml(i.note)}”` : ""}</div>
+        <div style="font-size:14px;margin-top:4px;">👉 ${llsIssueWhatToDo_(i)}</div>
+      </div>
+      <div class="issue-actions">
+        ${i.kind === "Not my class"
+          ? `<button type="button" class="button button-secondary" data-issue-class="${escapeAttribute(i.classId)}">Open class</button>`
+          : `<button type="button" class="button button-secondary" data-issue-lesson="${escapeAttribute(i.issueId)}">Open lesson</button>`}
+        <button type="button" class="button button-primary" data-issue-sorted="${escapeAttribute(i.issueId)}">Sorted ✓</button>
+      </div>
+    </div>`).join("")}`;
+  box.querySelectorAll("[data-issue-class]").forEach((b) => b.addEventListener("click", () => {
+    navigateTo("classes");
+    try { openEditClass(b.dataset.issueClass); } catch (_) {}
+  }));
+  box.querySelectorAll("[data-issue-lesson]").forEach((b) => b.addEventListener("click", () => {
+    const i = open.find((x) => x.issueId === b.dataset.issueLesson);
+    if (!i) return;
+    navigateTo("lesson");
+    const dateInput = byId("lessonDate");
+    if (dateInput) dateInput.value = i.lessonDate;
+    llsLesson.loadedKey = "";
+    llsLesson.showAll = true;
+    llsRenderLessonPicker();
+    llsOpenLesson(i.classId);
+  }));
+  box.querySelectorAll("[data-issue-sorted]").forEach((b) => b.addEventListener("click", () => {
+    const id = b.dataset.issueSorted;
+    llsIssues.open = llsIssues.open.filter((x) => x.issueId !== id);
+    llsQueueSave("lesson sorted", { action: "resolveLessonIssue", issueId: id });
+    llsRenderLessonIssues();
+    showToast("Marked as sorted.", "success");
+  }));
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  // After the page has its data; quietly, so opening is never slowed down.
+  setTimeout(() => {
+    const wait = () => (window.llsServerVersion === undefined ? setTimeout(wait, 1000) : (window.llsServerVersion >= 29 && llsLoadLessonIssues()));
+    wait();
+  }, 3000);
+});
+
+
+// Lesson page: files chosen with the homework wait here (this tab only) until
+// the lesson is saved and Google gives the homework its number.
+const llsPendingHwFiles = {};
+async function llsAfterHomeworkSaved_(requestId, homeworkId) {
+  const pending = llsPendingHwFiles[requestId];
+  if (!pending) return;
+  delete llsPendingHwFiles[requestId];
+  const keep = llsHomeworkCache;
+  llsHomeworkCache = { classId: pending.classId, homework: [], status: [], files: [] };
+  const sent = await llsUploadHwFiles_(homeworkId, pending.files);
+  const added = llsHomeworkCache.files;
+  llsHomeworkCache = keep;
+  if (sent) showToast(`📎 ${sent} file${sent === 1 ? "" : "s"} added to the homework. Students can open ${sent === 1 ? "it" : "them"} in their app.`, "success");
+  if (llsLesson.classId === pending.classId) {
+    llsLesson.files = (llsLesson.files || []).concat(added);
+    const own = llsLesson.homework.find((h) => !h["Homework ID"]);
+    if (own) own["Homework ID"] = homeworkId;
+    llsRenderLessonHomework(llsStudentsForClass(llsLesson.classId).length);
+  }
+}
+function llsLessonFilesPicked_() {
+  const input = byId("lessonHwFiles"), label = byId("lessonHwFilesPicked");
+  if (!input || !label) return;
+  const n = (input.files || []).length;
+  label.textContent = n ? `${n} file${n === 1 ? "" : "s"} chosen: they go up when you save the lesson.` : "";
+}
+document.addEventListener("DOMContentLoaded", () => {
+  byId("lessonHwFiles")?.addEventListener("change", llsLessonFilesPicked_);
+});

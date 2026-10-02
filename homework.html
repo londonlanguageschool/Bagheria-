@@ -411,6 +411,19 @@
     .l-tag { background: #fff; border: 1.5px solid color-mix(in srgb, var(--c) 45%, #fff); color: #16275c; border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 600; }
     .l-tag i { font-style: normal; font-size: 10px; font-weight: 800; color: #fff; background: #e2231a; border-radius: 999px; padding: 1px 6px; margin-right: 6px; }
     .l-tag.more { color: #56617a; }
+    /* 2 Oct: homework files, handing in, teacher's mark */
+    .hw-extra { grid-column: 1 / -1; display: grid; gap: 8px; margin-top: 6px; }
+    .hw-files { display: flex; flex-wrap: wrap; gap: 8px; }
+    .hw-file { display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: 999px; background: #fff; box-shadow: 0 2px 8px rgba(15,27,61,.08); padding: 0 4px 0 0; max-width: 100%; }
+    .hw-file button { border: 0; background: transparent; font: inherit; font-weight: 700; font-size: 14px; color: var(--navy-800, #16275c); padding: 9px 12px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px; }
+    .hw-file .rm { color: #b3261e; padding: 9px 10px; font-weight: 800; }
+    .hw-label { font-size: 12px; font-weight: 700; color: var(--ink-600); margin: 2px 0 0; }
+    .handin { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; border: 2px dashed var(--pill, #16275c); border-radius: 999px; padding: 8px 16px; font-weight: 800; font-size: 14px; color: var(--pill, #16275c); background: rgba(255,255,255,.7); cursor: pointer; width: fit-content; }
+    .handin input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .handin-status { font-size: 13px; font-weight: 600; color: var(--ink-600); min-height: 0; }
+    .feedback { background: #fff; border-radius: 16px; padding: 10px 14px; box-shadow: 0 2px 8px rgba(15,27,61,.08); }
+    .feedback strong { font-family: var(--display); }
+    .feedback p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -468,6 +481,8 @@
                "Log in", "Scan the QR on your slip or type your code, then add the page to your Home screen."],
         ["📝", "Compiti", "Qui trovi i compiti della tua classe. Quando li hai fatti, tocca «Mark done»: il tuo insegnante lo vede.",
                "Homework", "Your class's homework. When it's done, tap «Mark done»: your teacher can see it."],
+        ["📷", "Consegna il compito", "Se l'insegnante ha allegato una scheda (📄), toccala per aprirla. Per consegnare, tocca «📷 Hand in your work · Consegna» e fai una foto del quaderno (o scegli un PDF). L'insegnante la corregge e qui vedi il voto ⭐ e il commento.",
+               "Hand in your work", "Tap a 📄 file from your teacher to open it. To hand in, tap «📷 Hand in your work» and take a photo of your work. Your teacher's mark ⭐ and comment appear here."],
         ["🎯", "Esercizi", "Nella scheda «Practice · Esercizi» ti alleni con il tuo libro: grammatica, vocabolario e pronuncia. Superi un esercizio con almeno metà delle risposte giuste.",
                "Practice", "In «Practice» you train with your book: grammar, vocabulary and speaking. Half the answers right = passed."],
         ["🗺️", "Il mio percorso", "Le unità del libro come una strada, le stelle che guadagni, i tuoi obiettivi e, in «Cosa ho imparato», tutto quello che avete fatto in classe.",
@@ -1281,6 +1296,7 @@
             ${i.done ? "Done ✓" : "Mark done"}
           </button>
           ${i["Description"] ? `<p class="desc">${esc(i["Description"])}</p>` : ""}
+          ${hwExtraHtml(i)}
         </article>`;
 
       main.innerHTML = journeyHtml() + testsHtml() +
@@ -1291,8 +1307,144 @@
       main.querySelectorAll(".tick[data-id]").forEach((button) => {
         button.addEventListener("click", () => toggle(button));
       });
+      bindHwExtra(main);
       main.querySelectorAll("[data-test]").forEach((b) => b.addEventListener("click", () => startTeacherTest(b.dataset.test)));
       bindJourney(main);
+    }
+
+    /* ---------- 2 Oct: homework files (Apps Script V29) ----------
+       The teacher's files for this homework, the student's own handed-in
+       work and the teacher's mark + comment. Files are private: they are
+       fetched through Apps Script with this student's key. */
+    const FILE_ICON = (t) => /^image\//.test(t) ? "🖼️" : /pdf/.test(t) ? "📄" : /^audio\//.test(t) ? "🎧" : "📎";
+    function hwExtraHtml(i) {
+      const id = String(i["Homework ID"]);
+      const files = (data.files || []).filter((f) => f.homeworkId === id);
+      const teacherFiles = files.filter((f) => f.kind === "Homework");
+      const mine = files.filter((f) => f.kind === "Work");
+      const st = (data.status || []).find((x) => String(x["Homework ID"]) === id) || {};
+      const marked = String(st["Mark"] || "").trim() || String(st["Feedback"] || "").trim();
+      const chip = (f, removable) => `<span class="hw-file"><button type="button" data-open-file="${esc(f.fileId)}">${FILE_ICON(f.type)} ${esc(f.name)}</button>${removable ? `<button type="button" class="rm" data-remove-work="${esc(f.fileId)}" aria-label="Remove · Togli ${esc(f.name)}">✕</button>` : ""}</span>`;
+      return `<div class="hw-extra">
+        ${teacherFiles.length ? `<p class="hw-label">📎 From your teacher · Dall'insegnante</p><div class="hw-files">${teacherFiles.map((f) => chip(f, false)).join("")}</div>` : ""}
+        ${marked ? `<div class="feedback"><strong>⭐ ${st["Mark"] ? esc(st["Mark"]) : "Teacher's comment · Commento"}</strong>${st["Feedback"] ? `<p>${esc(st["Feedback"])}</p>` : ""}${st["Marked By"] ? `<p class="meta">— ${esc(st["Marked By"])}</p>` : ""}</div>` : ""}
+        ${mine.length ? `<p class="hw-label">📤 Your work · Il tuo lavoro</p><div class="hw-files">${mine.map((f) => chip(f, !marked)).join("")}</div>` : ""}
+        <label class="handin">📷 ${mine.length ? "Add more · Aggiungi" : "Hand in your work · Consegna"}<input type="file" multiple accept="image/*,application/pdf,audio/*" data-handin="${esc(id)}"></label>
+        <div class="handin-status" data-handin-status="${esc(id)}" aria-live="polite"></div>
+      </div>`;
+    }
+
+    function bindHwExtra(root) {
+      root.querySelectorAll("[data-open-file]").forEach((b) => b.addEventListener("click", () => openFile(b.dataset.openFile)));
+      root.querySelectorAll("[data-handin]").forEach((input) => input.addEventListener("change", () => handIn(input.dataset.handin, Array.from(input.files || []))));
+      root.querySelectorAll("[data-remove-work]").forEach((b) => b.addEventListener("click", async () => {
+        if (!confirm("Remove this file? · Vuoi togliere questo file?")) return;
+        b.disabled = true;
+        try {
+          await postApi({ action: "studentRemoveWork", key: KEY, fileId: b.dataset.removeWork });
+          data.files = (data.files || []).filter((f) => f.fileId !== b.dataset.removeWork);
+          render();
+        } catch (e) { b.disabled = false; alert(fileError(e)); }
+      }));
+    }
+
+    function fileError(e) {
+      const m = String(e && e.message || e || "");
+      return /Unknown (mutation )?action/.test(m) ? "This isn't switched on yet. Please try again in a few days. · Non ancora attivo, riprova tra qualche giorno." : m;
+    }
+
+    // Big uploads go by POST (a web address can't hold a photo).
+    async function postApi(body) {
+      body = Object.assign({ requestId: rid() }, body);
+      const form = new URLSearchParams();
+      form.set("action", String(body.action || ""));
+      form.set("payload", JSON.stringify(body));
+      let result = null, problem = "";
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt) await new Promise((r) => setTimeout(r, attempt * 1500));
+        try {
+          const response = await fetch(API_URL, { method: "POST", body: form, cache: "no-store", redirect: "follow" });
+          if (!response.ok) { problem = "HTTP " + response.status; continue; }
+          result = JSON.parse(await response.text());
+          break;
+        } catch (_) { problem = "no reply"; }
+      }
+      if (!result) throw new Error("The connection dropped (" + problem + "). Try again · Connessione persa, riprova.");
+      if (result.success !== true) throw new Error(result.error || "Something went wrong.");
+      return result;
+    }
+
+    // Photos are made smaller (max 1800 px) so they upload fast.
+    async function readUpload(file) {
+      let blob = file, type = file.type || "", name = file.name || "photo.jpg";
+      if (/^image\/(jpeg|png|webp|heic|heif)$/i.test(type) && file.size > 500 * 1024 && typeof createImageBitmap === "function") {
+        try {
+          const img = await createImageBitmap(file);
+          const scale = Math.min(1, 1800 / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const small = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+          if (small && small.size < file.size) { blob = small; type = "image/jpeg"; name = name.replace(/\.[a-z0-9]+$/i, "") + ".jpg"; }
+        } catch (_) {}
+      }
+      if (!type && /\.pdf$/i.test(name)) type = "application/pdf";
+      if (blob.size > 8 * 1024 * 1024) throw new Error(`"${name}" is too big (max 8 MB) · File troppo grande`);
+      const b64 = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result).replace(/^data:[^,]*,/, ""));
+        r.onerror = () => reject(new Error("Couldn't read the file · Impossibile leggere il file"));
+        r.readAsDataURL(blob);
+      });
+      return { name, type, data: b64 };
+    }
+
+    async function handIn(homeworkId, files) {
+      if (!files.length) return;
+      const status = () => document.querySelector(`[data-handin-status="${CSS.escape(homeworkId)}"]`);
+      let sent = 0, problem = "";
+      for (let n = 0; n < files.length; n++) {
+        if (status()) status().textContent = `⏳ Sending ${n + 1} of ${files.length}… · Invio ${n + 1} di ${files.length}…`;
+        try {
+          const up = await readUpload(files[n]);
+          const res = await postApi(Object.assign({ action: "studentUploadWork", key: KEY, homeworkId }, up));
+          data.files = (data.files || []).concat(res.file ? [res.file] : []);
+          sent++;
+        } catch (e) { problem = fileError(e); }
+      }
+      if (sent) {
+        const ex = data.status.find((s) => String(s["Homework ID"]) === homeworkId);
+        const wasDone = ex && ex["Status"] === "Done";
+        if (ex) ex["Status"] = "Done"; else data.status.push({ "Homework ID": homeworkId, "Status": "Done" });
+        try { localStorage.setItem("lls_student_cache", JSON.stringify({ key: KEY, data, at: Date.now() })); } catch (_) {}
+        render();
+        if (!wasDone && window.llsCelebrate) window.llsCelebrate();
+      }
+      if (status()) status().textContent = problem
+        ? `⚠️ ${problem}`
+        : `✅ Sent to your teacher! · Inviato all'insegnante!`;
+    }
+
+    async function openFile(fileId) {
+      const win = window.open("", "_blank");
+      if (win) { try { win.document.title = "…"; win.document.body.innerHTML = '<p style="font:16px system-ui;padding:24px;color:#16275c">Opening… · Apertura…</p>'; } catch (_) {} }
+      try {
+        const res = await api({ action: "studentGetFile", key: KEY, fileId });
+        const f = res.file || {};
+        const bytes = Uint8Array.from(atob(res.data), (c) => c.charCodeAt(0));
+        const url = URL.createObjectURL(new Blob([bytes], { type: f.type || "application/octet-stream" }));
+        if (win && /^(image\/|audio\/|application\/pdf|text\/plain)/.test(f.type || "")) win.location.href = url;
+        else {
+          if (win) win.close();
+          const a = document.createElement("a"); a.href = url; a.download = f.name || "file"; document.body.appendChild(a); a.click(); a.remove();
+        }
+        setTimeout(() => URL.revokeObjectURL(url), 120000);
+      } catch (e) {
+        if (win) win.close();
+        alert(fileError(e));
+      }
     }
 
     // 30 Sept: the tick shows at once; it is kept on the phone and sent to
