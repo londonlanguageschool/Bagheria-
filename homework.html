@@ -354,6 +354,8 @@
     .step.done .dot, .step.lesson .dot { background: var(--mint); }
     .step.missed .dot { background: #eef1f6; }
     .step.missed strong { color: #7b8aa8; }
+    .step.cancelled .dot { background: #fff1f1; }
+    .step.cancelled strong { color: #7b8aa8; }
     .step strong { display: block; font-size: 14px; font-family: var(--display); font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
     .step small { display: block; color: #56617a; font-size: 12px; overflow-wrap: anywhere; }
     .step.next .dot { background: var(--pill); color: #fff; box-shadow: 0 0 0 4px var(--sun); }
@@ -696,6 +698,7 @@
 
     // Lessons held so far = lessons the teacher saved (whether or not this
     // student came), or the student's own register marks if more.
+    function isCancelled(l) { return String(l.unit || "").trim().toUpperCase() === "CANCELLED"; }
     function courseProgress() {
       let total = 0, held = 0;
       data.classes.forEach((c) => {
@@ -704,7 +707,10 @@
         if (!dates.length) return;
         total += dates.length;
         const logged = {};
-        (data.lessons || []).forEach((l) => { if (String(l.classId) === id) logged[isoDay(l.lessonDate) || l.lessonDate] = true; });
+        // 2 Oct: a cancelled lesson isn't held (it is made up at the end of the course).
+        const now = new Date();
+        const todayIso = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+        (data.lessons || []).forEach((l) => { if (String(l.classId) === id && !isCancelled(l) && (isoDay(l.lessonDate) || l.lessonDate) <= todayIso) logged[isoDay(l.lessonDate) || l.lessonDate] = true; });
         (data.attendance || []).forEach((a) => { if (String(a.classId) === id) logged[isoDay(a.lessonDate) || a.lessonDate] = true; });
         held += Math.min(Object.keys(logged).length, dates.length);
       });
@@ -908,6 +914,16 @@
       const RATE_LABEL = { Excellent: "⭐ Excellent!", Good: "👍 Good work", OK: "🙂 OK", "Needs support": "🤝 Keep going" };
       const steps = [];
       (data.lessons || []).forEach((l) => {
+        if (isCancelled(l)) {
+          steps.push({
+            date: l.lessonDate,
+            icon: "🚫",
+            cls: "cancelled",
+            title: "Lesson cancelled · Lezione annullata",
+            sub: "It will be made up at the end of the course · Sarà recuperata a fine corso"
+          });
+          return;
+        }
         const special = (String(l.unit || "").match(/^Special:\s*(.+)$/i) || [])[1];
         const status = att[l.classId + "|" + l.lessonDate] || "";
         const missed = status === "Absent" || status === "Excused";
@@ -1216,7 +1232,10 @@
       const books = myBooks();
       const steps = journeySteps();
       const todayIso = isoDay(new Date().toISOString().slice(0, 10));
-      const past = steps.filter((s) => s.date && s.date <= todayIso && !(s.cls === "hw" || s.cls === "test"));
+      // 2 Oct: a lesson cancelled in the next two weeks shows too, so families know.
+      const soon = new Date(); soon.setDate(soon.getDate() + 14);
+      const soonIso = isoDay(soon.toISOString().slice(0, 10));
+      const past = steps.filter((s) => s.date && (s.date <= todayIso || (s.cls === "cancelled" && s.date <= soonIso)) && !(s.cls === "hw" || s.cls === "test"));
       const open = steps.filter((s) => s.cls === "hw" || s.cls === "test");
       const shown = journeyOpen ? past : past.slice(-5);
       const stepHtml = (s, extra) => `<li class="step ${s.cls} ${extra || ""}"><span class="dot">${s.icon}</span><div><strong>${esc(s.title)}</strong><small>${s.date && s.date < "9999" ? esc(shortDay(s.date)) + " · " : ""}${esc(s.sub)}</small>${(s.skills || []).length ? `<div class="sk-badges">${s.skills.map((k) => `<span class="sk-badge">${k.icon} <b>${esc(k.k)}</b> ${esc(k.topic)}</span>`).join("")}</div>` : ""}</div></li>`;

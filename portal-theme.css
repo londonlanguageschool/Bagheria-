@@ -411,3 +411,25 @@ input[type="checkbox"] { border-radius: 4px; }
   .week-row { grid-template-columns: 1fr auto; }
   .week-class { grid-column: 1 / -1; order: -1; }
 }
+
+/* 2 Oct — cancelled lessons */
+.week-row.cancelled { background: #f3f4f6; color: #6b7280; }
+.week-row.cancelled .week-class { text-decoration: line-through; }
+.lesson-chip.is-cancelled { opacity: .6; text-decoration: line-through; }
+.cancel-banner { background: #fff1f1; border: 2px solid #f3b6b6; }
+.cancel-tag { display: inline-block; font-size: 12px; font-weight: 800; color: #b42318; background: #fff1f1; border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
+.cancel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cancel-grid label, .cancel-row label { display: grid; gap: 4px; font-weight: 700; font-size: 14px; }
+.cancel-rows { display: grid; gap: 8px; }
+.cancel-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr auto; gap: 8px; align-items: end; }
+.cancel-list { display: grid; gap: 6px; max-height: 260px; overflow: auto; }
+.cancel-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 12px; background: #f6f9fd; font-size: 14px; }
+.cancel-item.partly { background: #fff8e6; }
+.cancel-item input { margin-top: 3px; width: 18px; height: 18px; }
+.cancel-msg { margin-top: 10px; }
+.cancel-msg textarea { width: 100%; font: inherit; font-size: 14px; border-radius: 12px; padding: 10px; border: 1px solid #d6dbe4; margin-bottom: 6px; }
+@media (max-width: 560px) {
+  .cancel-grid { grid-template-columns: 1fr; }
+  .cancel-row { grid-template-columns: 1fr 1fr; }
+  .cancel-row label:first-child { grid-column: 1 / -1; }
+}

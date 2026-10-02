@@ -623,6 +623,7 @@ function renderDashboard() {
   renderStudentBreakdown();
   renderRecentEnquiries();
   if (typeof llsRenderNoFeePanel === "function") llsRenderNoFeePanel();
+  if (typeof llsRenderCancelPanel === "function") llsRenderCancelPanel();
   if (typeof llsScheduleWeekPanels_ === "function") llsScheduleWeekPanels_();
 
   text(
@@ -682,7 +683,7 @@ function renderTodayClasses() {
           <div class="schedule-time">${escapeHtml(formatTime(item.time))}</div>
 
           <div class="schedule-info">
-            <strong>${escapeHtml(item.name)}</strong>
+            <strong>${escapeHtml(item.name)}${typeof llsIsCancelled === "function" && llsIsCancelled(item.id, isoDate(new Date())) ? ' <span class="cancel-tag">🚫 Cancelled</span>' : ""}</strong>
             <span>
               ${escapeHtml(item.level)}
               · ${escapeHtml(teacher?.name || "Teacher not assigned")}
@@ -7704,8 +7705,9 @@ function llsRenderLessonPicker() {
     .sort((a, b) => a.name.localeCompare(b.name));
   const chip = (cls, label) => {
     const st = llsLessonSaveState(cls.id, date);
-    const mark = st === "saved" ? " ✓" : st === "sending" ? " ⏳" : "";
-    return `<button type="button" class="lesson-chip${cls.id === llsLesson.classId ? " active" : ""}${st ? " is-saved-" + st : ""}" data-lesson-class="${escapeHtml(cls.id)}">${label}${mark}</button>`;
+    const off = typeof llsIsCancelled === "function" && llsIsCancelled(cls.id, date);
+    const mark = off ? " 🚫" : st === "saved" ? " ✓" : st === "sending" ? " ⏳" : "";
+    return `<button type="button" class="lesson-chip${cls.id === llsLesson.classId ? " active" : ""}${st ? " is-saved-" + st : ""}${off ? " is-cancelled" : ""}"${off ? ' title="Cancelled"' : ""} data-lesson-class="${escapeHtml(cls.id)}">${label}${mark}</button>`;
   };
   const dayLabel = new Date(date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
   // 28 Sept: while Google is still sending the class list, say so (not "No lessons").
@@ -7818,10 +7820,11 @@ async function llsRenderLesson() {
   const applyLog = (log) => {
     if (llsLesson.loadedKey !== key) return;
     llsLesson.entries = llsWithPendingEntries(cls.id, Array.isArray(log.entries) ? log.entries : []);
+    llsNoteCancelFromEntries_(cls.id, Array.isArray(log.entries) ? log.entries : []);
     const own = llsLesson.entries.find((e) => e.lessonDate === date);
-    if (own && !pending && !llsLesson.noteTouched) llsFillLessonNote(own, cls);
+    if (own && !pending && !llsLesson.noteTouched && !llsIsCancelUnit(own.unit)) llsFillLessonNote(own, cls);
     else llsRenderSkills(); // class history now gives better suggestions
-    const last = llsLesson.entries.find((e) => e.lessonDate < date);
+    const last = llsLesson.entries.find((e) => e.lessonDate < date && !llsIsCancelUnit(e.unit));
     const lastBox = byId("lessonLast");
     if (last) { lastBox.hidden = false; lastBox.innerHTML = `<h3>📝 Last lesson</h3>${llsLessonLogEntryHtml(last)}`; }
     llsRenderLessonLogList(byId("lessonHistory"), llsLesson.entries);
@@ -7839,6 +7842,7 @@ async function llsRenderLesson() {
   });
 
   llsRenderPlanPanel();
+  llsRenderCancelBanner();
   llsTestFromLesson = true;
   llsRenderLessonTests();
 
@@ -8057,6 +8061,8 @@ async function llsSaveLesson() {
 
   // Update the screen now, without waiting for Google.
   llsLesson.entries = [{ lessonDate: date, teacherName: session?.name || "", unit: note.unit, whatWeDid: note.whatWeDid, homeworkSet, notes: note.notes }, ...llsLesson.entries.filter((e) => e.lessonDate !== date)];
+  // A cancelled lesson that took place after all: saving it replaces the cancellation.
+  if (llsIsCancelled(cls.id, date)) { delete llsCancelled[cls.id + "|" + date]; llsCancelStore_(); llsAfterCancelChange_(); }
   llsRenderLessonLogList(byId("lessonHistory"), llsLesson.entries);
   if (hwTitle) {
     llsLesson.homework = [{ Title: hwTitle, "Due Date": value("lessonHwDue"), "Created At": new Date().toISOString() }, ...llsLesson.homework];
@@ -9300,7 +9306,8 @@ const LLS_GUIDE = {
         ["Log in", "Choose Teacher, then your Teacher ID (e.g. TCH0002) or email, and your PIN."],
         ["★ Lesson", "Today's lessons are buttons at the top. Tap yours. ✓ = saved, ⏳ = still sending."],,
         ["📋 My week", "At the top of the Lesson page: every lesson you had this week. ✅ filled in, ⚠ to complete. Tap \"Fill it in\" to open that lesson. ‹ goes back a week. The office sees the same list."],
-        ["📚 Lesson plans", "Classes with a course (English File A2, B1 exam, Kitchen English) show the PowerPoint lessons in order. ✓ = this class has already had it (date and teacher), ➡ = next one. \"Teach today\" fills in Unit / page, What we did and the skills for you: check them and save as usual. A lesson already taught asks you to tap twice, so nobody repeats it by mistake."]
+        ["📚 Lesson plans", "Classes with a course (English File A2, B1 exam, Kitchen English) show the PowerPoint lessons in order. ✓ = this class has already had it (date and teacher), ➡ = next one. \"Teach today\" fills in Unit / page, What we did and the skills for you: check them and save as usual. A lesson already taught asks you to tap twice, so nobody repeats it by mistake."],
+        ["🚫 Cancelled lessons and make-ups", "A cancelled lesson shows 🚫 and doesn't need filling in. If it took place after all, fill it in as usual. A make-up lesson: open the class on the day you teach it (Lesson page → date → All my classes) and save as usual; it counts as a make-up by itself."]
         ["1 · Register", "Tap Here / Late / Absent / Excused (\"Everyone here\" does it in one go). Choose \"How did they do?\" for everyone who came: it counts towards their progress."],
         ["2 · What did you do today?", "Tap the skills you covered (Grammar, Reading, Speaking…) and tap a suggested topic or type one. Students see this on their road map. For a ⭐ Special lesson (Halloween, Christmas…) tick the box instead."],
         ["Notes for the next teacher", "Private: only staff see them. \"Anything else?\" is optional and students can see it."],
@@ -9319,7 +9326,8 @@ const LLS_GUIDE = {
         ["Accesso", "Scegli Insegnante, poi il tuo ID (es. TCH0002) o la tua email, e il PIN."],
         ["★ Lezione", "Le lezioni di oggi sono i pulsanti in alto. Tocca la tua. ✓ = salvata, ⏳ = in invio."],,
         ["📋 La mia settimana", "In cima alla pagina Lezione: tutte le tue lezioni della settimana. ✅ compilata, ⚠ da compilare. Tocca \"Compilala\" per aprirla. ‹ torna alla settimana prima. La segreteria vede lo stesso elenco."],
-        ["📚 Piani di lezione", "Le classi con un corso (English File A2, B1 esame, Kitchen English) mostrano le lezioni PowerPoint in ordine. ✓ = la classe l'ha già fatta (data e insegnante), ➡ = la prossima. \"Faccio questa oggi\" compila Unità / pagina, Cosa abbiamo fatto e le abilità: controlla e salva come sempre. Una lezione già fatta chiede due tocchi, così nessuno la ripete per sbaglio."]
+        ["📚 Piani di lezione", "Le classi con un corso (English File A2, B1 esame, Kitchen English) mostrano le lezioni PowerPoint in ordine. ✓ = la classe l'ha già fatta (data e insegnante), ➡ = la prossima. \"Faccio questa oggi\" compila Unità / pagina, Cosa abbiamo fatto e le abilità: controlla e salva come sempre. Una lezione già fatta chiede due tocchi, così nessuno la ripete per sbaglio."],
+        ["🚫 Lezioni annullate e recuperi", "Una lezione annullata ha 🚫 e non va compilata. Se invece si è fatta, compilala come sempre. Un recupero: apri la classe il giorno in cui lo fai (pagina Lezione → data → Tutte le mie classi) e salva come sempre; conta da solo come recupero."]
         ["1 · Appello", "Tocca Presente / In ritardo / Assente / Giustificato (\"Tutti presenti\" li segna tutti). Scegli \"Com'è andata?\" per ogni studente presente: conta nei suoi progressi."],
         ["2 · Cosa avete fatto oggi?", "Tocca le abilità (Grammatica, Lettura, Parlato…) e tocca un argomento suggerito o scrivilo. Gli studenti lo vedono nel loro percorso. Per una ⭐ lezione speciale (Halloween, Natale…) spunta la casella."],
         ["Note per il prossimo insegnante", "Private: le vede solo lo staff. \"Altro?\" è facoltativo e lo vedono gli studenti."],
@@ -9348,7 +9356,8 @@ const LLS_GUIDE = {
         ["Classes & Teachers", "Edit days, times, rooms and book unit. \"📱 App links\" on a class gives every student's link. Teachers: \"+ Add teacher\" with a PIN."],
         ["🛠 Lessons to sort out", "On the Dashboard: lessons a teacher says were covered by someone else, cancelled, or not theirs. Do what it says (\"Open lesson\" / \"Open class\"), then press \"Sorted ✓\"."],,
         ["💶 In class, but no payment details", "On the Dashboard (and in 🔔): students coming to lessons with no course fee recorded. Press \"+ Record payment\", put the total fee and payment plan, Amount paid = what they paid today (or 0), Save. They leave the list. \"How to fix it\" on the panel has the steps."],
-        ["📋 This week's lessons", "On the Dashboard: which lessons teachers haven't filled in yet this week, with a count per teacher. \"Show all\" lists every lesson. A gentle WhatsApp to the teacher is usually enough."]
+        ["📋 This week's lessons", "On the Dashboard: which lessons teachers haven't filled in yet this week, with a count per teacher. \"Show all\" lists every lesson. A gentle WhatsApp to the teacher is usually enough."],
+        ["🚫 Cancel lessons", "Dashboard → \"🚫 Cancel lessons\": choose the teacher (or class), the dates and the times they're away. Check the list (lessons that only partly clash are explained), then \"Cancel N lessons\". Copy the ready-made message for each class and send it on WhatsApp. Cancelled lessons don't count for attendance or progress; \"Lessons owed\" shows how many to add at the end of the course. A teacher's \"cancelled\" report has \"🚫 Record as cancelled\"."]
         ["The ⏳ pill at the top", "Changes still on their way to Google. Wait for it to go before closing the page. If it turns ⚠, tap it to try again."]
       ],
       tip: "Something not working? 🐞 Report a problem (left menu) emails the school with the details."
@@ -9367,7 +9376,8 @@ const LLS_GUIDE = {
         ["Classi e insegnanti", "Modifica giorni, orari, aule e unità del libro. \"📱 Link app\" su una classe dà i link di tutti gli studenti. Insegnanti: \"+ Add teacher\" con un PIN."],
         ["🛠 Lezioni da sistemare", "Nella Dashboard: lezioni che un insegnante segnala come coperte da un collega, annullate o non sue. Fai quello che dice (\"Open lesson\" / \"Open class\"), poi premi \"Sorted ✓\"."],,
         ["💶 In classe, ma senza dati di pagamento", "Nella Dashboard (e nelle 🔔): studenti che vengono a lezione senza quota del corso registrata. Premi \"+ Registra pagamento\", inserisci quota totale e piano di pagamento, Importo pagato = quanto hanno pagato oggi (o 0), Salva. Spariscono dall'elenco. \"Come sistemarlo\" nel riquadro ha i passaggi."],
-        ["📋 Le lezioni della settimana", "Nella Dashboard: le lezioni che gli insegnanti non hanno ancora compilato questa settimana, con il conto per insegnante. \"Mostra tutte\" elenca ogni lezione. Di solito basta un WhatsApp gentile all'insegnante."]
+        ["📋 Le lezioni della settimana", "Nella Dashboard: le lezioni che gli insegnanti non hanno ancora compilato questa settimana, con il conto per insegnante. \"Mostra tutte\" elenca ogni lezione. Di solito basta un WhatsApp gentile all'insegnante."],
+        ["🚫 Annulla lezioni", "Dashboard → \"🚫 Annulla lezioni\": scegli l'insegnante (o la classe), le date e gli orari in cui manca. Controlla l'elenco (le lezioni che si sovrappongono solo in parte sono spiegate), poi \"Annulla N lezioni\". Copia il messaggio pronto per ogni classe e mandalo su WhatsApp. Le lezioni annullate non contano per presenze e progressi; \"Lezioni da recuperare\" dice quante aggiungere alla fine del corso. La segnalazione \"annullata\" di un insegnante ha \"🚫 Registra come annullata\"."]
         ["Il pulsante ⏳ in alto", "Modifiche ancora in viaggio verso Google. Aspetta che sparisca prima di chiudere la pagina. Se diventa ⚠, toccalo per riprovare."]
       ],
       tip: "Qualcosa non funziona? 🐞 Segnala un problema (menu a sinistra) manda un'email alla scuola con i dettagli."
@@ -9643,7 +9653,7 @@ async function llsLoadLessonIssues() {
 
 function llsIssueWhatToDo_(i) {
   if (i.kind === "Covered") return `${escapeHtml(i.coveredBy || "The covering teacher")} covered it. ${i.coveredById ? "They get a reminder to fill in the lesson notes." : "Fill in the lesson notes (or ask who covered)."} If the class has a new teacher for good, change it in Classes.`;
-  if (i.kind === "Cancelled") return "Decide if it needs a make-up lesson and tell the families. Then press Sorted.";
+  if (i.kind === "Cancelled") return llsIsCancelled(i.classId, i.lessonDate) ? "Already recorded as cancelled (a make-up is owed). Press Sorted." : "Press \"🚫 Record as cancelled\": the class is owed a make-up lesson at the end of the course. Tell the families.";
   return "The timetable may be wrong: check who teaches this class (Classes → Edit → Teacher).";
 }
 
@@ -9668,6 +9678,8 @@ function llsRenderLessonIssues() {
       <div class="issue-actions">
         ${i.kind === "Not my class"
           ? `<button type="button" class="button button-secondary" data-issue-class="${escapeAttribute(i.classId)}">Open class</button>`
+          : i.kind === "Cancelled" && !llsIsCancelled(i.classId, i.lessonDate)
+          ? `<button type="button" class="button button-secondary" data-issue-cancel="${escapeAttribute(i.issueId)}" title="Records it as cancelled (a make-up is owed) and marks it sorted">🚫 Record as cancelled</button>`
           : `<button type="button" class="button button-secondary" data-issue-lesson="${escapeAttribute(i.issueId)}">Open lesson</button>`}
         <button type="button" class="button button-primary" data-issue-sorted="${escapeAttribute(i.issueId)}">Sorted ✓</button>
       </div>
@@ -9686,6 +9698,16 @@ function llsRenderLessonIssues() {
     llsLesson.showAll = true;
     llsRenderLessonPicker();
     llsOpenLesson(i.classId);
+  }));
+  box.querySelectorAll("[data-issue-cancel]").forEach((b) => b.addEventListener("click", () => {
+    const i = open.find((x) => x.issueId === b.dataset.issueCancel);
+    const cls = i && llsLessonClasses().find((c) => c.id === i.classId);
+    if (!i || !cls) return;
+    llsCancelLessons_([{ cls, date: i.lessonDate, time: i.lessonTime || "" }], i.note || "Reported by " + (i.reportedBy || "the teacher"));
+    llsIssues.open = llsIssues.open.filter((x) => x.issueId !== i.issueId);
+    llsQueueSave("lesson sorted", { action: "resolveLessonIssue", issueId: i.issueId });
+    llsRenderLessonIssues();
+    showToast(`${cls.name} recorded as cancelled: a make-up lesson is owed.`, "success");
   }));
   box.querySelectorAll("[data-issue-sorted]").forEach((b) => b.addEventListener("click", () => {
     const id = b.dataset.issueSorted;
@@ -9877,12 +9899,14 @@ async function llsLoadWeek_(monday, classIds, force) {
       const res = await llsApiGet("getLessonDates", { classIds: classIds.join(","), since: monday }, { background: true });
       info.dates = res.dates || {};
       info.issues = res.issues || [];
+      llsNoteCancelMap_(res.cancelled, classIds, monday);
     } catch (_) { info.failed = true; }
   } else {
     for (const id of classIds) {
       try {
         const log = await llsApiGet("getLessonLog", { classId: id, limit: 30 }, { background: true });
         info.dates[id] = (log.entries || []).map((e) => String(e.lessonDate || "").slice(0, 10));
+        llsNoteCancelFromEntries_(id, log.entries);
       } catch (_) { info.failed = true; }
     }
   }
@@ -9893,6 +9917,7 @@ function llsWeekStatus_(x, info) {
   const now = new Date();
   const today = isoDate(now);
   const hhmm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+  if (llsIsCancelled(x.cls.id, x.date)) return "cancelled";
   const saved = llsLessonSaveState(x.cls.id, x.date);
   if (saved === "saved" || ((info && info.dates[x.cls.id]) || []).includes(x.date)) return "done";
   if (saved === "sending") return "sending";
@@ -9900,7 +9925,7 @@ function llsWeekStatus_(x, info) {
   if (x.date > today || (x.date === today && String(x.time || "") > hhmm)) return "upcoming";
   return info ? "todo" : "checking";
 }
-const LLS_WEEK_LABEL = { done: "✅ Filled in", sending: "⏳ Sending", reported: "🛠 Reported", upcoming: "🔜 Coming up", todo: "⚠ To complete", checking: "…" };
+const LLS_WEEK_LABEL = { done: "✅ Filled in", sending: "⏳ Sending", reported: "🛠 Reported", upcoming: "🔜 Coming up", todo: "⚠ To complete", cancelled: "🚫 Cancelled", checking: "…" };
 async function llsRenderWeekPanel(boxId, mine) {
   const box = byId(boxId);
   if (!box) return;
@@ -9931,6 +9956,7 @@ async function llsRenderWeekPanel(boxId, mine) {
         <span class="week-chip todo">⚠ ${count("todo")} to complete</span>
         ${count("reported") ? `<span class="week-chip">🛠 ${count("reported")} reported</span>` : ""}
         ${count("upcoming") ? `<span class="week-chip">🔜 ${count("upcoming")} coming up</span>` : ""}
+        ${count("cancelled") ? `<span class="week-chip">🚫 ${count("cancelled")} cancelled</span>` : ""}
         ${!info ? `<span class="muted">checking with Google…</span>` : info.failed ? `<span class="muted">Google didn't answer: some lessons may show as "to complete" by mistake.</span>` : ""}
       </div>
       ${teachers.length ? `<div class="week-teachers">${teachers.map((t) => {
@@ -10035,4 +10061,356 @@ function llsRenderNoFeePanel() {
     if (!value("paymentDescription")) setValue("paymentDescription", "Course 2026/27");
     setValue("paymentPaid", "0");
   }));
+}
+
+/* =========================================================
+   2 Oct (afternoon) — CANCELLED LESSONS AND MAKE-UPS
+   A cancelled lesson is a Lesson Log row whose Unit is "CANCELLED"
+   (saved with the normal saveLessonLog, so it works on every Apps
+   Script version). A cancelled lesson:
+   - isn't a lesson to fill in (no TUT TUT, "🚫 Cancelled" in the week);
+   - doesn't count against anyone's attendance or progress (no register);
+   - is owed to the class: a lesson logged on a day the class is NOT in
+     the timetable (or the school is closed) counts as a make-up.
+   If a cancelled lesson did take place after all, the teacher fills it
+   in as usual: saving replaces the cancellation.
+========================================================= */
+const LLS_CANCEL_UNIT = "CANCELLED";
+const LLS_CANCEL_KEY = "lls_cancelled";
+function llsIsCancelUnit(u) { return String(u || "").trim().toUpperCase() === LLS_CANCEL_UNIT; }
+let llsCancelled = (() => { try { return JSON.parse(localStorage.getItem(LLS_CANCEL_KEY) || "{}") || {}; } catch (_) { return {}; } })();
+function llsCancelStore_() { try { localStorage.setItem(LLS_CANCEL_KEY, JSON.stringify(llsCancelled)); } catch (_) {} }
+function llsIsCancelled(classId, date) { return Boolean(llsCancelled[classId + "|" + String(date || "").slice(0, 10)]); }
+let llsCancelRenderTimer = null;
+function llsAfterCancelChange_() {
+  clearTimeout(llsCancelRenderTimer);
+  llsCancelRenderTimer = setTimeout(() => {
+    try { if (byId("lessonPicker")) llsRenderLessonPicker(); } catch (_) {}
+    try { llsRenderCancelBanner(); } catch (_) {}
+    try { llsRenderCancelPanel(); } catch (_) {}
+    try { if (llsRole() === "admin" && byId("todayClassesList")) renderTodayClasses(); } catch (_) {}
+    try { llsScheduleWeekPanels_(); } catch (_) {}
+  }, 300);
+}
+// Entries from getLessonLog (or a lesson just saved) say exactly which of those dates are cancelled.
+function llsNoteCancelFromEntries_(classId, entries) {
+  let changed = false;
+  (entries || []).forEach((e) => {
+    const k = classId + "|" + String(e.lessonDate || "").slice(0, 10);
+    if (llsIsCancelUnit(e.unit)) {
+      if (!llsCancelled[k] || llsCancelled[k].pending) { llsCancelled[k] = { note: e.notes || (llsCancelled[k] || {}).note || "" }; changed = true; }
+    } else if (llsCancelled[k] && !llsCancelled[k].pending) { delete llsCancelled[k]; changed = true; }
+  });
+  if (changed) { llsCancelStore_(); llsAfterCancelChange_(); }
+}
+// Apps Script V30: getLessonDates also says which dates are cancelled ({classId: [{date, note}]}).
+function llsNoteCancelMap_(map, classIds, since) {
+  if (!map) return;
+  let changed = false;
+  classIds.forEach((id) => {
+    const list = map[id] || [];
+    const want = new Set(list.map((x) => x.date));
+    Object.keys(llsCancelled).forEach((k) => {
+      const [c, d] = k.split("|");
+      if (c !== id || d < since || want.has(d)) return;
+      if (llsCancelled[k].pending && Date.now() - (llsCancelled[k].at || 0) < 10 * 60 * 1000) return; // still on its way
+      delete llsCancelled[k]; changed = true;
+    });
+    list.forEach((x) => {
+      const k = id + "|" + x.date;
+      if (!llsCancelled[k] || llsCancelled[k].pending) { llsCancelled[k] = { note: x.note || "" }; changed = true; }
+    });
+  });
+  if (changed) { llsCancelStore_(); llsAfterCancelChange_(); }
+}
+
+function llsCancelBody_(classId, date, reason) {
+  const why = String(reason || "").trim();
+  return {
+    action: "saveLessonLog", classId, lessonDate: date, unit: LLS_CANCEL_UNIT,
+    whatWeDid: `Lesson cancelled${why ? " (" + why + ")" : ""}. It will be made up at the end of the course.`,
+    homeworkSet: "", notes: why || "Lesson cancelled"
+  };
+}
+function llsCancelLessons_(items, reason) {
+  if (!items.length) return;
+  items.forEach((x) => { llsCancelled[x.cls.id + "|" + x.date] = { note: reason || "", pending: true, at: Date.now() }; });
+  llsCancelStore_();
+  llsQueueSave(items.length === 1 ? `${items[0].cls.name} cancelled` : `${items.length} lessons cancelled`, items.map((x) => llsCancelBody_(x.cls.id, x.date, reason)));
+  Object.keys(llsWeekCache).forEach((k) => delete llsWeekCache[k]);
+  llsAfterCancelChange_();
+}
+function llsUndoCancel_(classId, date) {
+  delete llsCancelled[classId + "|" + date];
+  llsCancelStore_();
+  const cls = llsLessonClasses().find((c) => c.id === classId);
+  llsQueueSave(`${cls ? cls.name : classId} reinstated`, {
+    action: "saveLessonLog", classId, lessonDate: date, unit: "", whatWeDid: "", homeworkSet: "",
+    notes: "Cancellation undone by the office: the lesson goes ahead."
+  });
+  Object.keys(llsWeekCache).forEach((k) => delete llsWeekCache[k]);
+  llsAfterCancelChange_();
+}
+
+function llsLessonEnd_(time, minutes) {
+  const [h, m] = String(time || "00:00").split(":").map(Number);
+  const t = (h || 0) * 60 + (m || 0) + (Number(minutes) || 60);
+  return String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
+}
+function llsDayLabel_(iso, long) {
+  return new Date(iso + "T12:00:00").toLocaleDateString("en-GB", long ? { weekday: "long", day: "numeric", month: "long" } : { weekday: "short", day: "numeric", month: "short" });
+}
+const LLS_IT_DAYS = ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"];
+const LLS_IT_MONTHS = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+function llsItDay_(iso) {
+  const d = new Date(iso + "T12:00:00");
+  return `${LLS_IT_DAYS[d.getDay()]} ${d.getDate()} ${LLS_IT_MONTHS[d.getMonth()]}`;
+}
+
+// ---------- Lesson page: banner on a cancelled lesson ----------
+function llsRenderCancelBanner() {
+  const box = byId("lessonCancelBanner");
+  if (!box) return;
+  const date = byId("lessonDate")?.value || isoDate(new Date());
+  const c = llsLesson.classId && llsCancelled[llsLesson.classId + "|" + date];
+  box.hidden = !c;
+  if (!c) { box.innerHTML = ""; return; }
+  const admin = llsRole() === "admin";
+  box.innerHTML = `
+    <p style="margin:0;font-weight:800;">🚫 This lesson is cancelled${c.note ? ` <span class="muted" style="font-weight:600;">· ${escapeHtml(c.note)}</span>` : ""}</p>
+    <p class="muted" style="margin:4px 0 0;">It doesn't count for attendance or progress, and it will be made up at the end of the course. If it took place after all, fill it in as usual: saving replaces the cancellation.</p>
+    ${admin ? `<button type="button" class="row-action" data-cancel-undo style="margin-top:8px;">Undo cancellation</button>` : ""}`;
+  box.querySelector("[data-cancel-undo]")?.addEventListener("click", () => {
+    llsUndoCancel_(llsLesson.classId, date);
+    showToast("Cancellation undone: the lesson goes ahead.", "success");
+  });
+}
+
+// ---------- Office: "Cancel lessons" window ----------
+function llsCancelTeachers_() {
+  const set = new Set();
+  llsLessonClasses().forEach((cls) => {
+    [cls.day, cls.day2].filter(Boolean).forEach((d) => {
+      const t = llsTeacherOnDay(cls, d);
+      if (t && !/^demo/i.test(t)) set.add(t.trim());
+    });
+  });
+  return [...set].sort();
+}
+function llsCancelMatches_(teacher, classId, rows) {
+  const out = [];
+  rows.forEach((r) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(r.date)) return;
+    const dayName = new Date(r.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long" });
+    const closed = llsSchoolClosed_(r.date);
+    llsLessonsOn(r.date, false).forEach(({ cls, time }) => {
+      if (/^demo/i.test(cls.name || "")) return;
+      if (classId && cls.id !== classId) return;
+      const who = llsTeacherOnDay(cls, dayName);
+      if (teacher) {
+        const names = new Set([teacher.toLowerCase().split(/\s+/)[0]]);
+        if (names.has("cole")) names.add("colin");
+        if (names.has("colin")) names.add("cole");
+        if (!llsIsMine(who, names)) return;
+      }
+      const end = llsLessonEnd_(time, cls.duration);
+      const from = r.from || "00:00";
+      const to = r.to || "23:59";
+      if (!(time < to && end > from)) return; // no overlap
+      // Starts while the teacher is away = it can't go ahead (ticked). Started
+      // before = the teacher would leave half-way (not ticked: the office decides).
+      const full = time >= from && time < to;
+      const runsOver = full && end > to;
+      out.push({ cls, time, end, date: r.date, teacher: who, full, runsOver, closed, already: llsIsCancelled(cls.id, r.date) });
+    });
+  });
+  const seen = new Set();
+  return out.filter((x) => { const k = x.cls.id + "|" + x.date; if (seen.has(k)) return false; seen.add(k); return true; })
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+}
+function llsFamilyMessage_(items) {
+  const byClass = {};
+  items.forEach((x) => { (byClass[x.cls.id] = byClass[x.cls.id] || { cls: x.cls, list: [] }).list.push(x); });
+  return Object.values(byClass).map(({ cls, list }) => {
+    const when = list.map((x) => `• ${llsItDay_(x.date)} alle ${x.time}`).join("\n");
+    const one = list.length === 1;
+    return {
+      cls,
+      text: `Gentili famiglie e studenti,\nvi informiamo che ${one ? "la lezione" : "le lezioni"} di inglese del corso ${cls.name} ${one ? "è annullata" : "sono annullate"}:\n${when}\n\n${one ? "La lezione sarà recuperata" : "Le lezioni saranno recuperate"} alla fine del corso, quindi non perderete nessuna ora. Ci scusiamo per il disagio.\n\nGrazie,\nLondon Language School`
+    };
+  });
+}
+let llsCancelForm = null;
+function llsOpenCancelModal(prefill) {
+  let modal = byId("cancelLessonsModal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.className = "modal-backdrop";
+    modal.id = "cancelLessonsModal";
+    document.body.appendChild(modal);
+  }
+  llsCancelForm = Object.assign({ teacher: "", classId: "", rows: [{ date: "", from: "", to: "" }], reason: (() => { try { return localStorage.getItem("lls_lang") === "it" ? "Insegnante non disponibile" : "Teacher not available"; } catch (_) { return "Teacher not available"; } })(), unticked: {}, ticked: {}, done: null }, prefill || {});
+  llsDrawCancelModal();
+  openModal("cancelLessonsModal");
+}
+function llsDrawCancelModal() {
+  const modal = byId("cancelLessonsModal");
+  const f = llsCancelForm;
+  if (!modal || !f) return;
+  if (f.done) {
+    const msgs = llsFamilyMessage_(f.done);
+    modal.innerHTML = `
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cancelTitle">
+        <h2 id="cancelTitle" style="margin:0 0 6px;">✓ ${f.done.length} lesson${f.done.length === 1 ? "" : "s"} cancelled</h2>
+        <p class="muted" style="margin:0 0 12px;">They're off the teacher's list, they don't count for attendance or progress, and each class is owed a make-up lesson at the end of the course. Now tell the families: copy the message for each class and send it on WhatsApp.</p>
+        ${msgs.map((m, i) => `<div class="cancel-msg">
+          <p style="margin:0 0 6px;font-weight:800;">${escapeHtml(m.cls.name)}</p>
+          <textarea readonly rows="8" data-no-translate>${escapeHtml(m.text)}</textarea>
+          <button type="button" class="button button-secondary" data-cancel-copy="${i}">📋 Copy message</button>
+        </div>`).join("")}
+        <div class="modal-actions" style="margin-top:12px;"><button type="button" class="button button-primary" data-cancel-close>Done</button></div>
+      </div>`;
+    modal.querySelectorAll("[data-cancel-copy]").forEach((b) => b.addEventListener("click", async () => {
+      const text = msgs[Number(b.dataset.cancelCopy)].text;
+      try { await navigator.clipboard.writeText(text); } catch (_) { const t = b.previousElementSibling; t.select(); document.execCommand("copy"); }
+      b.textContent = "✓ Copied";
+    }));
+    modal.querySelector("[data-cancel-close]").addEventListener("click", () => closeModal("cancelLessonsModal"));
+    return;
+  }
+  const matches = llsCancelMatches_(f.teacher, f.classId, f.rows);
+  const isTicked = (x) => {
+    const k = x.cls.id + "|" + x.date;
+    if (x.already || x.closed) return false;
+    if (f.unticked[k]) return false;
+    return x.full || Boolean(f.ticked[k]);
+  };
+  const chosen = matches.filter(isTicked);
+  const classes = llsLessonClasses().filter((c) => !/^demo/i.test(c.name || "")).sort((a, b) => a.name.localeCompare(b.name));
+  modal.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cancelTitle">
+      <h2 id="cancelTitle" style="margin:0 0 4px;">🚫 Cancel lessons</h2>
+      <p class="muted" style="margin:0 0 12px;">For a teacher who isn't available, or a class that can't take place. Cancelled lessons are made up at the end of the course.</p>
+      <div class="cancel-grid">
+        <label>Teacher<select data-cf="teacher"><option value="">Any teacher</option>${llsCancelTeachers_().map((t) => `<option value="${escapeAttribute(t)}"${t === f.teacher ? " selected" : ""}>${escapeHtml(t)}</option>`).join("")}</select></label>
+        <label>Class<select data-cf="classId"><option value="">All their classes</option>${classes.map((c) => `<option value="${escapeAttribute(c.id)}"${c.id === f.classId ? " selected" : ""}>${escapeHtml(c.name)}</option>`).join("")}</select></label>
+      </div>
+      <p class="section-label" style="margin:12px 0 6px;">Dates and times</p>
+      <div class="cancel-rows">${f.rows.map((r, i) => `<div class="cancel-row">
+        <label>Date<input type="date" data-cr="${i}" data-k="date" value="${escapeAttribute(r.date)}"></label>
+        <label>From<input type="time" data-cr="${i}" data-k="from" value="${escapeAttribute(r.from)}"></label>
+        <label>To<input type="time" data-cr="${i}" data-k="to" value="${escapeAttribute(r.to)}"></label>
+        ${f.rows.length > 1 ? `<button type="button" class="row-action" data-cr-del="${i}" aria-label="Remove this date">✕</button>` : "<span></span>"}
+      </div>`).join("")}</div>
+      <button type="button" class="row-action" data-cr-add style="margin-top:6px;">+ Add another date</button>
+      <p class="muted" style="margin:4px 0 0;font-size:13px;">No times = the whole day.</p>
+      <label style="display:block;margin-top:12px;">Reason <span class="muted">(staff only; families get the message below)</span><input type="text" data-cf="reason" maxlength="120" value="${escapeAttribute(f.reason)}"></label>
+      <p class="section-label" style="margin:14px 0 6px;">Lessons that will be cancelled</p>
+      <div class="cancel-list">${matches.length ? matches.map((x) => {
+        const k = x.cls.id + "|" + x.date;
+        const note = x.already ? "already cancelled" : x.closed ? "school closed that day" : !x.full ? `⚠ starts before these times (${x.time}–${x.end}): tick it if it can't go ahead` : x.runsOver ? `ends after these times (${x.time}–${x.end}): untick it if it can start late instead` : "";
+        return `<label class="cancel-item${x.full ? "" : " partly"}">
+          <input type="checkbox" data-ck="${escapeAttribute(k)}"${isTicked(x) ? " checked" : ""}${x.already || x.closed ? " disabled" : ""}>
+          <span><strong>${escapeHtml(llsDayLabel_(x.date))} ${escapeHtml(x.time)}</strong> ${escapeHtml(x.cls.name)} <span class="muted">· ${escapeHtml(x.teacher || "?")}</span>${note ? `<br><span class="muted" style="font-size:13px;">${escapeHtml(note)}</span>` : ""}</span>
+        </label>`;
+      }).join("") : `<p class="muted" style="margin:0;">${f.rows.some((r) => r.date) ? "No lessons in the timetable at these times." : "Choose a date."}</p>`}</div>
+      <div class="modal-actions" style="margin-top:14px;">
+        <button type="button" class="button button-secondary" data-cancel-close>Close</button>
+        <button type="button" class="button button-primary" data-cancel-go${chosen.length ? "" : " disabled"}>Cancel ${chosen.length} lesson${chosen.length === 1 ? "" : "s"}</button>
+      </div>
+    </div>`;
+  modal.querySelectorAll("[data-cf]").forEach((el) => el.addEventListener("change", () => { f[el.dataset.cf] = el.value; if (el.dataset.cf !== "reason") llsDrawCancelModal(); }));
+  modal.querySelector('[data-cf="reason"]').addEventListener("input", (e) => { f.reason = e.target.value; });
+  modal.querySelectorAll("[data-cr]").forEach((el) => el.addEventListener("change", () => { f.rows[Number(el.dataset.cr)][el.dataset.k] = el.value; llsDrawCancelModal(); }));
+  modal.querySelectorAll("[data-cr-del]").forEach((b) => b.addEventListener("click", () => { f.rows.splice(Number(b.dataset.crDel), 1); llsDrawCancelModal(); }));
+  modal.querySelector("[data-cr-add]").addEventListener("click", () => { const last = f.rows[f.rows.length - 1] || {}; f.rows.push({ date: "", from: last.from || "", to: last.to || "" }); llsDrawCancelModal(); });
+  modal.querySelectorAll("[data-ck]").forEach((el) => el.addEventListener("change", () => {
+    const k = el.dataset.ck;
+    if (el.checked) { delete f.unticked[k]; f.ticked[k] = true; } else { f.unticked[k] = true; delete f.ticked[k]; }
+    llsDrawCancelModal();
+  }));
+  modal.querySelector("[data-cancel-close]").addEventListener("click", () => closeModal("cancelLessonsModal"));
+  modal.querySelector("[data-cancel-go]").addEventListener("click", () => {
+    if (!chosen.length) return;
+    llsCancelLessons_(chosen, f.reason);
+    f.done = chosen;
+    llsDrawCancelModal();
+    showToast(`✓ ${chosen.length} lesson${chosen.length === 1 ? "" : "s"} cancelled. Sending to Google in the background.`, "success");
+  });
+}
+
+// ---------- Office Dashboard: cancelled lessons and lessons owed ----------
+let llsOwedInfo = null; // { dates: {classId: [iso]}, at }
+let llsOwedLoading = false;
+async function llsLoadOwed_(force) {
+  if (llsOwedLoading || (llsOwedInfo && !force && Date.now() - llsOwedInfo.at < 5 * 60 * 1000)) return;
+  for (let i = 0; i < 20 && window.llsServerVersion === undefined; i++) await new Promise((r) => setTimeout(r, 500));
+  if ((window.llsServerVersion || 0) < 29) return;
+  llsOwedLoading = true;
+  try {
+    const ids = llsLessonClasses().filter((c) => !/^demo/i.test(c.name || "")).map((c) => c.id);
+    const res = await llsApiGet("getLessonDates", { classIds: ids.join(","), since: LLS_SCHOOL_START }, { background: true });
+    llsOwedInfo = { dates: res.dates || {}, at: Date.now(), v30: Boolean(res.cancelled) };
+    llsNoteCancelMap_(res.cancelled, ids, LLS_SCHOOL_START);
+  } catch (_) { /* try again next time */ }
+  llsOwedLoading = false;
+  llsRenderCancelPanel();
+}
+function llsOwedByClass_() {
+  const today = isoDate(new Date());
+  const out = {};
+  Object.keys(llsCancelled).forEach((k) => {
+    const [classId, date] = k.split("|");
+    const cls = llsLessonClasses().find((c) => c.id === classId);
+    if (!cls) return;
+    const o = out[classId] || (out[classId] = { cls, cancelled: [], makeups: [] });
+    o.cancelled.push({ date, note: llsCancelled[k].note || "", upcoming: date >= today });
+  });
+  Object.entries((llsOwedInfo && llsOwedInfo.dates) || {}).forEach(([classId, dates]) => {
+    const o = out[classId];
+    if (!o) return;
+    [...new Set(dates)].forEach((d) => {
+      if (llsIsCancelled(classId, d)) return;
+      const scheduled = !llsSchoolClosed_(d) && llsLessonsOn(d, false).some((x) => x.cls.id === classId);
+      if (!scheduled) o.makeups.push(d);
+    });
+  });
+  Object.values(out).forEach((o) => { o.cancelled.sort((a, b) => a.date.localeCompare(b.date)); o.makeups.sort(); o.owed = Math.max(0, o.cancelled.length - o.makeups.length); });
+  return Object.values(out).sort((a, b) => b.owed - a.owed || a.cls.name.localeCompare(b.cls.name));
+}
+function llsRenderCancelPanel() {
+  const box = byId("cancelPanel");
+  if (!box) return;
+  if (llsRole() !== "admin") { box.hidden = true; return; }
+  box.hidden = false;
+  const list = llsOwedByClass_();
+  const today = isoDate(new Date());
+  const upcoming = [];
+  list.forEach((o) => o.cancelled.filter((c) => c.upcoming).forEach((c) => upcoming.push({ ...c, cls: o.cls })));
+  upcoming.sort((a, b) => a.date.localeCompare(b.date));
+  const owedTotal = list.reduce((s, o) => s + o.owed, 0);
+  box.innerHTML = `
+    <div class="week-head">
+      <p class="section-label" style="margin:0;">🚫 Cancelled lessons and make-ups</p>
+      <button type="button" class="button button-secondary" data-cancel-open style="min-height:38px;padding:6px 14px;">🚫 Cancel lessons</button>
+    </div>
+    ${list.length ? `
+      ${upcoming.length ? `<p class="muted" style="margin:10px 0 4px;font-weight:700;">Coming up, cancelled</p>
+      <div class="week-list">${upcoming.map((c) => `<div class="week-row cancelled">
+        <span class="week-when">${escapeHtml(llsDayLabel_(c.date))}</span>
+        <span class="week-class">${escapeHtml(c.cls.name)}${c.note ? ` <span class="muted">· ${escapeHtml(c.note)}</span>` : ""}</span>
+        <span class="week-status">🚫 Cancelled</span>
+        <button type="button" class="row-action" data-cancel-undo="${escapeAttribute(c.cls.id + "|" + c.date)}">Undo</button>
+      </div>`).join("")}</div>` : ""}
+      <p class="muted" style="margin:12px 0 4px;font-weight:700;">Lessons owed (to add at the end of the course): ${owedTotal}</p>
+      <div class="week-teachers">${list.map((o) => `<span class="week-teacher${o.owed ? " has-todo" : ""}" title="${escapeAttribute("Cancelled: " + o.cancelled.map((c) => c.date).join(", ") + (o.makeups.length ? " · Made up: " + o.makeups.join(", ") : ""))}"><strong>${escapeHtml(o.cls.name)}</strong> ${o.owed} owed${o.makeups.length ? ` · ${o.makeups.length} made up` : ""}</span>`).join("")}</div>
+      <p class="muted" style="margin:8px 0 0;font-size:13px;">A make-up is any lesson a teacher fills in on a day the class isn't in the timetable.${(window.llsServerVersion || 0) >= 29 ? "" : "<br>Make-ups are counted once Apps Script V29 or later is installed."}</p>`
+    : `<p class="muted" style="margin:8px 0 0;">No cancelled lessons. If a teacher can't come, press "🚫 Cancel lessons": their lessons come off the list and each class is owed a make-up.</p>`}`;
+  box.querySelector("[data-cancel-open]").addEventListener("click", () => llsOpenCancelModal());
+  box.querySelectorAll("[data-cancel-undo]").forEach((b) => b.addEventListener("click", () => {
+    const [classId, date] = b.dataset.cancelUndo.split("|");
+    llsUndoCancel_(classId, date);
+    showToast("Cancellation undone: the lesson goes ahead.", "success");
+  }));
+  if (!llsOwedInfo) llsLoadOwed_();
 }
