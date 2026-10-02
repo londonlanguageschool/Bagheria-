@@ -5941,6 +5941,7 @@ function populateHomeworkClassSelect() {
   if (has(previous)) select.value = previous;
   else if (has(lessonClass)) select.value = lessonClass;
   else if (mine.length) select.value = String(mine[0]["Class ID"] || "");
+  try { llsHomeworkPageDueChips(); } catch (_) {}
 }
 
 async function renderHomeworkList(mode) {
@@ -6107,6 +6108,7 @@ async function llsHomeworkAssign() {
       setValue("homeworkTitle", "");
       setValue("homeworkDescription", "");
       setValue("homeworkDueDate", "");
+      try { llsHomeworkPageDueChips(); } catch (_) {}
       if (byId("homeworkFiles")) byId("homeworkFiles").value = "";
       llsHwFilesPickedLabel_();
       showToast(sent === picked.length ? "Homework assigned with " + sent + " file" + (sent === 1 ? "" : "s") + "." : "Homework assigned. Some files didn't upload: add them with 📎 Files.", sent === picked.length ? "success" : "error");
@@ -6127,6 +6129,7 @@ async function llsHomeworkAssign() {
   setValue("homeworkTitle", "");
   setValue("homeworkDescription", "");
   setValue("homeworkDueDate", "");
+  try { llsHomeworkPageDueChips(); } catch (_) {}
   showToast("Homework assigned.", "success");
 }
 
@@ -7683,15 +7686,62 @@ function llsLessonsOn(dateIso, onlyMine) {
 }
 
 function llsNextLessonDate(cls, fromIso) {
-  const days = [cls.day, cls.day2].map((d) => String(d || "").toLowerCase()).filter(Boolean);
-  if (!days.length) return "";
-  const d = new Date(fromIso + "T12:00:00");
-  for (let i = 1; i <= 7; i++) {
-    d.setDate(d.getDate() + 1);
-    if (days.includes(d.toLocaleDateString("en-GB", { weekday: "long" }).toLowerCase())) return isoDate(d);
-  }
-  return "";
+  return (llsNextLessons_(cls, fromIso, 1)[0] || {}).date || "";
 }
+// 2 Oct: the class's next lessons after a date, skipping school holidays and
+// cancelled lessons: [{ date, time }]. Used for homework due dates.
+function llsNextLessons_(cls, fromIso, count) {
+  const out = [];
+  if (!cls) return out;
+  const slots = [[cls.day, cls.time], [cls.day2, cls.time2]].filter(([d]) => d).map(([d, t]) => [String(d).toLowerCase(), t || ""]);
+  if (!slots.length) return out;
+  const d = new Date((fromIso || isoDate(new Date())) + "T12:00:00");
+  for (let i = 1; i <= 120 && out.length < (count || 2); i++) {
+    d.setDate(d.getDate() + 1);
+    const iso = isoDate(d);
+    const day = d.toLocaleDateString("en-GB", { weekday: "long" }).toLowerCase();
+    const slot = slots.find(([sd]) => sd === day);
+    if (!slot || llsSchoolClosed_(iso)) continue;
+    if (typeof llsIsCancelled === "function" && llsIsCancelled(cls.id, iso)) continue;
+    out.push({ date: iso, time: slot[1] });
+  }
+  return out;
+}
+// Tappable "next lessons" under a homework due-date box.
+function llsRenderDueChips(inputId, cls, fromIso) {
+  const input = byId(inputId);
+  if (!input) return;
+  let box = byId(inputId + "Chips");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = inputId + "Chips";
+    box.className = "due-chips";
+    input.insertAdjacentElement("afterend", box);
+  }
+  const next = llsNextLessons_(cls, fromIso, 2);
+  if (!next.length) { box.innerHTML = ""; return; }
+  const label = (x) => new Date(x.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) + (x.time ? " " + x.time : "");
+  box.innerHTML = `<span class="muted">Next lessons:</span> ${next.map((x) => `<button type="button" class="sk-chip${input.value === x.date ? " on" : ""}" data-due="${escapeAttribute(x.date)}">${escapeHtml(label(x))}</button>`).join("")}`;
+  box.querySelectorAll("[data-due]").forEach((b) => b.addEventListener("click", () => {
+    input.value = b.dataset.due;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    llsRenderDueChips(inputId, cls, fromIso);
+  }));
+  if (!input.dataset.dueChips) {
+    input.dataset.dueChips = "1";
+    input.addEventListener("change", () => box.querySelectorAll("[data-due]").forEach((b) => b.classList.toggle("on", b.dataset.due === input.value)));
+  }
+}
+function llsHomeworkPageDueChips() {
+  const classId = value("homeworkClassSelect");
+  const cls = (state.classes || []).find((c) => String(c.id) === String(classId));
+  if (!cls) { const b = byId("homeworkDueDateChips"); if (b) b.innerHTML = ""; return; }
+  if (!value("homeworkDueDate")) setValue("homeworkDueDate", llsNextLessonDate(cls, isoDate(new Date())));
+  llsRenderDueChips("homeworkDueDate", cls, isoDate(new Date()));
+}
+document.addEventListener("DOMContentLoaded", () => {
+  byId("homeworkClassSelect")?.addEventListener("change", () => { setValue("homeworkDueDate", ""); llsHomeworkPageDueChips(); });
+});
 
 function llsRenderLessonPicker() {
   const box = byId("lessonPicker");
@@ -7762,6 +7812,7 @@ async function llsRenderLesson() {
   setValue("lessonUnitPage", cls.currentUnit || "");
   llsSetSpecial(false);
   setValue("lessonHwDue", llsNextLessonDate(cls, date));
+  llsRenderDueChips("lessonHwDue", cls, date);
   llsLesson.entries = [];
   llsPlanConfirm = "";
   llsRenderSkills();

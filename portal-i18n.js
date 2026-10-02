@@ -11,6 +11,7 @@
   "use strict";
 
   const IT = {
+    "Next lessons:": "Prossime lezioni:",
     // 2 Oct afternoon: cancelled lessons
     "🚫 Cancelled lessons and make-ups": "🚫 Lezioni annullate e recuperi",
     "🚫 Cancel lessons": "🚫 Annulla lezioni",

@@ -433,3 +433,8 @@ input[type="checkbox"] { border-radius: 4px; }
   .cancel-row { grid-template-columns: 1fr 1fr; }
   .cancel-row label:first-child { grid-column: 1 / -1; }
 }
+
+/* 2 Oct — next lessons under homework due dates */
+.due-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; font-size: 13px; }
+.due-chips .sk-chip { border: 1px solid #cfdcee; background: #fff; border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+.due-chips .sk-chip.on { background: #ffd23f; border-color: #e0b400; font-weight: 700; }
