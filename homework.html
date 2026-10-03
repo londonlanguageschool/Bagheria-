@@ -2245,9 +2245,19 @@
       button.classList.add("listening");
       button.textContent = "🎤 Listening… · Ascolto…";
 
-      let handled = false;
+      // 3 Oct: on iPhone Safari the mic sometimes starts and then never fires any
+      // event at all (no result, no error, no end) - the student is stuck on
+      // "Listening…" forever. Give up after 10s so the lesson can always continue.
+      const watchdog = setTimeout(() => {
+        if (recognizer !== rec) return;
+        try { rec.abort(); } catch (_) {}
+        recognizer = null;
+        item.error = "The microphone didn't respond. Tap Speak to try again. · Il microfono non ha risposto: premi di nuovo Parla.";
+        if (quiz && quiz.items[quiz.index] === item) renderQuiz();
+      }, 10000);
+
       rec.onresult = (event) => {
-        handled = true;
+        clearTimeout(watchdog);
         item.error = "";
         const alternatives = Array.from(event.results[0] || []).map((a) => a.transcript);
         let best = { ratio: -1 };
@@ -2262,7 +2272,7 @@
         if (best.ratio >= SPEAK_PASS) item.marks = best.hit;
       };
       rec.onerror = (event) => {
-        handled = true;
+        clearTimeout(watchdog);
         item.error = event.error === "not-allowed" || event.error === "service-not-allowed"
           ? "Please allow the microphone for this page, then try again. · Consenti l'uso del microfono e riprova."
           : event.error === "no-speech"
@@ -2270,10 +2280,11 @@
             : event.error === "aborted" ? "" : "The speaking check isn't working right now. Check your internet connection. · Controlla la connessione.";
       };
       rec.onend = () => {
+        clearTimeout(watchdog);
         if (recognizer === rec) recognizer = null;
         if (quiz && quiz.items[quiz.index] === item) renderQuiz();
       };
-      try { rec.start(); } catch (_) { renderQuiz(); }
+      try { rec.start(); } catch (_) { clearTimeout(watchdog); renderQuiz(); }
     }
 
 
@@ -2462,20 +2473,31 @@
       button.classList.add("listening");
       button.textContent = "🎤 Listening… · Ascolto…";
       let heard = "";
-      rec.onresult = (event) => { heard = String(event.results[0]?.[0]?.transcript || "").trim(); };
+      // Same iPhone Safari mic-hang protection as the Speaking exercise (see listen()).
+      const watchdog = setTimeout(() => {
+        if (recognizer !== rec) return;
+        try { rec.abort(); } catch (_) {}
+        recognizer = null;
+        if (!chat) return;
+        chat.error = "The microphone didn't respond. Try again. · Il microfono non ha risposto: riprova.";
+        renderChat();
+      }, 10000);
+      rec.onresult = (event) => { clearTimeout(watchdog); heard = String(event.results[0]?.[0]?.transcript || "").trim(); };
       rec.onerror = (event) => {
+        clearTimeout(watchdog);
         if (!chat) return;
         chat.error = event.error === "not-allowed" || event.error === "service-not-allowed"
           ? "Please allow the microphone for this page. · Consenti l'uso del microfono."
           : event.error === "no-speech" ? "I didn't hear anything. Try again. · Non ho sentito niente." : "";
       };
       rec.onend = () => {
+        clearTimeout(watchdog);
         if (recognizer === rec) recognizer = null;
         if (!chat) return;
         if (heard) sendChat(heard);
         else renderChat();
       };
-      try { rec.start(); } catch (_) { renderChat(); }
+      try { rec.start(); } catch (_) { clearTimeout(watchdog); renderChat(); }
     }
 
     async function sendChat(text) {
