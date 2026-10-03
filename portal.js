@@ -9285,12 +9285,7 @@ function llsShowTutTut(session, missing) {
   modal.querySelectorAll("[data-tuttut]").forEach((b) => b.addEventListener("click", () => {
     const x = missing[Number(b.dataset.tuttut)];
     closeModal("tutTutModal");
-    navigateTo("lesson");
-    const dateInput = byId("lessonDate");
-    if (dateInput) dateInput.value = x.date;
-    llsLesson.loadedKey = "";
-    llsRenderLessonPicker();
-    llsOpenLesson(x.cls.id);
+    llsGoToLesson(x.cls.id, x.date);
   }));
   modal.querySelectorAll("[data-tut-other]").forEach((b) => b.addEventListener("click", () => {
     const box = b.closest("[data-tut-row]").querySelector(".tut-other");
@@ -9356,7 +9351,7 @@ const LLS_GUIDE = {
       steps: [
         ["Log in", "Choose Teacher, then your Teacher ID (e.g. TCH0002) or email, and your PIN."],
         ["★ Lesson", "Today's lessons are buttons at the top. Tap yours. ✓ = saved, ⏳ = still sending."],,
-        ["📋 My week", "At the top of the Lesson page: every lesson you had this week. ✅ filled in, ⚠ to complete. Tap \"Fill it in\" to open that lesson. ‹ goes back a week. The office sees the same list."],
+        ["📋 My week", "At the top of the Lesson page: every lesson you had this week. ✅ filled in, ⚠ to complete. Tap \"✏️ Complete now\" (or the lesson itself) and it opens, ready to fill in; \"✏️ Edit\" changes one already saved. ‹ goes back a week. The office sees the same list."],
         ["📚 Lesson plans", "Classes with a course (English File A2, B1 exam, Kitchen English) show the PowerPoint lessons in order. ✓ = this class has already had it (date and teacher), ➡ = next one. \"Teach today\" fills in Unit / page, What we did and the skills for you: check them and save as usual. A lesson already taught asks you to tap twice, so nobody repeats it by mistake."],
         ["🚫 Cancelled lessons and make-ups", "A cancelled lesson shows 🚫 and doesn't need filling in. If it took place after all, fill it in as usual. A make-up lesson: open the class on the day you teach it (Lesson page → date → All my classes) and save as usual; it counts as a make-up by itself."]
         ["1 · Register", "Tap Here / Late / Absent / Excused (\"Everyone here\" does it in one go). Choose \"How did they do?\" for everyone who came: it counts towards their progress."],
@@ -9376,7 +9371,7 @@ const LLS_GUIDE = {
       steps: [
         ["Accesso", "Scegli Insegnante, poi il tuo ID (es. TCH0002) o la tua email, e il PIN."],
         ["★ Lezione", "Le lezioni di oggi sono i pulsanti in alto. Tocca la tua. ✓ = salvata, ⏳ = in invio."],,
-        ["📋 La mia settimana", "In cima alla pagina Lezione: tutte le tue lezioni della settimana. ✅ compilata, ⚠ da compilare. Tocca \"Compilala\" per aprirla. ‹ torna alla settimana prima. La segreteria vede lo stesso elenco."],
+        ["📋 La mia settimana", "In cima alla pagina Lezione: tutte le tue lezioni della settimana. ✅ compilata, ⚠ da compilare. Tocca \"✏️ Compila ora\" (o la lezione) e si apre, pronta da compilare; \"✏️ Modifica\" cambia una già salvata. ‹ torna alla settimana prima. La segreteria vede lo stesso elenco."],
         ["📚 Piani di lezione", "Le classi con un corso (English File A2, B1 esame, Kitchen English) mostrano le lezioni PowerPoint in ordine. ✓ = la classe l'ha già fatta (data e insegnante), ➡ = la prossima. \"Faccio questa oggi\" compila Unità / pagina, Cosa abbiamo fatto e le abilità: controlla e salva come sempre. Una lezione già fatta chiede due tocchi, così nessuno la ripete per sbaglio."],
         ["🚫 Lezioni annullate e recuperi", "Una lezione annullata ha 🚫 e non va compilata. Se invece si è fatta, compilala come sempre. Un recupero: apri la classe il giorno in cui lo fai (pagina Lezione → data → Tutte le mie classi) e salva come sempre; conta da solo come recupero."]
         ["1 · Appello", "Tocca Presente / In ritardo / Assente / Giustificato (\"Tutti presenti\" li segna tutti). Scegli \"Com'è andata?\" per ogni studente presente: conta nei suoi progressi."],
@@ -10010,35 +10005,56 @@ async function llsRenderWeekPanel(boxId, mine) {
         ${count("cancelled") ? `<span class="week-chip">🚫 ${count("cancelled")} cancelled</span>` : ""}
         ${!info ? `<span class="muted">checking with Google…</span>` : info.failed ? `<span class="muted">Google didn't answer: some lessons may show as "to complete" by mistake.</span>` : ""}
       </div>
+      ${info && count("todo") ? `<p class="week-msg">${mine
+        ? `⚠ You have ${count("todo")} lesson${count("todo") === 1 ? "" : "s"} to complete. Tap "✏️ Complete now" and it opens the lesson, ready to fill in.`
+        : `⚠ ${count("todo")} lesson${count("todo") === 1 ? "" : "s"} still to complete. "✏️ Complete now" opens the lesson so you can fill it in or check it.`}</p>`
+        : info && mine && count("done") ? `<p class="week-msg ok">✅ All your lessons so far are filled in. Thank you!</p>` : ""}
       ${teachers.length ? `<div class="week-teachers">${teachers.map((t) => {
         const mineRows = rows.filter((r) => (r.teacher || "?") === t);
         const todo = mineRows.filter((r) => r.status === "todo").length;
         return `<span class="week-teacher${todo ? " has-todo" : ""}"><strong>${escapeHtml(t)}</strong> ${mineRows.filter((r) => r.status === "done").length}/${mineRows.filter((r) => r.status !== "upcoming").length} done${todo ? ` · ⚠ ${todo}` : ""}</span>`;
       }).join("")}</div>` : ""}
       <div class="week-list">${list.length ? list.map((r) => `
-        <div class="week-row ${r.status}">
+        <div class="week-row ${r.status}"${r.status === "todo" ? ` data-week-open="${escapeAttribute(r.cls.id + "|" + r.date)}" role="button" tabindex="0" title="Open this lesson to fill it in"` : ""}>
           <span class="week-when">${escapeHtml(when(r.date))} ${escapeHtml(r.time)}</span>
           <span class="week-class">${escapeHtml(r.cls.name)}${mine ? "" : ` <span class="muted">· ${escapeHtml(r.teacher || "?")}</span>`}</span>
           <span class="week-status">${LLS_WEEK_LABEL[r.status]}</span>
-          ${r.status === "todo" || r.status === "done" ? `<button type="button" class="row-action" data-week-open="${escapeAttribute(r.cls.id + "|" + r.date)}">${r.status === "todo" ? (mine ? "Fill it in" : "Open") : "View"}</button>` : "<span></span>"}
+          ${r.status === "todo" || r.status === "done" ? `<button type="button" class="row-action${r.status === "todo" ? " week-go" : ""}" data-week-open="${escapeAttribute(r.cls.id + "|" + r.date)}">${r.status === "todo" ? "✏️ Complete now" : "✏️ Edit"}</button>` : "<span></span>"}
         </div>`).join("") : `<p class="muted" style="margin:6px 0 0;">${rows.length ? "Nothing to complete. 🎉" : "No lessons in the timetable this week."}</p>`}</div>
       ${!mine && rows.length ? `<button type="button" class="row-action" data-week-all style="margin-top:8px;">${llsWeekShowAll ? "Show only what needs doing" : `Show all ${rows.length} lessons`}</button>` : ""}`;
     box.querySelectorAll("[data-week]").forEach((b) => b.addEventListener("click", () => { llsWeekOffset = Math.min(0, llsWeekOffset + Number(b.dataset.week)); llsRenderWeekPanel(boxId, mine); }));
     box.querySelector("[data-week-all]")?.addEventListener("click", () => { llsWeekShowAll = !llsWeekShowAll; draw(info); });
-    box.querySelectorAll("[data-week-open]").forEach((b) => b.addEventListener("click", () => {
+    box.querySelectorAll("[data-week-open]").forEach((b) => b.addEventListener("click", (e) => {
+      e.stopPropagation();
       const [classId, date] = b.dataset.weekOpen.split("|");
-      navigateTo("lesson");
-      const dateInput = byId("lessonDate");
-      if (dateInput) dateInput.value = date;
-      llsLesson.loadedKey = "";
-      llsRenderLessonPicker();
-      llsOpenLesson(classId);
+      llsGoToLesson(classId, date);
+    }));
+    box.querySelectorAll(".week-row[data-week-open]").forEach((r) => r.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      const [classId, date] = r.dataset.weekOpen.split("|");
+      llsGoToLesson(classId, date);
     }));
   };
   draw(null);
   if (!classIds.length) return;
   const info = await llsLoadWeek_(monday, classIds, false);
   if (llsMonday_(llsWeekOffset) === monday) draw(info);
+}
+// 3 Oct: open one lesson (class + date) ready to fill in or edit.
+function llsGoToLesson(classId, date) {
+  navigateTo("lesson");
+  const dateInput = byId("lessonDate");
+  if (dateInput) dateInput.value = date;
+  llsLesson.loadedKey = "";
+  llsRenderLessonPicker();
+  llsOpenLesson(classId).then(() => {
+    const cls = llsLessonClasses().find((c) => c.id === classId);
+    const day = new Date(date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+    const work = byId("lessonWork");
+    if (work) { work.classList.remove("lesson-flash"); void work.offsetWidth; work.classList.add("lesson-flash"); }
+    showToast(`✏️ ${cls ? cls.name : "Lesson"} · ${day}: fill it in and press Save lesson.`, "info");
+  });
 }
 let llsWeekPanelTimer = null;
 function llsScheduleWeekPanels_() {

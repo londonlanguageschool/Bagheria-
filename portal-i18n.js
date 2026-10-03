@@ -11,6 +11,9 @@
   "use strict";
 
   const IT = {
+    "✏️ Complete now": "✏️ Compila ora",
+    "✏️ Edit": "✏️ Modifica",
+    "✅ All your lessons so far are filled in. Thank you!": "✅ Hai compilato tutte le lezioni finora. Grazie!",
     "Next lessons:": "Prossime lezioni:",
     // 2 Oct afternoon: cancelled lessons
     "🚫 Cancelled lessons and make-ups": "🚫 Lezioni annullate e recuperi",
@@ -525,6 +528,9 @@
 
   // Phrases that contain names, numbers or dates.
   const PATTERNS = [
+    [/^⚠ You have (\d+) lessons? to complete\. Tap "✏️ Complete now" and it opens the lesson, ready to fill in\.$/, (m) => `⚠ Hai ${m[1]} ${m[1] === "1" ? "lezione" : "lezioni"} da compilare. Tocca "✏️ Compila ora" e si apre la lezione, pronta da compilare.`],
+    [/^⚠ (\d+) lessons? still to complete\. "✏️ Complete now" opens the lesson so you can fill it in or check it\.$/, (m) => `⚠ ${m[1]} ${m[1] === "1" ? "lezione" : "lezioni"} ancora da compilare. "✏️ Compila ora" apre la lezione per compilarla o controllarla.`],
+    [/^✏️ (.+) · (.+): fill it in and press Save lesson\.$/, (m) => `✏️ ${m[1]} · ${m[2]}: compilala e premi Salva lezione.`],
     [/^Lessons owed \(to add at the end of the course\): (\d+)$/, (m) => `Lezioni da recuperare (da aggiungere alla fine del corso): ${m[1]}`],
     [/^(\d+) owed( · (\d+) made up)?$/, (m) => `${m[1]} da recuperare${m[2] ? " · " + m[3] + " recuperate" : ""}`],
     [/^🚫 (\d+) cancelled$/, (m) => `🚫 ${m[1]} annullate`],

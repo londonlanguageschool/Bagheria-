@@ -438,3 +438,13 @@ input[type="checkbox"] { border-radius: 4px; }
 .due-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; font-size: 13px; }
 .due-chips .sk-chip { border: 1px solid #cfdcee; background: #fff; border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; }
 .due-chips .sk-chip.on { background: #ffd23f; border-color: #e0b400; font-weight: 700; }
+
+/* 3 Oct — "Complete now" straight to the lesson */
+.week-msg { margin: 10px 0 4px; padding: 8px 12px; border-radius: 12px; background: #fff4e0; font-weight: 700; font-size: 14px; }
+.week-msg.ok { background: #eefaf3; }
+.week-row.todo[data-week-open] { cursor: pointer; }
+.week-row.todo[data-week-open]:hover, .week-row.todo[data-week-open]:focus-visible { outline: 2px solid #f0b54a; }
+.row-action.week-go { background: #16275c; color: #fff; border-color: #16275c; font-weight: 800; }
+@keyframes lls-flash { 0% { box-shadow: 0 0 0 0 rgba(255, 210, 63, .9); } 100% { box-shadow: 0 0 0 18px rgba(255, 210, 63, 0); } }
+.lesson-flash { animation: lls-flash 1.2s ease-out 2; border-radius: 18px; }
+@media (prefers-reduced-motion: reduce) { .lesson-flash { animation: none; } }
