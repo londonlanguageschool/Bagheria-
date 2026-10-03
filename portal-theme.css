@@ -448,3 +448,25 @@ input[type="checkbox"] { border-radius: 4px; }
 @keyframes lls-flash { 0% { box-shadow: 0 0 0 0 rgba(255, 210, 63, .9); } 100% { box-shadow: 0 0 0 18px rgba(255, 210, 63, 0); } }
 .lesson-flash { animation: lls-flash 1.2s ease-out 2; border-radius: 18px; }
 @media (prefers-reduced-motion: reduce) { .lesson-flash { animation: none; } }
+
+/* 3 Oct — Workbook pages as homework */
+.wb-box { margin-top: 10px; }
+.wb-toggle { display: flex; gap: 8px; align-items: center; font-weight: 700; cursor: pointer; }
+.wb-toggle input { width: 20px; height: 20px; }
+.wb-panel { margin-top: 10px; padding: 12px; border-radius: 14px; background: #f3f8ff; border: 1px solid #d6e6fb; display: grid; gap: 10px; }
+.wb-lesson { display: grid; gap: 4px; font-weight: 700; font-size: 14px; }
+.wb-note { margin: 0; font-size: 13px; }
+.wb-pages { display: grid; gap: 8px; }
+.wb-page { display: grid; grid-template-columns: auto auto 1fr; gap: 10px; align-items: start; padding: 10px; border-radius: 12px; background: #fff; border: 2px solid transparent; cursor: pointer; }
+.wb-page.on { border-color: #16a34a; background: #f0fdf4; }
+.wb-page input { width: 20px; height: 20px; margin-top: 2px; }
+.wb-p { font-weight: 800; white-space: nowrap; color: #062f67; }
+.wb-items { display: grid; gap: 3px; font-size: 14px; min-width: 0; }
+.wb-audio { font-size: 12px; background: #fff4e0; border-radius: 999px; padding: 0 6px; }
+@media (max-width: 560px) { .wb-page { grid-template-columns: auto 1fr; } .wb-items { grid-column: 1 / -1; } }
+.form-field .wb-box label.wb-page { display: grid; grid-template-columns: auto auto 1fr; gap: 10px; align-items: start; font-weight: 400; margin: 0; }
+.form-field .wb-box .wb-item { font-weight: 400; color: #172033; }
+.form-field .wb-box .wb-item b { font-weight: 800; }
+.form-field .wb-box .wb-p { font-size: 15px; }
+.form-field .wb-box label.wb-toggle { display: flex; font-size: 15px; }
+@media (max-width: 560px) { .form-field .wb-box label.wb-page { grid-template-columns: auto 1fr; } }

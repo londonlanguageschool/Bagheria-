@@ -5942,6 +5942,7 @@ function populateHomeworkClassSelect() {
   else if (has(lessonClass)) select.value = lessonClass;
   else if (mine.length) select.value = String(mine[0]["Class ID"] || "");
   try { llsHomeworkPageDueChips(); } catch (_) {}
+  try { llsHomeworkPageWb_(); } catch (_) {}
 }
 
 async function renderHomeworkList(mode) {
@@ -6108,7 +6109,7 @@ async function llsHomeworkAssign() {
       setValue("homeworkTitle", "");
       setValue("homeworkDescription", "");
       setValue("homeworkDueDate", "");
-      try { llsHomeworkPageDueChips(); } catch (_) {}
+      try { llsHomeworkPageDueChips(); delete llsWbState.homeworkWbBox; llsHomeworkPageWb_(); } catch (_) {}
       if (byId("homeworkFiles")) byId("homeworkFiles").value = "";
       llsHwFilesPickedLabel_();
       showToast(sent === picked.length ? "Homework assigned with " + sent + " file" + (sent === 1 ? "" : "s") + "." : "Homework assigned. Some files didn't upload: add them with 📎 Files.", sent === picked.length ? "success" : "error");
@@ -6129,7 +6130,7 @@ async function llsHomeworkAssign() {
   setValue("homeworkTitle", "");
   setValue("homeworkDescription", "");
   setValue("homeworkDueDate", "");
-  try { llsHomeworkPageDueChips(); } catch (_) {}
+  try { llsHomeworkPageDueChips(); delete llsWbState.homeworkWbBox; llsHomeworkPageWb_(); } catch (_) {}
   showToast("Homework assigned.", "success");
 }
 
@@ -7817,6 +7818,8 @@ async function llsRenderLesson() {
   llsPlanConfirm = "";
   llsRenderSkills();
   llsRenderHwSuggest(cls);
+  if (llsWbState.lessonWbBox) delete llsWbState.lessonWbBox; // a new lesson starts with Workbook off
+  llsLessonWb_();
   llsLesson.noteTouched = false;
   llsLesson.homework = [];
   llsLesson.status = [];
@@ -8119,6 +8122,7 @@ async function llsSaveLesson() {
     llsLesson.homework = [{ Title: hwTitle, "Due Date": value("lessonHwDue"), "Created At": new Date().toISOString() }, ...llsLesson.homework];
     llsRenderLessonHomework(rows.length);
     setValue("lessonHwTitle", ""); setValue("lessonHwText", "");
+    delete llsWbState.lessonWbBox; llsLessonWb_();
     if (byId("lessonHwFiles")) { byId("lessonHwFiles").value = ""; llsLessonFilesPicked_(); }
   }
   const savedBtn = byId("lessonSaveButton");
@@ -9890,6 +9894,7 @@ function llsRenderPlanPanel() {
     llsPlanConfirm = "";
     if (byId("lessonSpecialOn")?.checked) llsSetSpecial(false);
     setValue("lessonUnitPage", p.id + (p.pages ? " · " + p.pages : ""));
+    try { const st = llsWbState.lessonWbBox; if (!st || !st.touchedLesson) llsLessonWb_(); } catch (_) {}
     if (!value("lessonDone").trim()) setValue("lessonDone", `${p.title}: ${p.focus}`);
     // Tick the skills this deck covers, with its topics (teachers can untick or edit).
     Object.entries(p.skills || {}).forEach(([k, topic]) => {
@@ -10481,3 +10486,87 @@ function llsRenderCancelPanel() {
   }));
   if (!llsOwedInfo) llsLoadOwed_();
 }
+
+/* =========================================================
+   3 Oct — WORKBOOK PAGES AS HOMEWORK
+   The Workbook's page numbers don't match the Student's Book, so the
+   teacher ticks "Set Workbook pages as homework", picks the lesson (6B…)
+   and ticks the pages; each page has a short description of what's on it.
+   Title and instructions are filled in for them (workbook.js).
+========================================================= */
+const LLS_WB_KIND_ICON = { Grammar: "📘", Vocabulary: "🔤", Pronunciation: "🗣️", Reading: "📖", Listening: "🎧", Writing: "✍️" };
+const llsWbState = {}; // hostId -> { on, lesson, pages:Set, auto:{title,text}, touchedLesson }
+function llsWbBook_(cls) { return cls && cls.book && window.LLS_WORKBOOK && LLS_WORKBOOK[cls.book]; }
+function llsWbDefaultLesson_(wb, cls, hint) {
+  const codes = Object.keys(wb.lessons);
+  const m = String(hint || "").trim().match(/^(\d{1,2})([A-C])/i);
+  if (m && wb.lessons[m[1] + m[2].toUpperCase()]) return m[1] + m[2].toUpperCase();
+  const unit = m ? m[1] : String(Number(cls.currentUnit) || "");
+  return codes.find((c) => c.startsWith(unit) && /^\d+[A-C]$/.test(c) && parseInt(c, 10) === Number(unit)) || codes[0];
+}
+function llsRenderWbPicker(hostId, cls, titleId, textId, hint) {
+  const host = byId(hostId);
+  if (!host) return;
+  const wb = llsWbBook_(cls);
+  if (!wb) { host.innerHTML = ""; host.hidden = true; return; }
+  host.hidden = false;
+  const key = hostId + "|" + cls.id;
+  let st = llsWbState[hostId];
+  if (!st || st.key !== key) st = llsWbState[hostId] = { key, on: false, lesson: "", pages: new Set(), auto: { title: "", text: "" }, touchedLesson: false };
+  if (!st.touchedLesson || !wb.lessons[st.lesson]) st.lesson = llsWbDefaultLesson_(wb, cls, hint);
+  const lesson = wb.lessons[st.lesson];
+  host.innerHTML = `
+    <label class="wb-toggle"><input type="checkbox" data-wb-on${st.on ? " checked" : ""}> 📗 Set Workbook pages as homework?</label>
+    ${st.on ? `<div class="wb-panel">
+      <label class="wb-lesson">Lesson in the Student's Book
+        <select data-wb-lesson>${Object.entries(wb.lessons).map(([c, l]) => `<option value="${escapeAttribute(c)}"${c === st.lesson ? " selected" : ""}>${escapeHtml(c)} · ${escapeHtml(l.title)}</option>`).join("")}</select>
+      </label>
+      <p class="muted wb-note">Workbook page numbers are different from the Student's Book: tick the Workbook pages.</p>
+      <div class="wb-pages">${lesson.pages.map((pg) => `
+        <label class="wb-page${st.pages.has(pg.p) ? " on" : ""}">
+          <input type="checkbox" data-wb-page="${pg.p}"${st.pages.has(pg.p) ? " checked" : ""}>
+          <span class="wb-p">Workbook p.${pg.p}</span>
+          <span class="wb-items">${pg.items.map(([k, what, audio]) => `<span class="wb-item"><b>${LLS_WB_KIND_ICON[k] || "•"} ${escapeHtml(k)}:</b> ${escapeHtml(what)}${audio ? ' <span class="wb-audio" title="Needs the Workbook audio">🎧 audio</span>' : ""}</span>`).join("")}</span>
+        </label>`).join("")}</div>
+    </div>` : ""}`;
+  const fill = () => {
+    const chosen = lesson.pages.filter((pg) => st.pages.has(pg.p));
+    const curTitle = value(titleId).trim();
+    const curText = value(textId).trim();
+    if (!chosen.length) {
+      if (curTitle === st.auto.title) setValue(titleId, "");
+      if (curText === st.auto.text) setValue(textId, "");
+      st.auto = { title: "", text: "" };
+      return;
+    }
+    const nums = chosen.map((pg) => pg.p);
+    const title = `Workbook ${nums.length === 1 ? "p." + nums[0] : "pp." + nums.join(", ")} (${st.lesson} ${lesson.title})`;
+    const text = chosen.map((pg) => `Workbook p.${pg.p}: ` + pg.items.map(([k, what]) => `${k} – ${what}`).join("; ")).join("\n") +
+      (chosen.some((pg) => pg.items.some((i) => i[2])) ? "\n🎧 Pronunciation exercises use the Workbook audio." : "");
+    if (!curTitle || curTitle === st.auto.title) setValue(titleId, title);
+    if (!curText || curText === st.auto.text) setValue(textId, text);
+    st.auto = { title, text };
+  };
+  host.querySelector("[data-wb-on]").addEventListener("change", (e) => { st.on = e.target.checked; if (!st.on) { st.pages.clear(); fill(); } llsRenderWbPicker(hostId, cls, titleId, textId, hint); });
+  host.querySelector("[data-wb-lesson]")?.addEventListener("change", (e) => { st.lesson = e.target.value; st.touchedLesson = true; st.pages.clear(); fill(); llsRenderWbPicker(hostId, cls, titleId, textId, hint); });
+  host.querySelectorAll("[data-wb-page]").forEach((c) => c.addEventListener("change", () => {
+    const p = Number(c.dataset.wbPage);
+    if (c.checked) st.pages.add(p); else st.pages.delete(p);
+    fill();
+    c.closest(".wb-page").classList.toggle("on", c.checked);
+  }));
+}
+function llsLessonWb_() {
+  const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
+  if (cls) llsRenderWbPicker("lessonWbBox", cls, "lessonHwTitle", "lessonHwText", value("lessonUnitPage"));
+}
+function llsHomeworkPageWb_() {
+  const classId = value("homeworkClassSelect");
+  const cls = (state.classes || []).find((c) => String(c.id) === String(classId));
+  if (cls) llsRenderWbPicker("homeworkWbBox", cls, "homeworkTitle", "homeworkDescription", "");
+  else if (byId("homeworkWbBox")) byId("homeworkWbBox").innerHTML = "";
+}
+document.addEventListener("DOMContentLoaded", () => {
+  byId("lessonUnitPage")?.addEventListener("input", () => { const st = llsWbState.lessonWbBox; if (st && !st.touchedLesson) llsLessonWb_(); });
+  byId("homeworkClassSelect")?.addEventListener("change", llsHomeworkPageWb_);
+});
