@@ -391,6 +391,16 @@ input[type="checkbox"] { border-radius: 4px; }
 .plan-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .row-action.warn { border-color: #e0a100; color: #7a5200; }
 .plan-all { margin-top: 8px; }
+/* 4 Oct: make lesson materials obvious when a teacher opens a class */
+.plan-panel { border: 2px solid #c9b3f0; }
+.plan-optional { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #6d3fc0; background: #f1eafe; border-radius: 99px; padding: 2px 8px; margin-left: 6px; vertical-align: middle; }
+.plan-intro { margin: 6px 0 8px; color: #3b4660; font-size: 14px; }
+.plan-feature { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px; border-radius: 14px; background: #fff8d6; box-shadow: inset 0 0 0 2px #ffd23f; margin-bottom: 4px; }
+.plan-feature > div:first-child { display: grid; gap: 2px; min-width: 0; }
+.plan-feature > div:first-child .plan-code { justify-self: start; }
+.plan-feature small { color: #56617a; font-size: 12px; }
+.plan-feature-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.hw-sheet-hint { background: #f1eafe; border: 1px solid #c9b3f0; border-radius: 12px; padding: 8px 10px; margin-bottom: 8px; font-size: 13.5px; }
 .week-nav { display: inline-flex; align-items: center; gap: 8px; }
 .week-chips, .week-teachers { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; align-items: center; }
 .week-chip, .week-teacher { border-radius: 999px; padding: 3px 10px; font-size: 13px; font-weight: 700; background: #eef3fa; }

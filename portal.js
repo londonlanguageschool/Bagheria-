@@ -9832,10 +9832,33 @@ function llsPlansFor_(cls) {
   const m = String((cls && cls.units) || "").match(/^(\d+)\s*-\s*(\d+)$/);
   return m ? all.filter((p) => p.unit >= Number(m[1]) && p.unit <= Number(m[2])) : all;
 }
-function llsPlanUrl_(p) {
+function llsPlanUrl_(p, field) {
   const P = window.LLS_PLANS || {};
-  if (P.links && P.links[p.file]) return P.links[p.file];
-  return P.base ? P.base + p.file.split("/").map(encodeURIComponent).join("/") : "";
+  const f = p && p[field || "file"];
+  if (!f) return "";
+  if (P.links && P.links[f]) return P.links[f];
+  return P.base ? P.base + f.split("/").map(encodeURIComponent).join("/") : "";
+}
+// 4 Oct — the materials a teacher can use for one lesson (all optional).
+function llsPlanMaterials_(p) {
+  return { slides: llsPlanUrl_(p, "file"), hw: llsPlanUrl_(p, "hw"), key: llsPlanUrl_(p, "key") };
+}
+function llsPlanMaterialLinks_(p, big) {
+  const m = llsPlanMaterials_(p), c = big ? "button button-secondary" : "row-action";
+  return [m.slides ? `<a class="${c}" href="${escapeAttribute(m.slides)}" target="_blank" rel="noopener">🖥 Slides</a>` : "",
+    m.hw ? `<a class="${c}" href="${escapeAttribute(m.hw)}" target="_blank" rel="noopener">📝 Homework sheet</a>` : "",
+    m.key ? `<a class="${c}" href="${escapeAttribute(m.key)}" target="_blank" rel="noopener">🔑 Answer key</a>` : ""].join("");
+}
+// Hint above "📎 Attach files" when today's lesson has a homework sheet.
+function llsRenderHwSheetHint_() {
+  const box = byId("lessonHwSheetHint");
+  if (!box) return;
+  const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
+  const code = llsPlanCode_(value("lessonUnitPage"));
+  const p = cls && code ? llsPlansFor_(cls).find((x) => x.id === code) : null;
+  const url = p ? llsPlanUrl_(p, "hw") : "";
+  box.hidden = !url;
+  box.innerHTML = url ? `📝 <strong>${escapeHtml(p.id)} has a homework sheet.</strong> If you want to use it: <a href="${escapeAttribute(url)}" target="_blank" rel="noopener">open it</a>, download the PDF, then attach it here with <b>📎 Attach files</b>. Students get it in their app. <span class="muted">(Optional.)</span>` : "";
 }
 // When each plan was taught with this class: { code: [{ date, teacher }] }.
 function llsPlanTaught_(entries) {
@@ -9855,7 +9878,7 @@ function llsRenderPlanPanel() {
   const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
   const plans = cls ? llsPlansFor_(cls) : [];
   box.hidden = !plans.length;
-  if (!plans.length) { box.innerHTML = ""; return; }
+  if (!plans.length) { box.innerHTML = ""; llsRenderHwSheetHint_(); return; }
   const date = byId("lessonDate")?.value || "";
   const taught = llsPlanTaught_((llsLesson.entries || []).filter((e) => String(e.lessonDate || "").slice(0, 10) !== date));
   const todayCode = llsPlanCode_(value("lessonUnitPage"));
@@ -9866,14 +9889,19 @@ function llsRenderPlanPanel() {
   const when = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   const shown = llsPlanShowAll ? plans : plans.filter((p, i) => p.id === todayCode || i === lastIdx || (nextIdx >= 0 && i >= nextIdx && i <= nextIdx + 2));
   const name = (LLS_PLANS.names && LLS_PLANS.names[cls.book]) || cls.book;
+  const feat = plans.find((p) => p.id === todayCode) || (nextIdx >= 0 ? plans[nextIdx] : null);
   box.innerHTML = `
-    <div class="plan-head"><p class="section-label" style="margin:0;">📚 Lesson plans</p><span class="muted">${escapeHtml(name)} · <strong>${doneCount}/${plans.length}</strong> taught${window.LLS_PLANS && LLS_PLANS.folder ? ` · <a href="${escapeAttribute(LLS_PLANS.folder)}" target="_blank" rel="noopener">📂 Slides on Google Drive</a>` : ""}</span></div>
+    <div class="plan-head"><p class="section-label" style="margin:0;">📚 Lesson materials for this class <span class="plan-optional">optional</span></p><span class="muted">${escapeHtml(name)} · <strong>${doneCount}/${plans.length}</strong> taught${window.LLS_PLANS && LLS_PLANS.folder ? ` · <a href="${escapeAttribute(LLS_PLANS.folder)}" target="_blank" rel="noopener">📂 All on Google Drive</a>` : ""}</span></div>
+    <p class="plan-intro">Ready-made slides for each lesson, with a homework sheet you can attach at the end (step 3 · Homework). Use them if they help — you don't have to.</p>
+    ${feat ? `<div class="plan-feature">
+      <div><span class="plan-code">${escapeHtml(feat.id)}</span> <strong>${feat.id === todayCode ? "Today" : "Next"}: ${escapeHtml(feat.title)}</strong><small>${escapeHtml(feat.focus)}</small></div>
+      <div class="plan-feature-actions">${llsPlanMaterialLinks_(feat, true) || '<span class="muted">Slides are being uploaded – ask the office.</span>'}${feat.id === todayCode ? "" : `<button type="button" class="button" data-plan-use="${escapeAttribute(feat.id)}">Teach this today</button>`}</div>
+    </div>` : ""}
     <div class="plan-bar" aria-hidden="true"><i style="width:${Math.round(doneCount / plans.length * 100)}%"></i></div>
     <div class="plan-list">${shown.map((p) => {
       const t = taught[p.id];
       const i = plans.indexOf(p);
       const isToday = p.id === todayCode;
-      const url = llsPlanUrl_(p);
       const cls2 = isToday ? "today" : t ? "done" : i === nextIdx ? "next" : "";
       const badge = isToday ? "📌 Today's lesson" : t ? "✓ Taught " + t.map((x) => when(x.date) + (x.teacher ? " (" + x.teacher + ")" : "")).join(", ") : i === nextIdx ? "➡ Next" : "";
       const confirm = llsPlanConfirm === p.id;
@@ -9881,11 +9909,12 @@ function llsRenderPlanPanel() {
         <span class="plan-code">${escapeHtml(p.id)}</span>
         <span class="plan-text"><strong>${escapeHtml(p.title)}</strong><small>${escapeHtml(p.focus)}${p.pages ? " · " + escapeHtml(p.pages) : ""}</small>${badge ? `<em>${escapeHtml(badge)}</em>` : ""}${confirm ? `<b class="plan-warn">⚠ This class has already had this lesson. Tap again to teach it again.</b>` : ""}</span>
         <span class="plan-actions">
-          ${url ? `<a class="row-action" href="${escapeAttribute(url)}" target="_blank" rel="noopener">🖥 Slides</a>` : ""}
+          ${llsPlanMaterialLinks_(p)}
           ${isToday ? "" : `<button type="button" class="row-action${t ? " warn" : ""}" data-plan-use="${escapeAttribute(p.id)}">${confirm ? "Yes, teach again" : t ? "Teach again" : "Teach today"}</button>`}
         </span></div>`;
     }).join("")}</div>
     ${plans.length > shown.length || llsPlanShowAll ? `<button type="button" class="row-action plan-all" data-plan-all>${llsPlanShowAll ? "Show fewer" : `Show all ${plans.length} lessons`}</button>` : ""}`;
+  llsRenderHwSheetHint_();
   box.querySelector("[data-plan-all]")?.addEventListener("click", () => { llsPlanShowAll = !llsPlanShowAll; llsRenderPlanPanel(); });
   box.querySelectorAll("[data-plan-use]").forEach((b) => b.addEventListener("click", () => {
     const p = plans.find((x) => x.id === b.dataset.planUse);
