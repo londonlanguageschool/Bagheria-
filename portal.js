@@ -10521,11 +10521,11 @@ function llsRenderWbPicker(hostId, cls, titleId, textId, hint) {
       <label class="wb-lesson">Lesson in the Student's Book
         <select data-wb-lesson>${Object.entries(wb.lessons).map(([c, l]) => `<option value="${escapeAttribute(c)}"${c === st.lesson ? " selected" : ""}>${escapeHtml(c)} · ${escapeHtml(l.title)}</option>`).join("")}</select>
       </label>
-      <p class="muted wb-note">Workbook page numbers are different from the Student's Book: tick the Workbook pages.</p>
+      <p class="muted wb-note">Students' books have the Workbook at the back with different page numbers, so homework names the lesson and exercises, not pages.</p>
       <div class="wb-pages">${lesson.pages.map((pg) => `
         <label class="wb-page${st.pages.has(pg.p) ? " on" : ""}">
           <input type="checkbox" data-wb-page="${pg.p}"${st.pages.has(pg.p) ? " checked" : ""}>
-          <span class="wb-p">Workbook p.${pg.p}</span>
+          <span class="wb-p">Workbook ${escapeHtml(st.lesson)} · part ${lesson.pages.indexOf(pg) + 1}</span>
           <span class="wb-items">${pg.items.map(([k, what, audio]) => `<span class="wb-item"><b>${LLS_WB_KIND_ICON[k] || "•"} ${escapeHtml(k)}:</b> ${escapeHtml(what)}${audio ? ' <span class="wb-audio" title="Needs the Workbook audio">🎧 audio</span>' : ""}</span>`).join("")}</span>
         </label>`).join("")}</div>
     </div>` : ""}`;
@@ -10539,9 +10539,11 @@ function llsRenderWbPicker(hostId, cls, titleId, textId, hint) {
       st.auto = { title: "", text: "" };
       return;
     }
-    const nums = chosen.map((pg) => pg.p);
-    const title = `Workbook ${nums.length === 1 ? "p." + nums[0] : "pp." + nums.join(", ")} (${st.lesson} ${lesson.title})`;
-    const text = chosen.map((pg) => `Workbook p.${pg.p}: ` + pg.items.map(([k, what]) => `${k} – ${what}`).join("; ")).join("\n") +
+    // 4 Oct: no page numbers — the students' combined book numbers the Workbook differently.
+    const exOf = (what) => (String(what).match(/\(([^)]+)\)\s*$/) || [])[1] || "";
+    const exs = chosen.flatMap((pg) => pg.items.map(([, what]) => exOf(what))).filter(Boolean);
+    const title = `Workbook ${st.lesson} ${lesson.title}${exs.length ? ": ex. " + exs.join(", ") : ""}`;
+    const text = `Workbook section, lesson ${st.lesson} (${lesson.title}):\n` + chosen.map((pg) => pg.items.map(([k, what]) => `• ${k} – ${what}`).join("\n")).join("\n") +
       (chosen.some((pg) => pg.items.some((i) => i[2])) ? "\n🎧 Pronunciation exercises use the Workbook audio." : "");
     if (!curTitle || curTitle === st.auto.title) setValue(titleId, title);
     if (!curText || curText === st.auto.text) setValue(textId, text);

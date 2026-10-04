@@ -14,6 +14,7 @@
     "📗 Set Workbook pages as homework?": "📗 Assegnare pagine del Workbook come compito?",
     "Lesson in the Student's Book": "Lezione del Student's Book",
     "Workbook page numbers are different from the Student's Book: tick the Workbook pages.": "I numeri di pagina del Workbook sono diversi da quelli dello Student's Book: spunta le pagine del Workbook.",
+    "Students' books have the Workbook at the back with different page numbers, so homework names the lesson and exercises, not pages.": "Nei libri degli studenti il Workbook è in fondo con numeri di pagina diversi: i compiti indicano la lezione e gli esercizi, non le pagine.",
     "Needs the Workbook audio": "Serve l'audio del Workbook",
     "✏️ Complete now": "✏️ Compila ora",
     "✏️ Edit": "✏️ Modifica",
