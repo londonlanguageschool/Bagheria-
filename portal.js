@@ -10044,13 +10044,15 @@ function llsPlanUrl_(p, field) {
 }
 // 4 Oct — the materials a teacher can use for one lesson (all optional).
 function llsPlanMaterials_(p) {
-  return { slides: llsPlanUrl_(p, "file"), hw: llsPlanUrl_(p, "hw"), key: llsPlanUrl_(p, "key") };
+  return { slides: llsPlanUrl_(p, "file"), hw: llsPlanUrl_(p, "hw"), easy: llsPlanUrl_(p, "easy"), key: llsPlanUrl_(p, "key"), pcm: llsPlanUrl_(p, "pcm") };
 }
 function llsPlanMaterialLinks_(p, big) {
   const m = llsPlanMaterials_(p), c = big ? "button button-secondary" : "row-action";
   return [m.slides ? `<a class="${c}" href="${escapeAttribute(m.slides)}" target="_blank" rel="noopener">🖥 Slides</a>` : "",
     m.hw ? `<a class="${c}" href="${escapeAttribute(m.hw)}" target="_blank" rel="noopener">📝 Homework sheet</a>` : "",
-    m.key ? `<a class="${c}" href="${escapeAttribute(m.key)}" target="_blank" rel="noopener">🔑 Answer key</a>` : ""].join("");
+    m.easy ? `<a class="${c}" href="${escapeAttribute(m.easy)}" target="_blank" rel="noopener">📝 Easier homework</a>` : "",
+    m.key ? `<a class="${c}" href="${escapeAttribute(m.key)}" target="_blank" rel="noopener">🔑 Answer key</a>` : "",
+    m.pcm ? `<a class="${c}" href="${escapeAttribute(m.pcm)}" target="_blank" rel="noopener">🖨 Photocopiables</a>` : ""].join("");
 }
 // Hint above "📎 Attach files" when today's lesson has a homework sheet.
 function llsRenderHwSheetHint_() {
