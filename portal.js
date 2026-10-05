@@ -2920,6 +2920,7 @@ function openEditEnquiry(id) {
 }
 
 async function llsApiPost(body) {
+  llsForgetReads_();
   /*
    * V12.5 — Apps Script write transport fix.
    * Send the mutation without trying to read the cross-origin redirected
@@ -5409,6 +5410,9 @@ let llsAttendanceLoadedKey = "";
 let llsActiveRequests = 0;
 const llsRequestWaiters = [];      // someone is waiting on screen
 const llsBackgroundWaiters = [];   // can wait
+// 5 Oct (speed): start with the Apps Script version seen last time, so
+// panels that depend on it don't wait for "ping" (it's re-checked anyway).
+try { const v = Number(localStorage.getItem("lls_server_version")); if (v > 0 && window.llsServerVersion === undefined) window.llsServerVersion = v; } catch (_) {}
 const LLS_BACKGROUND_ACTIONS = new Set(["ping", "getEnquiries", "getFinanceData", "getTeachers", "getOneToOneHours"]);
 const LLS_READ_TIMEOUT_MS = 20000;
 const LLS_SAVE_TIMEOUT_MS = 60000;
@@ -5422,7 +5426,7 @@ async function llsFetch_(url, options, opts = {}) {
   // 30 Sept: saves never queue behind reads. Opening a lesson starts two
   // slow reads, which used to hold the save back for 20–30 seconds.
   const lane = !opts.save;
-  if (lane && llsActiveRequests >= 2) {
+  if (lane && llsActiveRequests >= 3) {
     await new Promise((resolve) => (opts.background ? llsBackgroundWaiters : llsRequestWaiters).push(resolve));
   }
   if (lane) llsActiveRequests++;
@@ -5460,7 +5464,26 @@ const LLS_SAFE_TO_RESEND = new Set([
 ]);
 const LLS_LOGIN_ACTIONS = new Set(["adminLogin", "teacherPortalLogin", "teacherLogin"]);
 
+// 5 Oct (speed): identical reads that are already on their way are shared,
+// and a few slow, often-repeated reads are remembered for 60 seconds.
+// Any save clears the memory, so nobody sees old data after a change.
+const llsGetInFlight_ = new Map();
+const llsGetMemory_ = new Map();
+const LLS_REMEMBER_READS = new Set(["getLessonDates", "ping"]);
+function llsForgetReads_() { llsGetMemory_.clear(); }
 async function llsApiGet(action, params = {}, opts = {}) {
+  const shareKey = action + "|" + JSON.stringify(Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== null && String(v) !== "").sort());
+  const remembered = llsGetMemory_.get(shareKey);
+  if (remembered && Date.now() - remembered.at < 60000) return remembered.data;
+  if (llsGetInFlight_.has(shareKey)) return llsGetInFlight_.get(shareKey);
+  const job = llsApiGetNow_(action, params, opts).then((data) => {
+    if (LLS_REMEMBER_READS.has(action)) llsGetMemory_.set(shareKey, { at: Date.now(), data });
+    return data;
+  }).finally(() => llsGetInFlight_.delete(shareKey));
+  llsGetInFlight_.set(shareKey, job);
+  return job;
+}
+async function llsApiGetNow_(action, params = {}, opts = {}) {
   const url = new URL(LLS_API_URL);
   url.searchParams.set("action", action);
   url.searchParams.set("t", Date.now());
@@ -5538,6 +5561,7 @@ async function llsApiPost(body) {
 }
 
 async function llsSendMutation_(payload) {
+  llsForgetReads_();
   const transportError = (message) => { const e = new Error(message); e.transport = true; return e; };
 
   // V15.3: send changes through the script's GET "mutate" route.
@@ -7360,6 +7384,7 @@ async function llsCheckAiPanel() {
     const ping = await llsApiGet("ping");
     const m = String(ping.version || "").match(/V(\d+)/);
     window.llsServerVersion = m ? Number(m[1]) : 0;
+    try { localStorage.setItem("lls_server_version", String(window.llsServerVersion)); } catch (_) {}
     if (panel) panel.hidden = ping.aiReady !== true;
   } catch (_) { /* leave as is */ }
 }
