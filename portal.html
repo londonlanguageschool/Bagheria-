@@ -698,12 +698,48 @@
 
             <div class="panel">
               <p class="section-label" style="margin-top:0;">2 · What we did</p>
-              <div class="lesson-special" id="lessonSpecialBox">
-                <label class="lesson-special-toggle" for="lessonSpecialOn">
+              <div class="lesson-type" id="lessonTypeBar" role="radiogroup" aria-label="What kind of lesson?">
+                <button type="button" class="lesson-type-btn active" role="radio" aria-checked="true" data-ltype="book"><span>📘</span><strong>Coursebook</strong><small>the normal lesson</small></button>
+                <button type="button" class="lesson-type-btn" role="radio" aria-checked="false" data-ltype="choice"><span>🧑‍🏫</span><strong>Teacher's choice</strong><small>your own lesson plan</small></button>
+                <button type="button" class="lesson-type-btn" role="radio" aria-checked="false" data-ltype="special"><span>⭐</span><strong>Special lesson</strong><small>Halloween, Christmas…</small></button>
+              </div>
+              <div class="lesson-special lesson-choice on" id="lessonChoiceBox" hidden>
+                <p style="margin:0 0 4px;"><strong>🧑‍🏫 Teacher's choice</strong></p>
+                <p class="muted" style="margin:0;">Your own lesson instead of the book. It counts towards the students' progress like any other lesson, so tick the skills below and say clearly what you did. The book unit doesn't move.</p>
+                <div class="lesson-special-chips" id="lessonChoiceChips">
+                  <button type="button" class="lesson-chip" data-choice="Exam practice">🎓 Exam practice</button>
+                  <button type="button" class="lesson-chip" data-choice="Speaking practice">🗣️ Speaking practice</button>
+                  <button type="button" class="lesson-chip" data-choice="Grammar review">🧩 Grammar review</button>
+                  <button type="button" class="lesson-chip" data-choice="Vocabulary building">🔤 Vocabulary building</button>
+                  <button type="button" class="lesson-chip" data-choice="Reading and listening">🎧 Reading &amp; listening</button>
+                  <button type="button" class="lesson-chip" data-choice="Writing workshop">✍️ Writing</button>
+                  <button type="button" class="lesson-chip" data-choice="Project">🛠️ Project</button>
+                  <button type="button" class="lesson-chip" data-choice="Revision games">🎲 Revision games</button>
+                </div>
+                <div class="form-grid" style="margin-top:10px;">
+                  <div class="form-field form-field-wide">
+                    <label for="lessonChoiceTitle">Lesson title <span class="muted">(required)</span></label>
+                    <input id="lessonChoiceTitle" type="text" maxlength="60" placeholder="Pick one above and make it specific, e.g. Cambridge B1 Listening Part 1">
+                  </div>
+                  <div class="form-field form-field-wide">
+                    <label for="lessonChoiceLinks">🔗 Materials you used: links <span class="muted">(one per line: website, video, worksheet…)</span></label>
+                    <textarea id="lessonChoiceLinks" rows="2" placeholder="https://…"></textarea>
+                  </div>
+                  <div class="form-field form-field-wide">
+                    <label for="lessonChoiceFiles">📷 Photos or files of the materials <span class="muted">(board, worksheet, book page · max 8 MB each)</span></label>
+                    <input id="lessonChoiceFiles" type="file" multiple accept="image/*,application/pdf">
+                    <small id="lessonChoiceFilesPicked" class="muted"></small>
+                  </div>
+                </div>
+              </div>
+              <div class="lesson-special" id="lessonSpecialBox" hidden>
+                <label class="lesson-special-toggle" for="lessonSpecialOn" hidden>
                   <input id="lessonSpecialOn" type="checkbox">
                   <span><strong>⭐ Special lesson</strong> <span class="muted">(Welcome back, Halloween, Christmas… instead of the book. It still counts as a lesson; the unit doesn't move.)</span></span>
                 </label>
                 <div id="lessonSpecialPick" hidden>
+                  <p style="margin:0 0 4px;"><strong>⭐ Special lesson</strong></p>
+                  <p class="muted" style="margin:0;">Welcome back, Halloween, Christmas… instead of the book. It still counts as a lesson; the unit doesn't move.</p>
                   <div class="lesson-special-chips" id="lessonSpecialChips">
                     <button type="button" class="lesson-chip" data-special="Welcome back">👋 Welcome back</button>
                     <button type="button" class="lesson-chip" data-special="Halloween">🎃 Halloween</button>
@@ -727,7 +763,7 @@
                   <input id="lessonUnitPage" type="text" placeholder="e.g. 2B, p.18">
                 </div>
                 <div class="form-field form-field-wide">
-                  <label for="lessonDone">Anything else? <span class="muted">(optional: students see this)</span></label>
+                  <label for="lessonDone" id="lessonDoneLabel">Anything else? <span class="muted">(optional: students see this)</span></label>
                   <textarea id="lessonDone" rows="2" placeholder="e.g. vocab game, p.19"></textarea>
                 </div>
                 <div class="form-field form-field-wide">

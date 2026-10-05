@@ -7519,10 +7519,114 @@ function llsSetSpecial(on, title) {
   box.checked = Boolean(on);
   byId("lessonSpecialPick").hidden = !on;
   byId("lessonSpecialBox").classList.toggle("on", Boolean(on));
-  byId("lessonUnitPageField").hidden = Boolean(on);
+  byId("lessonSpecialBox").hidden = !on;
+  byId("lessonUnitPageField").hidden = Boolean(on) || llsChoiceOn();
   setValue("lessonSpecialTitle", on ? (title || "") : "");
   llsMarkSpecialChip();
+  if (on && llsChoiceOn()) llsSetChoice(false);
+  llsSyncLessonType_();
 }
+
+/* 5 Oct — "Teacher's choice" lessons: the teacher's own lesson instead of the
+   book. Stored in the Lesson Log with Unit "Teacher's choice"; the title is
+   the first line of "What we did" (🧑‍🏫 …), the links go in the private notes
+   ("📎 Materials:"), photos/files in the Files sheet (V32). Skills are
+   required as in a book lesson, so it counts towards progress the same way. */
+const LLS_CHOICE_UNIT = "Teacher's choice";
+const LLS_CHOICE_MARK = "🧑‍🏫 ";
+const LLS_MATERIALS_MARK = "📎 Materials:";
+let llsLessonFileMap = {}; // "classId|date" -> [files] (V32)
+function llsIsChoiceUnit(unit) { return /^teacher'?s choice/i.test(String(unit || "").trim()); }
+function llsChoiceOn() { return Boolean(byId("lessonChoiceBox") && !byId("lessonChoiceBox").hidden); }
+function llsSetChoice(on, title, links) {
+  const box = byId("lessonChoiceBox");
+  if (!box) return;
+  box.hidden = !on;
+  if (on && byId("lessonSpecialOn")?.checked) llsSetSpecial(false);
+  if (title !== undefined) setValue("lessonChoiceTitle", title || "");
+  if (links !== undefined) setValue("lessonChoiceLinks", links || "");
+  if (!on && title === undefined) { setValue("lessonChoiceTitle", ""); setValue("lessonChoiceLinks", ""); const f = byId("lessonChoiceFiles"); if (f) f.value = ""; llsChoiceFilesPicked_(); }
+  byId("lessonUnitPageField").hidden = Boolean(on) || Boolean(byId("lessonSpecialOn")?.checked);
+  const label = byId("lessonDoneLabel"), done = byId("lessonDone");
+  if (label) label.innerHTML = on
+    ? `What exactly did you do? <span class="muted">(required: activities in order, pages, games… students see this)</span>`
+    : `Anything else? <span class="muted">(optional: students see this)</span>`;
+  if (done) { done.placeholder = on ? "e.g. Warm-up quiz on the past simple, then Cambridge B1 Listening Part 1 (2 tests), then a speaking game with the answers." : "e.g. vocab game, p.19"; done.rows = on ? 4 : 2; }
+  llsMarkChoiceChip_();
+  llsSyncLessonType_();
+}
+function llsMarkChoiceChip_() {
+  const t = value("lessonChoiceTitle").trim().toLowerCase();
+  document.querySelectorAll("#lessonChoiceChips [data-choice]").forEach((b) => b.classList.toggle("active", b.dataset.choice.toLowerCase() === t));
+}
+function llsLessonType_() { return byId("lessonSpecialOn")?.checked ? "special" : llsChoiceOn() ? "choice" : "book"; }
+function llsSyncLessonType_() {
+  const t = llsLessonType_();
+  document.querySelectorAll("#lessonTypeBar [data-ltype]").forEach((b) => { const on = b.dataset.ltype === t; b.classList.toggle("active", on); b.setAttribute("aria-checked", on ? "true" : "false"); });
+}
+function llsPickLessonType_(t) {
+  if (t === "special") { llsSetSpecial(true, value("lessonSpecialTitle")); byId("lessonSpecialTitle")?.focus(); }
+  else if (t === "choice") { llsSetChoice(true); byId("lessonChoiceTitle")?.focus(); }
+  else { if (byId("lessonSpecialOn")?.checked) llsSetSpecial(false); if (llsChoiceOn()) llsSetChoice(false); }
+  llsRenderSkills();
+}
+function llsChoiceFilesPicked_() {
+  const input = byId("lessonChoiceFiles"), label = byId("lessonChoiceFilesPicked");
+  if (!input || !label) return;
+  const n = (input.files || []).length;
+  label.textContent = (window.llsServerVersion || 0) < 32
+    ? "Photos can be added once the office installs Apps Script V32. Until then, add links or describe the materials."
+    : n ? `${n} file${n === 1 ? "" : "s"} chosen: they go up when you save the lesson.` : "";
+}
+// Notes text <-> {notes, links}
+function llsSplitMaterials(text) {
+  const s = String(text || "");
+  const i = s.indexOf(LLS_MATERIALS_MARK);
+  if (i < 0) return { notes: s, links: [] };
+  return { notes: s.slice(0, i).trim(), links: s.slice(i + LLS_MATERIALS_MARK.length).split(/\n+/).map((x) => x.trim()).filter(Boolean) };
+}
+// "What we did" rest text -> {title, rest} for a Teacher's choice lesson
+function llsSplitChoiceTitle(rest) {
+  const lines = String(rest || "").split("\n");
+  const k = lines.findIndex((l) => l.startsWith(LLS_CHOICE_MARK.trim()));
+  if (k < 0) return { title: "", rest: String(rest || "") };
+  const title = lines[k].slice(LLS_CHOICE_MARK.trim().length).trim();
+  lines.splice(k, 1);
+  return { title, rest: lines.join("\n").trim() };
+}
+function llsLessonFilesFor_(date) {
+  const ids = [llsLesson && llsLesson.classId, llsLessonLogClass].filter(Boolean);
+  for (const id of ids) { const f = llsLessonFileMap[id + "|" + date]; if (f && f.length) return f; }
+  return [];
+}
+function llsStoreLessonFiles_(classId, files) {
+  Object.keys(llsLessonFileMap).forEach((k) => { if (k.startsWith(classId + "|")) delete llsLessonFileMap[k]; });
+  (files || []).forEach((f) => { const k = classId + "|" + f.lessonDate; (llsLessonFileMap[k] = llsLessonFileMap[k] || []).push(f); });
+}
+async function llsUploadLessonFiles_(classId, lessonDate, files) {
+  let sent = 0;
+  for (let i = 0; i < files.length; i++) {
+    try {
+      showToast(`Uploading ${i + 1} of ${files.length}: ${files[i].name}…`, "info");
+      const up = await llsReadUpload_(files[i]);
+      const res = await llsApiPost(Object.assign({ action: "uploadLessonFile", classId, lessonDate }, up));
+      if (res.file) { const k = classId + "|" + lessonDate; (llsLessonFileMap[k] = llsLessonFileMap[k] || []).push(res.file); }
+      sent++;
+    } catch (error) {
+      showToast(llsFileError_(error), "error");
+    }
+  }
+  if (sent) {
+    showToast(`📷 ${sent} file${sent === 1 ? "" : "s"} added to the lesson.`, "success");
+    if (llsLesson.classId === classId) llsRenderLessonLogList(byId("lessonHistory"), llsLesson.entries);
+  }
+}
+document.addEventListener("click", (e) => {
+  const b = e.target && e.target.closest ? e.target.closest("[data-open-lfile]") : null;
+  if (!b) return;
+  const all = Object.values(llsLessonFileMap).flat();
+  llsOpenFile_(b.dataset.openLfile, all.find((f) => f.fileId === b.dataset.openLfile));
+});
 function llsMarkSpecialChip() {
   const t = value("lessonSpecialTitle").trim().toLowerCase();
   document.querySelectorAll("#lessonSpecialChips [data-special]").forEach((b) => b.classList.toggle("active", b.dataset.special.toLowerCase() === t));
@@ -7535,17 +7639,27 @@ function llsLessonLogEntryHtml(entry) {
   const skillText = typeof LLS_SKILLS !== "undefined"
     ? LLS_SKILLS.filter((s) => parsed.skills[s.k]).map((s) => `${s.icon} ${s.k}: ${[parsed.skills[s.k].topic, parsed.skills[s.k].focus].filter(Boolean).join(" · ")}`).join("\n")
     : "";
+  const choice = llsIsChoiceUnit(entry.unit);
+  const ct = choice ? llsSplitChoiceTitle(parsed.rest) : { title: "", rest: parsed.rest };
+  const mat = llsSplitMaterials(entry.notes);
   const rows = [
-    [special ? "⭐ Special lesson" : "Unit", special || entry.unit],
-    ["What we did", [skillText, parsed.rest].filter(Boolean).join("\n")],
+    [special ? "⭐ Special lesson" : choice ? "🧑‍🏫 Teacher's choice" : "Unit", special || (choice ? (ct.title || "—") : entry.unit)],
+    ["What we did", [skillText, ct.rest].filter(Boolean).join("\n")],
     ["Homework", entry.homeworkSet],
-    ["Notes", entry.notes]
+    ["Notes", mat.notes]
   ].filter(([, v]) => String(v || "").trim());
   const date = entry.lessonDate ? new Date(entry.lessonDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : "";
+  const linkHtml = (l) => /^https?:\/\/\S+$/i.test(l)
+    ? `<a href="${escapeAttribute(l)}" target="_blank" rel="noopener noreferrer">${escapeHtml(l.length > 70 ? l.slice(0, 67) + "…" : l)}</a>`
+    : escapeHtml(l);
+  const files = llsLessonFilesFor_(entry.lessonDate);
+  const matHtml = (mat.links.length || files.length)
+    ? `<dt>📎 Materials</dt><dd>${mat.links.map((l) => `<div>🔗 ${linkHtml(l)}</div>`).join("")}${files.length ? `<div class="hw-file-chips">${files.map((f) => `<span class="hw-file-chip"><button type="button" class="hw-file-open" data-open-lfile="${escapeAttribute(f.fileId)}" title="Open">${LLS_FILE_ICON(f.type)} ${escapeHtml(f.name)}</button></span>`).join("")}</div>` : ""}</dd>`
+    : "";
   return `
     <div class="lesson-log-entry">
       <div class="lesson-log-meta"><strong>${escapeHtml(date)}</strong> · ${escapeHtml(entry.teacherName || "—")}</div>
-      <dl>${rows.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd style="white-space:pre-line">${escapeHtml(v)}</dd>`).join("")}</dl>
+      <dl>${rows.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd style="white-space:pre-line">${escapeHtml(v)}</dd>`).join("")}${matHtml}</dl>
     </div>`;
 }
 
@@ -7593,6 +7707,7 @@ async function llsLoadLessonLog(force = false) {
       const data = await llsApiGet("getLessonLog", { classId, limit: 1000 });
       llsLessonLogEntries = Array.isArray(data.entries) ? data.entries : [];
       llsLessonLogClass = classId;
+      if (Array.isArray(data.files)) llsStoreLessonFiles_(classId, data.files);
     } catch (error) {
       llsLessonLogEntries = []; llsLessonLogClass = "";
       const msg = /Unknown action/i.test(error.message || "")
@@ -7837,6 +7952,7 @@ async function llsRenderLesson() {
   byId("lessonSkills")?.classList.remove("needs");
   setValue("lessonUnitPage", cls.currentUnit || "");
   llsSetSpecial(false);
+  llsSetChoice(false);
   setValue("lessonHwDue", llsNextLessonDate(cls, date));
   llsRenderDueChips("lessonHwDue", cls, date);
   llsLesson.entries = [];
@@ -7899,6 +8015,7 @@ async function llsRenderLesson() {
   const applyLog = (log) => {
     if (llsLesson.loadedKey !== key) return;
     llsLesson.entries = llsWithPendingEntries(cls.id, Array.isArray(log.entries) ? log.entries : []);
+    if (Array.isArray(log.files)) llsStoreLessonFiles_(cls.id, log.files);
     llsNoteCancelFromEntries_(cls.id, Array.isArray(log.entries) ? log.entries : []);
     const own = llsLesson.entries.find((e) => e.lessonDate === date);
     if (own && !pending && !llsLesson.noteTouched && !llsIsCancelUnit(own.unit)) llsFillLessonNote(own, cls);
@@ -7967,12 +8084,16 @@ async function llsRenderLessonTests() {
 
 function llsFillLessonNote(entry, cls) {
   const sp = llsSpecialTitle(entry.unit);
-  if (sp) { llsSetSpecial(true, sp); setValue("lessonUnitPage", cls.currentUnit || ""); }
-  else setValue("lessonUnitPage", entry.unit || "");
+  const choice = llsIsChoiceUnit(entry.unit);
   const parsed = llsParseSkills(entry.whatWeDid || "");
+  const ct = choice ? llsSplitChoiceTitle(parsed.rest) : { title: "", rest: parsed.rest };
+  const mat = choice ? llsSplitMaterials(entry.notes) : { notes: entry.notes || "", links: [] };
+  if (sp) { llsSetSpecial(true, sp); setValue("lessonUnitPage", cls.currentUnit || ""); }
+  else if (choice) { llsSetChoice(true, ct.title, mat.links.join("\n")); setValue("lessonUnitPage", cls.currentUnit || ""); }
+  else setValue("lessonUnitPage", entry.unit || "");
   llsSkillState = parsed.skills;
-  setValue("lessonDone", parsed.rest);
-  setValue("lessonNotes", entry.notes || "");
+  setValue("lessonDone", ct.rest);
+  setValue("lessonNotes", mat.notes || "");
   llsRenderSkills();
 }
 
@@ -8083,6 +8204,17 @@ async function llsSaveLesson() {
     byId("lessonSpecialTitle")?.focus();
     return;
   }
+  // 5 Oct: Teacher's choice needs a title and a clear description (it counts like a book lesson).
+  const choiceOn = !specialOn && llsChoiceOn();
+  const choiceTitle = value("lessonChoiceTitle").trim();
+  const choiceLinks = value("lessonChoiceLinks").split(/\n+/).map((x) => x.trim()).filter(Boolean);
+  if (choiceOn && !choiceTitle) {
+    showToast("Give your lesson a title (e.g. Cambridge B1 Listening Part 1).", "error");
+    byId("lessonChoiceTitle")?.classList.add("needs");
+    byId("lessonChoiceTitle")?.focus();
+    return;
+  }
+  byId("lessonChoiceTitle")?.classList.remove("needs");
 
   // Required (owner, 27 Sept): a rating for every student who was there,
   // and "What we did" (filled automatically for a special lesson).
@@ -8096,15 +8228,17 @@ async function llsSaveLesson() {
   skillBox?.querySelectorAll(".sk-row").forEach((r) => r.classList.toggle("needs", noTopic.some((s) => s.k === r.dataset.skillRow)));
   const needSkill = !specialOn && !ticked.length;
   skillBox?.classList.toggle("needs", needSkill);
-  const doneText = [...llsSkillLines(llsSkillState), value("lessonDone").trim()].filter(Boolean).join("\n") || (specialOn ? specialTitle + " lesson" : "");
-  byId("lessonDone")?.classList.remove("needs");
-  if (unrated.length || needSkill || noTopic.length) {
+  const doneText = [...llsSkillLines(llsSkillState), choiceOn ? LLS_CHOICE_MARK + choiceTitle : "", value("lessonDone").trim()].filter(Boolean).join("\n") || (specialOn ? specialTitle + " lesson" : "");
+  const needDone = choiceOn && value("lessonDone").trim().length < 30;
+  byId("lessonDone")?.classList.toggle("needs", needDone);
+  if (unrated.length || needSkill || noTopic.length || needDone) {
     const missing = [];
+    if (needDone) missing.push(`"What exactly did you do?" (a few clear lines)`);
     if (unrated.length) missing.push(`"How did they do?" for ${unrated.length} ${unrated.length === 1 ? "student" : "students"}`);
     if (needSkill) missing.push(`"What did you do today?" (tap Grammar, Reading…)`);
     if (noTopic.length) missing.push(`a topic for ${noTopic.map((s) => s.k).join(", ")}`);
     showToast(`Almost done: fill in ${missing.join(" and ")}. They count towards each student's progress.`, "error");
-    (unrated[0]?.querySelector(".reg-rating") || byId("lessonSkills")?.querySelector(".sk-row.needs input") || byId("lessonSkills")?.querySelector(".sk-toggle"))?.focus();
+    (unrated[0]?.querySelector(".reg-rating") || byId("lessonSkills")?.querySelector(".sk-row.needs input") || (needSkill || noTopic.length ? byId("lessonSkills")?.querySelector(".sk-toggle") : byId("lessonDone")))?.focus();
     return;
   }
 
@@ -8115,7 +8249,18 @@ async function llsSaveLesson() {
     notes: llsJoinRating(["Present", "Late"].includes(r.dataset.status || "Present") ? (r.querySelector(".reg-rating")?.value || "") : "", r.querySelector(".reg-note")?.value.trim() || "")
   }));
   const hwTitle = value("lessonHwTitle").trim();
-  const note = { unit: specialOn ? LLS_SPECIAL_PREFIX + specialTitle : value("lessonUnitPage").trim(), whatWeDid: doneText, notes: value("lessonNotes").trim() };
+  const note = {
+    unit: specialOn ? LLS_SPECIAL_PREFIX + specialTitle : choiceOn ? LLS_CHOICE_UNIT : value("lessonUnitPage").trim(),
+    whatWeDid: doneText,
+    notes: [value("lessonNotes").trim(), choiceOn && choiceLinks.length ? LLS_MATERIALS_MARK + "\n" + choiceLinks.join("\n") : ""].filter(Boolean).join("\n")
+  };
+  // Photos/files of the materials go up now (they are linked by class + date, not by the log row).
+  const choiceFiles = choiceOn ? Array.from(byId("lessonChoiceFiles")?.files || []) : [];
+  if (choiceFiles.length) {
+    if ((window.llsServerVersion || 0) >= 32) llsUploadLessonFiles_(cls.id, date, choiceFiles);
+    else showToast("Photos need Apps Script V32 (ask the office). Your lesson, links and description are saved.", "info");
+    const fi = byId("lessonChoiceFiles"); if (fi) fi.value = ""; llsChoiceFilesPicked_();
+  }
   const own = llsLesson.entries.find((e) => e.lessonDate === date);
   const homeworkSet = hwTitle || (own ? own.homeworkSet : "");
   const session = llsGetTeacherSession();
@@ -8403,9 +8548,15 @@ document.addEventListener("DOMContentLoaded", () => {
   byId("lessonDate")?.addEventListener("change", () => { llsLesson.loadedKey = ""; llsRenderLessonPicker(); llsRenderLesson(); });
   byId("lessonSaveButton")?.addEventListener("click", llsSaveLesson);
   byId("lessonNewTest")?.addEventListener("click", () => { llsTestFromLesson = true; llsOpenNewTest(); });
-  ["lessonUnitPage", "lessonDone", "lessonNotes"].forEach((id) => byId(id)?.addEventListener("input", () => { llsLesson.noteTouched = true; byId("lessonDone")?.classList.remove("needs"); }));
+  ["lessonUnitPage", "lessonDone", "lessonNotes", "lessonChoiceTitle", "lessonChoiceLinks"].forEach((id) => byId(id)?.addEventListener("input", () => { llsLesson.noteTouched = true; byId("lessonDone")?.classList.remove("needs"); }));
   byId("lessonSpecialOn")?.addEventListener("change", (e) => { llsSetSpecial(e.target.checked, value("lessonSpecialTitle")); if (e.target.checked) byId("lessonSpecialTitle")?.focus(); });
   byId("lessonSpecialTitle")?.addEventListener("input", llsMarkSpecialChip);
+  document.querySelectorAll("#lessonTypeBar [data-ltype]").forEach((b) => b.addEventListener("click", () => { llsLesson.noteTouched = true; llsPickLessonType_(b.dataset.ltype); }));
+  byId("lessonChoiceTitle")?.addEventListener("input", () => { llsMarkChoiceChip_(); byId("lessonChoiceTitle").classList.remove("needs"); });
+  byId("lessonChoiceTitle")?.addEventListener("change", () => llsRenderSkills());
+  document.querySelectorAll("#lessonChoiceChips [data-choice]").forEach((b) => b.addEventListener("click", () => { setValue("lessonChoiceTitle", b.dataset.choice); llsMarkChoiceChip_(); llsRenderSkills(); byId("lessonChoiceTitle")?.focus(); }));
+  byId("lessonChoiceFiles")?.addEventListener("change", llsChoiceFilesPicked_);
+  byId("lessonChoiceFiles")?.addEventListener("click", (e) => { if ((window.llsServerVersion || 0) < 32) { e.preventDefault(); llsChoiceFilesPicked_(); } });
   document.querySelectorAll("#lessonSpecialChips [data-special]").forEach((b) => b.addEventListener("click", () => { setValue("lessonSpecialTitle", b.dataset.special); llsMarkSpecialChip(); }));
   byId("lessonUnitMinus")?.addEventListener("click", () => llsChangeLessonUnit(-1));
   byId("lessonUnitPlus")?.addEventListener("click", () => llsChangeLessonUnit(1));
@@ -9107,7 +9258,7 @@ function llsSkillSuggestions(skill, cls) {
   const add = (t) => { t = String(t || "").trim(); if (t && !out.some((x) => x.toLowerCase() === t.toLowerCase())) out.push(t); };
   const course = cls && cls.book && window.LLS_COURSES && LLS_COURSES[cls.book];
   const unit = Number(cls && cls.currentUnit) || 0;
-  if (course && unit && !byId("lessonSpecialOn")?.checked) {
+  if (course && unit && !byId("lessonSpecialOn")?.checked && !llsChoiceOn()) {
     const lessons = course.lessons.filter((l) => parseInt(l.code, 10) === unit);
     lessons.forEach((l) => {
       if (skill === "Grammar") l.grammar.split(/,\s*(?![^()]*\))/).forEach(add);
@@ -9122,6 +9273,7 @@ function llsSkillSuggestions(skill, cls) {
     if (p && p.topic) add(p.topic);
   });
   if (byId("lessonSpecialOn")?.checked && value("lessonSpecialTitle").trim()) add(value("lessonSpecialTitle").trim());
+  if (llsChoiceOn() && value("lessonChoiceTitle").trim()) add(value("lessonChoiceTitle").trim());
   return out.slice(0, 8);
 }
 
@@ -9948,6 +10100,7 @@ function llsRenderPlanPanel() {
     if (taught[p.id] && llsPlanConfirm !== p.id) { llsPlanConfirm = p.id; llsRenderPlanPanel(); return; }
     llsPlanConfirm = "";
     if (byId("lessonSpecialOn")?.checked) llsSetSpecial(false);
+    if (llsChoiceOn()) llsSetChoice(false);
     setValue("lessonUnitPage", p.id + (p.pages ? " · " + p.pages : ""));
     try { const st = llsWbState.lessonWbBox; if (!st || !st.touchedLesson) llsLessonWb_(); } catch (_) {}
     if (!value("lessonDone").trim()) setValue("lessonDone", `${p.title}: ${p.focus}`);

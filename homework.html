@@ -938,12 +938,20 @@
         const status = att[l.classId + "|" + l.lessonDate] || "";
         const missed = status === "Absent" || status === "Excused";
         const parsed = parseSkills(l.whatWeDid);
+        // 5 Oct: "Teacher's choice" lesson: title is the "🧑‍🏫 …" line.
+        const choice = /^teacher'?s choice/i.test(String(l.unit || "").trim());
+        let choiceTitle = "";
+        if (choice) {
+          const lines = String(parsed.rest || "").split("\n");
+          const k = lines.findIndex((x) => x.startsWith("🧑‍🏫"));
+          if (k >= 0) { choiceTitle = lines[k].replace(/^🧑‍🏫\s*/, "").trim(); lines.splice(k, 1); parsed.rest = lines.join("\n").trim(); }
+        }
         steps.push({
           skills: parsed.skills,
           date: l.lessonDate,
-          icon: special ? "⭐" : missed ? "💤" : "📘",
+          icon: special ? "⭐" : missed ? "💤" : choice ? "🧑‍🏫" : "📘",
           cls: special ? "special" : missed ? "missed" : "lesson",
-          title: special ? `Special lesson: ${special}` : (l.unit ? `Lesson · Unit ${l.unit}` : "Lesson · Lezione"),
+          title: special ? `Special lesson: ${special}` : choice ? `Teacher's choice${choiceTitle ? ": " + choiceTitle : ""} · Lezione a scelta dell'insegnante` : (l.unit ? `Lesson · Unit ${l.unit}` : "Lesson · Lezione"),
           sub: [missed ? "Missed · Assente" : (RATE_LABEL[rate[l.classId + "|" + l.lessonDate]] || ""), parsed.rest || (parsed.skills.length ? "" : classById[l.classId]?.["Class Name"] || "")].filter(Boolean).join(" — ")
         });
       });

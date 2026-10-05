@@ -268,6 +268,17 @@ td { color: var(--ink-700); }
 .lesson-special-toggle input { width: 20px; height: 20px; min-height: 0; margin: 2px 0 0; flex: none; accent-color: var(--pill); }
 .lesson-special-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .lesson-special-chips .lesson-chip { min-height: 38px; padding: 6px 12px; }
+/* 5 Oct: lesson type — Coursebook / Teacher's choice / Special */
+.lesson-type { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.lesson-type-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 8px; min-height: 76px; border: 2px solid var(--sky-tile); border-radius: 16px; background: #ffffff; color: var(--pill); font: inherit; cursor: pointer; text-align: center; transition: transform 160ms var(--pop), background 160ms ease, border-color 160ms ease; }
+.lesson-type-btn span { font-size: 22px; line-height: 1; }
+.lesson-type-btn strong { font-size: 15px; }
+.lesson-type-btn small { font-size: 12px; color: var(--ink-600, #5b6680); }
+.lesson-type-btn:hover { transform: translateY(-2px); border-color: var(--sky); background: var(--sky-soft); }
+.lesson-type-btn.active, .lesson-type-btn.active:hover { background: var(--pill); border-color: var(--pill); color: #ffffff; box-shadow: 0 10px 20px rgba(22, 39, 92, 0.22); }
+.lesson-type-btn.active small { color: rgba(255, 255, 255, 0.85); }
+.lesson-choice.on { border-color: var(--sky); background: var(--sky-soft); }
+@media (max-width: 520px) { .lesson-type-btn small { display: none; } .lesson-type-btn { min-height: 62px; } .lesson-type-btn strong { font-size: 13px; } }
 
 /* ---------- toasts ---------- */
 .toast { border-radius: 18px; border-left-width: 6px; }
