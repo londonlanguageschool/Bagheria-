@@ -266,6 +266,7 @@
 
           <div class="panel issue-panel" id="lessonIssuesPanel" hidden></div>
           <div class="panel issue-panel" id="noFeePanel" hidden></div>
+          <div class="panel issue-panel" id="overduePanel" hidden></div>
           <div class="panel week-panel" id="weekPanel" hidden></div>
           <div class="panel week-panel" id="cancelPanel" hidden></div>
 
@@ -685,6 +686,15 @@
             </div>
 
             <div class="panel cancel-banner" id="lessonCancelBanner" hidden></div>
+            <div class="panel tell-office" id="lessonTellOffice" hidden>
+              <div class="tell-office-row">
+                <span class="tell-office-label">🙋 Tell Rosanna:</span>
+                <button type="button" class="button button-secondary" data-tell="lesson">I didn't teach this lesson</button>
+                <button type="button" class="button button-secondary" data-tell="add">➕ New student in this class</button>
+                <button type="button" class="button button-secondary" data-tell="remove">➖ A student has left</button>
+              </div>
+              <div id="lessonTellForm" class="tell-office-form" hidden></div>
+            </div>
             <div class="panel lesson-log-latest" id="lessonLast" hidden></div>
             <div class="panel plan-panel" id="lessonPlanPanel" hidden></div>
 

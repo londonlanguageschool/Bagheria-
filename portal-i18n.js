@@ -235,6 +235,14 @@
     "🤝 Needs support": "🤝 Da aiutare",
     "Note (optional)": "Nota (facoltativa)",
     "⭐ Special lesson": "⭐ Lezione speciale",
+    // 5 Oct: Tell Rosanna / office to-do
+    "🙋 Tell Rosanna:": "🙋 Avvisa Rosanna:",
+    "I didn't teach this lesson": "Non ho fatto io questa lezione",
+    "➕ New student in this class": "➕ Nuovo studente in questa classe",
+    "➖ A student has left": "➖ Uno studente ha lasciato",
+    "Send to Rosanna": "Invia a Rosanna",
+    "⏰ Payments overdue": "⏰ Pagamenti in ritardo",
+    "Record payment": "Registra pagamento",
     // 5 Oct: Teacher's choice lessons
     "Coursebook": "Libro di testo",
     "the normal lesson": "la lezione normale",

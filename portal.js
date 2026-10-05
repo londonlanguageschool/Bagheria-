@@ -623,6 +623,7 @@ function renderDashboard() {
   renderStudentBreakdown();
   renderRecentEnquiries();
   if (typeof llsRenderNoFeePanel === "function") llsRenderNoFeePanel();
+  if (typeof llsRenderOverduePanel === "function") llsRenderOverduePanel();
   if (typeof llsRenderCancelPanel === "function") llsRenderCancelPanel();
   if (typeof llsScheduleWeekPanels_ === "function") llsScheduleWeekPanels_();
 
@@ -8039,6 +8040,7 @@ async function llsRenderLesson() {
 
   llsRenderPlanPanel();
   llsRenderCancelBanner();
+  if (typeof llsRenderTellOffice === "function") llsRenderTellOffice();
   llsTestFromLesson = true;
   llsRenderLessonTests();
 
@@ -9879,6 +9881,8 @@ async function llsLoadLessonIssues() {
 }
 
 function llsIssueWhatToDo_(i) {
+  if (i.kind === "Add student") return `Add ${escapeHtml(i.studentName || "the student")} to ${escapeHtml(i.className || "the class")} (Students → Add student, choose the class), then record the course fee.`;
+  if (i.kind === "Remove student") return `Take ${escapeHtml(i.studentName || "the student")} off ${escapeHtml(i.className || "the class")} (open the student → class → end the enrolment) and check their fees.`;
   if (i.kind === "Covered") return `${escapeHtml(i.coveredBy || "The covering teacher")} covered it. ${i.coveredById ? "They get a reminder to fill in the lesson notes." : "Fill in the lesson notes (or ask who covered)."} If the class has a new teacher for good, change it in Classes.`;
   if (i.kind === "Cancelled") return llsIsCancelled(i.classId, i.lessonDate) ? "Already recorded as cancelled (a make-up is owed). Press Sorted." : "Press \"🚫 Record as cancelled\": the class is owed a make-up lesson at the end of the course. Tell the families.";
   return "The timetable may be wrong: check who teaches this class (Classes → Edit → Teacher).";
@@ -9891,19 +9895,26 @@ function llsRenderLessonIssues() {
   box.hidden = !open.length;
   if (!open.length) { box.innerHTML = ""; return; }
   const when = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
-  const icon = { Covered: "👥", Cancelled: "🚫", "Not my class": "❓" };
+  const icon = { Covered: "👥", Cancelled: "🚫", "Not my class": "❓", "Add student": "➕", "Remove student": "➖" };
+  const head = (i) => i.kind === "Covered" ? `Change the teacher: ${i.reportedBy || "the teacher"} → ${i.coveredBy || "another teacher"}`
+    : i.kind === "Cancelled" ? "Lesson cancelled" : i.kind === "Add student" ? `Add ${i.studentName || "a student"} to the class`
+    : i.kind === "Remove student" ? `Take ${i.studentName || "a student"} off the class` : "Not my class";
   box.innerHTML = `
-    <p class="section-label" style="margin-top:0;">🛠 Lessons to sort out (${open.length})</p>
-    <p class="muted" style="margin:4px 0 12px;">Teachers told us about these lessons. Do what it says, then press <strong>Sorted</strong>.</p>
+    <p class="section-label" style="margin-top:0;">📋 Rosanna's to-do (${open.length})</p>
+    <p class="muted" style="margin:4px 0 12px;">Teachers sent these. Do what it says, then press <strong>Sorted</strong>.</p>
     ${open.map((i) => `<div class="issue-row">
       <div>
-        <strong>${icon[i.kind] || "•"} ${escapeHtml(i.kind === "Covered" ? "Covered by " + (i.coveredBy || "another teacher") : i.kind === "Cancelled" ? "Lesson cancelled" : "Not my class")}</strong>
+        <strong>${icon[i.kind] || "•"} ${escapeHtml(head(i))}</strong>
         · ${escapeHtml(i.className || i.classId)} · ${escapeHtml(when(i.lessonDate))}${i.lessonTime ? " " + escapeHtml(i.lessonTime) : ""}
         <div class="muted" style="font-size:14px;margin-top:2px;">Reported by ${escapeHtml(i.reportedBy || "a teacher")}${i.note ? ` — “${escapeHtml(i.note)}”` : ""}</div>
         <div style="font-size:14px;margin-top:4px;">👉 ${llsIssueWhatToDo_(i)}</div>
       </div>
       <div class="issue-actions">
-        ${i.kind === "Not my class"
+        ${i.kind === "Add student"
+          ? `<button type="button" class="button button-secondary" data-issue-addst="${escapeAttribute(i.issueId)}">➕ Add student</button>`
+          : i.kind === "Remove student"
+          ? `<button type="button" class="button button-secondary" data-issue-st="${escapeAttribute(i.studentId)}" ${i.studentId ? "" : "disabled"}>Open student</button>`
+          : i.kind === "Not my class"
           ? `<button type="button" class="button button-secondary" data-issue-class="${escapeAttribute(i.classId)}">Open class</button>`
           : i.kind === "Cancelled" && !llsIsCancelled(i.classId, i.lessonDate)
           ? `<button type="button" class="button button-secondary" data-issue-cancel="${escapeAttribute(i.issueId)}" title="Records it as cancelled (a make-up is owed) and marks it sorted">🚫 Record as cancelled</button>`
@@ -9911,6 +9922,21 @@ function llsRenderLessonIssues() {
         <button type="button" class="button button-primary" data-issue-sorted="${escapeAttribute(i.issueId)}">Sorted ✓</button>
       </div>
     </div>`).join("")}`;
+  box.querySelectorAll("[data-issue-addst]").forEach((b) => b.addEventListener("click", () => {
+    const i = open.find((x) => x.issueId === b.dataset.issueAddst);
+    if (!i) return;
+    navigateTo("students");
+    openNewStudent();
+    const parts = String(i.studentName || "").trim().split(/\s+/);
+    setValue("studentFirstName", parts.shift() || "");
+    setValue("studentLastName", parts.join(" "));
+    if (byId("studentClass") && [...byId("studentClass").options].some((o) => o.value === i.classId)) setValue("studentClass", i.classId);
+    if (i.note) setValue("studentNotes", i.note);
+  }));
+  box.querySelectorAll("[data-issue-st]").forEach((b) => b.addEventListener("click", () => {
+    navigateTo("students");
+    try { openEditStudent(b.dataset.issueSt); } catch (_) {}
+  }));
   box.querySelectorAll("[data-issue-class]").forEach((b) => b.addEventListener("click", () => {
     navigateTo("classes");
     try { openEditClass(b.dataset.issueClass); } catch (_) {}
@@ -10780,3 +10806,105 @@ document.addEventListener("DOMContentLoaded", () => {
   byId("lessonUnitPage")?.addEventListener("input", () => { const st = llsWbState.lessonWbBox; if (st && !st.touchedLesson) llsLessonWb_(); });
   byId("homeworkClassSelect")?.addEventListener("change", llsHomeworkPageWb_);
 });
+
+/* =========================================================
+   5 Oct — "Tell Rosanna" (Lesson page, teachers) and the office to-do.
+   A teacher can say: I didn't teach this lesson (someone covered /
+   cancelled / not my class), a new student is in the class, or a student
+   has left. It goes to the office as a Lesson Issue (V29; student
+   requests need V33). Rosanna sees everything on the Dashboard.
+========================================================= */
+function llsRenderTellOffice() {
+  const box = byId("lessonTellOffice");
+  if (!box) return;
+  const v = window.llsServerVersion || 0;
+  box.hidden = !(llsRole() === "teacher" && v >= 29 && llsLesson.classId);
+  box.querySelectorAll('[data-tell="add"],[data-tell="remove"]').forEach((b) => { b.hidden = v < 33; });
+  const form = byId("lessonTellForm");
+  if (form) { form.hidden = true; form.innerHTML = ""; }
+}
+function llsTellForm_(kind) {
+  const form = byId("lessonTellForm");
+  const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
+  const date = byId("lessonDate")?.value || "";
+  if (!form || !cls || !date) return;
+  const session = llsGetTeacherSession();
+  const when = new Date(date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  let body = "";
+  if (kind === "lesson") body = `
+    <p style="margin:0 0 8px;"><strong>${escapeHtml(cls.name)} · ${escapeHtml(when)}</strong>: what happened?</p>
+    <label><input type="radio" name="tellKind" value="Covered" checked> 👥 Another teacher taught it:</label>
+    <select data-tell-cover>${llsTutTeacherOptions_(session)}</select>
+    <label><input type="radio" name="tellKind" value="Cancelled"> 🚫 The lesson was cancelled</label>
+    <label><input type="radio" name="tellKind" value="Not my class"> ❓ This isn't my class</label>`;
+  else if (kind === "add") body = `
+    <p style="margin:0 0 8px;"><strong>New student in ${escapeHtml(cls.name)}</strong>: Rosanna adds them to the class (and the fees).</p>
+    <input type="text" data-tell-student maxlength="80" placeholder="Student's name and surname" required>`;
+  else {
+    const kids = llsStudentsForClass(cls.id).map((st) => ({ id: String(st["Student ID"] || ""), name: [st["First Name"], st["Last Name"] || st["Surname"]].filter(Boolean).join(" ") || String(st["Student ID"] || "") })).sort((a, b) => a.name.localeCompare(b.name));
+    body = `
+    <p style="margin:0 0 8px;"><strong>A student has left ${escapeHtml(cls.name)}</strong>: Rosanna takes them off the class.</p>
+    <select data-tell-pick><option value="">Choose the student…</option>${kids.map((k) => `<option value="${escapeAttribute(k.id)}">${escapeHtml(k.name)}</option>`).join("")}</select>`;
+  }
+  form.innerHTML = body + `
+    <input type="text" data-tell-note maxlength="300" placeholder="${kind === "lesson" ? "Anything Rosanna should know? (optional)" : kind === "add" ? "Level, start date, parent's phone… (optional)" : "Since when? Why? (optional)"}">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="button button-primary" data-tell-send>Send to Rosanna</button><button type="button" class="button button-secondary" data-tell-cancel>Cancel</button></div>`;
+  form.hidden = false;
+  form.querySelector("[data-tell-cancel]").addEventListener("click", () => { form.hidden = true; form.innerHTML = ""; });
+  form.querySelector("[data-tell-send]").addEventListener("click", () => {
+    const note = form.querySelector("[data-tell-note]").value.trim();
+    const base = { action: "reportLessonIssue", classId: cls.id, lessonDate: date, lessonTime: String(cls.time || "").slice(0, 10), note };
+    let msg = "";
+    if (kind === "lesson") {
+      const k = form.querySelector('input[name="tellKind"]:checked')?.value || "Covered";
+      const sel = form.querySelector("[data-tell-cover]");
+      if (k === "Covered" && !sel.value) { showToast("Choose who taught the lesson.", "error"); sel.focus(); return; }
+      const coveredBy = k === "Covered" ? (sel.value === "other" ? "Someone else" : sel.options[sel.selectedIndex].textContent.trim()) : "";
+      llsQueueSave("lesson report", { ...base, kind: k, coveredBy, coveredById: k === "Covered" && sel.value !== "other" ? sel.value : "" });
+      msg = k === "Covered" ? `Rosanna will change the teacher to ${coveredBy}${sel.value !== "other" ? `, and ${coveredBy} gets the reminder to fill in the notes` : ""}.` : k === "Cancelled" ? "Rosanna will record it as cancelled (a make-up is owed)." : "Rosanna will check the timetable.";
+    } else if (kind === "add") {
+      const name = form.querySelector("[data-tell-student]").value.trim();
+      if (!name) { showToast("Write the student's name.", "error"); form.querySelector("[data-tell-student]").focus(); return; }
+      llsQueueSave("student request", { ...base, kind: "Add student", studentName: name });
+      msg = `Rosanna will add ${name} to ${cls.name}.`;
+    } else {
+      const sel = form.querySelector("[data-tell-pick]");
+      if (!sel.value) { showToast("Choose the student.", "error"); sel.focus(); return; }
+      const name = sel.options[sel.selectedIndex].textContent.trim();
+      llsQueueSave("student request", { ...base, kind: "Remove student", studentName: name, studentId: sel.value });
+      msg = `Rosanna will take ${name} off ${cls.name}.`;
+    }
+    form.innerHTML = `<p class="tell-sent">✓ Sent to Rosanna. ${escapeHtml(msg)}</p>`;
+    setTimeout(() => { if (form.querySelector(".tell-sent")) { form.hidden = true; form.innerHTML = ""; } }, 8000);
+  });
+}
+document.addEventListener("click", (e) => {
+  const b = e.target && e.target.closest ? e.target.closest("#lessonTellOffice [data-tell]") : null;
+  if (b) llsTellForm_(b.dataset.tell);
+});
+
+// Dashboard: payments that are late (from the fee plans), with one-tap actions.
+let llsOverdueShowAll = false;
+function llsRenderOverduePanel() {
+  const box = byId("overduePanel");
+  if (!box) return;
+  const list = llsRole() === "admin" && window.llsFinanceReady
+    ? (state.payments || []).filter((p) => p.overdue && paymentStatus(p) !== "Paid").sort((a, b) => String(a.nextDue).localeCompare(String(b.nextDue)))
+    : [];
+  box.hidden = !list.length;
+  if (!list.length) { box.innerHTML = ""; return; }
+  const shown = llsOverdueShowAll ? list : list.slice(0, 8);
+  box.innerHTML = `
+    <p class="section-label" style="margin-top:0;">⏰ Payments overdue (${list.length})</p>
+    <p class="muted" style="margin:4px 0 10px;">An instalment date has passed and the money isn't recorded. If they have paid, press <strong>Record payment</strong>. If not, send a reminder.</p>
+    <div class="nofee-list">${shown.map((p) => {
+      const st = getStudent(p.studentId);
+      return `<div class="nofee-row">
+        <span><strong>${escapeHtml(getStudentName(st) || p.studentId)}</strong> <span class="muted">· ${escapeHtml(formatMoney(p.nextAmount))} due since ${escapeHtml(formatDate(p.nextDue))}${p.description ? " · " + escapeHtml(p.description) : ""}</span></span>
+        <span style="display:flex;gap:6px;flex-wrap:wrap;"><button type="button" class="row-action" data-overdue-pay="${escapeAttribute(p.id)}">Record payment</button>${llsReminderLink(p, st)}</span>
+      </div>`;
+    }).join("")}</div>
+    ${list.length > 8 ? `<button type="button" class="row-action" data-overdue-all style="margin-top:8px;">${llsOverdueShowAll ? "Show fewer" : `Show all ${list.length}`}</button>` : ""}`;
+  box.querySelector("[data-overdue-all]")?.addEventListener("click", () => { llsOverdueShowAll = !llsOverdueShowAll; llsRenderOverduePanel(); });
+  box.querySelectorAll("[data-overdue-pay]").forEach((b) => b.addEventListener("click", () => openAddPayment(b.dataset.overduePay)));
+}

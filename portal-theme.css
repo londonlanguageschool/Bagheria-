@@ -525,3 +525,12 @@ input[type="checkbox"] { border-radius: 4px; }
 .res-error { color: #b3261e; font-weight: 700; }
 .res-why { font-size: 13px; }
 .res-actions { display: flex; gap: 8px; }
+/* 5 Oct: Tell Rosanna bar on the Lesson page */
+.tell-office { border-left: 6px solid #f0a020; }
+.tell-office-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tell-office-label { font-weight: 800; margin-right: 4px; }
+.tell-office-row .button { min-height: 40px; padding: 6px 14px; }
+.tell-office-form { display: grid; gap: 8px; margin-top: 12px; padding: 12px; border-radius: 14px; background: #fff8ec; }
+.tell-office-form label { display: flex; gap: 8px; align-items: center; font-weight: 600; }
+.tell-office-form select, .tell-office-form input[type="text"] { min-height: 42px; }
+.tell-sent { margin: 0; color: #1a7f3c; font-weight: 700; }
