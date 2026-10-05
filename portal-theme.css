@@ -394,7 +394,20 @@ input[type="checkbox"] { border-radius: 4px; }
 /* 4 Oct: make lesson materials obvious when a teacher opens a class */
 .plan-panel { border: 2px solid #c9b3f0; }
 .plan-optional { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #6d3fc0; background: #f1eafe; border-radius: 99px; padding: 2px 8px; margin-left: 6px; vertical-align: middle; }
-.plan-intro { margin: 6px 0 8px; color: #3b4660; font-size: 14px; }
+.plan-intro { margin: 6px 0 8px; color: #1f2a44; font-size: 15px; font-weight: 600; }
+.plan-report { margin: 0 0 10px; font-size: 13.5px; color: #3b4660; }
+.plan-report a { font-weight: 800; color: #b3261e; }
+.plan-panel .section-label { font-size: 15px; }
+.plan-panel .plan-text strong { font-size: 16px; }
+.plan-panel .plan-text small { font-size: 13px; color: #3b4660; }
+.plan-panel .plan-actions a.row-action { font-size: 14px; font-weight: 800; text-decoration: none; background: #fff; box-shadow: inset 0 0 0 2px #c9b3f0; color: #16275c; }
+.plan-feature strong { font-size: 18px; }
+.plan-feature small { font-size: 14px !important; }
+.plan-feature-actions .button { font-size: 15px; font-weight: 800; }
+.plan-flag { align-self: center; text-decoration: none; font-size: 15px; padding: 4px 8px; border-radius: 10px; color: #b3261e; }
+.plan-flag:hover { background: #fde8e8; }
+.plan-panel .plan-row { grid-template-columns: auto 1fr; }
+.plan-panel .plan-actions { grid-column: 2 / -1; justify-content: flex-start; }
 .plan-feature { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px; border-radius: 14px; background: #fff8d6; box-shadow: inset 0 0 0 2px #ffd23f; margin-bottom: 4px; }
 .plan-feature > div:first-child { display: grid; gap: 2px; min-width: 0; }
 .plan-feature > div:first-child .plan-code { justify-self: start; }

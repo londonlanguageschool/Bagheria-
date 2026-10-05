@@ -40,6 +40,22 @@
     };
   }
 
+  // 5 Oct: problems with lesson materials (slides, homework sheets).
+  function lessonMessage(lesson) {
+    return {
+      subject: "[LLS Lesson] Problema nella lezione · Lesson problem — " + lesson,
+      body:
+        "Grazie! Più sei preciso, più è facile correggerlo. · Thank you! The more specific you are, the easier it is to fix.\n\n" +
+        "Lezione · Lesson: " + lesson + "\n" +
+        "File (slide / homework sheet / answer key): \n" +
+        "Numero slide o esercizio · Slide or exercise number: \n\n" +
+        "Qual è il problema? · What is the problem?\n\n\n" +
+        "Come lo correggeresti? · How would you fix it? (optional)\n\n\n" +
+        "📷 Allega uno screenshot · Please attach a screenshot (or a photo of the screen).\n\n" +
+        details("Lesson materials")
+    };
+  }
+
   function panel(msg) {
     var old = document.getElementById("llsReportPanel");
     if (old) old.remove();
@@ -71,9 +87,16 @@
     window.location.href = "mailto:" + TO + "?subject=" + encodeURIComponent(msg.subject) + "&body=" + encodeURIComponent(msg.body);
   }
 
+  window.llsReportLesson = function (lesson) {
+    var msg = lessonMessage(lesson || "?");
+    panel(msg);
+    window.location.href = "mailto:" + TO + "?subject=" + encodeURIComponent(msg.subject) + "&body=" + encodeURIComponent(msg.body);
+  };
   window.llsReportProblem = open;
   window.llsReportMessage = message; // lets tests and the copy panel see the text
   document.addEventListener("click", function (e) {
+    var les = e.target && e.target.closest ? e.target.closest("[data-report-lesson]") : null;
+    if (les) { e.preventDefault(); window.llsReportLesson(les.getAttribute("data-report-lesson")); return; }
     var el = e.target && e.target.closest ? e.target.closest("[data-report-problem]") : null;
     if (!el) return;
     e.preventDefault();

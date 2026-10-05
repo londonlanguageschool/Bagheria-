@@ -9918,6 +9918,7 @@ function llsRenderPlanPanel() {
   box.innerHTML = `
     <div class="plan-head"><p class="section-label" style="margin:0;">📚 Lesson materials for this class <span class="plan-optional">optional</span></p><span class="muted">${escapeHtml(name)} · <strong>${doneCount}/${plans.length}</strong> taught${window.LLS_PLANS && LLS_PLANS.folder ? ` · <a href="${escapeAttribute(LLS_PLANS.folder)}" target="_blank" rel="noopener">📂 All on Google Drive</a>` : ""}</span></div>
     <p class="plan-intro">Ready-made slides for each lesson, with a homework sheet you can attach at the end (step 3 · Homework). Use them if they help — you don't have to.</p>
+    <p class="plan-report">These lessons are new and not perfect yet. Seen a mistake or something that doesn't work in class? <a href="#" data-report-lesson="${escapeAttribute((feat ? feat.id + " " + feat.title : "") + " · " + name)}">⚠ Report a problem with a lesson</a> – say the lesson, the slide number and what's wrong, and attach a screenshot.</p>
     ${feat ? `<div class="plan-feature">
       <div><span class="plan-code">${escapeHtml(feat.id)}</span> <strong>${feat.id === todayCode ? "Today" : "Next"}: ${escapeHtml(feat.title)}</strong><small>${escapeHtml(feat.focus)}</small></div>
       <div class="plan-feature-actions">${llsPlanMaterialLinks_(feat, true) || '<span class="muted">Slides are being uploaded – ask the office.</span>'}${feat.id === todayCode ? "" : `<button type="button" class="button" data-plan-use="${escapeAttribute(feat.id)}">Teach this today</button>`}</div>
@@ -9934,7 +9935,7 @@ function llsRenderPlanPanel() {
         <span class="plan-code">${escapeHtml(p.id)}</span>
         <span class="plan-text"><strong>${escapeHtml(p.title)}</strong><small>${escapeHtml(p.focus)}${p.pages ? " · " + escapeHtml(p.pages) : ""}</small>${badge ? `<em>${escapeHtml(badge)}</em>` : ""}${confirm ? `<b class="plan-warn">⚠ This class has already had this lesson. Tap again to teach it again.</b>` : ""}</span>
         <span class="plan-actions">
-          ${llsPlanMaterialLinks_(p)}
+          ${llsPlanMaterialLinks_(p)}<a class="plan-flag" href="#" title="Report a problem with this lesson" aria-label="Report a problem with ${escapeAttribute(p.id)}" data-report-lesson="${escapeAttribute(p.id + " " + p.title + " · " + name)}">⚠</a>
           ${isToday ? "" : `<button type="button" class="row-action${t ? " warn" : ""}" data-plan-use="${escapeAttribute(p.id)}">${confirm ? "Yes, teach again" : t ? "Teach again" : "Teach today"}</button>`}
         </span></div>`;
     }).join("")}</div>
