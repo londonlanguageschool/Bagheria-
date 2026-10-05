@@ -493,3 +493,24 @@ input[type="checkbox"] { border-radius: 4px; }
 .form-field .wb-box .wb-p { font-size: 15px; }
 .form-field .wb-box label.wb-toggle { display: flex; font-size: 15px; }
 @media (max-width: 560px) { .form-field .wb-box label.wb-page { grid-template-columns: auto 1fr; } }
+
+/* 5 Oct: teacher resources */
+.res-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: #fff8d6; border: 2px solid #ffd23f; }
+.res-banner > span { font-size: 26px; }
+.res-banner > div { flex: 1; min-width: 220px; font-size: 15px; }
+.res-filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.res-filters input[type=search] { flex: 1; min-width: 220px; }
+.res-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.res-card { background: #fff; border-radius: 16px; box-shadow: inset 0 0 0 1px #dfe6f2; padding: 14px; display: grid; gap: 6px; }
+.res-top { display: flex; gap: 10px; align-items: flex-start; }
+.res-icon { font-size: 26px; line-height: 1; }
+.res-card h4 { margin: 0 0 4px; font-size: 16px; }
+.res-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.res-chip { font-size: 11px; font-weight: 800; background: #eef3fa; color: #16275c; border-radius: 99px; padding: 2px 8px; }
+.res-where { margin: 0; font-weight: 700; font-size: 13px; color: #16275c; }
+.res-tags, .res-desc { margin: 0; font-size: 13px; color: #3b4660; }
+.res-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.res-open { display: flex; gap: 6px; flex-wrap: wrap; }
+.res-error { color: #b3261e; font-weight: 700; }
+.res-why { font-size: 13px; }
+.res-actions { display: flex; gap: 8px; }

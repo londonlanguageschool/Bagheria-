@@ -132,6 +132,11 @@
           <span>Teachers</span>
         </button>
 
+        <button class="nav-item" data-page="resources" type="button">
+          <span class="nav-icon" aria-hidden="true">💡</span>
+          <span>Teacher resources</span>
+        </button>
+
         <button class="nav-item" data-page="reports" type="button">
           <span class="nav-icon" aria-hidden="true">↗</span>
           <span>Reports</span>
@@ -502,6 +507,23 @@
         </section>
 
         <!-- =========================
+             TEACHER RESOURCES (5 Oct): shared, categorised links and files
+        ========================== -->
+        <section class="page" id="page-resources">
+          <div class="page-toolbar">
+            <div>
+              <p class="section-label">Teaching</p>
+              <h2>Teacher resources</h2>
+              <p class="page-description">Found something good that will help other teachers? Share it here – and find what colleagues have shared, by level, lesson, skill or exam.</p>
+            </div>
+            <button class="button" type="button" id="resNewButton">💡 Share a resource</button>
+          </div>
+          <div class="panel" id="resFormHolder" hidden></div>
+          <div class="filter-bar res-filters" id="resFilters"></div>
+          <div class="res-list" id="resList"></div>
+        </section>
+
+        <!-- =========================
              TIMETABLE (29 Sept): the week on one screen, like the board
         ========================== -->
         <section class="page" id="page-timetable">
@@ -641,6 +663,7 @@
             </div>
           </div>
 
+<div class="panel res-banner" data-res-banner hidden><span aria-hidden="true">💡</span><div><strong>Found something good that will help other teachers?</strong> <span>Share it here: a game, worksheet, video or website. Say which lesson it works with.</span></div><button type="button" class="button" data-res-share="lesson">Share it</button><button type="button" class="button button-secondary" data-page-link="resources" onclick="navigateTo('resources')">Browse</button></div>
           <div class="panel week-panel" id="myWeekPanel" hidden></div>
           <div class="panel" id="lessonPicker"></div>
 
@@ -2256,6 +2279,7 @@
   <script src="lesson-plans.js"></script>
   <script src="workbook.js"></script>
   <script src="portal.js"></script>
+  <script src="resources.js"></script>
   <script src="report.js"></script>
   <script src="portal-i18n.js"></script>
 </body>
