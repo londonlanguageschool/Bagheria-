@@ -10027,7 +10027,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ---------- 1. Lesson plans ----------
 function llsPlanCode_(unit) {
-  const m = String(unit || "").trim().replace(/^(unit|lesson)\s+/i, "").match(/^(R\d{1,2}-\d{1,2}|\d{1,2}[A-C](?:-\d)?|L\d{1,2}|U\d{1,2}-L\d|[SR]-L\d)(?![\w])/i);
+  const m = String(unit || "").trim().replace(/^(unit|lesson)\s+/i, "").match(/^(R\d{1,2}-\d{1,2}|\d{1,2}[A-C](?:-\d)?|L\d{1,2}|U\d{1,2}-L\d|[SR]-L\d|PE\d{1,2})(?![\w])/i);
   return m ? m[1].toUpperCase() : "";
 }
 function llsPlansFor_(cls) {

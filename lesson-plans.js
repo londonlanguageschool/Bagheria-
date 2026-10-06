@@ -6,6 +6,7 @@
    hw (homework sheet PDF) and key (teacher answer key PDF). Links appear once the files are uploaded to Drive
    and their IDs added to tools/plan-links.json. */
 /* 6 Oct 2026: PU-3 (Movers, Power Up 3: S-L1, U1-L1 … U3-L6, R-L1) and EF-B2 File 6 (6A-1 … R5-6, role cards as pcm) added, files in the teachers' Drive folder. */
+/* 6 Oct 2026 (afternoon): EF-A2B1 File 1 replaced by the rebuilt A2 Adults lessons 1A, 1B, 1C, PE1 (hw, easy, key, role cards as pcm). Files 2+ are still the older blue decks. */
 window.LLS_PLANS = {
  "folder": "https://drive.google.com/drive/folders/1_AyE9xHLZX-tR057npuZEDeoPWiVDOgB",
  "links": {
@@ -338,7 +339,25 @@ window.LLS_PLANS = {
   "B2_Violet_Course/B2_R5-6_Revise_and_Check.pptx": "https://drive.google.com/file/d/1jB7EiYtEu-xMfy8uTpcEfJfaYYKfvOgb/view",
   "B2_Violet_Course/B2_R5-6_Homework_sheet.pdf": "https://drive.google.com/file/d/1kjC_5_Lu_fRFbfA-NbJWHJMRZ-sqQado/view",
   "B2_Violet_Course/B2_R5-6_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1FLt34r6VNin48jEPOoK6Zgu3zZIaj-ot/view",
-  "B2_Violet_Course/B2_R5-6_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1A6sL4oAkxoMj1XNVXAlNsOTA74nBZ3Ys/view"
+  "B2_Violet_Course/B2_R5-6_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1A6sL4oAkxoMj1XNVXAlNsOTA74nBZ3Ys/view",
+  "A2_Adults_Rebuilt/A2_1A_Are_you_Do_you.pptx": "https://drive.google.com/file/d/1u3IJ-NwDXGCpErI1EEi9kXsvh9IocqiY/view",
+  "A2_Adults_Rebuilt/A2_1A_Homework_sheet.pdf": "https://drive.google.com/file/d/1w3_ck6Tci-KqAN_lbbJ3Cf636-zs1gjC/view",
+  "A2_Adults_Rebuilt/A2_1A_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1B4PaAlfJplWGlXdkoHD3qb6BDiCfSdRh/view",
+  "A2_Adults_Rebuilt/A2_1A_Teacher_answer_key.pdf": "https://drive.google.com/file/d/16WYnnxYjtizeHYOTHJu826MZKus5C57I/view",
+  "A2_Adults_Rebuilt/A2_1B_The_perfect_date.pptx": "https://drive.google.com/file/d/1clI5nVjmzDNSC9lvO5PmkzSZAPHt1uZK/view",
+  "A2_Adults_Rebuilt/A2_1B_Homework_sheet.pdf": "https://drive.google.com/file/d/1Dn2mEkzgYqUp7HIsSq0poeC-1yFcjzjT/view",
+  "A2_Adults_Rebuilt/A2_1B_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1023DF2JEq_5vmY1bWCJct1hAW0K5yKPH/view",
+  "A2_Adults_Rebuilt/A2_1B_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1bGbru3k9UxD-c76Nufr27NIkZbVeGtd_/view",
+  "A2_Adults_Rebuilt/A2_1C_The_Remake_Project.pptx": "https://drive.google.com/file/d/1SPCyhkgsKsbxcF_KUrBul5ky2IuicDXq/view",
+  "A2_Adults_Rebuilt/A2_1C_Homework_sheet.pdf": "https://drive.google.com/file/d/1BaGtZe-FI06belhTDQAFdT88dQrnTwT1/view",
+  "A2_Adults_Rebuilt/A2_1C_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1pnVpxPy3q9sXWbmxbO-jL-2cU-ejGjKA/view",
+  "A2_Adults_Rebuilt/A2_1C_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1ZlKjqVXttx9iU-08kBjPPQhSF7h7Qp2Q/view",
+  "A2_Adults_Rebuilt/A2_1C_Role_cards.pdf": "https://drive.google.com/file/d/1Dpg5HO_pmGn9f1ymIdSv4AEsy8EBl1hu/view",
+  "A2_Adults_Rebuilt/A2_PE1_Hotel_problems.pptx": "https://drive.google.com/file/d/1Vtjt0XFtIRQvNUW2I_pUayxl3tMLNkci/view",
+  "A2_Adults_Rebuilt/A2_PE1_Homework_sheet.pdf": "https://drive.google.com/file/d/1pCqMvqqg0-Gqh9nnNMCCGluS6nmrJD5u/view",
+  "A2_Adults_Rebuilt/A2_PE1_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/12cMZDGdwpZjsslWBlLKWKctTo866w9QN/view",
+  "A2_Adults_Rebuilt/A2_PE1_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1cCMB7JfbmgNaUy29B5NNfnMVjf3iY3u_/view",
+  "A2_Adults_Rebuilt/A2_PE1_Role_cards.pdf": "https://drive.google.com/file/d/1GznE6Yrffoz7IA9mdLZgncEtaHzjOf90/view"
  },
  "names": {
   "EF-A2B1": "English File A2/B1 (blue) – full course",
@@ -350,36 +369,58 @@ window.LLS_PLANS = {
  "courses": {
   "EF-A2B1": [
    {
+    "id": "1A",
+    "unit": 1,
+    "title": "Are you? Do you?",
+    "focus": "word order in questions • common verb phrases • the alphabet · do you /djə/",
+    "pages": "SB pp.6–7 topics",
+    "slides": 13,
+    "file": "A2_Adults_Rebuilt/A2_1A_Are_you_Do_you.pptx",
+    "hw": "A2_Adults_Rebuilt/A2_1A_Homework_sheet.pdf",
+    "easy": "A2_Adults_Rebuilt/A2_1A_Homework_sheet_easier.pdf",
+    "key": "A2_Adults_Rebuilt/A2_1A_Teacher_answer_key.pdf",
+    "skills": {}
+   },
+   {
     "id": "1B",
     "unit": 1,
     "title": "The perfect date?",
-    "focus": "Present simple • describing people",
-    "pages": "SB pp.8–9",
-    "slides": 13,
-    "file": "A2_Blue_Part1_Units1-6/A2_1B_The_perfect_date.pptx",
-    "skills": {
-     "Grammar": "Present simple",
-     "Vocabulary": "describing people",
-     "Reading": "Please date my dad!",
-     "Listening": "Elspbeth's dates",
-     "Speaking": "Find them a partner!"
-    }
+    "focus": "present simple • describing people • final -s and -es",
+    "pages": "SB pp.8–9 · VB p.150",
+    "slides": 14,
+    "file": "A2_Adults_Rebuilt/A2_1B_The_perfect_date.pptx",
+    "hw": "A2_Adults_Rebuilt/A2_1B_Homework_sheet.pdf",
+    "easy": "A2_Adults_Rebuilt/A2_1B_Homework_sheet_easier.pdf",
+    "key": "A2_Adults_Rebuilt/A2_1B_Teacher_answer_key.pdf",
+    "skills": {}
    },
    {
     "id": "1C",
     "unit": 1,
     "title": "The Remake Project",
-    "focus": "Present continuous • clothes • prepositions of place",
-    "pages": "SB pp.10–11",
-    "slides": 13,
-    "file": "A2_Blue_Part1_Units1-6/A2_1C_The_Remake_Project.pptx",
-    "skills": {
-     "Grammar": "Present continuous, prepositions of place",
-     "Vocabulary": "clothes",
-     "Listening": "The Milkmaid",
-     "Speaking": "What do you usually wear…?",
-     "Games & songs": "Picture memory"
-    }
+    "focus": "present continuous • clothes · prepositions of place • /ə/ and /ɜː/",
+    "pages": "SB pp.10–11 · VB p.151",
+    "slides": 12,
+    "file": "A2_Adults_Rebuilt/A2_1C_The_Remake_Project.pptx",
+    "hw": "A2_Adults_Rebuilt/A2_1C_Homework_sheet.pdf",
+    "easy": "A2_Adults_Rebuilt/A2_1C_Homework_sheet_easier.pdf",
+    "key": "A2_Adults_Rebuilt/A2_1C_Teacher_answer_key.pdf",
+    "skills": {},
+    "pcm": "A2_Adults_Rebuilt/A2_1C_Role_cards.pdf"
+   },
+   {
+    "id": "PE1",
+    "unit": 1,
+    "title": "Hotel problems",
+    "focus": "calling reception: problems • small talk • File 1",
+    "pages": "SB pp.12–13 functions",
+    "slides": 11,
+    "file": "A2_Adults_Rebuilt/A2_PE1_Hotel_problems.pptx",
+    "hw": "A2_Adults_Rebuilt/A2_PE1_Homework_sheet.pdf",
+    "easy": "A2_Adults_Rebuilt/A2_PE1_Homework_sheet_easier.pdf",
+    "key": "A2_Adults_Rebuilt/A2_PE1_Teacher_answer_key.pdf",
+    "skills": {},
+    "pcm": "A2_Adults_Rebuilt/A2_PE1_Role_cards.pdf"
    },
    {
     "id": "2A",
