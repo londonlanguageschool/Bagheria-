@@ -546,3 +546,4 @@ input[type="checkbox"] { border-radius: 4px; }
 .plan-sched { display: block; font-size: 11.5px; font-weight: 900; letter-spacing: .06em; color: #b45309; margin-bottom: 4px; }
 .plan-hint { margin: 6px 2px 8px; font-size: 13px; color: #3b4660; }
 .plan-row .row-action.primary { background: #16275c; color: #fff; box-shadow: none; }
+.reg-empty { padding: 12px 14px; border-radius: 12px; background: #fff8d6; box-shadow: inset 0 0 0 2px #ffd23f; color: #1e2a5a; font-size: 14px; line-height: 1.5; }

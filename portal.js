@@ -8125,7 +8125,11 @@ function llsDrawRegister(regBody, students, saved) {
         <input class="reg-note" type="text" autocomplete="off" placeholder="Note (optional)" value="${escapeHtml(llsSplitRating(row["Notes"]).note)}">
       </div>
     </div>`;
-  }).join("") : `<p class="muted">No students enrolled in this class yet.</p>`;
+  }).join("") : `<div class="reg-empty">
+      <strong>⚠ No students are enrolled in this class yet</strong>, so there is nobody to mark Here or Absent.
+      <br>The lesson is on your timetable because the class has you as its teacher; each student must also be <b>added and enrolled</b> in the class.
+      <br>👉 Teachers: tell the office below with <b>🙋 Tell Rosanna → New student</b>. · Office: <b>Students → ➕ Add student</b>, then enrol them in this class.
+    </div>`;
   regBody.querySelectorAll(".reg-row").forEach((row) => {
     const touch = () => { row.dataset.touched = "1"; row.classList.remove("needs"); };
     row.querySelectorAll(".reg-btn").forEach((b) => b.addEventListener("click", () => {
