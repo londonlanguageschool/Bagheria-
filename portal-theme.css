@@ -539,3 +539,10 @@ input[type="checkbox"] { border-radius: 4px; }
 .plan-audio ol { margin: 4px 0 6px 18px; padding: 0; }
 .plan-audio li { margin: 2px 0; }
 .plan-audio-warn { display: block; color: #b3261e; }
+/* 6 Oct: lesson save errors + scheduled lesson */
+.lesson-save-errors { margin: 10px 0; padding: 10px 14px; border-radius: 12px; background: #fff1f0; box-shadow: inset 0 0 0 2px #e5484d; color: #8a1c1c; font-size: 14px; }
+.lesson-save-errors ul { margin: 6px 0 0 18px; padding: 0; }
+.lesson-save-errors li { margin: 3px 0; }
+.plan-sched { display: block; font-size: 11.5px; font-weight: 900; letter-spacing: .06em; color: #b45309; margin-bottom: 4px; }
+.plan-hint { margin: 6px 2px 8px; font-size: 13px; color: #3b4660; }
+.plan-row .row-action.primary { background: #16275c; color: #fff; box-shadow: none; }

@@ -5012,7 +5012,8 @@ function llsApplyCorePortalData(payload) {
     notes: String(r["Notes"] || r.notes || ""),
     book: String(r["Book"] || ""),
     units: String(r["Units"] || ""),
-    currentUnit: String(r["Current Unit"] || "")
+    currentUnit: String(r["Current Unit"] || ""),
+    plansDone: String(r["Plans Done"] || "") // 6 Oct (V34): lessons marked "already done" in the plan panel
   })).filter((item) => item.id);
 
   // Authoritative membership: ACTIVE Enrolments only.
@@ -8238,16 +8239,22 @@ async function llsSaveLesson() {
   const doneText = [...llsSkillLines(llsSkillState), choiceOn ? LLS_CHOICE_MARK + choiceTitle : "", value("lessonDone").trim()].filter(Boolean).join("\n") || (specialOn ? specialTitle + " lesson" : nobodyHere ? LLS_NOBODY_CAME : "");
   const needDone = choiceOn && !nobodyHere && value("lessonDone").trim().length < 30;
   byId("lessonDone")?.classList.toggle("needs", needDone);
+  const errBox = byId("lessonSaveErrors");
   if (unrated.length || needSkill || (noTopic.length && !nobodyHere) || needDone) {
+    // 6 Oct (owner): say exactly what is missing, in a box that stays on screen, and jump to it.
     const missing = [];
-    if (needDone) missing.push(`"What exactly did you do?" (a few clear lines)`);
-    if (unrated.length) missing.push(`"How did they do?" for ${unrated.length} ${unrated.length === 1 ? "student" : "students"}`);
-    if (needSkill) missing.push(`"What did you do today?" (tap Grammar, Reading…)`);
-    if (noTopic.length) missing.push(`a topic for ${noTopic.map((s) => s.k).join(", ")}`);
-    showToast(`Almost done: fill in ${missing.join(" and ")}. They count towards each student's progress.`, "error");
-    (unrated[0]?.querySelector(".reg-rating") || byId("lessonSkills")?.querySelector(".sk-row.needs input") || (needSkill || noTopic.length ? byId("lessonSkills")?.querySelector(".sk-toggle") : byId("lessonDone")))?.focus();
+    if (unrated.length) missing.push(`<b>1 · Register</b>: choose "How did they do?" for ${unrated.map((r) => escapeHtml(r.querySelector(".reg-name")?.textContent || "")).join(", ")}.`);
+    if (needSkill) missing.push(`<b>2 · What did you do today?</b> Tap at least one: Grammar, Vocabulary, Reading…`);
+    if (noTopic.length && !nobodyHere) missing.push(...noTopic.map((s) => `<b>${escapeHtml(s.k)}</b>: write the topic in its box (e.g. ${escapeHtml(s.k === "Games & songs" ? "animals bingo" : s.k === "Grammar" ? "past simple" : s.k === "Vocabulary" ? "clothes" : "the topic you covered")}) – or untick ${escapeHtml(s.k)}.`));
+    if (needDone) missing.push(`<b>What exactly did you do?</b> Write at least a couple of clear lines (activities in order).`);
+    if (errBox) { errBox.innerHTML = `<strong>⚠ Not saved yet – please fix:</strong><ul>${missing.map((m) => `<li>${m}</li>`).join("")}</ul>`; errBox.hidden = false; }
+    showToast(`Not saved yet: ${missing.length} thing${missing.length === 1 ? "" : "s"} to fix (see the red box above the Save button).`, "error");
+    const target = unrated[0]?.querySelector(".reg-rating") || (noTopic.length && !nobodyHere ? byId("lessonSkills")?.querySelector(".sk-row.needs input") : null) || (needSkill ? byId("lessonSkills")?.querySelector(".sk-toggle") : null) || (needDone ? byId("lessonDone") : null);
+    target?.scrollIntoView({ behavior: "smooth", block: "center" });
+    target?.focus({ preventScroll: true });
     return;
   }
+  if (errBox) { errBox.hidden = true; errBox.innerHTML = ""; }
 
   const rows = rowEls.map((r) => ({
     studentId: r.dataset.student,
@@ -10057,7 +10064,7 @@ function llsPlanMaterialLinks_(p, big) {
   // 6 Oct: Drive opens .pptx in Google Slides, which drops the embedded audio/video. A direct download link
   // fails with 403 when the browser's first Google account isn't the one the file is shared with, so the
   // button opens the Drive page (it picks the right account) and the teacher clicks ⬇ Download there.
-  return [m.slides ? `<a class="${c}" href="${escapeAttribute(m.slides)}" target="_blank" rel="noopener" title="Opens Google Drive: click ⬇ Download (top right), then open the file in PowerPoint – audio and video work there">🖥 Slides (PowerPoint)</a>` : "",
+  return [m.slides ? `<a class="${c}" href="${escapeAttribute(m.slides)}" target="_blank" rel="noopener" title="Opens the file in Google Drive: click the ⬇ arrow next to the page number (or File → Download), then open it in PowerPoint – audio, video and click-reveals work there">🖥 Slides (PowerPoint)</a>` : "",
     m.hw ? `<a class="${c}" href="${escapeAttribute(m.hw)}" target="_blank" rel="noopener">📝 Homework sheet</a>` : "",
     m.easy ? `<a class="${c}" href="${escapeAttribute(m.easy)}" target="_blank" rel="noopener">📝 Easier homework</a>` : "",
     m.key ? `<a class="${c}" href="${escapeAttribute(m.key)}" target="_blank" rel="noopener">🔑 Answer key</a>` : "",
@@ -10069,8 +10076,8 @@ function llsPlanAudioTip_(cls) {
   const inside = !!(window.LLS_PLANS && LLS_PLANS.audioInside && cls && LLS_PLANS.audioInside[cls.book]);
   return `<div class="plan-audio"><strong>🔊 Listening and video</strong>
     <ol>
-      <li>Click <b>🖥 Slides (PowerPoint)</b>: Google Drive opens. Click <b>⬇ Download</b> (top right).</li>
-      <li>Open the downloaded file in <b>PowerPoint</b> (not Google Slides) and start the Slide Show.</li>
+      <li>Click <b>🖥 Slides (PowerPoint)</b>: the file opens in Google Drive. Click the <b>⬇ download arrow</b> in the grey bar at the top (next to "Page 1 / 28") – or <b>File → Download</b>.</li>
+      <li>Open the downloaded file in <b>PowerPoint</b> (not Google Slides) and start the Slide Show: answers appear on click only in PowerPoint.</li>
       ${inside ? `<li>On a listening slide, click the <b>🔈 speaker icon</b> (top of the slide) to play the track. Videos play on the slide too.</li>`
         : `<li>The audio isn't inside these slides yet: play the track shown on the slide (🎧 e.g. 6.11) from the book's audio.</li>`}
     </ol>
@@ -10108,12 +10115,15 @@ function llsRenderPlanPanel() {
   if (!plans.length) { box.innerHTML = ""; llsRenderHwSheetHint_(); return; }
   const date = byId("lessonDate")?.value || "";
   const taught = llsPlanTaught_((llsLesson.entries || []).filter((e) => String(e.lessonDate || "").slice(0, 10) !== date));
+  // 6 Oct: lessons the office/teacher marked "✓ Already done" (taught elsewhere, before the portal…)
+  const doneEarlier = new Set(String(cls.plansDone || "").split(/[,\s]+/).map((x) => x.trim().toUpperCase()).filter(Boolean));
+  doneEarlier.forEach((code) => { if (!taught[code]) taught[code] = [{ date: "", teacher: "", earlier: true }]; });
   const todayCode = llsPlanCode_(value("lessonUnitPage"));
   const doneCount = plans.filter((p) => taught[p.id]).length;
   let lastIdx = -1;
   plans.forEach((p, i) => { if (taught[p.id]) lastIdx = i; });
   const nextIdx = plans.findIndex((p, i) => i > lastIdx && !taught[p.id]);
-  const when = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const when = (iso) => iso ? new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "earlier";
   const shown = llsPlanShowAll ? plans : plans.filter((p, i) => p.id === todayCode || i === lastIdx || (nextIdx >= 0 && i >= nextIdx && i <= nextIdx + 2));
   const name = (LLS_PLANS.names && LLS_PLANS.names[cls.book]) || cls.book;
   const feat = plans.find((p) => p.id === todayCode) || (nextIdx >= 0 ? plans[nextIdx] : null);
@@ -10122,9 +10132,10 @@ function llsRenderPlanPanel() {
     <p class="plan-intro">Ready-made slides for each lesson, with a homework sheet you can attach at the end (step 3 · Homework). Use them if they help — you don't have to.</p>
     <p class="plan-report">These lessons are new and not perfect yet. Seen a mistake or something that doesn't work in class? <a href="#" data-report-lesson="${escapeAttribute((feat ? feat.id + " " + feat.title : "") + " · " + name)}">⚠ Report a problem with a lesson</a> – say the lesson, the slide number and what's wrong, and attach a screenshot.</p>
     ${feat ? `<div class="plan-feature">
-      <div><span class="plan-code">${escapeHtml(feat.id)}</span> <strong>${feat.id === todayCode ? "Today" : "Next"}: ${escapeHtml(feat.title)}</strong><small>${escapeHtml(feat.focus)}</small></div>
-      <div class="plan-feature-actions">${llsPlanMaterialLinks_(feat, true) || '<span class="muted">Slides are being uploaded – ask the office.</span>'}${feat.id === todayCode ? "" : `<button type="button" class="button" data-plan-use="${escapeAttribute(feat.id)}">Teach this today</button>`}</div>
-    </div>` : ""}
+      <div><span class="plan-sched">${feat.id === todayCode ? "📌 TODAY'S LESSON" : "📅 NEXT SCHEDULED LESSON"}</span><span class="plan-code">${escapeHtml(feat.id)}</span> <strong>${escapeHtml(feat.title)}</strong><small>${escapeHtml(feat.focus)}</small></div>
+      <div class="plan-feature-actions">${llsPlanMaterialLinks_(feat, true) || '<span class="muted">Slides are being uploaded – ask the office.</span>'}${feat.id === todayCode ? "" : `<button type="button" class="button" data-plan-use="${escapeAttribute(feat.id)}">▶ Teach this today</button><button type="button" class="button button-secondary" data-plan-done="${escapeAttribute(feat.id)}" title="The class has already had this lesson: skip to the next one">✓ Already done</button>`}</div>
+    </div>
+    <p class="plan-hint">Teaching a different lesson today? Pick it in the list below (<b>Teach this instead</b>). Class already had a lesson? Press <b>✓ Already done</b> and the next one moves up.</p>` : ""}
     ${feat && llsPlanUrl_(feat, "file") ? llsPlanAudioTip_(cls) : ""}
     <div class="plan-bar" aria-hidden="true"><i style="width:${Math.round(doneCount / plans.length * 100)}%"></i></div>
     <div class="plan-list">${shown.map((p) => {
@@ -10132,19 +10143,33 @@ function llsRenderPlanPanel() {
       const i = plans.indexOf(p);
       const isToday = p.id === todayCode;
       const cls2 = isToday ? "today" : t ? "done" : i === nextIdx ? "next" : "";
-      const badge = isToday ? "📌 Today's lesson" : t ? "✓ Taught " + t.map((x) => when(x.date) + (x.teacher ? " (" + x.teacher + ")" : "")).join(", ") : i === nextIdx ? "➡ Next" : "";
+      const earlier = t && t.every((x) => x.earlier);
+      const badge = isToday ? "📌 Today's lesson" : earlier ? "✓ Marked as already done" : t ? "✓ Taught " + t.filter((x) => !x.earlier).map((x) => when(x.date) + (x.teacher ? " (" + x.teacher + ")" : "")).join(", ") : i === nextIdx ? "📅 Next scheduled" : "";
       const confirm = llsPlanConfirm === p.id;
       return `<div class="plan-row ${cls2}">
         <span class="plan-code">${escapeHtml(p.id)}</span>
         <span class="plan-text"><strong>${escapeHtml(p.title)}</strong><small>${escapeHtml(p.focus)}${p.pages ? " · " + escapeHtml(p.pages) : ""}</small>${badge ? `<em>${escapeHtml(badge)}</em>` : ""}${confirm ? `<b class="plan-warn">⚠ This class has already had this lesson. Tap again to teach it again.</b>` : ""}</span>
         <span class="plan-actions">
           ${llsPlanMaterialLinks_(p)}<a class="plan-flag" href="#" title="Report a problem with this lesson" aria-label="Report a problem with ${escapeAttribute(p.id)}" data-report-lesson="${escapeAttribute(p.id + " " + p.title + " · " + name)}">⚠</a>
-          ${isToday ? "" : `<button type="button" class="row-action${t ? " warn" : ""}" data-plan-use="${escapeAttribute(p.id)}">${confirm ? "Yes, teach again" : t ? "Teach again" : "Teach today"}</button>`}
+          ${isToday ? "" : `<button type="button" class="row-action${t ? " warn" : i === nextIdx ? " primary" : ""}" data-plan-use="${escapeAttribute(p.id)}">${confirm ? "Yes, teach again" : t ? "Teach again" : i === nextIdx ? "▶ Teach today" : "Teach this instead"}</button>`}
+          ${earlier ? `<button type="button" class="row-action" data-plan-undone="${escapeAttribute(p.id)}" title="Not done after all">↩ Undo</button>` : !t && !isToday ? `<button type="button" class="row-action" data-plan-done="${escapeAttribute(p.id)}" title="The class has already had this lesson">✓ Already done</button>` : ""}
         </span></div>`;
     }).join("")}</div>
     ${plans.length > shown.length || llsPlanShowAll ? `<button type="button" class="row-action plan-all" data-plan-all>${llsPlanShowAll ? "Show fewer" : `Show all ${plans.length} lessons`}</button>` : ""}`;
   llsRenderHwSheetHint_();
   box.querySelector("[data-plan-all]")?.addEventListener("click", () => { llsPlanShowAll = !llsPlanShowAll; llsRenderPlanPanel(); });
+  const setDone = (code, on) => {
+    if ((window.llsServerVersion || 0) < 34) { showToast("\"Already done\" needs Apps Script V34 – ask the office to install it.", "error"); return; }
+    const set = new Set(String(cls.plansDone || "").split(/[,\s]+/).map((x) => x.trim().toUpperCase()).filter(Boolean));
+    on ? set.add(code.toUpperCase()) : set.delete(code.toUpperCase());
+    cls.plansDone = [...set].join(", ");
+    llsQueueSave(`${cls.name} lessons done`, { action: "updateClass", classId: cls.id, fields: { "Plans Done": cls.plansDone } });
+    saveState();
+    llsRenderPlanPanel();
+    showToast(on ? `${code} marked as already done. The next lesson moves up.` : `${code} is back on the list.`, "success");
+  };
+  box.querySelectorAll("[data-plan-done]").forEach((b) => b.addEventListener("click", () => setDone(b.dataset.planDone, true)));
+  box.querySelectorAll("[data-plan-undone]").forEach((b) => b.addEventListener("click", () => setDone(b.dataset.planUndone, false)));
   box.querySelectorAll("[data-plan-use]").forEach((b) => b.addEventListener("click", () => {
     const p = plans.find((x) => x.id === b.dataset.planUse);
     if (!p) return;
@@ -10154,7 +10179,7 @@ function llsRenderPlanPanel() {
     if (llsChoiceOn()) llsSetChoice(false);
     setValue("lessonUnitPage", p.id + (p.pages ? " · " + p.pages : ""));
     try { const st = llsWbState.lessonWbBox; if (!st || !st.touchedLesson) llsLessonWb_(); } catch (_) {}
-    if (!value("lessonDone").trim()) setValue("lessonDone", `${p.title}: ${p.focus}`);
+    // 6 Oct (owner): don't pre-fill "What exactly did you do?" – the teacher writes it.
     // Tick the skills this deck covers, with its topics (teachers can untick or edit).
     Object.entries(p.skills || {}).forEach(([k, topic]) => {
       const st = llsSkillState[k];
