@@ -2149,6 +2149,38 @@
     const SPEAK_PASS = 0.7;
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognizer = null;
+    // 6 Oct: iPhone help + "record yourself" fallback when the phone's speech check fails.
+    const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const IOS_TIP = IS_IOS ? " On iPhone: Settings → General → Keyboard → turn on “Enable Dictation”, and open this link in Safari (not inside WhatsApp or Instagram). · Su iPhone: Impostazioni → Generali → Tastiera → attiva “Abilita dettatura” e apri il link in Safari (non dentro WhatsApp)." : "";
+    const CAN_RECORD = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+    let selfRec = null;
+    function stopSelfRec() { if (selfRec) { try { selfRec.rec.state !== "inactive" && selfRec.rec.stop(); } catch (_) {} } }
+    async function recordSelf(item) {
+      stopSelfRec();
+      let stream;
+      try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+      catch (e) {
+        item.error = (e && (e.name === "NotAllowedError" || e.name === "SecurityError"))
+          ? "The microphone is blocked for this page. " + (IS_IOS ? "Settings → Safari → Microphone → Allow (or Ask). · Impostazioni → Safari → Microfono → Consenti." : "Allow the microphone in your browser settings. · Consenti il microfono nelle impostazioni.")
+          : "No microphone found. · Microfono non trovato.";
+        renderQuiz(); return;
+      }
+      const chunks = [];
+      const rec = new MediaRecorder(stream);
+      selfRec = { rec, item };
+      item.recording = true; item.error = ""; renderQuiz();
+      rec.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+      rec.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (item.selfUrl) { try { URL.revokeObjectURL(item.selfUrl); } catch (_) {} }
+        item.selfUrl = chunks.length ? URL.createObjectURL(new Blob(chunks, { type: rec.mimeType || "audio/mp4" })) : "";
+        item.recording = false; selfRec = null;
+        if (!item.selfUrl) item.error = "Nothing was recorded. Try again. · Non è stato registrato niente: riprova.";
+        if (quiz && quiz.items[quiz.index] === item) renderQuiz();
+      };
+      rec.start();
+      setTimeout(() => { if (selfRec && selfRec.rec === rec) rec.stop(); }, 10000);
+    }
 
     function words(text) {
       return expand(text).replace(/-/g, " ").replace(/[^a-z0-9' ]/g, " ").replace(/'/g, "").split(/\s+/).filter(Boolean);
@@ -2189,7 +2221,7 @@
 
     function speakHtml() {
       const item = quiz.items[quiz.index];
-      const tried = item.heard !== "";
+      const tried = item.heard !== "" || !!item.selfOk;
       const ok = item.best >= SPEAK_PASS;
       let html = `
         <p class="lesson-topic">Read this sentence aloud · Leggi ad alta voce</p>
@@ -2203,7 +2235,18 @@
           You can still listen and repeat. · Il controllo della pronuncia non funziona in questo browser: apri il link con Chrome o Safari.</p>`;
       }
       if (item.error) html += `<p class="note">${esc(item.error)}</p>`;
-      if (tried) {
+      if ((item.failed || !Recognition) && CAN_RECORD) {
+        html += `<div class="note" style="background:#fff8ec">
+          <strong>🎙 Plan B: record yourself · Registrati</strong><br>Record the sentence, listen to yourself and to the model, then decide. · Registra la frase, ascoltati e confronta.
+          <div class="actions" style="margin-top:8px">
+            ${item.recording ? `<button class="primary" type="button" id="selfStop">⏹ Stop</button>` : `<button class="secondary" type="button" id="selfRec">🎙 ${item.selfUrl ? "Record again · Di nuovo" : "Record · Registra"}</button>`}
+          </div>
+          ${item.selfUrl && !item.recording ? `<audio controls src="${item.selfUrl}" style="width:100%;margin-top:8px"></audio>
+            <div class="actions" style="margin-top:8px"><button class="primary" type="button" id="selfOk">✓ I said it well · L'ho detto bene</button></div>` : ""}
+        </div>`;
+      }
+      if (item.selfOk) html += `<div class="feedback ok"><strong>✓ Self-check done · Fatto!</strong>You compared your voice with the model.</div>`;
+      if (item.heard !== "") {
         html += `<p class="heard">I heard · Ho sentito: “${esc(item.heard)}”</p>
           <div class="feedback ${ok ? "ok" : "no"}"><strong>${ok ? "✓ Great! · Bravo/a!" : "Try again · Riprova"}</strong>
           ${ok ? "Clear and correct." : "Red words weren't clear. Listen, then try again. · Le parole in rosso non erano chiare."}</div>`;
@@ -2231,9 +2274,13 @@
 
       const mic = main.querySelector("#mic");
       if (mic) mic.addEventListener("click", () => listen(mic, item));
+      main.querySelector("#selfRec")?.addEventListener("click", () => recordSelf(item));
+      main.querySelector("#selfStop")?.addEventListener("click", () => stopSelfRec());
+      main.querySelector("#selfOk")?.addEventListener("click", () => { item.selfOk = true; item.best = Math.max(item.best, SPEAK_PASS); renderQuiz(); });
 
       main.querySelector("#nextS").addEventListener("click", () => {
         stopListening();
+        stopSelfRec();
         quiz.answers[quiz.index] = item.best >= SPEAK_PASS;
         nextItem();
       });
@@ -2260,7 +2307,8 @@
         if (recognizer !== rec) return;
         try { rec.abort(); } catch (_) {}
         recognizer = null;
-        item.error = "The microphone didn't respond. Tap Speak to try again. · Il microfono non ha risposto: premi di nuovo Parla.";
+        item.failed = true;
+        item.error = "The microphone didn't respond. Tap Speak to try again, or use Plan B below." + IOS_TIP + " · Il microfono non ha risposto: riprova o usa il Piano B.";
         if (quiz && quiz.items[quiz.index] === item) renderQuiz();
       }, 10000);
 
@@ -2281,11 +2329,12 @@
       };
       rec.onerror = (event) => {
         clearTimeout(watchdog);
+        if (!["no-speech", "aborted"].includes(event.error)) item.failed = true;
         item.error = event.error === "not-allowed" || event.error === "service-not-allowed"
-          ? "Please allow the microphone for this page, then try again. · Consenti l'uso del microfono e riprova."
+          ? "Please allow the microphone for this page, then try again." + IOS_TIP + " · Consenti l'uso del microfono e riprova."
           : event.error === "no-speech"
             ? "I didn't hear anything. Tap Speak and read the sentence. · Non ho sentito niente: riprova."
-            : event.error === "aborted" ? "" : "The speaking check isn't working right now. Check your internet connection. · Controlla la connessione.";
+            : event.error === "aborted" ? "" : "The speaking check isn't working right now. Check your internet connection." + IOS_TIP + " · Controlla la connessione.";
       };
       rec.onend = () => {
         clearTimeout(watchdog);
@@ -2487,7 +2536,7 @@
         try { rec.abort(); } catch (_) {}
         recognizer = null;
         if (!chat) return;
-        chat.error = "The microphone didn't respond. Try again. · Il microfono non ha risposto: riprova.";
+        chat.error = "The microphone didn't respond. Try again, or type your answer." + IOS_TIP + " · Il microfono non ha risposto: riprova o scrivi la risposta.";
         renderChat();
       }, 10000);
       rec.onresult = (event) => { clearTimeout(watchdog); heard = String(event.results[0]?.[0]?.transcript || "").trim(); };
@@ -2495,7 +2544,7 @@
         clearTimeout(watchdog);
         if (!chat) return;
         chat.error = event.error === "not-allowed" || event.error === "service-not-allowed"
-          ? "Please allow the microphone for this page. · Consenti l'uso del microfono."
+          ? "Please allow the microphone for this page." + IOS_TIP + " · Consenti l'uso del microfono."
           : event.error === "no-speech" ? "I didn't hear anything. Try again. · Non ho sentito niente." : "";
       };
       rec.onend = () => {
