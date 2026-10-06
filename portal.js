@@ -10048,11 +10048,10 @@ function llsPlanMaterials_(p) {
 }
 function llsPlanMaterialLinks_(p, big) {
   const m = llsPlanMaterials_(p), c = big ? "button button-secondary" : "row-action";
-  // 6 Oct: Drive opens .pptx in Google Slides, which drops the embedded audio/video. The main button now
-  // DOWNLOADS the deck so it opens in PowerPoint (audio works); "👀 Preview" keeps the quick Google view.
-  const dl = (u) => { const id = (String(u).match(/\/file\/d\/([\w-]+)/) || [])[1]; return id ? `https://drive.google.com/uc?export=download&id=${id}` : u; };
-  return [m.slides ? `<a class="${c}" href="${escapeAttribute(dl(m.slides))}" target="_blank" rel="noopener" title="Download and open in PowerPoint – audio and video work there">🖥 Slides (PowerPoint)</a>` : "",
-    m.slides && dl(m.slides) !== m.slides ? `<a class="${c}" href="${escapeAttribute(m.slides)}" target="_blank" rel="noopener" title="Quick look in Google Slides – audio does NOT play there">👀 Preview</a>` : "",
+  // 6 Oct: Drive opens .pptx in Google Slides, which drops the embedded audio/video. A direct download link
+  // fails with 403 when the browser's first Google account isn't the one the file is shared with, so the
+  // button opens the Drive page (it picks the right account) and the teacher clicks ⬇ Download there.
+  return [m.slides ? `<a class="${c}" href="${escapeAttribute(m.slides)}" target="_blank" rel="noopener" title="Opens Google Drive: click ⬇ Download (top right), then open the file in PowerPoint – audio and video work there">🖥 Slides (PowerPoint)</a>` : "",
     m.hw ? `<a class="${c}" href="${escapeAttribute(m.hw)}" target="_blank" rel="noopener">📝 Homework sheet</a>` : "",
     m.easy ? `<a class="${c}" href="${escapeAttribute(m.easy)}" target="_blank" rel="noopener">📝 Easier homework</a>` : "",
     m.key ? `<a class="${c}" href="${escapeAttribute(m.key)}" target="_blank" rel="noopener">🔑 Answer key</a>` : "",
@@ -10064,12 +10063,12 @@ function llsPlanAudioTip_(cls) {
   const inside = !!(window.LLS_PLANS && LLS_PLANS.audioInside && cls && LLS_PLANS.audioInside[cls.book]);
   return `<div class="plan-audio"><strong>🔊 Listening and video</strong>
     <ol>
-      <li>Click <b>🖥 Slides (PowerPoint)</b>: the file downloads.</li>
+      <li>Click <b>🖥 Slides (PowerPoint)</b>: Google Drive opens. Click <b>⬇ Download</b> (top right).</li>
       <li>Open the downloaded file in <b>PowerPoint</b> (not Google Slides) and start the Slide Show.</li>
       ${inside ? `<li>On a listening slide, click the <b>🔈 speaker icon</b> (top of the slide) to play the track. Videos play on the slide too.</li>`
         : `<li>The audio isn't inside these slides yet: play the track shown on the slide (🎧 e.g. 6.11) from the book's audio.</li>`}
     </ol>
-    <span class="plan-audio-warn">⚠ <b>👀 Preview</b> opens Google Slides: there is <b>no sound</b> there. Use it only to look.</span></div>`;
+    <span class="plan-audio-warn">⚠ Don't click "Open with Google Slides": there is <b>no sound</b> there. Download it and use PowerPoint.</span></div>`;
 }
 // Hint above "📎 Attach files" when today's lesson has a homework sheet.
 function llsRenderHwSheetHint_() {
