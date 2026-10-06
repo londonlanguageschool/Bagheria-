@@ -10027,7 +10027,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ---------- 1. Lesson plans ----------
 function llsPlanCode_(unit) {
-  const m = String(unit || "").trim().replace(/^(unit|lesson)\s+/i, "").match(/^(R\d{1,2}-\d{1,2}|\d{1,2}[A-C](?:-\d)?|L\d{1,2})(?![\w])/i);
+  const m = String(unit || "").trim().replace(/^(unit|lesson)\s+/i, "").match(/^(R\d{1,2}-\d{1,2}|\d{1,2}[A-C](?:-\d)?|L\d{1,2}|U\d{1,2}-L\d|[SR]-L\d)(?![\w])/i);
   return m ? m[1].toUpperCase() : "";
 }
 function llsPlansFor_(cls) {
@@ -10048,7 +10048,11 @@ function llsPlanMaterials_(p) {
 }
 function llsPlanMaterialLinks_(p, big) {
   const m = llsPlanMaterials_(p), c = big ? "button button-secondary" : "row-action";
-  return [m.slides ? `<a class="${c}" href="${escapeAttribute(m.slides)}" target="_blank" rel="noopener">🖥 Slides</a>` : "",
+  // 6 Oct: Drive opens .pptx in Google Slides, which drops the embedded audio/video. The main button now
+  // DOWNLOADS the deck so it opens in PowerPoint (audio works); "👀 Preview" keeps the quick Google view.
+  const dl = (u) => { const id = (String(u).match(/\/file\/d\/([\w-]+)/) || [])[1]; return id ? `https://drive.google.com/uc?export=download&id=${id}` : u; };
+  return [m.slides ? `<a class="${c}" href="${escapeAttribute(dl(m.slides))}" target="_blank" rel="noopener" title="Download and open in PowerPoint – audio and video work there">🖥 Slides (PowerPoint)</a>` : "",
+    m.slides && dl(m.slides) !== m.slides ? `<a class="${c}" href="${escapeAttribute(m.slides)}" target="_blank" rel="noopener" title="Quick look in Google Slides – audio does NOT play there">👀 Preview</a>` : "",
     m.hw ? `<a class="${c}" href="${escapeAttribute(m.hw)}" target="_blank" rel="noopener">📝 Homework sheet</a>` : "",
     m.easy ? `<a class="${c}" href="${escapeAttribute(m.easy)}" target="_blank" rel="noopener">📝 Easier homework</a>` : "",
     m.key ? `<a class="${c}" href="${escapeAttribute(m.key)}" target="_blank" rel="noopener">🔑 Answer key</a>` : "",

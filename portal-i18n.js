@@ -109,6 +109,8 @@
     "📝 Homework sheet": "📝 Scheda compiti",
     "🔑 Answer key": "🔑 Soluzioni",
     "🖥 Slides": "🖥 Slide",
+    "🖥 Slides (PowerPoint)": "🖥 Slide (PowerPoint)",
+    "👀 Preview": "👀 Anteprima",
     "📂 All on Google Drive": "📂 Tutto su Google Drive",
     "Slides are being uploaded – ask the office.": "Le slide sono in caricamento: chiedi alla segreteria.",
     "open it": "aprila",
