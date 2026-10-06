@@ -2412,5 +2412,8 @@ window.LLS_PLANS = {
     "file": "B1_Green_Course_6B-10B/B1_Photocopiables_Teacher_notes_and_answers.pdf"
    }
   ]
+ },
+ "audioInside": {
+  "EF-B1": true
  }
 };

@@ -534,3 +534,8 @@ input[type="checkbox"] { border-radius: 4px; }
 .tell-office-form label { display: flex; gap: 8px; align-items: center; font-weight: 600; }
 .tell-office-form select, .tell-office-form input[type="text"] { min-height: 42px; }
 .tell-sent { margin: 0; color: #1a7f3c; font-weight: 700; }
+/* 6 Oct: how to play lesson audio (plan materials) */
+.plan-audio { margin: 8px 0 6px; padding: 10px 14px; border-radius: 12px; background: #e8f4ff; box-shadow: inset 0 0 0 2px #48bdf2; font-size: 13.5px; color: #1e2a5a; }
+.plan-audio ol { margin: 4px 0 6px 18px; padding: 0; }
+.plan-audio li { margin: 2px 0; }
+.plan-audio-warn { display: block; color: #b3261e; }

@@ -10058,6 +10058,19 @@ function llsPlanMaterialLinks_(p, big) {
     m.key ? `<a class="${c}" href="${escapeAttribute(m.key)}" target="_blank" rel="noopener">🔑 Answer key</a>` : "",
     m.pcm ? `<a class="${c}" href="${escapeAttribute(m.pcm)}" target="_blank" rel="noopener">🖨 Photocopiables</a>` : ""].join("");
 }
+// 6 Oct: make the audio route obvious. Drive/Google Slides drop the sound inside a .pptx, so teachers must
+// download the deck and open it in PowerPoint. Courses whose decks carry their audio are listed in LLS_PLANS.audioInside.
+function llsPlanAudioTip_(cls) {
+  const inside = !!(window.LLS_PLANS && LLS_PLANS.audioInside && cls && LLS_PLANS.audioInside[cls.book]);
+  return `<div class="plan-audio"><strong>🔊 Listening and video</strong>
+    <ol>
+      <li>Click <b>🖥 Slides (PowerPoint)</b>: the file downloads.</li>
+      <li>Open the downloaded file in <b>PowerPoint</b> (not Google Slides) and start the Slide Show.</li>
+      ${inside ? `<li>On a listening slide, click the <b>🔈 speaker icon</b> (top of the slide) to play the track. Videos play on the slide too.</li>`
+        : `<li>The audio isn't inside these slides yet: play the track shown on the slide (🎧 e.g. 6.11) from the book's audio.</li>`}
+    </ol>
+    <span class="plan-audio-warn">⚠ <b>👀 Preview</b> opens Google Slides: there is <b>no sound</b> there. Use it only to look.</span></div>`;
+}
 // Hint above "📎 Attach files" when today's lesson has a homework sheet.
 function llsRenderHwSheetHint_() {
   const box = byId("lessonHwSheetHint");
@@ -10107,6 +10120,7 @@ function llsRenderPlanPanel() {
       <div><span class="plan-code">${escapeHtml(feat.id)}</span> <strong>${feat.id === todayCode ? "Today" : "Next"}: ${escapeHtml(feat.title)}</strong><small>${escapeHtml(feat.focus)}</small></div>
       <div class="plan-feature-actions">${llsPlanMaterialLinks_(feat, true) || '<span class="muted">Slides are being uploaded – ask the office.</span>'}${feat.id === todayCode ? "" : `<button type="button" class="button" data-plan-use="${escapeAttribute(feat.id)}">Teach this today</button>`}</div>
     </div>` : ""}
+    ${feat && llsPlanUrl_(feat, "file") ? llsPlanAudioTip_(cls) : ""}
     <div class="plan-bar" aria-hidden="true"><i style="width:${Math.round(doneCount / plans.length * 100)}%"></i></div>
     <div class="plan-list">${shown.map((p) => {
       const t = taught[p.id];
