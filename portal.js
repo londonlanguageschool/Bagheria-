@@ -8195,6 +8195,7 @@ async function llsChangeLessonUnit(step) {
   }
 }
 
+const LLS_NOBODY_CAME = "No lesson: all students absent.";
 async function llsSaveLesson() {
   const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
   const date = byId("lessonDate")?.value || "";
@@ -8221,6 +8222,10 @@ async function llsSaveLesson() {
   // Required (owner, 27 Sept): a rating for every student who was there,
   // and "What we did" (filled automatically for a special lesson).
   const rowEls = [...document.querySelectorAll("#lessonRegister .reg-row")];
+  // 6 Oct (owner): if every student is absent/excused there was no lesson to describe, so don't
+  // demand skills / "What we did" – save the register only, marked "nobody came".
+  const nobodyHere = rowEls.length > 0 && !rowEls.some((r) => ["Present", "Late"].includes(r.dataset.status || "Present"));
+  if (nobodyHere && !specialOn && !choiceOn && !window.confirm("Everyone is marked absent. Save the register as \"nobody came\" (no lesson taught)?")) return;
   const unrated = rowEls.filter((r) => ["Present", "Late"].includes(r.dataset.status) && !r.querySelector(".reg-rating")?.value);
   rowEls.forEach((r) => r.classList.toggle("needs", unrated.includes(r)));
   // 30 Sept: normal lessons need at least one skill ticked, each with a topic.
@@ -8228,12 +8233,12 @@ async function llsSaveLesson() {
   const ticked = LLS_SKILLS.filter((s) => llsSkillState[s.k]?.on);
   const noTopic = ticked.filter((s) => !String(llsSkillState[s.k].topic || "").trim());
   skillBox?.querySelectorAll(".sk-row").forEach((r) => r.classList.toggle("needs", noTopic.some((s) => s.k === r.dataset.skillRow)));
-  const needSkill = !specialOn && !ticked.length;
+  const needSkill = !specialOn && !nobodyHere && !ticked.length;
   skillBox?.classList.toggle("needs", needSkill);
-  const doneText = [...llsSkillLines(llsSkillState), choiceOn ? LLS_CHOICE_MARK + choiceTitle : "", value("lessonDone").trim()].filter(Boolean).join("\n") || (specialOn ? specialTitle + " lesson" : "");
-  const needDone = choiceOn && value("lessonDone").trim().length < 30;
+  const doneText = [...llsSkillLines(llsSkillState), choiceOn ? LLS_CHOICE_MARK + choiceTitle : "", value("lessonDone").trim()].filter(Boolean).join("\n") || (specialOn ? specialTitle + " lesson" : nobodyHere ? LLS_NOBODY_CAME : "");
+  const needDone = choiceOn && !nobodyHere && value("lessonDone").trim().length < 30;
   byId("lessonDone")?.classList.toggle("needs", needDone);
-  if (unrated.length || needSkill || noTopic.length || needDone) {
+  if (unrated.length || needSkill || (noTopic.length && !nobodyHere) || needDone) {
     const missing = [];
     if (needDone) missing.push(`"What exactly did you do?" (a few clear lines)`);
     if (unrated.length) missing.push(`"How did they do?" for ${unrated.length} ${unrated.length === 1 ? "student" : "students"}`);
@@ -8252,7 +8257,8 @@ async function llsSaveLesson() {
   }));
   const hwTitle = value("lessonHwTitle").trim();
   const note = {
-    unit: specialOn ? LLS_SPECIAL_PREFIX + specialTitle : choiceOn ? LLS_CHOICE_UNIT : value("lessonUnitPage").trim(),
+    // nobody came: no unit, so the lesson plan isn't marked as taught
+    unit: specialOn ? LLS_SPECIAL_PREFIX + specialTitle : choiceOn ? LLS_CHOICE_UNIT : nobodyHere && !ticked.length ? "" : value("lessonUnitPage").trim(),
     whatWeDid: doneText,
     notes: [value("lessonNotes").trim(), choiceOn && choiceLinks.length ? LLS_MATERIALS_MARK + "\n" + choiceLinks.join("\n") : ""].filter(Boolean).join("\n")
   };

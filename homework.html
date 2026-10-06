@@ -503,6 +503,8 @@
                "Tests", "Tests from your teacher appear with your homework. You see your score at the end."],
         ["👨‍👩‍👧", "Fratelli e sorelle", "Se usate lo stesso telefono, in fondo alla pagina tocca «Cambia studente».",
                "Brothers and sisters", "Sharing a phone? Tap «Switch student» at the bottom of the page."],
+        ["🍏", "iPhone? Il microfono non va?", "In fondo alla pagina tocca «🍏 iPhone e problemi»: trovi i consigli passo per passo.",
+               "iPhone? Microphone not working?", "Tap «🍏 iPhone e problemi · Troubleshooting» at the bottom of the page."],
         ["🐞", "Qualcosa non va?", "Tocca «Segnala un problema» in fondo alla pagina, oppure chiedi in segreteria.",
                "Something wrong?", "Tap «Report a problem» at the bottom of the page, or ask the office."]
       ];
@@ -532,6 +534,83 @@
       }
       document.getElementById("openGuide")?.addEventListener("click", (e) => { e.preventDefault(); open(); });
       window.llsOpenStudentGuide = open;
+    })();
+    /* 6 Oct — iPhone note + troubleshooting. iPhones limit what websites can do with the
+       microphone and speech recognition, so iPhone users get a friendly heads-up once
+       (dismissible) and everyone can open the tips from the footer. */
+    (function () {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const inApp = /FBAN|FBAV|Instagram|Line\/|GSA\//.test(navigator.userAgent);
+      const homeScreen = window.navigator.standalone === true || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+      const TIPS = [
+        ["🧭", "Apri il link con Safari", "Se il link si apre dentro WhatsApp, Instagram o Facebook, tocca ⋯ o l'icona della bussola e scegli «Apri in Safari». Dentro quelle app il microfono spesso non funziona.",
+               "Open the link in Safari", "If it opens inside WhatsApp, Instagram or Facebook, tap ⋯ / the compass icon → «Open in Safari»."],
+        ["🎙️", "Attiva la dettatura", "Impostazioni → Generali → Tastiera → attiva «Abilita dettatura». Il controllo della pronuncia usa lo stesso sistema di Siri.",
+               "Turn on Dictation", "Settings → General → Keyboard → «Enable Dictation»."],
+        ["🔓", "Permesso del microfono", "Impostazioni → Safari → Microfono → «Chiedi» o «Consenti». Quando l'app lo chiede, tocca «Consenti».",
+               "Allow the microphone", "Settings → Safari → Microphone → «Ask» or «Allow», then tap «Allow» when asked."],
+        ["⌨️", "Se «🎤 Parla» non risponde: Piano A", "Sotto la frase compare un riquadro azzurro: toccalo, poi tocca il 🎤 della TASTIERA (in basso a destra), leggi la frase e tocca «Controlla». Funziona come il controllo normale.",
+               "If Speak doesn't answer: Plan A", "Tap the blue box, then the 🎤 on your KEYBOARD, read the sentence and tap Check."],
+        ["🏠", "Icona sulla schermata Home", "Va benissimo per compiti ed esercizi, ma per la pronuncia su iPhone è meglio aprire il link in Safari.",
+               "Home-screen icon", "Fine for homework, but for speaking practice on iPhone open the link in Safari."],
+        ["🔄", "Aggiorna l'app", "Se qualcosa sembra vecchio o bloccato: chiudi la pagina e riaprila dal link (oppure trascina giù per ricaricare).",
+               "Refresh", "Something looks old or stuck? Close the page and open the link again."],
+        ["💻", "Ancora niente?", "Per la pronuncia usa un computer (Chrome o Safari su Mac) o un telefono/tablet Android con Chrome: funzionano molto bene. Per tutto il resto l'iPhone va benissimo.",
+               "Still not working?", "Use a computer (Chrome) or an Android phone/tablet for speaking practice. Everything else works fine on iPhone."],
+        ["📸", "Mandaci uno screenshot", "Screenshot: tasto laterale + volume su. Registrazione schermo: Centro di Controllo → ⏺. Poi tocca «🐞 Segnala un problema» in fondo alla pagina o mandalo in segreteria: così risolviamo prima.",
+               "Send us a screenshot", "Side button + volume up (or a screen recording), then «Report a problem» or send it to the office."]
+      ];
+      function openTips() {
+        document.getElementById("tipsBox")?.remove();
+        const box = document.createElement("div");
+        box.id = "tipsBox";
+        box.setAttribute("role", "dialog");
+        box.setAttribute("aria-modal", "true");
+        box.setAttribute("aria-label", "iPhone e problemi comuni · Troubleshooting");
+        box.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(15,27,61,.55);display:flex;align-items:flex-end;justify-content:center;padding:16px";
+        box.innerHTML = `<div style="background:#fff;border-radius:24px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:18px 16px 16px;box-shadow:0 20px 50px rgba(0,0,0,.25)">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px">
+            <h2 style="margin:0;font-size:20px">🍏 iPhone e problemi comuni</h2>
+            <button type="button" data-close style="border:0;background:#eef3fb;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer" aria-label="Chiudi · Close">×</button>
+          </div>
+          <p style="margin:0 0 8px;font-size:14px;color:#33415c;line-height:1.45">Gli iPhone sono bellissimi… ma Apple è molto severa con microfono e riconoscimento vocale nei siti web 🙃. Compiti ed esercizi funzionano sempre; per la pronuncia, prova questi passaggi in ordine.<br><small style="color:#6a7690">🇬🇧 iPhones are lovely, but Apple is very strict about websites using the microphone 🙃. Homework and practice always work; for speaking, try these steps in order.</small></p>
+          ${TIPS.map(([icon, t, d, te, de], i) => `<div style="display:grid;grid-template-columns:40px 1fr;gap:10px;padding:10px 0;border-top:1px solid #e6edf7">
+            <div style="font-size:26px;line-height:1">${icon}</div>
+            <div><strong style="display:block">${i + 1}. ${t}</strong><span style="display:block;font-size:14px;color:#33415c;line-height:1.45">${d}</span>
+            <small style="display:block;margin-top:4px;font-size:12.5px;color:#6a7690;line-height:1.4">🇬🇧 <b>${te}</b>: ${de}</small></div>
+          </div>`).join("")}
+          <button type="button" data-close style="margin-top:12px;width:100%;border:0;border-radius:999px;padding:13px;background:#16275c;color:#fff;font:inherit;font-weight:700;cursor:pointer">Ho capito! · Got it!</button>
+        </div>`;
+        document.body.appendChild(box);
+        box.addEventListener("click", (e) => { if (e.target === box || e.target.closest("[data-close]")) box.remove(); });
+      }
+      window.llsOpenTips = openTips;
+      // footer link for everyone
+      const footer = document.querySelector("footer");
+      if (footer) {
+        const a = document.createElement("a");
+        a.href = "#"; a.id = "openTips"; a.textContent = "🍏 iPhone e problemi · Troubleshooting";
+        a.addEventListener("click", (e) => { e.preventDefault(); openTips(); });
+        const guide = document.getElementById("openGuide");
+        if (guide) { guide.after(document.createTextNode(" · "), a); } else footer.prepend(a);
+      }
+      // one-time banner for iPhone users (or anyone inside an in-app browser)
+      let seen = false;
+      try { seen = localStorage.getItem("lls_ios_note_v1") === "1"; } catch (_) {}
+      if ((isIOS || inApp) && !seen) {
+        const bar = document.createElement("div");
+        bar.id = "iosNote";
+        bar.setAttribute("role", "note");
+        bar.style.cssText = "position:fixed;left:12px;right:12px;bottom:12px;z-index:9000;max-width:520px;margin:0 auto;background:#fff8d6;border:2px solid #ffd23f;border-radius:18px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.18);font-size:14px;line-height:1.4;color:#16275c";
+        bar.innerHTML = `<strong>🍏 Usi un iPhone?</strong> Apple limita il microfono nei siti web: se la pronuncia non funziona, ${inApp ? "<b>apri il link in Safari</b> e " : homeScreen ? "per la pronuncia <b>apri il link in Safari</b> e " : ""}leggi i nostri consigli.
+          <br><small style="color:#5b6782">🇬🇧 iPhone? Apple limits the microphone on websites – if speaking doesn't work, see our tips.</small>
+          <div style="display:flex;gap:8px;margin-top:8px"><button type="button" data-tips style="flex:1;border:0;border-radius:999px;padding:10px;background:#16275c;color:#fff;font:inherit;font-weight:700;cursor:pointer">Consigli · Tips</button><button type="button" data-ok style="border:0;border-radius:999px;padding:10px 14px;background:#eef3fb;color:#16275c;font:inherit;font-weight:700;cursor:pointer">OK</button></div>`;
+        const done = () => { try { localStorage.setItem("lls_ios_note_v1", "1"); } catch (_) {} bar.remove(); };
+        bar.querySelector("[data-tips]").addEventListener("click", () => { done(); openTips(); });
+        bar.querySelector("[data-ok]").addEventListener("click", done);
+        const show = () => document.body.appendChild(bar);
+        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", show); else show();
+      }
     })();
   </script>
   <script>
@@ -2327,7 +2406,7 @@
         try { rec.abort(); } catch (_) {}
         recognizer = null;
         item.failed = true;
-        item.error = "The microphone didn't respond. Tap Speak to try again, or use Plan A (keyboard microphone) below." + IOS_TIP + " · Il microfono non ha risposto: riprova o usa il Piano A (microfono della tastiera).";
+        item.error = "The microphone didn't respond. Tap Speak to try again, or use Plan A (keyboard microphone) below." + IOS_TIP + " · Il microfono non ha risposto: riprova o usa il Piano A (microfono della tastiera). Consigli: 🍏 in fondo alla pagina.";
         if (quiz && quiz.items[quiz.index] === item) renderQuiz();
       }, 10000);
 
