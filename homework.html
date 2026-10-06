@@ -2235,6 +2235,17 @@
           You can still listen and repeat. · Il controllo della pronuncia non funziona in questo browser: apri il link con Chrome o Safari.</p>`;
       }
       if (item.error) html += `<p class="note">${esc(item.error)}</p>`;
+      // 6 Oct: Plan A for iPhones where the web speech check never answers - the keyboard's own
+      // dictation microphone (it uses Siri, not the browser) types what the student says; we check that text.
+      if (item.failed || !Recognition) {
+        html += `<div class="note" style="background:#eef6ff">
+          <strong>⌨️🎤 Plan A: use your keyboard microphone · Usa il microfono della tastiera</strong><br>
+          1 Tap the box. 2 Tap 🎤 on your keyboard (bottom right). 3 Read the sentence aloud. 4 Tap Check.<br>
+          <span style="color:#475569">1 Tocca il riquadro. 2 Tocca il 🎤 della tastiera (in basso a destra). 3 Leggi la frase ad alta voce. 4 Tocca Controlla.</span>
+          <input id="dictBox" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" lang="en-GB" value="${esc(item.dict || "")}" placeholder="🎤 …" style="width:100%;box-sizing:border-box;margin-top:8px;padding:10px;font-size:17px;border:2px solid #94a3b8;border-radius:10px">
+          <div class="actions" style="margin-top:8px"><button class="primary" type="button" id="dictCheck">✓ Check · Controlla</button></div>
+        </div>`;
+      }
       if ((item.failed || !Recognition) && CAN_RECORD) {
         html += `<div class="note" style="background:#fff8ec">
           <strong>🎙 Plan B: record yourself · Registrati</strong><br>Record the sentence, listen to yourself and to the model, then decide. · Registra la frase, ascoltati e confronta.
@@ -2274,6 +2285,14 @@
 
       const mic = main.querySelector("#mic");
       if (mic) mic.addEventListener("click", () => listen(mic, item));
+      main.querySelector("#dictCheck")?.addEventListener("click", () => {
+        const text = String(main.querySelector("#dictBox")?.value || "").trim();
+        item.dict = text;
+        if (!text) { item.error = "Tap the box, then the 🎤 on your keyboard, and read the sentence. · Tocca il riquadro, poi il 🎤 della tastiera."; renderQuiz(); return; }
+        item.error = "";
+        scoreHeard_(item, [text]);
+        renderQuiz();
+      });
       main.querySelector("#selfRec")?.addEventListener("click", () => recordSelf(item));
       main.querySelector("#selfStop")?.addEventListener("click", () => stopSelfRec());
       main.querySelector("#selfOk")?.addEventListener("click", () => { item.selfOk = true; item.best = Math.max(item.best, SPEAK_PASS); renderQuiz(); });
@@ -2308,24 +2327,14 @@
         try { rec.abort(); } catch (_) {}
         recognizer = null;
         item.failed = true;
-        item.error = "The microphone didn't respond. Tap Speak to try again, or use Plan B below." + IOS_TIP + " · Il microfono non ha risposto: riprova o usa il Piano B.";
+        item.error = "The microphone didn't respond. Tap Speak to try again, or use Plan A (keyboard microphone) below." + IOS_TIP + " · Il microfono non ha risposto: riprova o usa il Piano A (microfono della tastiera).";
         if (quiz && quiz.items[quiz.index] === item) renderQuiz();
       }, 10000);
 
       rec.onresult = (event) => {
         clearTimeout(watchdog);
         item.error = "";
-        const alternatives = Array.from(event.results[0] || []).map((a) => a.transcript);
-        let best = { ratio: -1 };
-        let heard = "";
-        alternatives.forEach((text) => {
-          const m = matchWords(item.text, text);
-          if (m.ratio > best.ratio) { best = m; heard = text; }
-        });
-        item.heard = heard || "…";
-        item.marks = best.hit || null;
-        item.best = Math.max(item.best, best.ratio || 0);
-        if (best.ratio >= SPEAK_PASS) item.marks = best.hit;
+        scoreHeard_(item, Array.from(event.results[0] || []).map((a) => a.transcript));
       };
       rec.onerror = (event) => {
         clearTimeout(watchdog);
@@ -2342,6 +2351,18 @@
         if (quiz && quiz.items[quiz.index] === item) renderQuiz();
       };
       try { rec.start(); } catch (_) { clearTimeout(watchdog); renderQuiz(); }
+    }
+    function scoreHeard_(item, alternatives) {
+        let best = { ratio: -1 };
+        let heard = "";
+        alternatives.forEach((text) => {
+          const m = matchWords(item.text, text);
+          if (m.ratio > best.ratio) { best = m; heard = text; }
+        });
+        item.heard = heard || "…";
+        item.marks = best.hit || null;
+        item.best = Math.max(item.best, best.ratio || 0);
+        if (best.ratio >= SPEAK_PASS) item.marks = best.hit;
     }
 
 
