@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#082d5c">
   <meta name="description" content="London Language School management portal">
   <title>LLS Portal | London Language School</title>
-  <link rel="stylesheet" href="portal.css?v=20261007b">
-  <link rel="stylesheet" href="portal-theme.css?v=20261007b">
+  <link rel="stylesheet" href="portal.css?v=20261007c">
+  <link rel="stylesheet" href="portal-theme.css?v=20261007c">
 </head>
 
 <body>
@@ -686,28 +686,20 @@
             </div>
 
             <div class="panel cancel-banner" id="lessonCancelBanner" hidden></div>
-            <div class="panel tell-office" id="lessonTellOffice" hidden>
-              <div class="tell-office-row">
-                <span class="tell-office-label">🙋 Tell Rosanna:</span>
-                <button type="button" class="button button-secondary" data-tell="lesson">I didn't teach this lesson</button>
-                <button type="button" class="button button-secondary" data-tell="add">➕ New student in this class</button>
-                <button type="button" class="button button-secondary" data-tell="remove">➖ A student has left</button>
-              </div>
-              <div id="lessonTellForm" class="tell-office-form" hidden></div>
-            </div>
+            <div class="panel lesson-step step-1" id="lessonHappen"></div>
             <div class="panel lesson-log-latest" id="lessonLast" hidden></div>
-            <div class="panel plan-panel" id="lessonPlanPanel" hidden></div>
+            <div class="panel plan-panel lw-gate" id="lessonPlanPanel" hidden></div>
 
-            <div class="panel">
+            <div class="panel lw-gate">
               <div class="lesson-sec-head">
-                <p class="section-label" style="margin:0;">1 · Register <span id="lessonRegCount" class="muted"></span></p>
+                <p class="section-label step-label" style="margin:0;"><span class="step-n s4">4</span> 🙋 Register <span id="lessonRegCount" class="muted"></span></p>
                 <button class="row-action" id="lessonAllHere" type="button">Everyone here</button>
               </div>
               <div id="lessonRegister"></div>
             </div>
 
-            <div class="panel">
-              <p class="section-label" style="margin-top:0;">2 · What we did</p>
+            <div class="panel lw-gate">
+              <p class="section-label step-label" style="margin-top:0;"><span class="step-n s5">5</span> ✏️ What did you do?</p>
               <div class="lesson-type" id="lessonTypeBar" role="radiogroup" aria-label="What kind of lesson?">
                 <button type="button" class="lesson-type-btn active" role="radio" aria-checked="true" data-ltype="book"><span>📘</span><strong>Coursebook</strong><small>the normal lesson</small></button>
                 <button type="button" class="lesson-type-btn" role="radio" aria-checked="false" data-ltype="choice"><span>🧑‍🏫</span><strong>Teacher's choice</strong><small>your own lesson plan</small></button>
@@ -783,8 +775,8 @@
               </div>
             </div>
 
-            <div class="panel">
-              <p class="section-label" style="margin-top:0;">3 · Homework <span class="muted">(optional: goes straight to the students' app)</span></p>
+            <div class="panel lw-gate">
+              <p class="section-label step-label" style="margin-top:0;"><span class="step-n s6">6</span> 📝 Homework <span class="muted">(optional: goes straight to the students' app)</span></p>
               <div class="form-grid">
                 <div class="form-field form-field-wide">
                   <label for="lessonHwTitle">Homework</label>
@@ -810,9 +802,9 @@
               <div id="lessonHwList"></div>
             </div>
 
-            <div class="panel">
+            <div class="panel lw-gate">
               <div class="lesson-sec-head" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-                <p class="section-label" style="margin:0;">4 · Quiz <span class="muted">(optional: students take it in their app, it marks itself)</span></p>
+                <p class="section-label step-label" style="margin:0;"><span class="step-n s7">+</span> 🧠 Quiz <span class="muted">(optional: students take it in their app, it marks itself)</span></p>
                 <button class="button button-secondary" id="lessonNewTest" type="button">+ New quiz</button>
               </div>
               <div id="lessonTests" style="margin-top:8px;"></div>
@@ -825,8 +817,16 @@
               </details>
             </div>
 
-            <div id="lessonSaveErrors" class="lesson-save-errors" role="alert" hidden></div>
-            <div class="lesson-save-bar">
+            <div class="panel tell-office" id="lessonTellOffice" hidden>
+              <div class="tell-office-row">
+                <span class="tell-office-label">🙋 Tell Rosanna:</span>
+                <button type="button" class="button button-secondary" data-tell="add">➕ New student in this class</button>
+                <button type="button" class="button button-secondary" data-tell="remove">➖ A student has left</button>
+              </div>
+              <div id="lessonTellForm" class="tell-office-form" hidden></div>
+            </div>
+            <div id="lessonSaveErrors" class="lesson-save-errors lw-gate" role="alert" hidden></div>
+            <div class="lesson-save-bar lw-gate">
               <span class="lesson-save-hint">Saves the register, notes and homework together</span>
               <button class="button button-primary" id="lessonSaveButton" type="button">💾 Save lesson</button>
             </div>
@@ -2322,12 +2322,12 @@
   ========================== -->
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
-  <script src="practice/courses.js?v=20261007b"></script>
-  <script src="lesson-plans.js?v=20261007b"></script>
-  <script src="workbook.js?v=20261007b"></script>
-  <script src="portal.js?v=20261007b"></script>
-  <script src="resources.js?v=20261007b"></script>
-  <script src="report.js?v=20261007b"></script>
-  <script src="portal-i18n.js?v=20261007b"></script>
+  <script src="practice/courses.js?v=20261007c"></script>
+  <script src="lesson-plans.js?v=20261007c"></script>
+  <script src="workbook.js?v=20261007c"></script>
+  <script src="portal.js?v=20261007c"></script>
+  <script src="resources.js?v=20261007c"></script>
+  <script src="report.js?v=20261007c"></script>
+  <script src="portal-i18n.js?v=20261007c"></script>
 </body>
 </html>

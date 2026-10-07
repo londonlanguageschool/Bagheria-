@@ -550,3 +550,56 @@ input[type="checkbox"] { border-radius: 4px; }
 
 /* 7 Oct: "couldn't load your classes" with a retry button */
 .core-problem { display:inline-flex; flex-wrap:wrap; gap:8px; align-items:center; background:#fff4e5; border:1px solid #f5b971; color:#7a4300; border-radius:10px; padding:8px 12px; font-weight:600; }
+
+/* =========================================================
+   7 Oct — teacher lesson flow (step by step, pastel colours)
+   ========================================================= */
+#lessonWork.lw-wait .lw-gate { display: none !important; }
+.step-label { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.step-n { flex: none; width: 30px; height: 30px; border-radius: 50%; display: inline-grid; place-items: center; font-weight: 900; font-size: 15px; color: var(--ink); letter-spacing: 0; }
+.step-n.s1 { background: #f7a6c4; } .step-n.s2 { background: #8fc9f2; } .step-n.s3 { background: #ffd966; }
+.step-n.s4 { background: #8fd9a8; } .step-n.s5 { background: #8fc9f2; } .step-n.s6 { background: #ffd966; } .step-n.s7 { background: #e5e7eb; }
+.lesson-step.step-1 { border: 2px solid #f7a6c4; }
+.happen-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 760px) { .happen-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.happen-tile { border: 3px solid transparent; border-radius: 16px; padding: 14px 12px; text-align: left; cursor: pointer; display: grid; gap: 4px; font: inherit; font-weight: 800; color: var(--ink); transition: transform .12s, border-color .12s; }
+.happen-tile b { font-size: 1.7rem; line-height: 1; }
+.happen-tile small { font-weight: 600; opacity: .75; }
+.happen-tile:hover { transform: translateY(-2px); }
+.happen-tile.sel { border-color: var(--ink); box-shadow: 0 6px 16px rgba(15, 27, 61, .12); }
+.happen-tile.t-green { background: #dff5e9; } .happen-tile.t-blue { background: #dcefff; } .happen-tile.t-yellow { background: #fff1a8; } .happen-tile.t-pink { background: #ffe1e9; }
+.happen-tiles.compact .happen-tile { padding: 8px 10px; grid-template-columns: auto 1fr; align-items: center; }
+.happen-tiles.compact .happen-tile b { font-size: 1.2rem; }
+.happen-tiles.compact .happen-tile small { display: none; }
+.happen-follow { margin-top: 12px; background: #eef7ff; border-radius: 14px; padding: 12px; display: grid; gap: 10px; }
+.happen-follow.done { background: #dff5e9; font-weight: 700; }
+.happen-follow label, .today-form label { display: grid; gap: 4px; font-weight: 800; }
+.happen-follow select, .happen-follow input, .today-form select, .today-form input, .today-select, .cover-row select { font: inherit; padding: 10px; border-radius: 12px; border: 2px solid var(--line); background: #fff; color: var(--ink); width: 100%; max-width: 520px; }
+.happen-next { margin: 10px 0 0; font-weight: 700; color: #2e7d4f; }
+.cover-note { margin: 0 0 10px; background: #dcefff; border-radius: 12px; padding: 8px 12px; }
+.cover-row { margin-top: 12px; display: grid; gap: 8px; justify-items: start; }
+/* step 2 */
+.last-card { border-left: 6px solid #8fc9f2; background: #eef7ff; border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; }
+.last-meta { font-size: 15px; }
+.last-chip { display: inline-block; background: #fff; border: 2px solid var(--line); border-radius: 999px; padding: 1px 10px; font-weight: 800; font-size: 13px; margin-left: 6px; }
+.last-lines { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+.last-note { background: #fff1a8; border-radius: 10px; padding: 8px 10px; font-weight: 600; }
+.last-hw { color: var(--muted, #5b6785); font-size: 14px; }
+.last-more summary { cursor: pointer; font-weight: 800; color: #16275c; }
+.last-older { display: grid; gap: 6px; margin-top: 8px; font-size: 14px; }
+.last-older > div { border-left: 4px solid var(--line); padding: 2px 10px; }
+/* step 3 */
+.today-card { background: linear-gradient(135deg, #fff1a8, #fff8d6); border-radius: 16px; padding: 14px; display: grid; gap: 8px; }
+.today-eyebrow { font-size: 12px; font-weight: 900; letter-spacing: .08em; color: #7a5b00; }
+.today-title { font-size: 1.2rem; }
+.today-title .plan-code { margin-right: 6px; }
+.plan-audio-d summary { cursor: pointer; font-weight: 800; color: #16275c; }
+.today-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.today-act { background: #fff; border: 2px dashed #8b95ad; border-radius: 999px; padding: 6px 14px; font: inherit; font-weight: 800; cursor: pointer; color: var(--ink); }
+.today-act.on { border-style: solid; border-color: var(--ink); background: #eef7ff; }
+.today-form { margin-top: 10px; background: #eef7ff; border-radius: 14px; padding: 12px; display: grid; gap: 10px; }
+.today-form-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.today-q { display: block; margin: 14px 0 6px; font-weight: 900; font-size: 16px; }
+.today-select.needs-pick { border-color: #f7a6c4; background: #fff5f8; }
+.plan-all { margin-top: 12px; }
+.plan-all summary { cursor: pointer; font-weight: 800; color: #16275c; }
