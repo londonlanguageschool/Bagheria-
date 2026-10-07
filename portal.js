@@ -10108,14 +10108,16 @@ function llsPlanMaterialLinks_(p, big) {
 }
 // 6 Oct: make the audio route obvious. Drive/Google Slides drop the sound inside a .pptx, so teachers must
 // download the deck and open it in PowerPoint. Courses whose decks carry their audio are listed in LLS_PLANS.audioInside.
-function llsPlanAudioTip_(cls) {
-  const inside = !!(window.LLS_PLANS && LLS_PLANS.audioInside && cls && LLS_PLANS.audioInside[cls.book]);
+function llsPlanAudioTip_(cls, plan) {
+  // 7 Oct: per lesson. true = whole course; a list = only those lessons (B1 units 1–3 and 7–10 have no audio yet).
+  const a = window.LLS_PLANS && LLS_PLANS.audioInside && cls ? LLS_PLANS.audioInside[cls.book] : null;
+  const inside = Array.isArray(a) ? !!(plan && a.includes(plan.id)) : !!a;
   return `<div class="plan-audio"><strong>🔊 Listening and video</strong>
     <ol>
       <li>Click <b>🖥 Slides (PowerPoint)</b>: the file opens in Google Drive. Click the <b>⬇ download arrow</b> in the grey bar at the top (next to "Page 1 / 28") – or <b>File → Download</b>.</li>
       <li>Open the downloaded file in <b>PowerPoint</b> (not Google Slides) and start the Slide Show: answers appear on click only in PowerPoint.</li>
       ${inside ? `<li>On a listening slide, click the <b>🔈 speaker icon</b> (top of the slide) to play the track. Videos play on the slide too.</li>`
-        : `<li>The audio isn't inside these slides yet: play the track shown on the slide (🎧 e.g. 6.11) from the book's audio.</li>`}
+        : `<li><b>⚠ This lesson has no sound inside the slides yet.</b> Play the track number shown on the slide (🎧 e.g. 1.14) from the book's audio (CD, or the English File app/website).</li>`}
     </ol>
     <span class="plan-audio-warn">⚠ Don't click "Open with Google Slides": there is <b>no sound</b> there. Download it and use PowerPoint.</span></div>`;
 }
@@ -10172,7 +10174,7 @@ function llsRenderPlanPanel() {
       <div class="plan-feature-actions">${llsPlanMaterialLinks_(feat, true) || '<span class="muted">Slides are being uploaded – ask the office.</span>'}${feat.id === todayCode ? "" : `<button type="button" class="button" data-plan-use="${escapeAttribute(feat.id)}">▶ Teach this today</button><button type="button" class="button button-secondary" data-plan-done="${escapeAttribute(feat.id)}" title="The class has already had this lesson: skip to the next one">✓ Already done</button>`}</div>
     </div>
     <p class="plan-hint">Teaching a different lesson today? Pick it in the list below (<b>Teach this instead</b>). Class already had a lesson? Press <b>✓ Already done</b> and the next one moves up.</p>` : ""}
-    ${feat && llsPlanUrl_(feat, "file") ? llsPlanAudioTip_(cls) : ""}
+    ${feat && llsPlanUrl_(feat, "file") ? llsPlanAudioTip_(cls, feat) : ""}
     <div class="plan-bar" aria-hidden="true"><i style="width:${Math.round(doneCount / plans.length * 100)}%"></i></div>
     <div class="plan-list">${shown.map((p) => {
       const t = taught[p.id];
