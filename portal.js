@@ -7985,6 +7985,7 @@ async function llsRenderLesson() {
   byId("lessonLast").hidden = true;
   llsLesson.happen = ""; llsPlanPick = ""; llsPlanForm = "";
   ["lessonDone", "lessonNotes", "lessonHwTitle", "lessonHwText"].forEach((id) => setValue(id, ""));
+  llsSetProgress_(0);
   llsSkillState = {};
   byId("lessonSkills")?.classList.remove("needs");
   setValue("lessonUnitPage", cls.currentUnit || "");
@@ -8132,9 +8133,23 @@ function llsFillLessonNote(entry, cls) {
   else setValue("lessonUnitPage", entry.unit || "");
   llsSkillState = parsed.skills;
   setValue("lessonDone", ct.rest);
-  setValue("lessonNotes", mat.notes || "");
+  const stop = String(mat.notes || "").match(LLS_STOP_RE);
+  setValue("lessonNotes", String(mat.notes || "").replace(/^⏸ Stopped at slide \d+\n?/, ""));
+  llsSetProgress_(stop ? Number(stop[1]) : 0);
   llsRenderSkills();
 }
+function llsSetProgress_(n) {
+  setValue("lessonProgress", n ? "stop" : "");
+  setValue("lessonStopSlide", n ? String(n) : "");
+  const i = byId("lessonStopSlide"); if (i) i.hidden = !n;
+}
+document.addEventListener("DOMContentLoaded", () => {
+  byId("lessonProgress")?.addEventListener("change", (e) => {
+    const i = byId("lessonStopSlide"); if (!i) return;
+    i.hidden = e.target.value !== "stop"; if (!i.hidden) i.focus();
+    llsLesson.noteTouched = true;
+  });
+});
 
 function llsSetRegisterRow(row, status, notes) {
   row.dataset.status = status;
@@ -8237,6 +8252,11 @@ async function llsChangeLessonUnit(step) {
 }
 
 const LLS_NOBODY_CAME = "No lesson: all students absent.";
+function llsStopLine_() {
+  if (value("lessonProgress") !== "stop") return "";
+  const n = Number(value("lessonStopSlide"));
+  return n > 0 ? `⏸ Stopped at slide ${n}` : "";
+}
 async function llsSaveLesson() {
   const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
   const date = byId("lessonDate")?.value || "";
@@ -8278,6 +8298,11 @@ async function llsSaveLesson() {
   skillBox?.classList.toggle("needs", needSkill);
   const doneText = [...llsSkillLines(llsSkillState), choiceOn ? LLS_CHOICE_MARK + choiceTitle : "", value("lessonDone").trim()].filter(Boolean).join("\n") || (specialOn ? specialTitle + " lesson" : nobodyHere ? LLS_NOBODY_CAME : "");
   const needDone = choiceOn && !nobodyHere && value("lessonDone").trim().length < 30;
+  if (value("lessonProgress") === "stop" && !(Number(value("lessonStopSlide")) > 0)) {
+    showToast("Write the slide number where you stopped (step 5 · How far did you get?).", "error");
+    byId("lessonStopSlide")?.focus();
+    return;
+  }
   byId("lessonDone")?.classList.toggle("needs", needDone);
   const errBox = byId("lessonSaveErrors");
   if (unrated.length || needSkill || (noTopic.length && !nobodyHere) || needDone) {
@@ -8307,7 +8332,7 @@ async function llsSaveLesson() {
     // nobody came: no unit, so the lesson plan isn't marked as taught
     unit: specialOn ? LLS_SPECIAL_PREFIX + specialTitle : choiceOn ? LLS_CHOICE_UNIT : nobodyHere && !ticked.length ? "" : value("lessonUnitPage").trim(),
     whatWeDid: doneText,
-    notes: [value("lessonNotes").trim(), choiceOn && choiceLinks.length ? LLS_MATERIALS_MARK + "\n" + choiceLinks.join("\n") : ""].filter(Boolean).join("\n")
+    notes: [llsStopLine_(), value("lessonNotes").trim(), choiceOn && choiceLinks.length ? LLS_MATERIALS_MARK + "\n" + choiceLinks.join("\n") : ""].filter(Boolean).join("\n")
   };
   // Photos/files of the materials go up now (they are linked by class + date, not by the log row).
   const choiceFiles = choiceOn ? Array.from(byId("lessonChoiceFiles")?.files || []) : [];
@@ -10137,12 +10162,25 @@ function llsRenderHwSheetHint_() {
   box.innerHTML = url ? `📝 <strong>${escapeHtml(p.id)} has a homework sheet.</strong> If you want to use it: <a href="${escapeAttribute(url)}" target="_blank" rel="noopener">open it</a>, download the PDF, then attach it here with <b>📎 Attach files</b>. Students get it in their app. <span class="muted">(Optional.)</span>` : "";
 }
 // When each plan was taught with this class: { code: [{ date, teacher }] }.
+// 7 Oct (owner): a lesson that wasn't finished is saved with "⏸ Stopped at slide N" as the first line of the
+// notes for the next teacher. It doesn't count as taught: the plan panel says "Continue … from slide N".
+const LLS_STOP_RE = /^⏸ Stopped at slide (\d+)/;
+function llsStopSlide_(e) { const m = String((e && e.notes) || "").match(LLS_STOP_RE); return m ? Number(m[1]) : 0; }
 function llsPlanTaught_(entries) {
   const out = {};
   (entries || []).forEach((e) => {
     const code = llsPlanCode_(e.unit);
     if (!code) return;
-    (out[code] = out[code] || []).push({ date: String(e.lessonDate || "").slice(0, 10), teacher: String(e.teacherName || "").split(/\s+/)[0] });
+    (out[code] = out[code] || []).push({ date: String(e.lessonDate || "").slice(0, 10), teacher: String(e.teacherName || "").split(/\s+/)[0], stop: llsStopSlide_(e) });
+  });
+  return out;
+}
+// Lessons started but not finished: { code: {slide, date, teacher} } – only if no later entry finished it.
+function llsPlanPartial_(taught) {
+  const out = {};
+  Object.entries(taught).forEach(([code, list]) => {
+    const real = list.filter((x) => !x.earlier).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    if (real.length && real[0].stop) out[code] = { slide: real[0].stop, date: real[0].date, teacher: real[0].teacher };
   });
   return out;
 }
@@ -10197,6 +10235,8 @@ function llsRenderPlanPanel() {
   const taught = llsPlanTaught_((llsLesson.entries || []).filter((e) => String(e.lessonDate || "").slice(0, 10) !== date));
   const marks = llsPlansDoneMap_(cls);
   Object.entries(marks).forEach(([code, m]) => { if (!taught[code]) taught[code] = [{ date: m.date || "", teacher: m.who || "", earlier: true, skip: m.kind === "skip", reason: m.reason || "" }]; });
+  const partial = llsPlanPartial_(taught);
+  Object.keys(partial).forEach((code) => { delete taught[code]; });
   const todayCode = llsPlanCode_(value("lessonUnitPage"));
   const doneCount = plans.filter((p) => taught[p.id]).length;
   let lastIdx = -1;
@@ -10231,7 +10271,8 @@ function llsRenderPlanPanel() {
   box.innerHTML = `
     <p class="section-label step-label" style="margin:0 0 10px;"><span class="step-n s3">3</span> 📚 Today's lesson <span class="muted" style="text-transform:none;letter-spacing:0;">· ${escapeHtml(name)} · ${doneCount}/${plans.length} done</span></p>
     ${feat ? `<div class="today-card">
-      <span class="today-eyebrow">📌 ${picked ? "TODAY YOU'RE TEACHING" : "TODAY'S LESSON IS"}</span>
+      <span class="today-eyebrow">📌 ${picked ? "TODAY YOU'RE TEACHING" : partial[feat.id] ? "CONTINUE TODAY'S LESSON" : "TODAY'S LESSON IS"}</span>
+      ${partial[feat.id] ? `<div class="today-continue">⏸ Start from <b>slide ${partial[feat.id].slide}</b> – the class stopped there on ${escapeHtml(new Date(partial[feat.id].date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }))}${partial[feat.id].teacher ? " (" + escapeHtml(partial[feat.id].teacher) + ")" : ""}.</div>` : ""}
       <div class="today-title"><span class="plan-code">${escapeHtml(feat.id)}</span> <strong>${escapeHtml(feat.title)}</strong></div>
       <small>${escapeHtml(feat.focus)}${feat.pages ? " · " + escapeHtml(feat.pages) : ""}</small>
       <div class="plan-feature-actions">${llsPlanMaterialLinks_(feat, true) || '<span class="muted">Slides are being uploaded – ask the office.</span>'}</div>
@@ -10253,7 +10294,7 @@ function llsRenderPlanPanel() {
       ${picked && taught[picked.id] ? `<p class="plan-warn">⚠ This class already had ${escapeHtml(picked.id)} (${escapeHtml(status(picked))}). That's fine if you're repeating it.</p>` : ""}` : ""}
     <details class="plan-all"${llsPlanShowAll ? " open" : ""}><summary>📚 All lessons in this course (${doneCount}/${plans.length} done)</summary>
       <div class="plan-list">${plans.map((p, i) => {
-        const t = taught[p.id], st = status(p), isToday = p.id === todayCode, earlier = t && t.every((x) => x.earlier);
+        const t = taught[p.id], st = partial[p.id] ? "⏸ Stopped at slide " + partial[p.id].slide : status(p), isToday = p.id === todayCode, earlier = t && t.every((x) => x.earlier);
         return `<div class="plan-row ${isToday ? "today" : t ? "done" : i === nextIdx ? "next" : ""}">
           <span class="plan-code">${escapeHtml(p.id)}</span>
           <span class="plan-text"><strong>${escapeHtml(p.title)}</strong><small>${escapeHtml(p.focus)}${p.pages ? " · " + escapeHtml(p.pages) : ""}</small>${isToday ? "<em>📌 Today</em>" : st ? `<em>${escapeHtml(st)}</em>` : i === nextIdx ? "<em>📅 Next</em>" : ""}</span>
@@ -11224,7 +11265,8 @@ function llsRenderLastLesson_(date) {
     <div class="last-card">
       <div class="last-meta"><b>${escapeHtml(s.date)}</b> · ${escapeHtml(s.teacher)}${s.unit ? ` <span class="last-chip">${escapeHtml(s.unit)}</span>` : ""}</div>
       ${short.length ? `<ul class="last-lines">${short.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>` : ""}
-      ${s.notes ? `<div class="last-note">📌 <b>For you:</b> ${escapeHtml(s.notes)}</div>` : ""}
+      ${llsStopSlide_(list[0]) ? `<div class="last-stop">⏸ They stopped at <b>slide ${llsStopSlide_(list[0])}</b>${s.unit ? " of " + escapeHtml(s.unit) : ""}: start from there.</div>` : ""}
+      ${s.notes.replace(/^⏸ Stopped at slide \d+\n?/, "").trim() ? `<div class="last-note">📌 <b>For you:</b> ${escapeHtml(s.notes.replace(/^⏸ Stopped at slide \d+\n?/, "").trim())}</div>` : ""}
       <div class="last-hw">📝 Homework set: ${s.hw ? escapeHtml(s.hw) : "none"}</div>
       <details class="last-more"><summary>Show everything from this lesson</summary>${llsLessonLogEntryHtml(list[0])}</details>
       ${earlier.length ? `<details class="last-more"><summary>Earlier lessons (${earlier.length})</summary><div class="last-older">${earlier.map((e) => {

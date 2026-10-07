@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#082d5c">
   <meta name="description" content="London Language School management portal">
   <title>LLS Portal | London Language School</title>
-  <link rel="stylesheet" href="portal.css?v=20261007e">
-  <link rel="stylesheet" href="portal-theme.css?v=20261007e">
+  <link rel="stylesheet" href="portal.css?v=20261007f">
+  <link rel="stylesheet" href="portal-theme.css?v=20261007f">
 </head>
 
 <body>
@@ -763,6 +763,11 @@
                 <div class="form-field" id="lessonUnitPageField">
                   <label for="lessonUnitPage">Unit / page</label>
                   <input id="lessonUnitPage" type="text" placeholder="e.g. 2B, p.18">
+                </div>
+                <div class="form-field" id="lessonProgressField">
+                  <label for="lessonProgress">How far did you get?</label>
+                  <select id="lessonProgress"><option value="">✅ We finished the lesson</option><option value="stop">⏸ We stopped at slide…</option></select>
+                  <input id="lessonStopSlide" type="number" min="1" max="80" inputmode="numeric" placeholder="Slide number (e.g. 9)" hidden>
                 </div>
                 <div class="form-field form-field-wide">
                   <label for="lessonDone" id="lessonDoneLabel">Anything else? <span class="muted">(optional: students see this)</span></label>
@@ -2322,12 +2327,12 @@
   ========================== -->
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
-  <script src="practice/courses.js?v=20261007e"></script>
-  <script src="lesson-plans.js?v=20261007e"></script>
-  <script src="workbook.js?v=20261007e"></script>
-  <script src="portal.js?v=20261007e"></script>
-  <script src="resources.js?v=20261007e"></script>
-  <script src="report.js?v=20261007e"></script>
-  <script src="portal-i18n.js?v=20261007e"></script>
+  <script src="practice/courses.js?v=20261007f"></script>
+  <script src="lesson-plans.js?v=20261007f"></script>
+  <script src="workbook.js?v=20261007f"></script>
+  <script src="portal.js?v=20261007f"></script>
+  <script src="resources.js?v=20261007f"></script>
+  <script src="report.js?v=20261007f"></script>
+  <script src="portal-i18n.js?v=20261007f"></script>
 </body>
 </html>

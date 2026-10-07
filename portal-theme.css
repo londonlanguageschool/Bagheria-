@@ -603,3 +603,7 @@ input[type="checkbox"] { border-radius: 4px; }
 .today-select.needs-pick { border-color: #f7a6c4; background: #fff5f8; }
 .plan-all { margin-top: 12px; }
 .plan-all summary { cursor: pointer; font-weight: 800; color: #16275c; }
+
+/* 7 Oct: unfinished lessons */
+.today-continue, .last-stop { background: #ffe1e9; border: 2px solid #f7a6c4; border-radius: 12px; padding: 8px 12px; font-weight: 700; }
+#lessonStopSlide { margin-top: 6px; max-width: 220px; }
