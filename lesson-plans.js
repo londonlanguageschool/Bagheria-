@@ -48,7 +48,7 @@ window.LLS_PLANS = {
   "B1_Green_Course_6B-10B/B1_1A-2_Homework_sheet.pdf": "https://drive.google.com/file/d/1wLON1hYOslHo9lX26IVjxu10WPVfrehU/view",
   "B1_Green_Course_6B-10B/B1_1A-2_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1hPOL8sVl5fq4QNiS2QDIMHCbN8gih4rY/view",
   "B1_Green_Course_6B-10B/B1_1A-2_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1myipdsRFNq8-unrz05kmKNVztEs0C6pM/view",
-  "B1_Green_Course_6B-10B/B1_1B-1_Modern_families.pptx": "https://drive.google.com/file/d/1mjNGde3fh680fiytiv-yuWFO0bnkF0c7/view",
+  "B1_Green_Course_6B-10B/B1_1B-1_Modern_families.pptx": "https://drive.google.com/file/d/1pnlJXahV5hH2L0A46z3R8fnfx5-953Hd/view",
   "B1_Green_Course_6B-10B/B1_1B-1_Homework_sheet.pdf": "https://drive.google.com/file/d/11O8HaDvGZuSIOEWvhCHh6EbZRwe3oo1S/view",
   "B1_Green_Course_6B-10B/B1_1B-1_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1kBW-CwFupKsGOhUf9BqlVC8Ah2d3jElY/view",
   "B1_Green_Course_6B-10B/B1_1B-1_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1xi75sUk9wT54gxzNAeQOOv2zuGkVnyzW/view",
