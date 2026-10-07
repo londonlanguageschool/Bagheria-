@@ -4987,6 +4987,30 @@ function llsNormaliseStage(stage) {
 
 let llsCoreLoadPromise = null;
 let llsCoreSettled = false; // 28 Sept: true once the first class list from Google has arrived (or failed)
+let llsCoreFailed = false;   // 7 Oct: the last try to load from Google failed
+let llsCoreFromCache = false; // 7 Oct: showing the copy saved on this device
+
+function llsApplyCachedCore_() {
+  try {
+    if (!sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY)) return false;
+    const c = JSON.parse(localStorage.getItem("lls_core_rows") || "null");
+    if (!c || !Array.isArray(c.classes) || !c.classes.length) return false;
+    llsApplyCorePortalData({ students: c.students || [], classes: c.classes, enrolments: c.enrolments || [] });
+    llsCoreFromCache = true;
+    return true;
+  } catch (_) { return false; }
+}
+
+// "Couldn't load" message with a retry button (used where the class list is empty).
+function llsCoreLoadProblemHtml_() {
+  return `<span class="core-problem">⚠ Couldn't load your classes from Google (slow connection or Google busy).<button type="button" class="row-action" data-core-retry>↻ Try again</button></span>`;
+}
+document.addEventListener("click", (e) => {
+  const b = e.target && e.target.closest ? e.target.closest("[data-core-retry]") : null;
+  if (!b) return;
+  b.disabled = true; b.textContent = "⏳ Loading…";
+  llsLoadCoreFromSheets(true);
+});
 
 function llsApplyCorePortalData(payload) {
   const studentRows = Array.isArray(payload.students) ? payload.students : [];
@@ -5072,14 +5096,21 @@ function llsApplyCorePortalData(payload) {
 async function llsLoadCoreFromSheets(force = false) {
   if (llsCoreLoadPromise && !force) return llsCoreLoadPromise;
 
+  // 7 Oct: show the copy saved on this device straight away (no waiting for
+  // Google, and no empty calendar if Google is slow); Google's copy replaces it.
+  if (!(state.classes || []).length) llsApplyCachedCore_();
+  llsCoreFailed = false;
   llsCoreLoadPromise = (async () => {
     try {
       // One supported endpoint supplies Students + Classes + Enrolments.
       // This replaces the competing getStudents/getClasses requests that
       // were intermittently redirecting to googleusercontent 404 pages.
       const payload = await llsApiGet("getPortalData");
+      if (!payload || !Array.isArray(payload.classes) || !payload.classes.length) throw new Error("Google sent no classes.");
+      llsCoreFromCache = false;
       return llsApplyCorePortalData(payload);
     } catch (error) {
+      llsCoreFailed = true;
       console.error("LLS: could not load core portal data from Google Sheets:", error);
       showToast(
         "Could not refresh school data from Google Sheets. Showing the last available data.",
@@ -5088,10 +5119,11 @@ async function llsLoadCoreFromSheets(force = false) {
       return null;
     } finally {
       llsCoreLoadPromise = null;
-      if (!llsCoreSettled) {
-        llsCoreSettled = true;
-        if (document.getElementById("page-lesson")?.classList.contains("active") && typeof llsRenderLessonPicker === "function") llsRenderLessonPicker();
-      }
+      if (!llsCoreSettled) llsCoreSettled = true;
+      // Redraw what depends on the class list (also after a failure, so the
+      // page says "couldn't load" instead of "no lessons").
+      if (document.getElementById("page-lesson")?.classList.contains("active") && typeof llsRenderLessonPicker === "function") llsRenderLessonPicker();
+      if (typeof llsScheduleWeekPanels_ === "function") llsScheduleWeekPanels_();
     }
   })();
 
@@ -7907,7 +7939,7 @@ function llsRenderLessonPicker() {
   const loading = !llsCoreSettled && !today.length;
   box.innerHTML = `
     <p class="section-label" style="margin:0 0 8px;">${onlyMine ? "My lessons" : "Lessons"} on ${escapeHtml(dayLabel)}</p>
-    <div class="lesson-chips">${today.length ? today.map(({ cls, time }) => chip(cls, `<strong>${escapeHtml(time)}</strong> ${escapeHtml(cls.name)}`)).join("") : (loading ? `<span class="muted">⏳ Loading your classes from Google… (up to 30 seconds)</span>` : `<span class="muted">No lessons on this day.</span>`)}</div>
+    <div class="lesson-chips">${today.length ? today.map(({ cls, time }) => chip(cls, `<strong>${escapeHtml(time)}</strong> ${escapeHtml(cls.name)}`)).join("") : (loading ? `<span class="muted">⏳ Loading your classes from Google… (up to 30 seconds)</span>` : !(state.classes || []).length ? (llsCoreLoadPromise ? `<span class="muted">⏳ Loading your classes from Google…</span>` : llsCoreLoadProblemHtml_()) : `<span class="muted">No lessons on this day.</span>`)}</div>
     <details class="lesson-all"${today.length ? "" : " open"}>
       <summary>${onlyMine ? "All my classes" : "All classes"} (${all.length})</summary>
       <div class="lesson-chips">${all.map((c) => chip(c, escapeHtml(c.name))).join("")}</div>
@@ -10296,7 +10328,7 @@ async function llsRenderWeekPanel(boxId, mine) {
         ${count("reported") ? `<span class="week-chip">🛠 ${count("reported")} reported</span>` : ""}
         ${count("upcoming") ? `<span class="week-chip">🔜 ${count("upcoming")} coming up</span>` : ""}
         ${count("cancelled") ? `<span class="week-chip">🚫 ${count("cancelled")} cancelled</span>` : ""}
-        ${!info ? `<span class="muted">checking with Google…</span>` : info.failed ? `<span class="muted">Google didn't answer: some lessons may show as "to complete" by mistake.</span>` : ""}
+        ${!info ? (lessons.length ? `<span class="muted">checking with Google…</span>` : "") : info.failed ? `<span class="muted">Google didn't answer: some lessons may show as "to complete" by mistake.</span>` : ""}
       </div>
       ${info && count("todo") ? `<p class="week-msg">${mine
         ? `⚠ You have ${count("todo")} lesson${count("todo") === 1 ? "" : "s"} to complete. Tap "✏️ Complete now" and it opens the lesson, ready to fill in.`
@@ -10313,7 +10345,9 @@ async function llsRenderWeekPanel(boxId, mine) {
           <span class="week-class">${escapeHtml(r.cls.name)}${mine ? "" : ` <span class="muted">· ${escapeHtml(r.teacher || "?")}</span>`}</span>
           <span class="week-status">${LLS_WEEK_LABEL[r.status]}</span>
           ${r.status === "todo" || r.status === "done" ? `<button type="button" class="row-action${r.status === "todo" ? " week-go" : ""}" data-week-open="${escapeAttribute(r.cls.id + "|" + r.date)}">${r.status === "todo" ? "✏️ Complete now" : "✏️ Edit"}</button>` : "<span></span>"}
-        </div>`).join("") : `<p class="muted" style="margin:6px 0 0;">${rows.length ? "Nothing to complete. 🎉" : "No lessons in the timetable this week."}</p>`}</div>
+        </div>`).join("") : rows.length ? `<p class="muted" style="margin:6px 0 0;">Nothing to complete. 🎉</p>`
+          : !(state.classes || []).length ? `<p style="margin:6px 0 0;">${!llsCoreSettled || llsCoreLoadPromise ? `<span class="muted">⏳ Loading your classes from Google…</span>` : llsCoreLoadProblemHtml_()}</p>`
+          : `<p class="muted" style="margin:6px 0 0;">No lessons in the timetable this week.</p>`}</div>
       ${!mine && rows.length ? `<button type="button" class="row-action" data-week-all style="margin-top:8px;">${llsWeekShowAll ? "Show only what needs doing" : `Show all ${rows.length} lessons`}</button>` : ""}`;
     box.querySelectorAll("[data-week]").forEach((b) => b.addEventListener("click", () => { llsWeekOffset = Math.min(0, llsWeekOffset + Number(b.dataset.week)); llsRenderWeekPanel(boxId, mine); }));
     box.querySelector("[data-week-all]")?.addEventListener("click", () => { llsWeekShowAll = !llsWeekShowAll; draw(info); });
