@@ -10162,7 +10162,7 @@ function llsPlansDoneMap_(cls) {
   return map;
 }
 function llsPlansDoneSave_(cls, map) {
-  if ((window.llsServerVersion || 0) < 34) { showToast("This needs Apps Script V34 – ask the office to install it.", "error"); return false; }
+  // 7 Oct: no version gate (V34 is installed; an unknown/late version check blocked teachers by mistake).
   cls.plansDone = Object.entries(map).map(([code, v]) => v.kind === "skip"
     ? [code, "skip", String(v.reason || "").replace(/[,|]/g, " ")].join("|")
     : (v.date || v.who ? [code, "done", v.date || "", String(v.who || "").replace(/[,|]/g, " ")].join("|") : code)).join(", ");
@@ -10219,12 +10219,12 @@ function llsRenderPlanPanel() {
   const teachers = typeof llsOtherTeachers_ === "function" ? llsOtherTeachers_(true) : [];
   const form = llsPlanForm && next ? (llsPlanForm === "done" ? `
       <div class="today-form">
-        <label>📅 When did the class do <b>${escapeHtml(next.id)}</b>? <input type="date" id="planDoneDate" max="${escapeAttribute(date)}"></label>
-        <label>🧑‍🏫 Who taught it? <select id="planDoneWho"><option value="">I don't know</option>${teachers.map((t) => `<option>${escapeHtml(t.name)}</option>`).join("")}</select></label>
+        <label><span>📅 When did the class do <b>${escapeHtml(next.id)}</b>? <span class="muted">(leave empty if you don't know)</span></span><input type="date" id="planDoneDate" max="${escapeAttribute(date)}"></label>
+        <label><span>🧑‍🏫 Who taught it?</span><select id="planDoneWho"><option value="">I don't know</option>${teachers.map((t) => `<option>${escapeHtml(t.name)}</option>`).join("")}</select></label>
         <div class="today-form-btns"><button type="button" class="button button-primary" data-plan-save="done">✓ Save: move to the next lesson</button><button type="button" class="button button-secondary" data-plan-form="">Cancel</button></div>
       </div>` : `
       <div class="today-form">
-        <label>⏭ Why skip <b>${escapeHtml(next.id)}</b>? <select id="planSkipWhy"><option value="">Choose…</option><option>Already covered in another lesson</option><option>Not right for this class</option><option>We'll do it later</option><option value="other">Another reason…</option></select></label>
+        <label><span>⏭ Why skip <b>${escapeHtml(next.id)}</b>?</span><select id="planSkipWhy"><option value="">Choose…</option><option>Already covered in another lesson</option><option>Not right for this class</option><option>We'll do it later</option><option value="other">Another reason…</option></select></label>
         <input type="text" id="planSkipOther" maxlength="80" placeholder="Write the reason" hidden>
         <div class="today-form-btns"><button type="button" class="button button-primary" data-plan-save="skip">⏭ Skip: move to the next lesson</button><button type="button" class="button button-secondary" data-plan-form="">Cancel</button></div>
       </div>`) : "";
