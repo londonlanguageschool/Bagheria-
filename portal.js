@@ -592,7 +592,10 @@ function renderDashboard() {
   text("statStudents", activeStudents.length);
   text(
     "statStudentsSub",
-    `${state.students.length} total student record${state.students.length === 1 ? "" : "s"}`
+    (() => {
+      const records = state.students.filter((student) => !llsIsRemovedStudent(student)).length;
+      return `${records} total student record${records === 1 ? "" : "s"}`;
+    })()
   );
 
   text("statClasses", state.classes.length);
@@ -836,9 +839,11 @@ function renderStudents() {
       const matchesSearch =
         !query || haystack.includes(query);
 
+      // 8 Oct: "All" never shows removed duplicates; pick "Removed" to see them.
       const matchesStatus =
-        status === "all" ||
-        student.status === status;
+        status === "all"
+          ? !llsIsRemovedStudent(student)
+          : student.status === status;
 
       const matchesLevel =
         level === "all" ||
@@ -936,21 +941,15 @@ function renderStudents() {
                 Edit
               </button>
 
-              <button
+              ${llsIsRemovedStudent(student) ? "" : `<button
                 class="row-action"
                 type="button"
                 data-homework-link="${student.id}"
               >
                 📱 App link
-              </button>
+              </button>`}
 
-              <button
-                class="row-action delete"
-                type="button"
-                data-delete-student="${student.id}"
-              >
-                Deactivate
-              </button>
+              ${llsStudentRowActions(student)}
             </div>
           </td>
         </tr>
@@ -981,6 +980,16 @@ function renderStudents() {
         deleteStudent(button.dataset.deleteStudent);
       });
     });
+
+  [
+    ["[data-reactivate-student]", "reactivateStudent", reactivateStudent],
+    ["[data-remove-duplicate]", "removeDuplicate", removeDuplicateStudent],
+    ["[data-restore-student]", "restoreStudent", restoreStudent]
+  ].forEach(([selector, key, handler]) => {
+    body.querySelectorAll(selector).forEach((button) => {
+      button.addEventListener("click", () => handler(button.dataset[key]));
+    });
+  });
 }
 
 function openNewStudent() {
@@ -1024,6 +1033,7 @@ function openEditStudent(id) {
   setValue("studentDob", student.dob);
   setValue("studentLevel", student.level);
   setValue("studentClass", student.classId);
+  llsEnsureSelectOption("studentStatus", student.status);
   setValue("studentStatus", student.status);
   setValue("studentJoined", student.joined);
   setValue("studentParent", student.parent);
@@ -1404,7 +1414,7 @@ function deleteStudent(id) {
   // History (payments, attendance) is kept.
   openConfirm(
     "Mark student inactive?",
-    `${student.firstName} ${student.lastName} will be marked Inactive and removed from their class. Their payment and attendance history is kept. You can set them back to Active later with Edit.`,
+    `${student.firstName} ${student.lastName} will be marked Inactive and removed from their class. Their payment and attendance history is kept. You can bring them back later: choose "Inactive" in the Students status filter, then press Reactivate.`,
     async () => {
       try {
         // 30 Sept: shown at once, sent to Google in the background.
@@ -1439,6 +1449,291 @@ function deleteStudent(id) {
     },
     "Mark inactive"
   );
+}
+
+/* =========================================================
+   8 Oct — Reactivate, Remove duplicate (soft) and Restore.
+   Nothing is ever deleted from Google Sheets: "Removed" is just a
+   Status value (sent with the existing updateStudent action) that
+   hides the record from every list, class, count and search.
+========================================================= */
+
+function llsIsRemovedStudent(student) {
+  if (!student) return false;
+  const status = student.status !== undefined ? student.status : student["Status"];
+  return String(status || "").trim().toLowerCase() === "removed";
+}
+
+// Edit form: if a student's status isn't one of the options (e.g. "Removed"),
+// add it, so saving the form never silently changes it to "Active".
+function llsEnsureSelectOption(selectId, optionValue) {
+  const select = byId(selectId);
+  const wanted = String(optionValue || "").trim();
+  if (!select || !wanted) return;
+  if ([...select.options].some((option) => option.value === wanted)) return;
+  const option = document.createElement("option");
+  option.value = wanted;
+  option.textContent = wanted;
+  select.appendChild(option);
+}
+
+function llsStudentRowActions(student) {
+  const id = escapeAttribute(student.id);
+  if (llsIsRemovedStudent(student)) {
+    return llsIsTeacher() ? "" : `<button class="row-action" type="button" data-restore-student="${id}">Restore</button>`;
+  }
+  const status = String(student.status || "").trim().toLowerCase();
+  const parts = [];
+  if (status !== "active") {
+    parts.push(`<button class="row-action" type="button" data-reactivate-student="${id}">Reactivate</button>`);
+  }
+  if (status !== "inactive") {
+    parts.push(`<button class="row-action delete" type="button" data-delete-student="${id}">Deactivate</button>`);
+  }
+  if (!llsIsTeacher()) {
+    parts.push(`<button class="row-action delete" type="button" data-remove-duplicate="${id}" title="This student was registered twice: hide this copy">Remove duplicate</button>`);
+  }
+  return parts.join("");
+}
+
+// Queue a Status change (and an optional note) to Google Sheets and show it at once.
+function llsQueueStudentStatus_(student, status, noteLine, extraBodies) {
+  const fields = { "Status": status };
+  if (noteLine) {
+    // Prefer the Sheet's own Notes cell so nothing typed there is lost.
+    const raw = (llsLivePortalData.students || []).find((r) => String(r["Student ID"] || "").trim() === student.id);
+    const oldNotes = String((raw && raw["Notes"] != null ? raw["Notes"] : student.notes) || "").trim();
+    fields["Notes"] = oldNotes ? `${oldNotes}\n${noteLine}` : noteLine;
+    if (raw) raw["Notes"] = fields["Notes"];
+  }
+  const bodies = [{ action: "updateStudent", studentId: student.id, fields }, ...(extraBodies || [])];
+  llsQueueSave(getStudentName(student) || student.id, bodies);
+  const raw = (llsLivePortalData.students || []).find((r) => String(r["Student ID"] || "").trim() === student.id);
+  if (raw) raw["Status"] = status;
+  // Re-find: a background refresh may have replaced state.students.
+  const current = state.students.find((item) => item.id === student.id);
+  if (current) {
+    current.status = status;
+    if (fields["Notes"] !== undefined) current.notes = fields["Notes"];
+  }
+  saveState();
+  renderAll();
+  void llsRefreshCoreAfterSaveInBackground();
+}
+
+function reactivateStudent(id) {
+  const student = state.students.find((item) => item.id === id);
+  if (!student || llsIsRemovedStudent(student)) return;
+  openConfirm(
+    "Reactivate student?",
+    `${getStudentName(student)} will be set back to Active. They will NOT be put back in a class automatically: afterwards press Edit and choose their class (that also puts them back on the register).`,
+    () => {
+      try {
+        llsQueueStudentStatus_(student, "Active");
+        showToast(`${getStudentName(student)} is Active again. Press Edit to choose their class.`, "success");
+      } catch (error) {
+        console.error(error);
+        showToast(error.message || "Could not update the student.", "error");
+      }
+    },
+    "Reactivate"
+  );
+}
+
+function restoreStudent(id) {
+  if (llsIsTeacher()) return;
+  const student = state.students.find((item) => item.id === id);
+  if (!student) return;
+  openConfirm(
+    "Restore this record?",
+    `${getStudentName(student)} (${student.id}) will come back as Inactive. Then press Reactivate if they are really a current student.`,
+    () => {
+      try {
+        llsQueueStudentStatus_(student, "Inactive", `[${isoDate(new Date())}] Restored: no longer marked as a duplicate.`);
+        showToast("Record restored as Inactive.", "success");
+      } catch (error) {
+        console.error(error);
+        showToast(error.message || "Could not update the student.", "error");
+      }
+    },
+    "Restore"
+  );
+}
+
+function llsNormName_(value) {
+  return String(value || "")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+// True when two records are probably the same person (same name either way
+// round, same phone, same email, or same surname + date of birth).
+function llsLooksLikeSameStudent(a, b) {
+  const first = (s) => llsNormName_(s.firstName);
+  const last = (s) => llsNormName_(s.lastName);
+  if (first(a) && last(a) &&
+    ((first(a) === first(b) && last(a) === last(b)) || (first(a) === last(b) && last(a) === first(b)))) return true;
+  const digits = (s) => String(s.phone || "").replace(/\D+/g, "").slice(-9);
+  if (digits(a).length >= 6 && digits(a) === digits(b)) return true;
+  const mail = (s) => String(s.email || "").trim().toLowerCase();
+  if (mail(a) && mail(a) === mail(b)) return true;
+  if (a.dob && a.dob === b.dob && last(a) && last(a) === last(b)) return true;
+  return false;
+}
+
+// Money linked to a student record: fee rows, and payments (not voided).
+function llsStudentMoneyCheck(studentId, finance) {
+  const data = finance || llsLiveFinanceData || {};
+  const sid = String(studentId || "").trim();
+  const fees = (data.fees || []).filter((fee) => String(fee["Student ID"] || "").trim() === sid);
+  const feeIds = new Set(fees.map((fee) => String(fee["Fee ID"] || "").trim()).filter(Boolean));
+  const payments = (data.payments || []).filter((payment) =>
+    !llsPaymentIsVoid(payment) && number(payment["Amount"]) > 0 &&
+    (String(payment["Student ID"] || "").trim() === sid || feeIds.has(String(payment["Fee ID"] || "").trim()))
+  );
+  return {
+    fees,
+    payments,
+    paid: sum(payments.map((payment) => number(payment["Amount"]))),
+    openFees: fees.filter((fee) => number(fee["Amount Due"]) > 0)
+  };
+}
+
+function llsStudentEnrolments(studentId, enrolments) {
+  const sid = String(studentId || "").trim();
+  const all = (enrolments || llsLivePortalData.enrolments || []).filter((item) => String(item["Student ID"] || "").trim() === sid);
+  return { all, active: all.filter((item) => String(item["Status"] || "").trim().toLowerCase() === "active") };
+}
+
+function removeDuplicateStudent(id) {
+  if (llsIsTeacher()) {
+    showToast("Only the office can remove student records.", "error");
+    return;
+  }
+  const student = state.students.find((item) => item.id === id);
+  if (!student || llsIsRemovedStudent(student)) return;
+  const name = getStudentName(student) || student.id;
+
+  // Never decide without the payments: wait until Fees & Payments has loaded.
+  if (!window.llsFinanceReady) {
+    if (typeof llsLoadFinanceFromSheets === "function") void llsLoadFinanceFromSheets(true).catch(() => {});
+    showToast("Checking this student's payments first… try again in a few seconds.", "error");
+    return;
+  }
+
+  const money = llsStudentMoneyCheck(student.id);
+  if (money.paid > 0 || money.openFees.length) {
+    const why = money.paid > 0
+      ? `This record (${student.id}) has ${money.payments.length} payment${money.payments.length === 1 ? "" : "s"} recorded (${formatMoney(money.paid)}), so it can't be removed: the money would disappear from Fees & Payments.`
+      : `This record (${student.id}) has a course fee of ${formatMoney(sum(money.openFees.map((fee) => number(fee["Amount Due"]))))} in Fees & Payments, so removing it would leave a fee nobody can see.`;
+    openConfirm(
+      "Keep this record",
+      `${why} Usually the best fix is to remove the OTHER copy of ${name} instead (the one with no payments).` +
+        (money.paid > 0 ? "" : ` If this really is the copy to remove, first set its course fee total to €0 in Fees & Payments (write "duplicate" in the notes), then try again.`),
+      () => {},
+      "OK"
+    );
+    return;
+  }
+
+  const others = state.students
+    .filter((item) => item.id !== student.id && !llsIsRemovedStudent(item))
+    .sort((a, b) => getStudentName(a).localeCompare(getStudentName(b)));
+  if (!others.length) {
+    showToast("There is no other student record to keep instead.", "error");
+    return;
+  }
+  const likely = others.filter((item) => llsLooksLikeSameStudent(student, item));
+  const rest = others.filter((item) => !likely.includes(item));
+  const label = (item) => `${getStudentName(item)} · ${item.id}${item.dob ? ` · born ${formatDate(item.dob)}` : ""} · ${item.status || "Active"}${getClass(item.classId) ? ` · ${getClass(item.classId).name}` : ""}`;
+  const optionHtml = (item) => `<option value="${escapeAttribute(item.id)}">${escapeHtml(label(item))}</option>`;
+
+  const enrol = llsStudentEnrolments(student.id);
+  const activeClassIds = enrol.active.map((item) => String(item["Class ID"] || "").trim()).filter(Boolean);
+  const classNames = activeClassIds.map((cid) => getClass(cid)?.name || cid);
+  const facts = [
+    classNames.length ? `in class ${classNames.join(", ")} (they will be taken off it)` : "not in any class",
+    `${enrol.all.length} class enrolment${enrol.all.length === 1 ? "" : "s"} on record`,
+    money.fees.length ? `${money.fees.length} course fee${money.fees.length === 1 ? "" : "s"} at €0` : "no course fee",
+    "no payments"
+  ];
+
+  openConfirm(
+    "Remove duplicate record?",
+    `${name} (${student.id}) will be hidden from every list, class, register and count. Nothing is deleted: the row stays in the Google Sheet with Status "Removed" and a note, and you can bring it back with Students → status filter "Removed" → Restore.`,
+    () => {
+      const keepId = String(byId("duplicateKeepSelect")?.value || "").trim();
+      const keep = state.students.find((item) => item.id === keepId);
+      if (!keep) {
+        showToast("Choose which record to keep.", "error");
+        return;
+      }
+      try {
+        const extra = [];
+        for (const enrolment of enrol.active) {
+          const enrolmentId = String(enrolment["Enrolment ID"] || "").trim();
+          if (enrolmentId) {
+            extra.push({ action: "endEnrolment", enrolmentId });
+            enrolment["Status"] = "Completed";
+          }
+        }
+        llsQueueStudentStatus_(
+          student,
+          "Removed",
+          `[${isoDate(new Date())}] Removed as a duplicate of ${keep.id}.`,
+          extra
+        );
+        const current = state.students.find((item) => item.id === student.id);
+        if (current) current.classId = "";
+        saveState();
+        renderAll();
+        const moveHint = activeClassIds.length && !activeClassIds.includes(keep.classId)
+          ? ` Now press Edit on ${getStudentName(keep)} and choose their class.`
+          : "";
+        showToast(`Duplicate hidden. ${getStudentName(keep)} (${keep.id}) is the record to use.${moveHint}`, "success");
+      } catch (error) {
+        console.error(error);
+        showToast(error.message || "Could not update the student.", "error");
+      }
+    },
+    "Remove duplicate"
+  );
+
+  const extraBox = byId("confirmModalExtra");
+  const actionButton = byId("confirmActionButton");
+  if (!extraBox) return;
+  extraBox.innerHTML = `
+    <p class="confirm-extra-facts">This copy: ${escapeHtml(facts.join(" · "))}.</p>
+    <label for="duplicateKeepSelect">Which record is the one to KEEP?</label>
+    <select id="duplicateKeepSelect">
+      <option value="">Choose the record to keep…</option>
+      ${likely.length ? `<optgroup label="Probably the same person">${likely.map(optionHtml).join("")}</optgroup>` : ""}
+      <optgroup label="${likely.length ? "Everyone else" : "All students"}">${rest.map(optionHtml).join("")}</optgroup>
+    </select>
+    <p class="confirm-extra-warn" id="duplicateKeepWarn" hidden></p>`;
+  extraBox.hidden = false;
+  if (actionButton) actionButton.disabled = true;
+
+  const select = byId("duplicateKeepSelect");
+  const warn = byId("duplicateKeepWarn");
+  const update = () => {
+    const keep = state.students.find((item) => item.id === select.value);
+    if (actionButton) actionButton.disabled = !keep;
+    const notes = [];
+    if (keep) {
+      if (activeClassIds.length && !activeClassIds.includes(keep.classId)) {
+        notes.push(`This copy is in ${classNames.join(", ")} but ${getStudentName(keep)} (${keep.id}) isn't. Registers and homework already done stay saved under ${student.id} in the Sheet. If this copy is the one teachers have been using, it may be better to keep it and remove the other one instead.`);
+      }
+      if (String(keep.status || "").toLowerCase() !== "active") {
+        notes.push(`The record you keep is ${keep.status || "not active"}: press Reactivate on it afterwards if they are a current student.`);
+      }
+    }
+    warn.textContent = notes.join(" ");
+    warn.hidden = !notes.length;
+  };
+  select.addEventListener("change", update);
+  if (likely.length === 1) { select.value = likely[0].id; }
+  update();
 }
 
 /* =========================================================
@@ -3811,6 +4106,7 @@ function renderGlobalSearch() {
   const results = [];
 
   state.students.forEach((student) => {
+    if (llsIsRemovedStudent(student)) return; // 8 Oct: removed duplicates stay hidden
     const name =
       `${student.firstName} ${student.lastName}`;
 
@@ -4009,6 +4305,7 @@ function populatePaymentStudentSelect() {
   select.innerHTML =
     `<option value="">Select student</option>` +
     [...state.students]
+      .filter((student) => !llsIsRemovedStudent(student))
       .sort((a, b) =>
         a.lastName.localeCompare(b.lastName)
       )
@@ -4462,6 +4759,12 @@ function openConfirm(
   confirmCallback =
     callback;
 
+  // 8 Oct: the "Remove duplicate" dialog adds a picker here; clear it for every other use.
+  const extra = byId("confirmModalExtra");
+  if (extra) { extra.hidden = true; extra.innerHTML = ""; }
+  const actionButton = byId("confirmActionButton");
+  if (actionButton) actionButton.disabled = false;
+
   openModal("confirmModal");
 }
 
@@ -4612,7 +4915,8 @@ function getTeacher(id) {
 function getClassStudents(classId) {
   return state.students.filter(
     (student) =>
-      student.classId === classId
+      student.classId === classId &&
+      !llsIsRemovedStudent(student)
   );
 }
 
@@ -5365,6 +5669,7 @@ function v2StudentClassValue(s) {
 function v2StudentsForClass(c) {
   const id = String(c.id || "").trim(), name = String(c.name || "").trim().toLowerCase();
   return (state.students || []).filter(s => {
+    if (llsIsRemovedStudent(s)) return false;
     const x = v2StudentClassValue(s);
     return x === id || x.toLowerCase() === name;
   });
@@ -5668,7 +5973,7 @@ function llsActiveEnrolmentsForClass(classId) {
 
 function llsStudentsForClass(classId) {
   const ids = new Set(llsActiveEnrolmentsForClass(classId).map(item => String(item["Student ID"] || "").trim()));
-  return (llsLivePortalData.students || []).filter(student => ids.has(String(student["Student ID"] || "").trim()));
+  return (llsLivePortalData.students || []).filter(student => ids.has(String(student["Student ID"] || "").trim()) && !llsIsRemovedStudent(student));
 }
 
 async function loadLiveAttendanceFoundation(force = false) {
@@ -7166,7 +7471,7 @@ async function llsOpenClassAppLinks(classId) {
       .filter((e) => String(e["Class ID"] || "").trim() === classId && String(e["Status"] || "").trim().toLowerCase() === "active")
       .map((e) => String(e["Student ID"] || "").trim())
   );
-  const students = state.students.filter((s) => ids.has(s.id)).sort((a, b) => getStudentName(a).localeCompare(getStudentName(b)));
+  const students = state.students.filter((s) => ids.has(s.id) && !llsIsRemovedStudent(s)).sort((a, b) => getStudentName(a).localeCompare(getStudentName(b)));
   text("appLinksTitle", `App links — ${cls.name}`);
   const list = byId("appLinksList");
   list.innerHTML = students.length

@@ -607,3 +607,12 @@ input[type="checkbox"] { border-radius: 4px; }
 /* 7 Oct: unfinished lessons */
 .today-continue, .last-stop { background: #ffe1e9; border: 2px solid #f7a6c4; border-radius: 12px; padding: 8px 12px; font-weight: 700; }
 #lessonStopSlide { margin-top: 6px; max-width: 220px; }
+
+/* 8 Oct: removed duplicates + the "which record to keep?" picker in the confirm dialog */
+.status-removed { background: var(--ink-100); color: var(--ink-600); text-decoration: line-through; }
+.confirm-extra { display: grid; gap: 8px; margin: 14px 0 18px; }
+.confirm-extra label { font-weight: 800; color: var(--navy-700, #16275c); }
+.confirm-extra select { width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid var(--ink-200, #d5d9e3); border-radius: 12px; background: #fff; font: inherit; }
+.confirm-extra-facts { margin: 0; color: var(--ink-600, #555); font-size: 0.92rem; }
+.confirm-extra-warn { margin: 0; padding: 10px 12px; border-radius: 12px; background: #fff1d6; color: #7a5200; font-size: 0.92rem; }
+#confirmActionButton:disabled { opacity: 0.5; cursor: not-allowed; }

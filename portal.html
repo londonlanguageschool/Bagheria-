@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#082d5c">
   <meta name="description" content="London Language School management portal">
   <title>LLS Portal | London Language School</title>
-  <link rel="stylesheet" href="portal.css?v=20261008b">
-  <link rel="stylesheet" href="portal-theme.css?v=20261008b">
+  <link rel="stylesheet" href="portal.css?v=20261008c">
+  <link rel="stylesheet" href="portal-theme.css?v=20261008c">
 </head>
 
 <body>
@@ -431,6 +431,8 @@
               <option value="Active">Active</option>
               <option value="Paused">Paused</option>
               <option value="Completed">Completed</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Removed">Removed (duplicates)</option>
             </select>
 
             <select id="studentLevelFilter" aria-label="Filter by level">
@@ -1464,6 +1466,7 @@
               <option value="Active">Active</option>
               <option value="Paused">Paused</option>
               <option value="Completed">Completed</option>
+              <option value="Inactive">Inactive</option>
             </select>
           </div>
 
@@ -2295,6 +2298,7 @@
       </div>
 
       <p id="confirmModalMessage" class="confirm-copy"></p>
+      <div id="confirmModalExtra" class="confirm-extra" hidden></div>
 
       <div class="modal-actions">
         <button class="button button-secondary" type="button" data-close-modal="confirmModal">
@@ -2327,12 +2331,12 @@
   ========================== -->
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
-  <script src="practice/courses.js?v=20261008b"></script>
-  <script src="lesson-plans.js?v=20261008b"></script>
-  <script src="workbook.js?v=20261008b"></script>
-  <script src="portal.js?v=20261008b"></script>
-  <script src="resources.js?v=20261008b"></script>
-  <script src="report.js?v=20261008b"></script>
-  <script src="portal-i18n.js?v=20261008b"></script>
+  <script src="practice/courses.js?v=20261008c"></script>
+  <script src="lesson-plans.js?v=20261008c"></script>
+  <script src="workbook.js?v=20261008c"></script>
+  <script src="portal.js?v=20261008c"></script>
+  <script src="resources.js?v=20261008c"></script>
+  <script src="report.js?v=20261008c"></script>
+  <script src="portal-i18n.js?v=20261008c"></script>
 </body>
 </html>
