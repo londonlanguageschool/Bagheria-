@@ -429,7 +429,7 @@ window.LLS_PLANS = {
     "title": "OMG! Where's my passport?",
     "focus": "past simple: regular and irregular • holidays • -ed endings",
     "pages": "SB pp.14–15 · VB p.152",
-    "slides": 16,
+    "slides": 19,
     "file": "A2_Adults_Rebuilt/A2_2A_Wheres_my_passport.pptx",
     "skills": {
      "Grammar": "Past simple",
