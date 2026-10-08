@@ -6,7 +6,7 @@
    hw (homework sheet PDF) and key (teacher answer key PDF). Links appear once the files are uploaded to Drive
    and their IDs added to tools/plan-links.json. */
 /* 6 Oct 2026: PU-3 (Movers, Power Up 3: S-L1, U1-L1 … U3-L6, R-L1) and EF-B2 File 6 (6A-1 … R5-6, role cards as pcm) added, files in the teachers' Drive folder. */
-/* 6 Oct 2026 (afternoon): EF-A2B1 File 1 replaced by the rebuilt A2 Adults lessons 1A, 1B, 1C, PE1 (hw, easy, key, role cards as pcm). Files 2+ are still the older blue decks. */
+/* 8 Oct 2026: A2 1C rebuilt in the v3 design (deck hosted on the site: materials/A2/). 6 Oct 2026 (afternoon): EF-A2B1 File 1 replaced by the rebuilt A2 Adults lessons 1A, 1B, 1C, PE1 (hw, easy, key, role cards as pcm). Files 2+ are still the older blue decks. */
 window.LLS_PLANS = {
  "folder": "https://drive.google.com/drive/folders/1_AyE9xHLZX-tR057npuZEDeoPWiVDOgB",
  "links": {
@@ -348,7 +348,7 @@ window.LLS_PLANS = {
   "A2_Adults_Rebuilt/A2_1B_Homework_sheet.pdf": "https://drive.google.com/file/d/1Dn2mEkzgYqUp7HIsSq0poeC-1yFcjzjT/view",
   "A2_Adults_Rebuilt/A2_1B_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1023DF2JEq_5vmY1bWCJct1hAW0K5yKPH/view",
   "A2_Adults_Rebuilt/A2_1B_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1bGbru3k9UxD-c76Nufr27NIkZbVeGtd_/view",
-  "A2_Adults_Rebuilt/A2_1C_The_Remake_Project.pptx": "https://drive.google.com/file/d/1SPCyhkgsKsbxcF_KUrBul5ky2IuicDXq/view",
+  "A2_Adults_Rebuilt/A2_1C_The_Remake_Project.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_1C_The_Remake_Project_v3.pptx",
   "A2_Adults_Rebuilt/A2_1C_Homework_sheet.pdf": "https://drive.google.com/file/d/1BaGtZe-FI06belhTDQAFdT88dQrnTwT1/view",
   "A2_Adults_Rebuilt/A2_1C_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1pnVpxPy3q9sXWbmxbO-jL-2cU-ejGjKA/view",
   "A2_Adults_Rebuilt/A2_1C_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1ZlKjqVXttx9iU-08kBjPPQhSF7h7Qp2Q/view",
@@ -398,9 +398,9 @@ window.LLS_PLANS = {
     "id": "1C",
     "unit": 1,
     "title": "The Remake Project",
-    "focus": "present continuous • clothes · prepositions of place • /ə/ and /ɜː/",
+    "focus": "present continuous • clothes · wear / carry · prepositions of place • /ɜː/",
     "pages": "SB pp.10–11 · VB p.151",
-    "slides": 12,
+    "slides": 14,
     "file": "A2_Adults_Rebuilt/A2_1C_The_Remake_Project.pptx",
     "hw": "A2_Adults_Rebuilt/A2_1C_Homework_sheet.pdf",
     "easy": "A2_Adults_Rebuilt/A2_1C_Homework_sheet_easier.pdf",
