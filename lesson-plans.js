@@ -400,7 +400,7 @@ window.LLS_PLANS = {
     "title": "The Remake Project",
     "focus": "present continuous • clothes · wear / carry · prepositions of place • /ɜː/",
     "pages": "SB pp.10–11 · VB p.151",
-    "slides": 14,
+    "slides": 15,
     "file": "A2_Adults_Rebuilt/A2_1C_The_Remake_Project.pptx",
     "hw": "A2_Adults_Rebuilt/A2_1C_Homework_sheet.pdf",
     "easy": "A2_Adults_Rebuilt/A2_1C_Homework_sheet_easier.pdf",
