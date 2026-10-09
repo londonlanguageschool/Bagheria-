@@ -324,7 +324,7 @@ window.LLS_PLANS = {
   "B2_Violet_Course/B2_6A-1_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1VHvmTD0OiHjYDdMBSUlKj-UwVtssMBtr/view",
   "B2_Violet_Course/B2_6A-1_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1tustGVrCxr_T-MvubEPSmyhHQ-jIguc3/view",
   "B2_Violet_Course/B2_6A-1_Role_cards.pdf": "https://drive.google.com/file/d/1DM6lMfpLL5xFWIhPJQ_RTBr9jgnxrD9o/view",
-  "B2_Violet_Course/B2_6A-2_Night_night.pptx": "https://drive.google.com/file/d/1jnGUUKcul8-7f6JP6yaheUJ2UW1b9EF9/view",
+  "B2_Violet_Course/B2_6A-2_Night_night.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B2/B2_6A-2_Night_night_2.pptx",
   "B2_Violet_Course/B2_6A-2_Homework_sheet.pdf": "https://drive.google.com/file/d/14QNN2MWq-xpk4RIiyTlIUram3lUAQ0zG/view",
   "B2_Violet_Course/B2_6A-2_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1SBprgPHhu41KbG_E8icqmwkozDUyf4qH/view",
   "B2_Violet_Course/B2_6A-2_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1E3AiYgdTKOaexDtgZ7BExMrgDAybBfuL/view",
