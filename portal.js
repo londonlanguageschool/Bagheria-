@@ -863,13 +863,13 @@ function renderStudents() {
 
   text(
     "studentsTableCount",
-    `${students.length} student${students.length === 1 ? "" : "s"}`
+    `${students.length} ${status === "Active" ? "current " : status === "all" ? "" : status.toLowerCase() + " "}student${students.length === 1 ? "" : "s"}`
   );
 
   if (!students.length) {
     body.innerHTML = tableEmptyRow(
       7,
-      query || status !== "all" || level !== "all"
+      query || status !== "Active" || level !== "all"
         ? "No students match these filters."
         : "No students yet. Add your first student."
     );
@@ -984,7 +984,8 @@ function renderStudents() {
   [
     ["[data-reactivate-student]", "reactivateStudent", reactivateStudent],
     ["[data-remove-duplicate]", "removeDuplicate", removeDuplicateStudent],
-    ["[data-restore-student]", "restoreStudent", restoreStudent]
+    ["[data-restore-student]", "restoreStudent", restoreStudent],
+    ["[data-purge-student]", "purgeStudent", purgeStudent]
   ].forEach(([selector, key, handler]) => {
     body.querySelectorAll(selector).forEach((button) => {
       button.addEventListener("click", () => handler(button.dataset[key]));
@@ -1480,7 +1481,7 @@ function llsEnsureSelectOption(selectId, optionValue) {
 function llsStudentRowActions(student) {
   const id = escapeAttribute(student.id);
   if (llsIsRemovedStudent(student)) {
-    return llsIsTeacher() ? "" : `<button class="row-action" type="button" data-restore-student="${id}">Restore</button>`;
+    return llsIsTeacher() ? "" : `<button class="row-action" type="button" data-restore-student="${id}">Restore</button><button class="row-action delete" type="button" data-purge-student="${id}">🗑 Delete permanently</button>`;
   }
   const status = String(student.status || "").trim().toLowerCase();
   const parts = [];
@@ -1492,6 +1493,8 @@ function llsStudentRowActions(student) {
   }
   if (!llsIsTeacher()) {
     parts.push(`<button class="row-action delete" type="button" data-remove-duplicate="${id}" title="This student was registered twice: hide this copy">Remove duplicate</button>`);
+    // 9 Oct (owner): permanent delete, only once a student is no longer Active (backup copy kept in the Sheet).
+    if (status !== "active") parts.push(`<button class="row-action delete" type="button" data-purge-student="${id}" title="Delete for good (a backup copy is kept in the Deleted Students tab)">🗑 Delete permanently</button>`);
   }
   return parts.join("");
 }
@@ -1519,6 +1522,44 @@ function llsQueueStudentStatus_(student, status, noteLine, extraBodies) {
   saveState();
   renderAll();
   void llsRefreshCoreAfterSaveInBackground();
+}
+
+// 9 Oct (owner): delete a student for good. Apps Script V35 first copies the whole row to the
+// "Deleted Students" tab (backup), then removes it from Students. Payments and attendance are kept.
+function purgeStudent(id) {
+  if (llsIsTeacher()) return;
+  const student = state.students.find((item) => item.id === id);
+  if (!student) return;
+  const name = getStudentName(student) || id;
+  if (String(student.status || "").trim().toLowerCase() === "active") { showToast("Deactivate this student first.", "error"); return; }
+  if ((window.llsServerVersion || 0) > 0 && window.llsServerVersion < 35) {
+    showToast("Permanent delete needs the Google Apps Script update (V35). Ask Claude for the install steps.", "error");
+    return;
+  }
+  openConfirm(
+    "Delete this student permanently?",
+    `${name} (${id}) will disappear from the portal and from the Students list for good. A backup copy of their details is saved in the "Deleted Students" tab of the Google Sheet, in case you need it. Their past payments and attendance stay in the records. This can't be undone from the portal.`,
+    async () => {
+      const typed = window.prompt(`To confirm, type DELETE (capital letters) to remove ${name}.`);
+      if (String(typed || "").trim() !== "DELETE") { showToast("Not deleted.", "info"); return; }
+      try {
+        showToast(`Deleting ${name}…`, "info");
+        const res = await llsApiPost({ action: "deleteStudentPermanently", studentId: id });
+        if (res && res.success === false) throw new Error(res.error || "Could not delete.");
+        state.students = state.students.filter((item) => item.id !== id);
+        if (llsLivePortalData.students) llsLivePortalData.students = llsLivePortalData.students.filter((r) => String(r["Student ID"] || "").trim() !== id);
+        saveState();
+        renderAll();
+        showToast(`${name} deleted. Backup saved in the "Deleted Students" tab.`, "success");
+        void llsRefreshCoreAfterSaveInBackground();
+      } catch (error) {
+        console.error(error);
+        const msg = String(error.message || "");
+        showToast(/Unknown mutation action/i.test(msg) ? "Permanent delete needs the Google Apps Script update (V35)." : (msg || "Could not delete the student."), "error");
+      }
+    },
+    "Yes, delete permanently"
+  );
 }
 
 function reactivateStudent(id) {
@@ -8604,7 +8645,7 @@ async function llsSaveLesson() {
   const doneText = [...llsSkillLines(llsSkillState), choiceOn ? LLS_CHOICE_MARK + choiceTitle : "", value("lessonDone").trim()].filter(Boolean).join("\n") || (specialOn ? specialTitle + " lesson" : nobodyHere ? LLS_NOBODY_CAME : "");
   const needDone = choiceOn && !nobodyHere && value("lessonDone").trim().length < 30;
   if (value("lessonProgress") === "stop" && !(Number(value("lessonStopSlide")) > 0)) {
-    showToast("Write the slide number where you stopped (step 5 · How far did you get?).", "error");
+    showToast("Write the slide number where you stopped (step 4 · How far did you get?).", "error");
     byId("lessonStopSlide")?.focus();
     return;
   }
@@ -8613,8 +8654,8 @@ async function llsSaveLesson() {
   if (unrated.length || needSkill || (noTopic.length && !nobodyHere) || needDone) {
     // 6 Oct (owner): say exactly what is missing, in a box that stays on screen, and jump to it.
     const missing = [];
-    if (unrated.length) missing.push(`<b>1 · Register</b>: choose "How did they do?" for ${unrated.map((r) => escapeHtml(r.querySelector(".reg-name")?.textContent || "")).join(", ")}.`);
-    if (needSkill) missing.push(`<b>2 · What did you do today?</b> Tap at least one: Grammar, Vocabulary, Reading…`);
+    if (unrated.length) missing.push(`<b>3 · Register</b>: choose "How did they do?" for ${unrated.map((r) => escapeHtml(r.querySelector(".reg-name")?.textContent || "")).join(", ")}.`);
+    if (needSkill) missing.push(`<b>4 · What did you do today?</b> Tap at least one: Grammar, Vocabulary, Reading…`);
     if (noTopic.length && !nobodyHere) missing.push(...noTopic.map((s) => `<b>${escapeHtml(s.k)}</b>: write the topic in its box (e.g. ${escapeHtml(s.k === "Games & songs" ? "animals bingo" : s.k === "Grammar" ? "past simple" : s.k === "Vocabulary" ? "clothes" : "the topic you covered")}) – or untick ${escapeHtml(s.k)}.`));
     if (needDone) missing.push(`<b>What exactly did you do?</b> Write at least a couple of clear lines (activities in order).`);
     if (errBox) { errBox.innerHTML = `<strong>⚠ Not saved yet – please fix:</strong><ul>${missing.map((m) => `<li>${m}</li>`).join("")}</ul>`; errBox.hidden = false; }
@@ -8691,6 +8732,8 @@ async function llsSaveLesson() {
   llsRenderLessonPicker();
   llsPaintLessonState();
   llsOutboxRun();
+  // 9 Oct (owner): after saving, go back to the top so it's clear the lesson is done and the next class can be chosen.
+  try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (_) { window.scrollTo(0, 0); }
 }
 
 /* ---------- Lesson outbox (27 Sept) ----------
@@ -9916,14 +9959,15 @@ const LLS_GUIDE = {
       intro: "Everything for a lesson is on one page. It takes a couple of minutes between classes.",
       steps: [
         ["Log in", "Choose Teacher, then your Teacher ID (e.g. TCH0002) or email, and your PIN."],
-        ["★ Lesson", "Today's lessons are buttons at the top. Tap yours. ✓ = saved, ⏳ = still sending."],,
+        ["★ Lesson", "Today's lessons are buttons at the top. Tap yours. ✓ = saved, ⏳ = still sending."],
         ["📋 My week", "At the top of the Lesson page: every lesson you had this week. ✅ filled in, ⚠ to complete. Tap \"✏️ Complete now\" (or the lesson itself) and it opens, ready to fill in; \"✏️ Edit\" changes one already saved. ‹ goes back a week. The office sees the same list."],
         ["📚 Lesson plans", "Classes with a course (English File A2, B1 exam, Kitchen English) show the PowerPoint lessons in order. ✓ = this class has already had it (date and teacher), ➡ = next one. \"Teach today\" fills in Unit / page, What we did and the skills for you: check them and save as usual. A lesson already taught asks you to tap twice, so nobody repeats it by mistake."],
-        ["🚫 Cancelled lessons and make-ups", "A cancelled lesson shows 🚫 and doesn't need filling in. If it took place after all, fill it in as usual. A make-up lesson: open the class on the day you teach it (Lesson page → date → All my classes) and save as usual; it counts as a make-up by itself."]
-        ["1 · Register", "Tap Here / Late / Absent / Excused (\"Everyone here\" does it in one go). Choose \"How did they do?\" for everyone who came: it counts towards their progress."],
-        ["2 · What did you do today?", "Tap the skills you covered (Grammar, Reading, Speaking…) and tap a suggested topic or type one. Students see this on their road map. For a ⭐ Special lesson (Halloween, Christmas…) tick the box instead."],
+        ["🚫 Cancelled lessons and make-ups", "A cancelled lesson shows 🚫 and doesn't need filling in. If it took place after all, fill it in as usual. A make-up lesson: open the class on the day you teach it (Lesson page → date → All my classes) and save as usual; it counts as a make-up by itself."],
+        ["1 · Who is teaching?", "Tap \"I'm teaching it\". If someone else is teaching, tap \"Another teacher\" and choose their name. \"Nobody came\" and \"Cancelled\" are there too."],
+        ["3 · Register", "Tap Here / Late / Absent / Excused (\"Everyone here\" does it in one go). Choose \"How did they do?\" for everyone who came: it counts towards their progress."],
+        ["4 · What did you do today?", "Tap the skills you covered (Grammar, Reading, Speaking…) and tap a suggested topic or type one. Students see this on their road map. For a ⭐ Special lesson (Halloween, Christmas…) tick the box instead."],
         ["Notes for the next teacher", "Private: only staff see them. \"Anything else?\" is optional and students can see it."],
-        ["3 · Homework (optional)", "Title + instructions. The due date is the next lesson. It goes straight to the students' app. \"📎 Attach files\" adds a worksheet, a photo of the page or audio."],
+        ["5 · Homework (optional)", "Title + instructions. The due date is the next lesson. It goes straight to the students' app. \"📎 Attach files\" adds a worksheet, a photo of the page or audio."],
         ["📎 Files and 📥 work to mark", "Under \"Recent homework\": \"📎 Files\" adds or removes files. When students hand in photos of their work you see \"📥 Work · to mark\": open each photo, write a mark and a comment, press \"Save mark\". Students see it in their app."],
         ["💾 Save lesson", "It's saved on your device at once and sent to Google in the background: you can go to your next class. The badge turns \"✓ Saved · in Google Sheets\"."],
         ["Unit − / +", "When the class starts a new unit of the book, press + (the practice in the students' app follows)."],
@@ -10574,7 +10618,7 @@ function llsRenderPlanPanel() {
         <div class="today-form-btns"><button type="button" class="button button-primary" data-plan-save="skip">⏭ Skip: move to the next lesson</button><button type="button" class="button button-secondary" data-plan-form="">Cancel</button></div>
       </div>`) : "";
   box.innerHTML = `
-    <p class="section-label step-label" style="margin:0 0 10px;"><span class="step-n s3">3</span> 📚 Today's lesson <span class="muted" style="text-transform:none;letter-spacing:0;">· ${escapeHtml(name)} · ${doneCount}/${plans.length} done</span></p>
+    <p class="section-label step-label" style="margin:0 0 10px;"><span class="step-n s3">2</span> 📚 Today's lesson <span class="muted" style="text-transform:none;letter-spacing:0;">· ${escapeHtml(name)} · ${doneCount}/${plans.length} done</span></p>
     ${feat ? `<div class="today-card">
       <span class="today-eyebrow">📌 ${picked ? "TODAY YOU'RE TEACHING" : partial[feat.id] ? "CONTINUE TODAY'S LESSON" : "TODAY'S LESSON IS"}</span>
       ${partial[feat.id] ? `<div class="today-continue">⏸ Start from <b>slide ${partial[feat.id].slide}</b> – the class stopped there on ${escapeHtml(new Date(partial[feat.id].date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }))}${partial[feat.id].teacher ? " (" + escapeHtml(partial[feat.id].teacher) + ")" : ""}.</div>` : ""}
@@ -10637,7 +10681,7 @@ function llsRenderPlanPanel() {
   byId("planTaught")?.addEventListener("change", (e) => {
     const v = e.target.value;
     llsPlanPick = v === "other" ? "other" : "";
-    if (v === "plan" && next) { llsApplyPlan_(next); showToast(`${next.id} "${next.title}" is today's lesson. Now take the register (step 4).`, "info"); }
+    if (v === "plan" && next) { llsApplyPlan_(next); showToast(`${next.id} "${next.title}" is today's lesson. Now take the register (step 3).`, "info"); }
     else if (v === "choice" || v === "special") { if (llsPlanCode_(value("lessonUnitPage"))) setValue("lessonUnitPage", cls.currentUnit || ""); llsPickLessonType_(v); }
     else if (v === "other") { if (llsLessonType_() !== "book") llsPickLessonType_("book"); }
     llsRenderPlanPanel();
@@ -11471,7 +11515,7 @@ function llsRenderHappen_() {
   let follow = "";
   if (h === "other") follow = `
     <div class="happen-follow">
-      <label>👥 Who taught it? <select id="happenWho"><option value="">Choose…</option>${llsOtherTeachers_(false).map((t) => `<option value="${escapeAttribute(t.id)}">${escapeHtml(t.name)}</option>`).join("")}<option value="other">Someone else</option></select></label>
+      <label>👥 Who is teaching it? <select id="happenWho"><option value="">Choose…</option>${llsOtherTeachers_(false).map((t) => `<option value="${escapeAttribute(t.id)}">${escapeHtml(t.name)}</option>`).join("")}<option value="other">Someone else</option></select></label>
       <input type="text" id="happenNote" maxlength="200" placeholder="Anything Rosanna should know? (optional)">
       <button type="button" class="button button-primary" data-happen-send="other">Send: they fill in the report</button>
     </div>`;
@@ -11490,16 +11534,16 @@ function llsRenderHappen_() {
   else if (h === "nobody-saved") follow = `<div class="happen-follow done">✅ Saved: nobody came. Today's lesson stays for next time. <button type="button" class="row-action" data-happen="yes">Students came after all? Fill in the lesson</button></div>`;
   else if (h === "sent") follow = `<div class="happen-follow done">✅ ${escapeHtml(llsLesson.happenMsg || "Sent to Rosanna.")}</div>`;
   box.innerHTML = `
-    <p class="section-label step-label" style="margin:0 0 10px;"><span class="step-n s1">1</span> Did the lesson happen?</p>
+    <p class="section-label step-label" style="margin:0 0 10px;"><span class="step-n s1">1</span> Who is teaching this lesson?</p>
     ${coverNote}
     <div class="happen-tiles${open && h === "yes" ? " compact" : ""}" role="group" aria-label="Did the lesson happen?">
-      ${tile("yes", "✅", "Yes, I taught it", "", "t-green")}
-      ${tile("other", "👥", "Another teacher taught it", "", "t-blue")}
+      ${tile("yes", "✅", "I'm teaching it", "or I taught it", "t-green")}
+      ${tile("other", "👥", "Another teacher is teaching it", "choose their name", "t-blue")}
       ${tile("nobody", "😴", "Nobody came", "all students absent", "t-yellow")}
       ${tile("cancel", "🚫", "It was cancelled", "", "t-pink")}
     </div>
     ${follow}
-    ${h === "yes" ? `<p class="happen-next">👇 Now follow steps 2 to 6, then press <b>💾 Save lesson</b> at the bottom.</p>` : ""}`;
+    ${h === "yes" ? `<p class="happen-next">👇 Now follow steps 2 to 5, then press <b>💾 Save lesson</b> at the bottom.</p>` : ""}`;
 }
 async function llsHappenSend_(kind) {
   const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
@@ -11561,7 +11605,7 @@ function llsRenderLastLesson_(date) {
   const all = (llsLesson.entries || []).filter((e) => String(e.lessonDate || "") < date);
   const list = all.filter((e) => !llsIsCancelUnit(e.unit));
   box.hidden = false;
-  const head = `<p class="section-label step-label" style="margin:0 0 10px;"><span class="step-n s2">2</span> 👀 Last lesson: read this first</p>`;
+  const head = `<p class="section-label step-label" style="margin:0 0 10px;">📖 Last time in this class <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:500;">· just read it, nothing to fill in</span></p>`;
   if (!list.length) { box.innerHTML = head + `<p class="muted" style="margin:0;">No earlier lesson saved for this class yet.</p>`; return; }
   const s = llsEntrySummary_(list[0]);
   const short = s.lines.slice(0, 3);
