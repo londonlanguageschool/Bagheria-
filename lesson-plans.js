@@ -328,7 +328,7 @@ window.LLS_PLANS = {
   "B2_Violet_Course/B2_6A-2_Homework_sheet.pdf": "https://drive.google.com/file/d/14QNN2MWq-xpk4RIiyTlIUram3lUAQ0zG/view",
   "B2_Violet_Course/B2_6A-2_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1SBprgPHhu41KbG_E8icqmwkozDUyf4qH/view",
   "B2_Violet_Course/B2_6A-2_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1E3AiYgdTKOaexDtgZ7BExMrgDAybBfuL/view",
-  "B2_Violet_Course/B2_6B-1_Music_to_my_ears.pptx": "https://drive.google.com/file/d/1xDjoWPpnu_k1axxpIRtd7EBh1_qzQgEW/view",
+  "B2_Violet_Course/B2_6B-1_Music_to_my_ears.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B2/B2_6B-1_Music_to_my_ears.pptx",
   "B2_Violet_Course/B2_6B-1_Homework_sheet.pdf": "https://drive.google.com/file/d/155m-_stey-NW4MtydES6LeN1x66Rrmj3/view",
   "B2_Violet_Course/B2_6B-1_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1vcqEK7rJPc3OPJXzsxC1oxfUNu21q8sJ/view",
   "B2_Violet_Course/B2_6B-1_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1ihhHCEFtKY1p7YUFW3WKYT63yLaxflbv/view",
