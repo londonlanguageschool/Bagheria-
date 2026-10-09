@@ -10,6 +10,7 @@
 window.LLS_PLANS = {
  "folder": "https://drive.google.com/drive/folders/1_AyE9xHLZX-tR057npuZEDeoPWiVDOgB",
  "links": {
+  "Red_Elementary/EFE_2A_Tidy_or_untidy.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2A_Tidy_or_untidy.pptx",
   "Kitchen_English_Chefs/Chef_L02_Kitchen_equipment.pptx": "https://drive.google.com/file/d/1Wu_KZxK9oigJgx-uNW-YJq_ejwxxyYv5/view",
   "Kitchen_English_Chefs/Chef_L03_Ingredients_and_stock.pptx": "https://drive.google.com/file/d/12KaSioPcoHFBoR7z_OVUvmRNM4XhAAc5/view",
   "Kitchen_English_Chefs/Chef_L04_Kitchen_commands.pptx": "https://drive.google.com/file/d/1aE5QcqPxfRCNiStGYYSkbrKx-DGB_BX2/view",
@@ -365,9 +366,110 @@ window.LLS_PLANS = {
   "EF-B1": "English File B1 (green) – full course, units 1–10",
   "CHEF": "Kitchen English for chefs – 10 lessons",
   "PU-3": "Power Up 3 (Movers) – Starter + Units 1–3 + Review",
-  "EF-B2": "English File B2 (violet) – File 6 so far"
+  "EF-B2": "English File B2 (violet) – File 6 so far",
+  "EF-A1A2": "English File Elementary (red) – A1/A2"
  },
  "courses": {
+  "EF-A1A2": [
+ {
+  "id": "1A",
+  "unit": 1,
+  "title": "Welcome to the class",
+  "focus": "verb be (+), subject pronouns · days of the week, numbers 0–20 · vowel sounds, word stress",
+  "pages": "SB pp.6–7",
+  "skills": {}
+ },
+ {
+  "id": "1B",
+  "unit": 1,
+  "title": "One world",
+  "focus": "verb be (−) and (?) · countries, nationalities, numbers 21–100 · /ə/, consonant sounds",
+  "pages": "SB pp.8–9",
+  "skills": {}
+ },
+ {
+  "id": "1C",
+  "unit": 1,
+  "title": "What's your email?",
+  "focus": "possessive adjectives · classroom language · the alphabet, sentence stress",
+  "pages": "SB pp.10–11",
+  "skills": {}
+ },
+ {
+  "id": "PE1",
+  "unit": 1,
+  "title": "Practical English 1: Arriving in London",
+  "focus": "checking in · in a hotel",
+  "pages": "SB pp.12–13",
+  "skills": {}
+ },
+ {
+  "id": "2A",
+  "unit": 2,
+  "title": "Are you tidy or untidy?",
+  "focus": "singular and plural nouns · things, in, on, under · final -s and -es",
+  "pages": "SB pp.14–15",
+  "skills": {},
+  "slides": 13,
+  "file": "Red_Elementary/EFE_2A_Tidy_or_untidy.pptx"
+ },
+ {
+  "id": "2B",
+  "unit": 2,
+  "title": "Made in America",
+  "focus": "adjectives · colours, adjectives, very / really / quite · long and short vowels",
+  "pages": "SB pp.16–17",
+  "skills": {}
+ },
+ {
+  "id": "2C",
+  "unit": 2,
+  "title": "Slow down!",
+  "focus": "imperatives, let's · feelings · linking",
+  "pages": "SB pp.18–19",
+  "skills": {}
+ },
+ {
+  "id": "R1-2",
+  "unit": 2,
+  "title": "Revise and Check 1 & 2",
+  "focus": "revision of Files 1–2",
+  "pages": "SB pp.20–21",
+  "skills": {}
+ },
+ {
+  "id": "3A",
+  "unit": 3,
+  "title": "Britain: the good and the bad",
+  "focus": "present simple (+) and (−) · verb phrases · third person -s",
+  "pages": "SB pp.22–23",
+  "skills": {}
+ },
+ {
+  "id": "3B",
+  "unit": 3,
+  "title": "9 to 5",
+  "focus": "present simple (?) · jobs · /ɜː/ and /ə/",
+  "pages": "SB pp.24–25",
+  "skills": {}
+ },
+ {
+  "id": "3C",
+  "unit": 3,
+  "title": "Love me, love my dog",
+  "focus": "word order in questions · question words · sentence stress",
+  "pages": "SB pp.26–27",
+  "skills": {}
+ },
+ {
+  "id": "PE2",
+  "unit": 3,
+  "title": "Practical English 2: Coffee to take away",
+  "focus": "buying a coffee · telling the time",
+  "pages": "SB pp.28–29",
+  "skills": {}
+ }
+],
   "EF-A2B1": [
    {
     "id": "1A",

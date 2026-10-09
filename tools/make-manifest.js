@@ -2,7 +2,7 @@
 const fs = require("fs"), path = require("path"), crypto = require("crypto");
 global.window = {}; require("../lesson-plans.js");
 const P = window.LLS_PLANS, ROOT = path.join(__dirname, "..", "materials");
-const FOLDERS = { A2: "1JY2ha6o6dp7jaoaR1dGIq_V5sY4sYAo1", B1: "1V-RAFNNB4A5_T0dnqtw11vaRHbo0j6FT" };
+const FOLDERS = { A2: "1JY2ha6o6dp7jaoaR1dGIq_V5sY4sYAo1", B1: "1V-RAFNNB4A5_T0dnqtw11vaRHbo0j6FT", EFE: "1nCAxkLAaZgrTgbNolekD5EI2x3Tn82Dm" };
 // B1 decks go into their unit folder (same name there → the Drive file is updated in place, same link)
 const B1_UNITS = { 1: "1kYADKz4Skf2SgZ0s_NqI8jTmJIkYl5Ul", 2: "12dnOw5gvz-soeTX2Uu1MPfO9QJlvMYpr", 3: "1Ay2vMuOa-8Hjw6-D3gs4PqxH7STYfH5e", 4: "1V__Hgbc8FptESwz-y2DULUj6bYiq98wt", 5: "1OVGOugutsqD1fOC8Pq-cgNrgWmiVF4Uc",
   6: "1pZ9vEd53Cn7TM-w6lMHJx6Yc94LgiNiU", 7: "1JWGcWJ4whXFH8XXtitnpLCSgYkdewagD", 8: "1bmwXggpTQogom6s5LntxOAHUTAGzxKSl", 9: "1YEcv4X_lvGcU-SJhN68fq437-Pj0dlfK", 10: "17Eng2v9bzI7A8ZFufnMREDqM8pp23UBG" };
