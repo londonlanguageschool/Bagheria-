@@ -257,5 +257,364 @@ window.LLS_WORKBOOK = {
           ["Pronunciation", "intonation in question tags (3)", true] ] }
       ] }
     }
+  },
+  /* 9 Oct 2026: EF-A2B1 = English File Pre-intermediate 4th ed. (A2/B1).
+     Built from the official Workbook ANSWER KEY only (no Workbook pages seen):
+     sections and exercise letters are exactly those in the key; topics come
+     from the official syllabus map. "p" is NOT a page number, just 1, 2, 3…
+     per lesson (real page numbers unknown). Reading/listening sections without
+     printed answers do not appear in the key, so they are not listed.
+     audio: true where a letter is missing from the key between keyed ones
+     (e.g. 3a and 3c → 3b is a listen/repeat step) or the task is clearly
+     listening (8C version a/b). PE = Practical English; CYR = "Can you
+     remember…?" revision pages. Answers are NOT published here (copyright). */
+  "EF-A2B1": {
+    name: "English File A2/B1 (Pre-intermediate 4th ed.) Workbook",
+    lessons: {
+      "1A": { title: "Are you? Can you? Do you? Did you?", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "common verb phrases (1a–b)"] ] },
+        { p: 2, items: [
+          ["Grammar", "word order in questions (2a–d)"] ] },
+        { p: 3, items: [
+          ["Pronunciation", "the alphabet (3a–c)", true] ] }
+      ] },
+      "1B": { title: "The perfect date?", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "describing people: appearance and personality (1a–c)"] ] },
+        { p: 2, items: [
+          ["Grammar", "present simple (2a–e)"],
+          ["Pronunciation", "final -s and -es (3a)"] ] }
+      ] },
+      "1C": { title: "The Remake Project", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "clothes, prepositions of place (1a–c)"],
+          ["Pronunciation", "/ə/ and /ɜː/ (2a)"] ] },
+        { p: 2, items: [
+          ["Grammar", "present continuous (3a–d)"] ] }
+      ] },
+      "PE1": { title: "Practical English 1: Hotel problems", pages: [
+        { p: 1, items: [
+          ["Useful phrases", "calling reception (1a–b)"],
+          ["Grammar", "I'll (2)"] ] },
+        { p: 2, items: [
+          ["Social English", "social English phrases (3a–b)"] ] }
+      ] },
+      "CYR1": { title: "Can you remember…? File 1", pages: [
+        { p: 1, items: [
+          ["Grammar", "revision of grammar so far (1)"],
+          ["Vocabulary", "revision of vocabulary so far (2)"] ] },
+        { p: 2, items: [
+          ["Pronunciation", "revision of sounds (3)"],
+          ["Grammar & Vocabulary", "revision: grammar and vocabulary (4)"] ] }
+      ] },
+      "2A": { title: "OMG! Where's my passport?", pages: [
+        { p: 1, items: [
+          ["Grammar", "past simple: regular and irregular verbs (1a–d)"],
+          ["Pronunciation", "regular verbs: -ed endings (2a)"] ] },
+        { p: 2, items: [
+          ["Vocabulary", "holidays (3a–d)"] ] }
+      ] },
+      "2B": { title: "That's me in the picture!", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "prepositions of time and place: at, in, on (1a–d)"] ] },
+        { p: 2, items: [
+          ["Grammar", "past continuous (2a–c)"],
+          ["Pronunciation", "weak forms: was, were (3a)"] ] }
+      ] },
+      "2C": { title: "One dark October evening", pages: [
+        { p: 1, items: [
+          ["Grammar", "time sequencers and connectors (1a–c)"],
+          ["Pronunciation", "word stress (2a)"] ] },
+        { p: 2, items: [
+          ["Vocabulary", "verb phrases (3a–c)"] ] }
+      ] },
+      "3A": { title: "TripAside", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "airports (1a–c)"],
+          ["Pronunciation", "the letter g (2a–c)", true] ] },
+        { p: 2, items: [
+          ["Grammar", "be going to: plans and predictions (3a–d)"] ] }
+      ] },
+      "3B": { title: "Put it in your calendar!", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "verbs + prepositions, e.g. arrive in (1a–c)"],
+          ["Pronunciation", "linking (2a–c)", true] ] },
+        { p: 2, items: [
+          ["Grammar", "present continuous for future arrangements (3a–d)"] ] }
+      ] },
+      "3C": { title: "Word games", pages: [
+        { p: 1, items: [
+          ["Grammar", "defining relative clauses (1a–e)"] ] },
+        { p: 2, items: [
+          ["Vocabulary", "paraphrasing (2a–c)"],
+          ["Pronunciation", "silent e (3a)"] ] }
+      ] },
+      "PE2": { title: "Practical English 2: Restaurant problems", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "restaurant words (1)"],
+          ["Useful phrases", "at the restaurant (2)"] ] },
+        { p: 2, items: [
+          ["Social English", "social English phrases (3a–b)"] ] }
+      ] },
+      "CYR1-3": { title: "Can you remember…? Files 1–3", pages: [
+        { p: 1, items: [
+          ["Grammar", "revision of grammar so far (1)"],
+          ["Vocabulary", "revision of vocabulary so far (2)"] ] },
+        { p: 2, items: [
+          ["Pronunciation", "revision of sounds (3)"],
+          ["Grammar & Vocabulary", "revision: grammar and vocabulary (4)"] ] }
+      ] },
+      "4A": { title: "Who does what?", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "housework, make or do? (1a–c)"] ] },
+        { p: 2, items: [
+          ["Grammar", "present perfect + yet, just, already (2a–e)"],
+          ["Pronunciation", "the letters y and j (3a)"] ] }
+      ] },
+      "4B": { title: "In your basket", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "shopping (1a–c)"],
+          ["Pronunciation", "c and ch (2a)"] ] },
+        { p: 2, items: [
+          ["Grammar", "present perfect or past simple? (3a–e)"] ] }
+      ] },
+      "4C": { title: "#greatweekend", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "adjectives ending -ed and -ing (1a–b)"] ] },
+        { p: 2, items: [
+          ["Grammar", "something, anything, nothing, etc. (2a–d)"],
+          ["Pronunciation", "/e/, /əʊ/ and /ʌ/ (3a)"] ] }
+      ] },
+      "5A": { title: "I want it NOW!", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "types of numbers (1a–b)"] ] },
+        { p: 2, items: [
+          ["Grammar", "comparative adjectives and adverbs, as…as (2a–d)"],
+          ["Pronunciation", "/ə/, sentence stress (3a–c)", true] ] }
+      ] },
+      "5B": { title: "Twelve lost wallets", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "describing a town or city (1a–d)"] ] },
+        { p: 2, items: [
+          ["Grammar", "superlatives (+ ever + present perfect) (2a–d)"],
+          ["Pronunciation", "sentence stress (3a)"] ] }
+      ] },
+      "5C": { title: "How much is enough?", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "health and the body (1a–b)"] ] },
+        { p: 2, items: [
+          ["Grammar", "quantifiers, too, (not) enough (2a–c)"],
+          ["Pronunciation", "/ʌ/ (3a–c)", true] ] }
+      ] },
+      "PE3": { title: "Practical English 3: The wrong shoes", pages: [
+        { p: 1, items: [
+          ["Useful phrases", "Why don't you…? (1)"],
+          ["Vocabulary", "clothes sizes and prices (2a–b)"] ] },
+        { p: 2, items: [
+          ["Useful phrases", "taking something back to a shop (3)"],
+          ["Social English", "social English phrases (4)"] ] }
+      ] },
+      "CYR1-5": { title: "Can you remember…? Files 1–5", pages: [
+        { p: 1, items: [
+          ["Grammar", "revision of grammar so far (1)"],
+          ["Vocabulary", "revision of vocabulary so far (2)"] ] },
+        { p: 2, items: [
+          ["Pronunciation", "revision of sounds (3)"],
+          ["Grammar & Vocabulary", "revision: grammar and vocabulary (4)"] ] }
+      ] },
+      "6A": { title: "Think positive – or negative?", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "opposite verbs (1a–b)"] ] },
+        { p: 2, items: [
+          ["Grammar", "will / won't (predictions) (2a–d)"],
+          ["Pronunciation", "'ll, won't (3a–c)", true] ] }
+      ] },
+      "6B": { title: "I'll always love you", pages: [
+        { p: 1, items: [
+          ["Grammar", "will / won't / shall (other uses) (1a–d)"],
+          ["Pronunciation", "word stress: two-syllable verbs (2a)"] ] },
+        { p: 2, items: [
+          ["Vocabulary", "verb + back (3a–b)"] ] }
+      ] },
+      "6C": { title: "The meaning of dreaming", pages: [
+        { p: 1, items: [
+          ["Grammar", "review of verb forms: present, past and future (1a–c)"] ] },
+        { p: 2, items: [
+          ["Vocabulary", "modifiers (2a–b)"],
+          ["Pronunciation", "the letters ea (3a–c)", true] ] }
+      ] },
+      "7A": { title: "First day nerves", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "verbs + infinitive: try to, forget to, etc. (1a–b)"] ] },
+        { p: 2, items: [
+          ["Grammar", "uses of the infinitive with to (2a–e)"],
+          ["Pronunciation", "weak form of to, linking (3a)"] ] }
+      ] },
+      "7B": { title: "Happiness is…", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "verbs + gerund (1a–b)"] ] },
+        { p: 2, items: [
+          ["Grammar", "uses of the gerund (verb + -ing) (2a–e)"],
+          ["Pronunciation", "-ing, the letter o (3a–c)", true] ] }
+      ] },
+      "7C": { title: "Could you pass the test?", pages: [
+        { p: 1, items: [
+          ["Grammar", "have to, don't have to, must, mustn't (1a–d)"] ] },
+        { p: 2, items: [
+          ["Vocabulary", "adjectives + prepositions: afraid of, etc. (2a–e)"],
+          ["Pronunciation", "stress on prepositions (3a)"] ] }
+      ] },
+      "PE4": { title: "Practical English 4: At the pharmacy", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "feeling ill: symptoms (1)"],
+          ["Useful phrases", "going to a pharmacy (2)"] ] },
+        { p: 2, items: [
+          ["Grammar", "have got (3)"],
+          ["Social English", "social English phrases (4)"] ] }
+      ] },
+      "CYR1-7": { title: "Can you remember…? Files 1–7", pages: [
+        { p: 1, items: [
+          ["Grammar", "revision of grammar so far (1)"],
+          ["Vocabulary", "revision of vocabulary so far (2)"] ] },
+        { p: 2, items: [
+          ["Pronunciation", "revision of sounds (3)"],
+          ["Grammar & Vocabulary", "revision: grammar and vocabulary (4)"] ] }
+      ] },
+      "8A": { title: "Should I stay or should I go?", pages: [
+        { p: 1, items: [
+          ["Grammar", "should (1a–b)"],
+          ["Pronunciation", "/ʊ/ and /uː/ (2a)"] ] },
+        { p: 2, items: [
+          ["Vocabulary", "get (3a–d)"] ] }
+      ] },
+      "8B": { title: "Murphy's Law", pages: [
+        { p: 1, items: [
+          ["Grammar", "if + present, will + infinitive: first conditional (1a–c)"] ] },
+        { p: 2, items: [
+          ["Vocabulary", "confusing verbs (2a–d)"],
+          ["Pronunciation", "homophones (3a–b)", true] ] }
+      ] },
+      "8C": { title: "Who's Vivienne?", pages: [
+        { p: 1, items: [
+          ["Pronunciation", "reading aloud: listen and choose the version (1a)", true],
+          ["Grammar", "possessive pronouns (2a–c)"] ] },
+        { p: 2, items: [
+          ["Vocabulary", "adverbs of manner (3a–c)"] ] }
+      ] },
+      "9A": { title: "Beware of the dog", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "animals and insects (1a–c)"],
+          ["Pronunciation", "word stress (2a)"] ] },
+        { p: 2, items: [
+          ["Grammar", "if + past, would + infinitive: second conditional (3a–c)"] ] }
+      ] },
+      "9B": { title: "Fearof.net", pages: [
+        { p: 1, items: [
+          ["Grammar", "present perfect + for and since (1a–c)"] ] },
+        { p: 2, items: [
+          ["Vocabulary", "phrases with for and since (2a–d)"],
+          ["Pronunciation", "sentence stress (3a)"] ] }
+      ] },
+      "9C": { title: "Scream queens", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "biographies (1a–b)"],
+          ["Pronunciation", "word stress (2a–c)", true] ] },
+        { p: 2, items: [
+          ["Grammar", "present perfect or past simple? (2) (3a–d)"] ] }
+      ] },
+      "PE5": { title: "Practical English 5: Getting around", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "directions (1a–b)"],
+          ["Useful phrases", "asking how to get there (2a–b)"] ] },
+        { p: 2, items: [
+          ["Social English", "social English phrases (3)"] ] }
+      ] },
+      "CYR1-9": { title: "Can you remember…? Files 1–9", pages: [
+        { p: 1, items: [
+          ["Grammar", "revision of grammar so far (1)"],
+          ["Vocabulary", "revision of vocabulary so far (2)"] ] },
+        { p: 2, items: [
+          ["Pronunciation", "revision of sounds (3)"],
+          ["Grammar & Vocabulary", "revision: grammar and vocabulary (4)"] ] }
+      ] },
+      "10A": { title: "Into the net", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "sports, expressing movement (1a–c)"],
+          ["Pronunciation", "word stress (2a)"] ] },
+        { p: 2, items: [
+          ["Grammar", "expressing movement (3a–c)"] ] }
+      ] },
+      "10B": { title: "Early birds", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "phrasal verbs (1a–c)"] ] },
+        { p: 2, items: [
+          ["Grammar", "word order of phrasal verbs (2a–e)"],
+          ["Pronunciation", "linking (3a)"] ] }
+      ] },
+      "10C": { title: "International inventions", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "people from different countries (1a–b)"],
+          ["Pronunciation", "/ʃ/, /tʃ/ and /dʒ/ (2a–c)", true] ] },
+        { p: 2, items: [
+          ["Grammar", "the passive (3a–d)"] ] }
+      ] },
+      "11A": { title: "Ask the teacher", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "school subjects (1a–c)"] ] },
+        { p: 2, items: [
+          ["Grammar", "used to (2a–d)"],
+          ["Pronunciation", "used to / didn't use to (3a)"] ] }
+      ] },
+      "11B": { title: "Help! I can't decide!", pages: [
+        { p: 1, items: [
+          ["Grammar", "might (1a–b)"],
+          ["Pronunciation", "diphthongs (2a)"] ] },
+        { p: 2, items: [
+          ["Vocabulary", "word building: noun formation (3a–c)"] ] }
+      ] },
+      "11C": { title: "Twinstrangers.net", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "similarities and differences (1a–b)"] ] },
+        { p: 2, items: [
+          ["Grammar", "so, neither + auxiliaries (2a–c)"],
+          ["Pronunciation", "/ð/ and /θ/ (3a–c)", true] ] }
+      ] },
+      "PE6": { title: "Practical English 6: Time to go home", pages: [
+        { p: 1, items: [
+          ["Useful phrases", "on the phone (1a–c)"] ] },
+        { p: 2, items: [
+          ["Social English", "social English phrases (2)"] ] }
+      ] },
+      "CYR1-11": { title: "Can you remember…? Files 1–11", pages: [
+        { p: 1, items: [
+          ["Grammar", "revision of grammar so far (1)"],
+          ["Vocabulary", "revision of vocabulary so far (2)"] ] },
+        { p: 2, items: [
+          ["Pronunciation", "revision of sounds (3)"],
+          ["Grammar & Vocabulary", "revision: grammar and vocabulary (4)"] ] }
+      ] },
+      "12A": { title: "Unbelievable!", pages: [
+        { p: 1, items: [
+          ["Vocabulary", "time expressions (1a–b)"] ] },
+        { p: 2, items: [
+          ["Grammar", "past perfect (2a–c)"],
+          ["Pronunciation", "the letter i (3a)"] ] }
+      ] },
+      "12B": { title: "Think before you speak", pages: [
+        { p: 1, items: [
+          ["Grammar", "reported speech (1a–c)"] ] },
+        { p: 2, items: [
+          ["Vocabulary", "say or tell? (2a–d)"],
+          ["Pronunciation", "double consonants (3a)"] ] }
+      ] },
+      "12C": { title: "The English File quiz", pages: [
+        { p: 1, items: [
+          ["Pronunciation", "question words (1a)"],
+          ["Vocabulary", "revision of question words (2)"] ] },
+        { p: 2, items: [
+          ["Grammar", "questions without auxiliaries (3a–e)"] ] }
+      ] }
+    }
   }
 };
