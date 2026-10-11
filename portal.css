@@ -2670,3 +2670,4 @@ tbody tr:hover {
 .guide-body .methods-guide ol.mg-steps { list-style: decimal; padding-left: 24px; }
 .guide-body .methods-guide li span { font-size: inherit; color: inherit; }
 .guide-tabs { flex-wrap: wrap; }
+.mg-principle { margin: 10px 0; padding: 10px 12px; border-radius: 12px; background: #e3f1fd; border: 1px solid #a9d3f5; }

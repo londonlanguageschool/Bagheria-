@@ -8681,9 +8681,9 @@ async function llsSaveLesson() {
   }));
   const hwTitle = value("lessonHwTitle").trim();
   // 11 Oct (owner): homework is never forgotten by accident – ask once if the box is empty
-  // (not for Tiny Talkers / Pre-Starters, not when nobody came, and not when re-saving a lesson that has homework).
+  // (not when nobody came, and not when re-saving a lesson that already has homework).
   const ownSaved = llsLesson.entries.find((e) => e.lessonDate === date);
-  if (!hwTitle && !nobodyHere && !(ownSaved && ownSaved.homeworkSet) && !/tiny|pre-?starters/i.test(cls.name || "")) {
+  if (!hwTitle && !nobodyHere && !(ownSaved && ownSaved.homeworkSet)) { // 11 Oct (owner): homework for ALL groups, every lesson
     const ok = window.confirm("No homework for this class today?\n\nOK = save without homework\nCancel = go back and add homework (there are ideas under the Homework box)");
     if (!ok) { const hw = byId("lessonHwTitle"); hw?.scrollIntoView({ behavior: "smooth", block: "center" }); hw?.focus({ preventScroll: true }); return; }
   }
@@ -9808,9 +9808,7 @@ function llsRenderHwIdeas() {
   const box = byId("lessonHwIdeas");
   if (!box) return;
   const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
-  const noBook = !cls || !cls.book;
-  const own = llsChoiceOn() || byId("lessonSpecialOn")?.checked;
-  const ideas = (noBook || own) ? llsHwIdeaList_(cls) : [];
+  const ideas = llsHwIdeaList_(cls); // 11 Oct: ideas for every class (book classes also get the workbook suggestions)
   if (!ideas.length) { box.hidden = true; box.innerHTML = ""; return; }
   box.hidden = false;
   box.innerHTML = `<span class="muted" style="font-weight:700;">💡 Ideas from today's lesson:</span> ` +
@@ -10141,9 +10139,10 @@ function llsRenderGuide() {
 const LLS_METHODS_HTML = `
 <div class="mg-hero">
   <div class="mg-star">★ Our way at LLS</div>
-  <h3>TPRS + “We make English fun!”</h3>
-  <p>We teach through <b>stories, questions and lots of repetition</b>, so students hear the new language many times in a way that makes sense to them, and then use it themselves. With young children we add <b>TPR</b> (moving, miming, songs). Every lesson has <b>at least one game</b>.</p>
+  <h3>TPRS + the communicative approach, blended · “We make English fun!”</h3>
+  <p>We teach through <b>stories, questions and lots of repetition</b> (TPRS), so students hear the new language many times in a way that makes sense to them, and through <b>real communication</b> (communicative approach): students spend most of the lesson <i>using</i> English with each other for a reason. With young children we add <b>TPR</b> (moving, miming, songs). Every lesson has <b>at least one game</b> and <b>homework</b>.</p>
 </div>
+<div class="mg-principle">🧭 <b>Method is a principle, not a rulebook.</b> Plan from the lesson aim and the book; then choose the <b>best activity for that aim</b>. Use TPRS and communicative ideas wherever they fit, but a good activity that fits the lesson always beats forcing a method.</div>
 
 <h4>✅ Golden rules (every lesson)</h4>
 <ul class="mg-rules">
@@ -10178,7 +10177,28 @@ const LLS_METHODS_HTML = `
   <p class="mg-tip">💡 Keep it slow, point at the board every time you say the structure, and check understanding with your fingers (1–10). If they are lost, go back and circle more.</p>
 </details>
 
-<details class="mg-card mg-main"><summary>★ 2 · TPR: Total Physical Response <span>young learners & beginners</span></summary>
+<details class="mg-card mg-main"><summary>★ 2 · The communicative approach (CLT) <span>our second main method</span></summary>
+  <p><b>What it means in practice:</b> English is a tool for doing things, so the lesson is built around students <b>talking to each other to exchange real information, opinions or solve a problem</b> – not just repeating or filling gaps. Grammar is there to help them say what they want to say.</p>
+  <p><b>What it looks like in class:</b></p>
+  <ul class="mg-rules">
+    <li><b>Students talk more than the teacher</b> – most speaking in pairs and groups (aim: you talk less than 30% of the time).</li>
+    <li><b>A real reason to speak</b> – an <b>information gap</b> (A knows something B doesn't), an opinion gap or a problem to solve.</li>
+    <li><b>Meaning first, accuracy after</b> – during fluency tasks don't interrupt; note mistakes and correct them at the end.</li>
+    <li><b>Real-life language and situations</b> – ordering food, asking the way, a job interview, a phone call.</li>
+    <li><b>Personalisation</b> – students talk about <i>their</i> lives, opinions and town.</li>
+    <li><b>Useful phrases on the board</b> before a speaking task (“What do you think? · I agree because… · Really?”).</li>
+  </ul>
+  <p><b>Typical activities:</b></p>
+  <div class="mg-ex"><b>Information gap:</b> A has a timetable with the times missing, B has the times – they ask “What time does the bus to Palermo leave?”<br>
+  <b>Role-play:</b> at the restaurant, at the doctor's, returning something to a shop (role cards for A and B).<br>
+  <b>Survey / Find someone who…:</b> “Find someone who has been to London. Ask one more question!”<br>
+  <b>Opinion line / ranking:</b> stand on a line from “agree” to “disagree”; rank 6 things and agree as a group.<br>
+  <b>Problem-solving:</b> “You have €50 for a class party. Decide together what to buy.”<br>
+  <b>Jigsaw reading/listening:</b> each pair reads a different part, then they tell each other.</div>
+  <p class="mg-tip">💡 <b>TPRS + communicative together:</b> use TPRS to give students lots of understandable input with the new language (the story), then a communicative task so they use it for real (interview each other, role-play the story, solve a problem in it).</p>
+</details>
+
+<details class="mg-card mg-main"><summary>★ 3 · TPR: Total Physical Response <span>young learners & beginners</span></summary>
   <p><b>What:</b> students show they understand by <b>doing</b> – moving, pointing, miming – before they have to speak.</p>
   <div class="mg-ex">“Stand up! · Touch your nose! · Jump three times! · Point to something red!”<br>Game: <b>Teacher says…</b> (Simon says) – only move if you hear “Teacher says”.<br>Songs: <i>Head, shoulders, knees and toes</i> · story with actions (<i>Brown bear, brown bear…</i>).</div>
   <p class="mg-tip">💡 Do it yourself first, then with them, then let a child be the teacher. Great as a warmer for teens too (body parts, actions, prepositions).</p>
@@ -10217,10 +10237,12 @@ const LLS_METHODS_HTML = `
   <tr><th>Class</th><th>Main</th><th>Plus</th></tr>
   <tr><td>Tiny Talkers, Pre-Starters</td><td>TPR, songs, picture stories</td><td>very simple TPRS (“Is it a red cat?”)</td></tr>
   <tr><td>Starters, Movers, Flyers</td><td>TPRS stories + TPR</td><td>3+ games, PPP for new grammar</td></tr>
-  <tr><td>Teens (B1–B2)</td><td>TPRS + guided discovery</td><td>games, exam tasks, TTT for revision</td></tr>
-  <tr><td>Adults</td><td>TPRS + guided discovery</td><td>task-based, real-life speaking</td></tr>
-  <tr><td>1-2-1</td><td>PQA (personal questions) + TPRS about their life</td><td>task-based on their real needs</td></tr>
+  <tr><td>Teens (B1–B2)</td><td>TPRS + communicative + guided discovery</td><td>games, exam tasks, TTT for revision</td></tr>
+  <tr><td>Adults</td><td>Communicative + TPRS + guided discovery</td><td>task-based, real-life role-plays</td></tr>
+  <tr><td>1-2-1</td><td>Communicative: real conversation about their life and needs + PQA</td><td>task-based on their real needs</td></tr>
 </table>
+<h4>📝 Homework</h4>
+<p>Every group, every lesson – short and linked to what you did (the portal suggests ideas in step 5). Young children: drawing, colouring, a song to sing at home.</p>
 <p class="mg-foot">Questions or a better idea? Tell Cole: this guide grows with what works in our classrooms.</p>`;
 
 function llsOpenMethods() {
