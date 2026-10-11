@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#082d5c">
   <meta name="description" content="London Language School management portal">
   <title>LLS Portal | London Language School</title>
-  <link rel="stylesheet" href="portal.css?v=20261009f">
-  <link rel="stylesheet" href="portal-theme.css?v=20261009f">
+  <link rel="stylesheet" href="portal.css?v=20261011a">
+  <link rel="stylesheet" href="portal-theme.css?v=20261011a">
 </head>
 
 <body>
@@ -701,7 +701,7 @@
             </div>
 
             <div class="panel lw-gate">
-              <p class="section-label step-label" style="margin-top:0;"><span class="step-n s5">4</span> ✏️ What did you do?</p>
+              <p class="section-label step-label" style="margin-top:0;"><span class="step-n s5">4</span> ✏️ What did you do? <button type="button" class="row-action" data-open-methods style="margin-left:8px;text-transform:none;letter-spacing:0;">📘 How we teach</button></p>
               <div class="lesson-type" id="lessonTypeBar" role="radiogroup" aria-label="What kind of lesson?">
                 <button type="button" class="lesson-type-btn active" role="radio" aria-checked="true" data-ltype="book"><span>📘</span><strong>Coursebook</strong><small>the normal lesson</small></button>
                 <button type="button" class="lesson-type-btn" role="radio" aria-checked="false" data-ltype="choice"><span>🧑‍🏫</span><strong>Teacher's choice</strong><small>your own lesson plan</small></button>
@@ -709,7 +709,7 @@
               </div>
               <div class="lesson-special lesson-choice on" id="lessonChoiceBox" hidden>
                 <p style="margin:0 0 4px;"><strong>🧑‍🏫 Teacher's choice</strong></p>
-                <p class="muted" style="margin:0;">Your own lesson instead of the book. It counts towards the students' progress like any other lesson, so tick the skills below and say clearly what you did. The book unit doesn't move.</p>
+                <p class="muted" style="margin:0;">Your own lesson instead of the book. It counts like any other lesson: just tick the skills below and write the topic. The book unit doesn't move.</p>
                 <div class="lesson-special-chips" id="lessonChoiceChips">
                   <button type="button" class="lesson-chip" data-choice="Exam practice">🎓 Exam practice</button>
                   <button type="button" class="lesson-chip" data-choice="Speaking practice">🗣️ Speaking practice</button>
@@ -722,8 +722,8 @@
                 </div>
                 <div class="form-grid" style="margin-top:10px;">
                   <div class="form-field form-field-wide">
-                    <label for="lessonChoiceTitle">Lesson title <span class="muted">(required)</span></label>
-                    <input id="lessonChoiceTitle" type="text" maxlength="60" placeholder="Pick one above and make it specific, e.g. Cambridge B1 Listening Part 1">
+                    <label for="lessonChoiceTitle">Lesson title <span class="muted">(optional)</span></label>
+                    <input id="lessonChoiceTitle" type="text" maxlength="60" placeholder="Optional, e.g. Cambridge B1 Listening Part 1">
                   </div>
                   <div class="form-field form-field-wide">
                     <label for="lessonChoiceLinks">🔗 Materials you used: links <span class="muted">(one per line: website, video, worksheet…)</span></label>
@@ -789,6 +789,7 @@
                   <label for="lessonHwTitle">Homework</label>
                   <input id="lessonHwTitle" type="text" placeholder="e.g. Workbook p.12 ex 1–3">
                   <div id="lessonHwSuggest" class="sk-chips" style="margin-top:8px;" hidden></div>
+                  <div id="lessonHwIdeas" class="sk-chips" style="margin-top:8px;" hidden></div>
                   <div id="lessonWbBox" class="wb-box" hidden></div>
                 </div>
                 <div class="form-field form-field-wide">
@@ -1963,6 +1964,7 @@
       <div class="guide-tabs" role="tablist" data-no-translate>
         <button type="button" class="guide-tab" data-guide-tab="teacher" role="tab">👩‍🏫 Teachers · Insegnanti</button>
         <button type="button" class="guide-tab" data-guide-tab="office" role="tab">🗂️ Office · Segreteria</button>
+        <button type="button" class="guide-tab" data-guide-tab="methods" role="tab">📘 How we teach</button>
         <button type="button" class="guide-tab guide-lang" data-guide-lang>IT / EN</button>
       </div>
       <div id="guideBody" class="guide-body" data-no-translate></div>
@@ -2331,12 +2333,12 @@
   ========================== -->
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
-  <script src="practice/courses.js?v=20261009f"></script>
-  <script src="lesson-plans.js?v=20261009f"></script>
-  <script src="workbook.js?v=20261009f"></script>
-  <script src="portal.js?v=20261009f"></script>
-  <script src="resources.js?v=20261009f"></script>
-  <script src="report.js?v=20261009f"></script>
-  <script src="portal-i18n.js?v=20261009f"></script>
+  <script src="practice/courses.js?v=20261011a"></script>
+  <script src="lesson-plans.js?v=20261011a"></script>
+  <script src="workbook.js?v=20261011a"></script>
+  <script src="portal.js?v=20261011a"></script>
+  <script src="resources.js?v=20261011a"></script>
+  <script src="report.js?v=20261011a"></script>
+  <script src="portal-i18n.js?v=20261011a"></script>
 </body>
 </html>

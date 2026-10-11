@@ -7929,11 +7929,12 @@ function llsSetChoice(on, title, links) {
   byId("lessonUnitPageField").hidden = Boolean(on) || Boolean(byId("lessonSpecialOn")?.checked);
   const label = byId("lessonDoneLabel"), done = byId("lessonDone");
   if (label) label.innerHTML = on
-    ? `What exactly did you do? <span class="muted">(required: activities in order, pages, games… students see this)</span>`
+    ? `Anything else? <span class="muted">(optional: extra details, pages, games… students see this)</span>`
     : `Anything else? <span class="muted">(optional: students see this)</span>`;
-  if (done) { done.placeholder = on ? "e.g. Warm-up quiz on the past simple, then Cambridge B1 Listening Part 1 (2 tests), then a speaking game with the answers." : "e.g. vocab game, p.19"; done.rows = on ? 4 : 2; }
+  if (done) { done.placeholder = on ? "e.g. Cambridge B1 Listening Part 1 (2 tests), then a speaking game" : "e.g. vocab game, p.19"; done.rows = 2; }
   llsMarkChoiceChip_();
   llsSyncLessonType_();
+  if (typeof llsRenderHwIdeas === "function") llsRenderHwIdeas();
 }
 function llsMarkChoiceChip_() {
   const t = value("lessonChoiceTitle").trim().toLowerCase();
@@ -8342,7 +8343,7 @@ async function llsRenderLesson() {
   llsLesson.entries = [];
   llsPlanConfirm = "";
   llsRenderSkills();
-  llsRenderHwSuggest(cls);
+  llsRenderHwSuggest(cls); llsRenderHwIdeas();
   if (llsWbState.lessonWbBox) delete llsWbState.lessonWbBox; // a new lesson starts with Workbook off
   llsLessonWb_();
   llsLesson.noteTouched = false;
@@ -8588,7 +8589,7 @@ async function llsChangeLessonUnit(step) {
     cls.currentUnit = String(next);
     saveState();
     byId("lessonUnitValue").textContent = next;
-    llsRenderHwSuggest(cls);
+    llsRenderHwSuggest(cls); llsRenderHwIdeas();
     llsRenderSkills();
     if (/^\d+$/.test(value("lessonUnitPage")) || !value("lessonUnitPage")) setValue("lessonUnitPage", String(next));
     showToast(`${cls.name} is now on unit ${next}. Practice in the app follows it.`, "success");
@@ -8616,9 +8617,14 @@ async function llsSaveLesson() {
   }
   // 5 Oct: Teacher's choice needs a title and a clear description (it counts like a book lesson).
   const choiceOn = !specialOn && llsChoiceOn();
-  const choiceTitle = value("lessonChoiceTitle").trim();
+  // 11 Oct (Helen): the title is optional – if empty, use the first skill ticked (e.g. "Grammar: past simple").
+  const choiceTitle = value("lessonChoiceTitle").trim() || (() => {
+    const first = LLS_SKILLS.find((sk) => llsSkillState[sk.k]?.on);
+    const topic = first ? String(llsSkillState[first.k].topic || "").trim() : "";
+    return first ? (topic ? `${first.k}: ${topic}` : first.k).slice(0, 60) : "Teacher's choice";
+  })();
   const choiceLinks = value("lessonChoiceLinks").split(/\n+/).map((x) => x.trim()).filter(Boolean);
-  if (choiceOn && !choiceTitle) {
+  if (false && choiceOn && !choiceTitle) {
     showToast("Give your lesson a title (e.g. Cambridge B1 Listening Part 1).", "error");
     byId("lessonChoiceTitle")?.classList.add("needs");
     byId("lessonChoiceTitle")?.focus();
@@ -8643,7 +8649,7 @@ async function llsSaveLesson() {
   const needSkill = !specialOn && !nobodyHere && !ticked.length;
   skillBox?.classList.toggle("needs", needSkill);
   const doneText = [...llsSkillLines(llsSkillState), choiceOn ? LLS_CHOICE_MARK + choiceTitle : "", value("lessonDone").trim()].filter(Boolean).join("\n") || (specialOn ? specialTitle + " lesson" : nobodyHere ? LLS_NOBODY_CAME : "");
-  const needDone = choiceOn && !nobodyHere && value("lessonDone").trim().length < 30;
+  const needDone = false; // 11 Oct (Helen): the skills + topics already say what was done; no extra description required
   if (value("lessonProgress") === "stop" && !(Number(value("lessonStopSlide")) > 0)) {
     showToast("Write the slide number where you stopped (step 4 · How far did you get?).", "error");
     byId("lessonStopSlide")?.focus();
@@ -8674,6 +8680,13 @@ async function llsSaveLesson() {
     notes: llsJoinRating(["Present", "Late"].includes(r.dataset.status || "Present") ? (r.querySelector(".reg-rating")?.value || "") : "", r.querySelector(".reg-note")?.value.trim() || "")
   }));
   const hwTitle = value("lessonHwTitle").trim();
+  // 11 Oct (owner): homework is never forgotten by accident – ask once if the box is empty
+  // (not for Tiny Talkers / Pre-Starters, not when nobody came, and not when re-saving a lesson that has homework).
+  const ownSaved = llsLesson.entries.find((e) => e.lessonDate === date);
+  if (!hwTitle && !nobodyHere && !(ownSaved && ownSaved.homeworkSet) && !/tiny|pre-?starters/i.test(cls.name || "")) {
+    const ok = window.confirm("No homework for this class today?\n\nOK = save without homework\nCancel = go back and add homework (there are ideas under the Homework box)");
+    if (!ok) { const hw = byId("lessonHwTitle"); hw?.scrollIntoView({ behavior: "smooth", block: "center" }); hw?.focus({ preventScroll: true }); return; }
+  }
   const note = {
     // nobody came: no unit, so the lesson plan isn't marked as taught
     unit: specialOn ? LLS_SPECIAL_PREFIX + specialTitle : choiceOn ? LLS_CHOICE_UNIT : nobodyHere && !ticked.length ? "" : value("lessonUnitPage").trim(),
@@ -9737,6 +9750,7 @@ function llsRenderSkills() {
     llsSkillState[i.dataset.skillTopic].topic = i.value;
     llsLesson.noteTouched = true;
     i.closest(".sk-row")?.classList.remove("needs");
+    clearTimeout(llsHwIdeasTimer_); llsHwIdeasTimer_ = setTimeout(llsRenderHwIdeas, 400);
   }));
   box.querySelectorAll("[data-skill-sug]").forEach((b) => b.addEventListener("click", () => {
     llsSkillState[b.dataset.skillSug].topic = b.title;
@@ -9747,6 +9761,65 @@ function llsRenderSkills() {
     const st = llsSkillState[b.dataset.skillFocus];
     st.focus = st.focus === b.dataset.value ? "" : b.dataset.value;
     llsRenderSkills();
+  }));
+  llsRenderHwIdeas();
+}
+
+/* 11 Oct (owner) — homework ideas for classes without a course book (or a Teacher's choice /
+   special lesson): 2–3 one-tap ideas made from the skills and topics ticked in step 4.
+   Simple templates – the teacher can change anything before saving. */
+let llsHwIdeasTimer_ = null;
+function llsIsYoungClass_(cls) {
+  return /young learners/i.test(String(cls?.level || "")) || /tiny|pre-?starters|starters|movers|flyers/i.test(String(cls?.name || ""));
+}
+function llsHwIdeaList_(cls) {
+  const kids = llsIsYoungClass_(cls);
+  const out = [];
+  LLS_SKILLS.forEach((sk) => {
+    const st = llsSkillState[sk.k];
+    if (!st || !st.on) return;
+    const t = String(st.topic || "").trim();
+    const about = t ? ` (${t})` : "";
+    if (sk.k === "Grammar") out.push(kids
+      ? [`Grammar practice${about}`, `Write 4 sentences about you or your family${t ? " using " + t : ""}. Draw a picture for one of them.`]
+      : [`Grammar practice${about}`, `Write 6 sentences about your week${t ? " using " + t : " using today's grammar"}. Bring them to the next lesson.`]);
+    if (sk.k === "Vocabulary") out.push(kids
+      ? [`Learn the new words${about}`, `Draw and colour 5 of today's words${t ? " (" + t + ")" : ""}. Say them to someone in your family.`]
+      : [`Learn the new words${about}`, `Learn today's words${t ? " (" + t + ")" : ""} and write a sentence with each one.`]);
+    if (sk.k === "Reading") out.push([`Reading${about}`, kids
+      ? "Read today's text again at home, out loud, to someone in your family."
+      : "Read today's text again and underline 5 new words. Look them up and bring them to the next lesson."]);
+    if (sk.k === "Listening") out.push([`Listening practice${about}`, kids
+      ? "Listen to an English song or cartoon (5 minutes). Tell the teacher one word you heard."
+      : "Listen to an English song, podcast or video (5–10 minutes) and write down 5 words or phrases you understood."]);
+    if (sk.k === "Speaking") out.push([`Speaking${about}`, kids
+      ? `Tell someone at home about ${t || "today's lesson"} in English: 3 sentences!`
+      : `Practise talking about ${t || "today's topic"} for 1 minute (record yourself on your phone if you can).`]);
+    if (sk.k === "Writing") out.push([`Writing${about}`, kids
+      ? `Write 3–4 sentences about ${t || "today's topic"} and draw a picture.`
+      : `Write 60–80 words about ${t || "today's topic"}.`]);
+    if (sk.k === "Games & songs") out.push([`Practise the song / game${about}`, kids
+      ? "Sing today's song at home or teach today's game to someone in your family."
+      : "Teach today's game or words to someone at home – in English!"]);
+  });
+  return out.slice(0, 3);
+}
+function llsRenderHwIdeas() {
+  const box = byId("lessonHwIdeas");
+  if (!box) return;
+  const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
+  const noBook = !cls || !cls.book;
+  const own = llsChoiceOn() || byId("lessonSpecialOn")?.checked;
+  const ideas = (noBook || own) ? llsHwIdeaList_(cls) : [];
+  if (!ideas.length) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  box.innerHTML = `<span class="muted" style="font-weight:700;">💡 Ideas from today's lesson:</span> ` +
+    ideas.map(([title, text], i) => `<button type="button" class="sk-chip" data-hw-idea="${i}" title="${escapeHtml(text)}">${escapeHtml(title)}</button>`).join("");
+  box.querySelectorAll("[data-hw-idea]").forEach((b) => b.addEventListener("click", () => {
+    const [title, text] = ideas[Number(b.dataset.hwIdea)];
+    setValue("lessonHwTitle", title);
+    setValue("lessonHwText", text);
+    byId("lessonHwText")?.focus();
   }));
 }
 
@@ -10043,9 +10116,15 @@ const LLS_GUIDE = {
 let llsGuideState = { tab: "", lang: "" };
 
 function llsRenderGuide() {
-  const g = LLS_GUIDE[llsGuideState.tab][llsGuideState.lang];
   const body = byId("guideBody");
   if (!body) return;
+  // 11 Oct: third tab "How we teach" (English only: it is about teaching English).
+  if (llsGuideState.tab === "methods") {
+    body.innerHTML = `<div class="methods-guide">${LLS_METHODS_HTML}</div>`;
+    document.querySelectorAll("[data-guide-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.guideTab === "methods")));
+    return;
+  }
+  const g = LLS_GUIDE[llsGuideState.tab][llsGuideState.lang];
   body.innerHTML = `<p class="guide-intro">${escapeHtml(g.intro)}</p>
     <ol>${g.steps.map(([t, d]) => `<li><div><strong>${escapeHtml(t)}</strong><span>${escapeHtml(d)}</span></div></li>`).join("")}</ol>
     <p class="guide-tip">🐞 ${escapeHtml(g.tip.replace(/^🐞\s*/, ""))}</p>`;
@@ -10053,6 +10132,109 @@ function llsRenderGuide() {
   const lb = document.querySelector("[data-guide-lang]");
   if (lb) lb.textContent = llsGuideState.lang === "it" ? "🇬🇧 English" : "🇮🇹 Italiano";
 }
+
+/* =========================================================
+   11 Oct (owner) — "📘 How we teach": a short methods guide for teachers,
+   in the Guide (third tab) and one tap from the Lesson page. Our preferred
+   way is TPRS (+ TPR for young learners) and "We make English fun!".
+========================================================= */
+const LLS_METHODS_HTML = `
+<div class="mg-hero">
+  <div class="mg-star">★ Our way at LLS</div>
+  <h3>TPRS + “We make English fun!”</h3>
+  <p>We teach through <b>stories, questions and lots of repetition</b>, so students hear the new language many times in a way that makes sense to them, and then use it themselves. With young children we add <b>TPR</b> (moving, miming, songs). Every lesson has <b>at least one game</b>.</p>
+</div>
+
+<h4>✅ Golden rules (every lesson)</h4>
+<ul class="mg-rules">
+  <li><b>Plan first:</b> “Students can… by the end.” Max new words: 6 (A1–A2), 8 (B1), 10–12 (B2+).</li>
+  <li><b>English first, then Italian.</b> Students try to explain in English; Italian only to check or consolidate.</li>
+  <li><b>Show an example before every task.</b> Do the first one together.</li>
+  <li><b>Questions before reading or listening</b>; answers after, one by one.</li>
+  <li><b>Controlled first, then free</b> (gap-fill → personal speaking).</li>
+  <li><b>Games:</b> adults at least 1, children at least 3. Add an <b>extension</b> question for fast finishers.</li>
+  <li><b>Correct errors later</b>, not mid-sentence: note them, then go through 3–4 at the end.</li>
+  <li><b>Finish with retrieval</b> (“3 things you learnt”), not “Any questions?”.</li>
+</ul>
+
+<details class="mg-card mg-main" open><summary>★ 1 · TPRS: Teaching Proficiency through Reading and Storytelling <span>our main method</span></summary>
+  <p><b>What:</b> you build a short story <i>with</i> the class, using 2–3 target structures, and ask lots of easy questions about every line (“circling”). Students understand everything, hear the structure 30–50 times, and then read and retell it.</p>
+  <p><b>The steps:</b></p>
+  <ol class="mg-steps">
+    <li><b>PQA</b> – personal questions with the target: “Do you <u>want</u> a dog? Who <u>wants</u> a dog? Marco <u>wants</u> a dog!”</li>
+    <li><b>Establish meaning</b> – write the structure on the board; English, then Italian (<i>wants = vuole</i>).</li>
+    <li><b>Ask the story</b> – students choose the details (names, places, funny problems). Circle every line. Students act it out.</li>
+    <li><b>Read</b> – the class version of the story, then the book text.</li>
+    <li><b>Pop-up grammar</b> – 10 seconds: “Why <i>wants</i> with an s? Because it's <i>he</i>.”</li>
+    <li><b>Retell and change</b> – pairs retell with new details; then personal speaking or writing.</li>
+  </ol>
+  <p><b>Circling</b> = asking about the same sentence in different ways:</p>
+  <div class="mg-ex"><b>Teacher:</b> “Class, Marco wants a dog.” <i>(Ohhh!)</i><br>
+  “Does Marco want a dog?” – <i>Yes!</i> · “Does Marco want a cat?” – <i>No!</i><br>
+  “Does Marco want a cat or a dog?” – <i>A dog!</i> · “What does Marco want?” – <i>A dog!</i><br>
+  “Does Giulia want a dog?” – <i>No!</i> · “Who wants a dog?” – <i>Marco!</i></div>
+  <p><b>Example A2 (past simple, “went / saw / bought”):</b> “Last Saturday Sara <u>went</u> to Palermo. She <u>saw</u> a giant cannolo. She <u>bought</u> it…” Students choose the place, what she saw and what went wrong. Then they read it and retell it as “Last Saturday <i>I</i> went…”.</p>
+  <p><b>Example B1–B2 (deduction, “must / might / can't”):</b> a mystery story: “A man is standing outside the school at midnight with a ladder…” The class asks and decides: “He <u>must</u> be a thief!” “He <u>might</u> be the caretaker.” “He <u>can't</u> be a student – it's midnight!”</p>
+  <p class="mg-tip">💡 Keep it slow, point at the board every time you say the structure, and check understanding with your fingers (1–10). If they are lost, go back and circle more.</p>
+</details>
+
+<details class="mg-card mg-main"><summary>★ 2 · TPR: Total Physical Response <span>young learners & beginners</span></summary>
+  <p><b>What:</b> students show they understand by <b>doing</b> – moving, pointing, miming – before they have to speak.</p>
+  <div class="mg-ex">“Stand up! · Touch your nose! · Jump three times! · Point to something red!”<br>Game: <b>Teacher says…</b> (Simon says) – only move if you hear “Teacher says”.<br>Songs: <i>Head, shoulders, knees and toes</i> · story with actions (<i>Brown bear, brown bear…</i>).</div>
+  <p class="mg-tip">💡 Do it yourself first, then with them, then let a child be the teacher. Great as a warmer for teens too (body parts, actions, prepositions).</p>
+</details>
+
+<h4>🧰 Other methods to use when they fit</h4>
+
+<details class="mg-card"><summary>PPP: Presentation, Practice, Production <span>new grammar, low levels</span></summary>
+  <p>Show the new form in a context → check meaning with simple questions → controlled practice → free speaking.</p>
+  <div class="mg-ex">Past simple: picture of your weekend → “I <u>went</u> to the beach. <u>Did</u> I go to school? No!” → gap-fill → pairs: “What did you do last weekend?”</div>
+</details>
+
+<details class="mg-card"><summary>Guided discovery <span>English File texts</span></summary>
+  <p>Students read or listen first, then <b>find</b> the examples in the text and work out the rule with your questions.</p>
+  <div class="mg-ex">“Find 3 sentences with <i>used to</i>. Is it about now or the past? Does it still happen?” → students complete the rule → practice.</div>
+</details>
+
+<details class="mg-card"><summary>TTT: Test, Teach, Test <span>revision, B1 and above</span></summary>
+  <p>A quick task first, teach only what they got wrong, then a second task.</p>
+  <div class="mg-ex">10 present perfect / past simple sentences → most get “since/for” wrong → teach just that → new set + “How long have you…?” questions.</div>
+  <p class="mg-tip">Don't use it for brand-new grammar: it only shows them what they can't do.</p>
+</details>
+
+<details class="mg-card"><summary>Task-based learning <span>teens & adults</span></summary>
+  <p>Give a real task first; teach the language they needed afterwards.</p>
+  <div class="mg-ex">“Plan a day in Palermo for a British visitor: budget €30.” Groups plan and present → you collect the useful phrases and mistakes on the board → they improve and present again.</div>
+</details>
+
+<details class="mg-card"><summary>Communicative games & speaking tasks <span>every level</span></summary>
+  <div class="mg-ex"><b>Find someone who…</b> (mingle) · <b>Describe and draw</b> · <b>Taboo / Describe it!</b> · <b>Information gap</b> (A and B have different facts) · <b>Hot seat</b> (one student is a character, the class asks questions) · <b>Spot the error</b> team game.</div>
+  <p class="mg-tip">Always give the useful phrases for the task (“I think… / I'm not sure… / Me too!”), and a clear goal (“find 3 people who…”).</p>
+</details>
+
+<h4>🎯 Which one when?</h4>
+<table class="mg-table">
+  <tr><th>Class</th><th>Main</th><th>Plus</th></tr>
+  <tr><td>Tiny Talkers, Pre-Starters</td><td>TPR, songs, picture stories</td><td>very simple TPRS (“Is it a red cat?”)</td></tr>
+  <tr><td>Starters, Movers, Flyers</td><td>TPRS stories + TPR</td><td>3+ games, PPP for new grammar</td></tr>
+  <tr><td>Teens (B1–B2)</td><td>TPRS + guided discovery</td><td>games, exam tasks, TTT for revision</td></tr>
+  <tr><td>Adults</td><td>TPRS + guided discovery</td><td>task-based, real-life speaking</td></tr>
+  <tr><td>1-2-1</td><td>PQA (personal questions) + TPRS about their life</td><td>task-based on their real needs</td></tr>
+</table>
+<p class="mg-foot">Questions or a better idea? Tell Cole: this guide grows with what works in our classrooms.</p>`;
+
+function llsOpenMethods() {
+  llsGuideState.tab = "methods";
+  if (!llsGuideState.lang) { try { llsGuideState.lang = localStorage.getItem("lls_lang") === "it" ? "it" : "en"; } catch (_) { llsGuideState.lang = "en"; } }
+  llsRenderGuide();
+  openModal("guideModal");
+}
+document.addEventListener("click", (e) => {
+  const b = e.target && e.target.closest ? e.target.closest("[data-open-methods]") : null;
+  if (!b) return;
+  e.preventDefault();
+  llsOpenMethods();
+});
 
 function llsOpenGuide() {
   let lang = "en";
