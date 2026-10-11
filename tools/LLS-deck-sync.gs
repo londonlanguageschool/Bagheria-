@@ -25,9 +25,12 @@ function syncNow() {
     if (Date.now() - start > 4.5 * 60 * 1000) break; // stay under the 6-minute limit; the next run carries on
     const prev = done[item.path];
     if (prev && prev.v === item.v) continue;
-    const blob = UrlFetchApp.fetch(manifest.base + item.path + "?v=" + item.v).getBlob().setName(item.name);
-    const folder = DriveApp.getFolderById(item.folderId);
-    let file = prev && prev.id ? tryGet_(prev.id) : null;
+    // 11 Oct: an item can name its own download address (item.url) and the exact Drive file to overwrite (item.fileId),
+    // so repaired decks replace the file the portal already links to (same link).
+    const blob = UrlFetchApp.fetch((item.url || manifest.base + item.path) + "?v=" + item.v).getBlob().setName(item.name);
+    let file = item.fileId ? tryGet_(item.fileId) : null;
+    if (!file && prev && prev.id) file = tryGet_(prev.id);
+    const folder = file ? null : DriveApp.getFolderById(item.folderId);
     if (!file) { const it = folder.getFilesByName(item.name); file = it.hasNext() ? it.next() : null; }
     if (file) {
       // same file, new content → the Drive link stays the same

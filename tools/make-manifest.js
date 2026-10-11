@@ -23,5 +23,8 @@ for (const dir of Object.keys(FOLDERS)) {
     files.push({ path: rel, name: name.replace(/_v3(?=\.pptx$)/, ""), folderId: folderFor(dir, name), v: crypto.createHash("sha1").update(buf).digest("hex").slice(0, 10), replaces: prevIds[rel] || [] });
   }
 }
+// 11 Oct: repaired older decks waiting on the deck-staging branch (each overwrites the Drive file the portal links to)
+const STAGED = path.join(__dirname, "staged-decks.json");
+if (fs.existsSync(STAGED)) files.push(...JSON.parse(fs.readFileSync(STAGED)));
 fs.writeFileSync(path.join(ROOT, "manifest.json"), JSON.stringify({ base: "https://londonlanguageschool.github.io/Bagheria-/materials/", oldFolderId: "1hijtgiLag5wE6s1tK_CYOLBhfBmg0cPz", files }, null, 1));
 console.log(files.length, "files");
