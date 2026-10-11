@@ -20,7 +20,11 @@ for (const dir of Object.keys(FOLDERS)) {
   const d = path.join(ROOT, dir); if (!fs.existsSync(d)) continue;
   for (const name of fs.readdirSync(d).filter((f) => f.endsWith(".pptx") || f.endsWith(".pdf"))) {
     const rel = dir + "/" + name, buf = fs.readFileSync(path.join(d, name));
-    files.push({ path: rel, name: name.replace(/_v3(?=\.pptx$)/, ""), folderId: folderFor(dir, name), v: crypto.createHash("sha1").update(buf).digest("hex").slice(0, 10), replaces: prevIds[rel] || [] });
+    const nm = name.replace(/_v3(?=\.pptx$)/, "");
+    // 11 Oct: if the portal already links a Drive file with this name, overwrite exactly that file (same link)
+    const linked = Object.entries(P.links || {}).find(([k, u]) => k.split("/").pop() === nm && /drive\.google\.com\/file\/d\//.test(u));
+    const fileId = linked ? /\/d\/([A-Za-z0-9_-]+)/.exec(linked[1])[1] : undefined;
+    files.push({ path: rel, name: nm, folderId: folderFor(dir, name), fileId, v: crypto.createHash("sha1").update(buf).digest("hex").slice(0, 10), replaces: prevIds[rel] || [] });
   }
 }
 // 11 Oct: repaired older decks waiting on the deck-staging branch (each overwrites the Drive file the portal links to)
