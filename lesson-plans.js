@@ -40,7 +40,7 @@ window.LLS_PLANS = {
   "Kitchen_English_Chefs/Chef_L08_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1ZKS_FUpf3edz9puW3pOvz7T4Y8AG-AVF/view",
   "Kitchen_English_Chefs/Chef_L09_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1WgDAuotHFAE5Hb28udDlRl6hRqXQPBGx/view",
   "Kitchen_English_Chefs/Chef_L10_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1Qp4yxsqshoeerGMk9c6GDlqGkYChWeA8/view",
-  "B1_Green_Course_6B-10B/B1_1A-1_Eating_in_and_out.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_1A-1_Eating_in_and_out.pptx?v=20261012b",
+  "B1_Green_Course_6B-10B/B1_1A-1_Eating_in_and_out.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_1A-1_Eating_in_and_out.pptx?v=20261012c",
   "B1_Green_Course_6B-10B/B1_1A-1_Homework_sheet.pdf": "https://drive.google.com/file/d/1X2PTUr1GZPrNS0oJuTAtVnxE-r-JNeHu/view",
   "B1_Green_Course_6B-10B/B1_1A-1_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1PRMOezsM7hnBzmclWlzxC0uuSgMgNWEh/view",
   "B1_Green_Course_6B-10B/B1_1A-1_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1ZamtDxpX-JiIA24abKwBR6PuYyfOBdIU/view",
