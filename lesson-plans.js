@@ -10,7 +10,7 @@
 window.LLS_PLANS = {
  "folder": "https://drive.google.com/drive/folders/1_AyE9xHLZX-tR057npuZEDeoPWiVDOgB",
  "links": {
-  "Red_Elementary/EFE_2A_Tidy_or_untidy.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2A_Tidy_or_untidy.pptx?v=20261012b",
+  "Red_Elementary/EFE_2A_Tidy_or_untidy.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2A_Tidy_or_untidy.pptx?v=20261012f",
   "Kitchen_English_Chefs/Chef_L02_Kitchen_equipment.pptx": "https://drive.google.com/file/d/1Wu_KZxK9oigJgx-uNW-YJq_ejwxxyYv5/view",
   "Kitchen_English_Chefs/Chef_L03_Ingredients_and_stock.pptx": "https://drive.google.com/file/d/12KaSioPcoHFBoR7z_OVUvmRNM4XhAAc5/view",
   "Kitchen_English_Chefs/Chef_L04_Kitchen_commands.pptx": "https://drive.google.com/file/d/1aE5QcqPxfRCNiStGYYSkbrKx-DGB_BX2/view",
