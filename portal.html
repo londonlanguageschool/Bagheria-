@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#082d5c">
   <meta name="description" content="London Language School management portal">
   <title>LLS Portal | London Language School</title>
-  <link rel="stylesheet" href="portal.css?v=20261011c">
-  <link rel="stylesheet" href="portal-theme.css?v=20261011c">
+  <link rel="stylesheet" href="portal.css?v=20261012a">
+  <link rel="stylesheet" href="portal-theme.css?v=20261012a">
 </head>
 
 <body>
@@ -660,9 +660,12 @@
               <h2>Lesson</h2>
               <p class="page-description">Tap your class, take the register, write what you did and set homework. One button saves everything.</p>
             </div>
-            <div class="form-field" style="min-width:170px;">
-              <label for="lessonDate">Date</label>
-              <input id="lessonDate" type="date">
+            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+              <button type="button" class="button button-secondary" data-open-library title="Open any lesson from any course (trial lessons, revision, covering)">📚 Lesson library</button>
+              <div class="form-field" style="min-width:170px;">
+                <label for="lessonDate">Date</label>
+                <input id="lessonDate" type="date">
+              </div>
             </div>
           </div>
 
@@ -1974,6 +1977,29 @@
     </div>
   </div>
 
+  <!-- 12 Oct: Lesson library – any lesson of any course, with its slides and sheets -->
+  <div class="modal-backdrop" id="libraryModal">
+    <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="libraryTitle">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">Teaching</p>
+          <h2 id="libraryTitle">📚 Lesson library</h2>
+        </div>
+        <button class="modal-close" type="button" data-close-modal="libraryModal">×</button>
+      </div>
+      <p class="muted" style="margin:0 0 10px;">Any lesson from any course: for a trial lesson, revision, or covering a class. Choose the course, then open the slides.</p>
+      <div class="lib-bar">
+        <select id="libCourse" aria-label="Course"></select>
+        <input id="libSearch" type="search" placeholder="Search: 1A, food, past simple…" aria-label="Search lessons">
+      </div>
+      <div id="libList" class="plan-list lib-list"></div>
+      <p class="muted" style="margin:10px 0 0;font-size:13px;">🔊 For audio and video: download the file and open it in <b>PowerPoint</b> (Google Slides drops the sound).</p>
+      <div class="modal-actions">
+        <button class="button button-secondary" type="button" data-close-modal="libraryModal">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- =========================
        ENQUIRY MODAL
   ========================== -->
@@ -2333,12 +2359,12 @@
   ========================== -->
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
-  <script src="practice/courses.js?v=20261011c"></script>
-  <script src="lesson-plans.js?v=20261011c"></script>
-  <script src="workbook.js?v=20261011c"></script>
-  <script src="portal.js?v=20261011c"></script>
-  <script src="resources.js?v=20261011c"></script>
-  <script src="report.js?v=20261011c"></script>
-  <script src="portal-i18n.js?v=20261011c"></script>
+  <script src="practice/courses.js?v=20261012a"></script>
+  <script src="lesson-plans.js?v=20261012a"></script>
+  <script src="workbook.js?v=20261012a"></script>
+  <script src="portal.js?v=20261012a"></script>
+  <script src="resources.js?v=20261012a"></script>
+  <script src="report.js?v=20261012a"></script>
+  <script src="portal-i18n.js?v=20261012a"></script>
 </body>
 </html>

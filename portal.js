@@ -10855,6 +10855,7 @@ function llsRenderPlanPanel() {
         </div>`;
       }).join("")}</div>
     </details>
+    <p class="plan-report" style="margin-bottom:4px;">Need a lesson from another course (trial lesson, revision)? <a href="#" data-open-library>📚 Lesson library</a></p>
     <p class="plan-report">Mistake in a lesson? <a href="#" data-report-lesson="${escapeAttribute((feat ? feat.id + " " + feat.title : "") + " · " + name)}">⚠ Report a problem</a> (lesson, slide number, what's wrong).</p>`;
   llsRenderHwSheetHint_();
   box.querySelector(".plan-all")?.addEventListener("toggle", (e) => { llsPlanShowAll = e.target.open; });
@@ -11829,3 +11830,47 @@ function llsRenderLastLesson_(date) {
       }).join("")}</div></details>` : ""}
     </div>`;
 }
+
+
+/* =========================================================
+   12 Oct (owner) — 📚 Lesson library: open ANY lesson of ANY course (trial lessons,
+   revision, covering a class), without choosing a class first. Uses the same lesson
+   plans and material links as the class panel.
+========================================================= */
+let llsLibCourse = "";
+function llsRenderLibrary_() {
+  const P = window.LLS_PLANS || {}, courses = P.courses || {}, names = P.names || {};
+  const sel = byId("libCourse"), list = byId("libList");
+  if (!sel || !list) return;
+  const keys = Object.keys(courses);
+  if (!sel.options.length) sel.innerHTML = keys.map((k) => `<option value="${escapeAttribute(k)}">${escapeHtml(names[k] || k)}</option>`).join("");
+  if (!llsLibCourse || !courses[llsLibCourse]) llsLibCourse = keys.includes("EF-B1") ? "EF-B1" : keys[0];
+  sel.value = llsLibCourse;
+  const q = value("libSearch").trim().toLowerCase();
+  const plans = (courses[llsLibCourse] || []).filter((p) => !q || [p.id, p.title, p.focus, p.pages].join(" ").toLowerCase().includes(q));
+  if (!plans.length) { list.innerHTML = `<p class="muted">No lesson matches "${escapeHtml(q)}".</p>`; return; }
+  let lastUnit = null;
+  list.innerHTML = plans.map((p) => {
+    const head = p.unit !== undefined && p.unit !== lastUnit ? `<div class="lib-unit">${/^\d+$/.test(String(p.unit)) ? "Unit " + escapeHtml(String(p.unit)) : escapeHtml(String(p.unit))}</div>` : "";
+    lastUnit = p.unit;
+    const links = llsPlanMaterialLinks_(p) || '<span class="muted">Slides coming soon</span>';
+    return `${head}<div class="plan-row"><span class="plan-code">${escapeHtml(p.id)}</span><span class="plan-text"><strong>${escapeHtml(p.title)}</strong><small>${escapeHtml(p.focus || "")}${p.pages ? " · " + escapeHtml(p.pages) : ""}</small></span><span class="plan-actions">${links}</span></div>`;
+  }).join("");
+}
+function llsOpenLibrary() {
+  // start from the course of the class that is open, if any
+  try { const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId); if (cls && cls.book && LLS_PLANS.courses[cls.book]) llsLibCourse = cls.book; } catch (_) {}
+  llsRenderLibrary_();
+  openModal("libraryModal");
+  setTimeout(() => byId("libSearch")?.focus(), 50);
+}
+document.addEventListener("click", (e) => {
+  const b = e.target && e.target.closest ? e.target.closest("[data-open-library]") : null;
+  if (!b) return;
+  e.preventDefault();
+  llsOpenLibrary();
+});
+document.addEventListener("DOMContentLoaded", () => {
+  byId("libCourse")?.addEventListener("change", (e) => { llsLibCourse = e.target.value; llsRenderLibrary_(); });
+  byId("libSearch")?.addEventListener("input", () => llsRenderLibrary_());
+});

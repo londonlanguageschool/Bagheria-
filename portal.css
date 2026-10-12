@@ -2671,3 +2671,10 @@ tbody tr:hover {
 .guide-body .methods-guide li span { font-size: inherit; color: inherit; }
 .guide-tabs { flex-wrap: wrap; }
 .mg-principle { margin: 10px 0; padding: 10px 12px; border-radius: 12px; background: #e3f1fd; border: 1px solid #a9d3f5; }
+
+/* 12 Oct — Lesson library */
+.lib-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.lib-bar select { flex: 1 1 260px; }
+.lib-bar input { flex: 1 1 200px; }
+.lib-list { max-height: 60vh; overflow-y: auto; }
+.lib-unit { margin: 12px 0 4px; font-weight: 800; color: #16275c; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
