@@ -11269,9 +11269,40 @@ function llsRenderCancelBanner() {
   if (!box) return;
   const date = byId("lessonDate")?.value || isoDate(new Date());
   const c = llsLesson.classId && llsCancelled[llsLesson.classId + "|" + date];
+  const admin = llsRole() === "admin";
+  // 12 Oct (owner: "you can't cancel lessons as admin, only as teacher"): the teacher's step-1 tiles are
+  // hidden for the office, so the office gets its own "Cancel this lesson" bar here (same as Dashboard →
+  // 🚫 Cancel lessons, for one lesson).
+  if (!c && admin && llsLesson.classId) {
+    const cls = llsLessonClasses().find((x) => x.id === llsLesson.classId);
+    if (!cls) { box.hidden = true; box.innerHTML = ""; return; }
+    box.hidden = false;
+    box.classList.add("office-mode");
+    box.innerHTML = `
+      <details class="office-cancel"${llsLesson.officeCancelOpen ? " open" : ""}>
+        <summary style="cursor:pointer;font-weight:800;">🚫 Cancel this lesson (${escapeHtml(cls.name)} · ${escapeHtml(llsDayLabel_(date))})</summary>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;">
+          <select id="officeCancelWhy"><option value="">Why?</option><option>Teacher not available</option><option>School closed / holiday</option><option>Families asked to move it</option><option>Other</option></select>
+          <input type="text" id="officeCancelNote" maxlength="200" placeholder="More details (optional)" style="flex:1;min-width:160px;">
+          <button type="button" class="button button-secondary" data-office-cancel>🚫 Cancel this lesson</button>
+        </div>
+        <p class="muted" style="margin:8px 0 0;font-size:13px;">The class is owed a make-up lesson at the end of the course. To cancel several lessons (e.g. a teacher away for a week) and get the WhatsApp message for families, use Dashboard → 🚫 Cancel lessons.</p>
+      </details>`;
+    const det = box.querySelector("details.office-cancel");
+    det?.addEventListener("toggle", () => { llsLesson.officeCancelOpen = det.open; });
+    box.querySelector("[data-office-cancel]")?.addEventListener("click", () => {
+      const why = value("officeCancelWhy");
+      if (!why) { showToast("Choose why the lesson is cancelled.", "error"); byId("officeCancelWhy")?.focus(); return; }
+      const note = [why, value("officeCancelNote").trim()].filter(Boolean).join(" · ");
+      llsLesson.officeCancelOpen = false;
+      llsCancelLessons_([{ cls, date, time: String(cls.time || "").slice(0, 10) }], note);
+      showToast(`${cls.name} on ${llsDayLabel_(date)} cancelled: a make-up lesson is owed.`, "success");
+    });
+    return;
+  }
+  box.classList.remove("office-mode");
   box.hidden = !c;
   if (!c) { box.innerHTML = ""; return; }
-  const admin = llsRole() === "admin";
   box.innerHTML = `
     <p style="margin:0;font-weight:800;">🚫 This lesson is cancelled${c.note ? ` <span class="muted" style="font-weight:600;">· ${escapeHtml(c.note)}</span>` : ""}</p>
     <p class="muted" style="margin:4px 0 0;">It doesn't count for attendance or progress, and it will be made up at the end of the course. If it took place after all, fill it in as usual: saving replaces the cancellation.</p>
