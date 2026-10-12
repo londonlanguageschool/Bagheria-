@@ -1493,8 +1493,8 @@ function llsStudentRowActions(student) {
   }
   if (!llsIsTeacher()) {
     parts.push(`<button class="row-action delete" type="button" data-remove-duplicate="${id}" title="This student was registered twice: hide this copy">Remove duplicate</button>`);
-    // 9 Oct (owner): permanent delete, only once a student is no longer Active (backup copy kept in the Sheet).
-    if (status !== "active") parts.push(`<button class="row-action delete" type="button" data-purge-student="${id}" title="Delete for good (a backup copy is kept in the Deleted Students tab)">🗑 Delete permanently</button>`);
+    // 12 Oct (owner): permanent delete from any row (it deactivates first, in one step). Backup copy kept in the Sheet.
+    parts.push(`<button class="row-action delete" type="button" data-purge-student="${id}" title="Delete for good (a backup copy is kept in the Deleted Students tab)">🗑 Delete permanently</button>`);
   }
   return parts.join("");
 }
@@ -1531,35 +1531,66 @@ function purgeStudent(id) {
   const student = state.students.find((item) => item.id === id);
   if (!student) return;
   const name = getStudentName(student) || id;
-  if (String(student.status || "").trim().toLowerCase() === "active") { showToast("Deactivate this student first.", "error"); return; }
   if ((window.llsServerVersion || 0) > 0 && window.llsServerVersion < 35) {
     showToast("Permanent delete needs the Google Apps Script update (V35). Ask Claude for the install steps.", "error");
     return;
   }
+  // 12 Oct (owner: "my wife can't remove students"): one step. The delete used to need "Deactivate" first,
+  // and the server refused while that change was still on its way to Google. Now the deactivate, the end of
+  // every class enrolment and the delete go to Google together, in this order, through the save queue
+  // (after any change to this student that is still waiting), so they can't overtake each other.
+  const active = String(student.status || "").trim().toLowerCase() === "active";
+  const enrol = llsStudentEnrolments(id);
+  const classNames = enrol.active.map((e) => getClass(String(e["Class ID"] || "").trim())?.name || e["Class ID"]).filter(Boolean);
+  let moneyLine = "";
+  if (window.llsFinanceReady && typeof llsStudentMoneyCheck === "function") {
+    const money = llsStudentMoneyCheck(id);
+    if (money.paid > 0) moneyLine = ` They have ${formatMoney(money.paid)} of payments recorded: these stay in Fees & Payments.`;
+  }
   openConfirm(
     "Delete this student permanently?",
-    `${name} (${id}) will disappear from the portal and from the Students list for good. A backup copy of their details is saved in the "Deleted Students" tab of the Google Sheet, in case you need it. Their past payments and attendance stay in the records. This can't be undone from the portal.`,
-    async () => {
-      const typed = window.prompt(`To confirm, type DELETE (capital letters) to remove ${name}.`);
-      if (String(typed || "").trim() !== "DELETE") { showToast("Not deleted.", "info"); return; }
+    `${name} (${id}) will disappear from the portal for good` +
+      (active ? `${classNames.length ? ` and be taken off ${classNames.join(", ")}` : ""}` : "") +
+      `. A backup copy of their details is saved in the "Deleted Students" tab of the Google Sheet. Past payments and attendance stay in the records.${moneyLine} This can't be undone from the portal.`,
+    () => {
+      const typed = String(byId("purgeConfirmInput")?.value || "").trim().toUpperCase();
+      if (typed !== "DELETE") { showToast("Not deleted: type DELETE to confirm.", "info"); return; }
       try {
-        showToast(`Deleting ${name}…`, "info");
-        const res = await llsApiPost({ action: "deleteStudentPermanently", studentId: id });
-        if (res && res.success === false) throw new Error(res.error || "Could not delete.");
+        const bodies = [];
+        if (String(student.status || "").trim().toLowerCase() !== "inactive") bodies.push({ action: "updateStudent", studentId: id, fields: { "Status": "Inactive" } });
+        for (const e of enrol.all) {
+          const enrolmentId = String(e["Enrolment ID"] || "").trim();
+          const st = String(e["Status"] || "").trim().toLowerCase();
+          if (enrolmentId && st !== "cancelled") bodies.push({ action: "endEnrolment", enrolmentId });
+          if (st === "active") e["Status"] = "Completed";
+        }
+        bodies.push({ action: "deleteStudentPermanently", studentId: id });
+        llsQueueSave(name, bodies);
         state.students = state.students.filter((item) => item.id !== id);
         if (llsLivePortalData.students) llsLivePortalData.students = llsLivePortalData.students.filter((r) => String(r["Student ID"] || "").trim() !== id);
         saveState();
         renderAll();
         showToast(`${name} deleted. Backup saved in the "Deleted Students" tab.`, "success");
-        void llsRefreshCoreAfterSaveInBackground();
       } catch (error) {
         console.error(error);
-        const msg = String(error.message || "");
-        showToast(/Unknown mutation action/i.test(msg) ? "Permanent delete needs the Google Apps Script update (V35)." : (msg || "Could not delete the student."), "error");
+        showToast(error.message || "Could not delete the student.", "error");
       }
     },
     "Yes, delete permanently"
   );
+  // Type DELETE in the box (window.prompt can be blocked by the browser or the installed app).
+  const extraBox = byId("confirmModalExtra");
+  const actionButton = byId("confirmActionButton");
+  if (!extraBox) return;
+  extraBox.innerHTML = `<label for="purgeConfirmInput">To confirm, type <strong>DELETE</strong></label>
+    <input id="purgeConfirmInput" type="text" autocomplete="off" autocapitalize="characters" placeholder="DELETE">`;
+  extraBox.hidden = false;
+  if (actionButton) actionButton.disabled = true;
+  const input = byId("purgeConfirmInput");
+  if (input) {
+    input.addEventListener("input", () => { if (actionButton) actionButton.disabled = input.value.trim().toUpperCase() !== "DELETE"; });
+    setTimeout(() => input.focus(), 50);
+  }
 }
 
 function reactivateStudent(id) {
