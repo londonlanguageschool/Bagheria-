@@ -928,6 +928,18 @@
       margin-bottom: 17px;
     }
 
+    .method-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 4px 0 20px; }
+    .method-card { background: #f5fbff; border: 1px solid #d7e6f3; border-radius: 18px; padding: 16px 18px; }
+    .method-card h3 { color: var(--navy); font-size: 1.05rem; margin-bottom: 8px; }
+    .about-text .method-card p { margin-bottom: 0; font-size: .95rem; }
+    @media (max-width: 760px) { .method-cards { grid-template-columns: 1fr; } }
+    .habit-area { display: grid; grid-template-columns: 150px 1fr 44px; gap: 10px; align-items: center; margin: 8px 0; text-align: left; }
+    .habit-bar { height: 12px; border-radius: 6px; background: #e3eef8; overflow: hidden; }
+    .habit-bar span { display: block; height: 100%; border-radius: 6px; }
+    .habit-tips { text-align: left; max-width: 720px; margin: 16px auto; padding: 18px 20px; background: #fff; border-radius: 18px; }
+    .habit-tips li { margin: 6px 0 6px 18px; }
+    @media (max-width: 560px) { .habit-area { grid-template-columns: 1fr 44px; gap: 4px 10px; } .habit-area strong { grid-column: 1 / -1; } }
+
     .ticks {
       margin-top: 22px;
       display: grid;
@@ -2133,9 +2145,36 @@
             </p>
 
             <p>
-              Le nostre lezioni si basano su metodologie consolidate, tra cui
-              <strong>approccio comunicativo, retrieval practice, spaced repetition,
-              scaffolding, modelling e apprendimento attivo</strong>.
+              Alla base delle nostre lezioni ci sono due approcci che combiniamo ogni giorno:
+            </p>
+
+            <div class="method-cards">
+              <div class="method-card">
+                <h3>📖 TPRS · imparare con le storie</h3>
+                <p>
+                  <strong>TPRS</strong> (Teaching Proficiency through Reading and Storytelling)
+                  significa imparare l’inglese attraverso <strong>storie, domande e tanta lingua
+                  comprensibile</strong>. L’insegnante racconta e costruisce storie insieme alla classe,
+                  facendo molte domande semplici sulle stesse parole e strutture. Così gli studenti
+                  le sentono e le usano decine di volte, senza memorizzare liste, finché diventano naturali.
+                </p>
+              </div>
+              <div class="method-card">
+                <h3>💬 Approccio comunicativo · usare l’inglese</h3>
+                <p>
+                  Con l’<strong>approccio comunicativo</strong> l’inglese si impara
+                  <strong>usandolo per comunicare davvero</strong>: parlare in coppia, giochi di ruolo,
+                  dare opinioni, risolvere problemi, scambiarsi informazioni. La grammatica è importante,
+                  ma è al servizio della comunicazione: prima di tutto, farsi capire e capire gli altri.
+                </p>
+              </div>
+            </div>
+
+            <p>
+              Li affianchiamo ad altre tecniche consolidate, tra cui
+              <strong>retrieval practice, spaced repetition, scaffolding, modelling e
+              apprendimento attivo</strong>. Il metodo è un principio di fondo, non una gabbia:
+              in ogni lezione scegliamo le attività più efficaci per quella classe.
             </p>
 
             <p>
@@ -2153,6 +2192,7 @@
             </p>
 
             <div class="ticks">
+              <div class="tick">Storie e TPRS: l’inglese che resta in testa</div>
               <div class="tick">Comunicazione reale in inglese</div>
               <div class="tick">Ripetizione e consolidamento</div>
               <div class="tick">Preparazione agli esami Cambridge English</div>
@@ -2471,6 +2511,7 @@
         <div class="journey-options">
           <button class="journey-option" type="button" onclick="showLevelChecker(false)"><div>📊</div><strong>Test ragazzi e adulti</strong><span>CEFR / QCER · circa 10 minuti. Puoi fermarti quando vuoi.</span></button>
           <button class="journey-option" type="button" onclick="showYoungLevelChecker()"><div>🐶</div><strong>Test bambini 6–12</strong><span>Breve, semplice e divertente.</span></button>
+          <button class="journey-option" type="button" onclick="showHabitsCheck()"><div>🧠</div><strong>Come impari?</strong><span>Test delle abitudini di apprendimento · 2 minuti.</span></button>
           <button class="journey-option" type="button" onclick="bookTrial()"><div>📅</div><strong>Prenota una prova</strong><span>Scegli giorno e orario su Cal.com.</span></button>
           <button class="journey-option" type="button" onclick="requestInfo()"><div>💬</div><strong>Vorrei informazioni</strong><span>Ti contatteremo noi.</span></button>
         </div>
@@ -2859,7 +2900,7 @@
         "Stage": "New",
         "Follow-up": "",
         "Notes": [who, notes].filter(Boolean).join(" — "),
-        "Level Result": pendingLevelResult,
+        "Level Result": [pendingLevelResult, typeof pendingHabitsResult !== "undefined" ? pendingHabitsResult : ""].filter(Boolean).join(" · "),
         "Trial Requested": "No"
       };
 
@@ -2909,7 +2950,8 @@
       }
 
       if (notes) {
-        const resultText = pendingLevelResult ? `Risultato test: ${pendingLevelResult}. ` : "";
+        const resultText = (pendingLevelResult ? `Risultato test: ${pendingLevelResult}. ` : "")
+          + (typeof pendingHabitsResult !== "undefined" && pendingHabitsResult ? `${pendingHabitsResult}. ` : "");
         const actionText = pendingLeadIntent === "trial"
           ? "Richiesta: test + prova gratuita."
           : "Richiesta: vorrei essere contattato/a.";
@@ -3007,6 +3049,7 @@
     function showYoungLevelChecker() {
       document.getElementById("leadStep2").hidden = true;
       document.getElementById("leadLevel").hidden = false;
+      document.getElementById("leadLevel").querySelector(".lead-kicker").textContent = "Quick Level Checker";
       document.getElementById("leadLevel").querySelector("h2").textContent = "Young Learners English Challenge 🐶⭐";
       document.getElementById("leadLevel").querySelector(".lead-intro").innerHTML =
         "<strong>10 domande, dalle più facili alle più difficili.</strong> Prova tutte quelle che riesci. Se diventano difficili, puoi fermarti e vedere il risultato in qualsiasi momento. Non devi rispondere a tutto. 🐶⭐";
@@ -3093,6 +3136,7 @@
     function showLevelChecker() {
       document.getElementById("leadStep2").hidden = true;
       document.getElementById("leadLevel").hidden = false;
+      document.getElementById("leadLevel").querySelector(".lead-kicker").textContent = "Quick Level Checker";
       document.getElementById("leadLevel").querySelector("h2").textContent = "Qual è il tuo livello?";
       document.getElementById("leadLevel").querySelector(".lead-intro").innerHTML =
         "<strong>Inizia dalle domande più semplici e continua finché riesci.</strong> Le domande diventano progressivamente più difficili. Puoi fermarti e vedere il risultato in qualsiasi momento: non devi completarle tutte.";
@@ -3173,10 +3217,124 @@
               <button class="button button-red" type="button" onclick="collectDetailsAfterTest(pendingLevelResult, 'trial')">Prenota test + prova gratuita</button>
               <button class="button button-outline" type="button" onclick="collectDetailsAfterTest(pendingLevelResult, 'info')">Vorrei essere contattato</button>
               <button class="button button-outline" type="button" onclick="showLevelChecker()">Rifai il test</button>
+              <button class="button button-outline" type="button" onclick="showHabitsCheck()">🧠 Scopri come impari</button>
               <button class="button button-outline" type="button" onclick="closeLeadJourney()">Chiudi</button>
             </div>
           </div>
         </div>`;
+    }
+
+    // ---- "Come impari?" learning-habits check (12 Oct 2026) ----
+    // Not a test of talent: it looks at the HABITS that make people acquire a language faster
+    // (lots of understandable input, using the language, active review, confidence). Nothing is sent
+    // unless the visitor chooses to continue and leaves their details.
+    let pendingHabitsResult = "";
+    const habitAreas = {
+      input:  { name: "Ascolto e lettura", color: "#2f80c9",
+        tip: "Ascolta e leggi più inglese che riesci a capire: serie con sottotitoli in inglese, video, canzoni, brevi storie. Il cervello impara la lingua soprattutto capendo messaggi." },
+      use:    { name: "Usare l’inglese", color: "#e0457b",
+        tip: "Parla anche se non è perfetto: spiega le parole che non sai con altre parole, fai domande, usa l’inglese per comunicare qualcosa di vero." },
+      review: { name: "Ripasso attivo", color: "#2e9e6a",
+        tip: "Ripassa poco ma spesso: il giorno dopo la lezione e qualche giorno più tardi. Chiudi il quaderno e prova a ricordare: rileggere non basta." },
+      mind:   { name: "Sicurezza e obiettivi", color: "#f2a900",
+        tip: "Gli errori sono una parte normale dell’apprendimento. Un obiettivo chiaro (un esame, un viaggio, il lavoro) ti aiuta a restare costante." }
+    };
+    const habitQuestions = [
+      { area: "input", q: "Quanto spesso ascolti o guardi qualcosa in inglese (serie, video, musica, podcast)?", o: ["Quasi mai", "Qualche volta al mese", "Più volte a settimana"] },
+      { area: "input", q: "Quando guardi una serie o un video in inglese, come lo guardi?", o: ["Non guardo niente in inglese", "Con i sottotitoli in italiano", "Con i sottotitoli in inglese o senza"] },
+      { area: "input", q: "Leggi qualcosa in inglese (social, articoli, libri, giochi)?", o: ["Quasi mai", "Ogni tanto", "Spesso"] },
+      { area: "use", q: "Quanto spesso parli o scrivi in inglese fuori dalla lezione?", o: ["Mai", "Qualche volta", "Ogni settimana"] },
+      { area: "use", q: "Stai parlando e non conosci una parola. Cosa fai?", o: ["Mi blocco e smetto di parlare", "La dico in italiano", "La spiego con altre parole o con un esempio"] },
+      { area: "review", q: "Dopo una lezione, quando ripassi?", o: ["Solo prima di una verifica", "Qualche giorno dopo", "Un po’ il giorno dopo e poi di nuovo più avanti"] },
+      { area: "review", q: "Come impari le parole nuove?", o: ["Le leggo una volta", "Le scrivo in una lista con la traduzione", "Le uso in frasi mie e mi metto alla prova"] },
+      { area: "review", q: "Quando ripassi, cosa fai di solito?", o: ["Rileggo gli appunti", "Sottolineo o ricopio", "Chiudo il quaderno e provo a ricordare"] },
+      { area: "mind", q: "Come ti senti quando sbagli in inglese?", o: ["Mi vergogno, preferisco stare zitto/a", "Un po’ a disagio, ma ci provo", "Va bene: sbagliando si impara"] },
+      { area: "mind", q: "Hai un obiettivo chiaro per il tuo inglese?", o: ["Non proprio", "Più o meno", "Sì: so cosa voglio fare e quando"] }
+    ];
+
+    function showHabitsCheck() {
+      document.getElementById("leadStep2").hidden = true;
+      document.getElementById("leadLevel").hidden = false;
+      const box = document.getElementById("leadLevel");
+      box.querySelector(".lead-kicker").textContent = "Come impari?";
+      box.querySelector("h2").textContent = "Le tue abitudini di apprendimento";
+      box.querySelector(".lead-intro").innerHTML =
+        "<strong>Non è un test di intelligenza o di talento.</strong> Guarda le abitudini che aiutano a imparare una lingua più in fretta. 10 domande, circa 2 minuti: rispondi con sincerità, non ci sono risposte sbagliate.";
+      document.getElementById("levelForm").innerHTML = habitQuestions.map((x, i) => `
+        <div class="level-question">
+          <p><strong>${i + 1}. ${x.q}</strong></p>
+          ${x.o.map((answer, j) => `<label><input type="radio" name="h_${i}" value="${j}"> ${answer}</label>`).join("")}
+        </div>`).join("");
+      document.getElementById("levelResult").innerHTML =
+        `<div class="lead-actions"><button class="button button-red" type="button" onclick="scoreHabitsCheck()">Vedi il mio profilo</button></div>`;
+      const card = document.querySelector("#leadModal .lead-card");
+      if (card) card.scrollTop = 0;
+    }
+
+    function scoreHabitsCheck() {
+      const answers = habitQuestions.map((x, i) => {
+        const sel = document.querySelector(`input[name="h_${i}"]:checked`);
+        return sel ? Number(sel.value) : null;
+      });
+      const missing = answers.filter(a => a === null).length;
+      if (missing) {
+        document.getElementById("levelResult").innerHTML =
+          `<p class="lead-message error">Mancano ${missing} risposte: rispondi a tutte le domande per vedere il profilo.</p>
+           <div class="lead-actions"><button class="button button-red" type="button" onclick="scoreHabitsCheck()">Vedi il mio profilo</button></div>`;
+        return;
+      }
+      const total = answers.reduce((a, b) => a + b, 0); // 0–20
+      const pct = {};
+      Object.keys(habitAreas).forEach(k => {
+        const idx = habitQuestions.map((x, i) => x.area === k ? i : -1).filter(i => i >= 0);
+        pct[k] = Math.round(100 * idx.reduce((a, i) => a + answers[i], 0) / (idx.length * 2));
+      });
+      const band = total >= 15
+        ? { emoji: "🌟", title: "Ottime abitudini", text: "Hai già molte delle abitudini che fanno imparare una lingua più in fretta. Con lezioni ricche di inglese vero puoi fare progressi rapidi." }
+        : total >= 9
+        ? { emoji: "👍", title: "Buone basi", text: "Hai alcune buone abitudini e altre da sviluppare. Con qualche piccolo cambiamento puoi imparare molto più velocemente." }
+        : { emoji: "🌱", title: "Abitudini da allenare", text: "<strong>Non preoccuparti:</strong> questo non dice niente sul tuo talento. Significa solo che finora non hai avuto le abitudini giuste, e le abitudini si imparano. È proprio qui che possiamo aiutarti di più." };
+      const weakest = Object.keys(pct).sort((a, b) => pct[a] - pct[b]).filter(k => pct[k] < 75).slice(0, 2);
+      pendingHabitsResult = `Abitudini: ${band.title} (${total}/20)`;
+
+      document.getElementById("levelForm").innerHTML = "";
+      document.getElementById("levelResult").innerHTML = `
+        <div class="level-result">
+          <div class="lead-kicker">IL TUO PROFILO DI APPRENDIMENTO</div>
+          <h3>${band.emoji} ${band.title}</h3>
+          <p style="max-width:680px;margin:10px auto 16px">${band.text}</p>
+          <div style="max-width:620px;margin:0 auto">
+            ${Object.keys(habitAreas).map(k => `
+              <div class="habit-area"><strong>${habitAreas[k].name}</strong>
+                <div class="habit-bar"><span style="width:${Math.max(4, pct[k])}%;background:${habitAreas[k].color}"></span></div>
+                <span>${pct[k]}%</span></div>`).join("")}
+          </div>
+          <div class="habit-tips">
+            <strong>${weakest.length ? "Da dove partire" : "Per continuare così"}</strong>
+            <ul>${(weakest.length ? weakest : ["input", "use"]).map(k => `<li><strong>${habitAreas[k].name}:</strong> ${habitAreas[k].tip}</li>`).join("")}</ul>
+          </div>
+          <div class="habit-tips">
+            <strong>Come ti aiutiamo alla London Language School</strong>
+            <p style="margin:8px 0">Le buone abitudini si possono insegnare, e le costruiamo in ogni lezione con due approcci basati sulla ricerca sull’apprendimento delle lingue:</p>
+            <ul>
+              <li><strong>📖 TPRS (storie):</strong> tante storie e domande sulla stessa lingua, finché le parole e le strutture diventano naturali, senza memorizzare liste.</li>
+              <li><strong>💬 Approccio comunicativo:</strong> usi l’inglese per comunicare davvero, in coppia e in gruppo, fin dalla prima lezione.</li>
+              <li><strong>🔁 Ripasso intelligente:</strong> ritroviamo le parole più volte nel tempo, con giochi e compiti brevi nell’app della scuola.</li>
+            </ul>
+          </div>
+          <p style="font-size:.9rem;color:var(--muted)">Questo questionario è una guida, non una valutazione scientifica.</p>
+          <div style="margin-top:20px;padding-top:18px;border-top:1px solid #d7e6f3">
+            <p><strong>Vuoi provare?</strong> È completamente facoltativo.</p>
+            <div class="lead-actions" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+              <button class="button button-red" type="button" onclick="collectDetailsAfterTest(pendingLevelResult, 'trial')">Prenota test + prova gratuita</button>
+              <button class="button button-outline" type="button" onclick="showLevelChecker()">Fai anche il test di livello</button>
+              <button class="button button-outline" type="button" onclick="showHabitsCheck()">Rifai il questionario</button>
+              <button class="button button-outline" type="button" onclick="closeLeadJourney()">Chiudi</button>
+            </div>
+          </div>
+        </div>`;
+      const card = document.querySelector("#leadModal .lead-card");
+      if (card) card.scrollTop = 0;
     }
 
     document.getElementById("leadModal").addEventListener("click", (event) => {
