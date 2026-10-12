@@ -263,7 +263,7 @@ window.LLS_PLANS = {
   "Movers_PowerUp3/Movers_R-L1_Review_Units_1-3.pptx": "https://drive.google.com/file/d/1HA6zZAohst3JVsokznYLQ9i9ijiwAdNN/view",
   "Movers_PowerUp3/Movers_R-L1_Homework.pdf": "https://drive.google.com/file/d/1qZo9ToHayrfrm8Kn4En9O454HsBYR-3Y/view",
   "Movers_PowerUp3/Movers_R-L1_Answer_key.pdf": "https://drive.google.com/file/d/1G0ciNJb9nHv6l080i5AidOH40abv7fl4/view",
-  "Movers_PowerUp3/Movers_S-L1_Meet_the_family.pptx": "https://drive.google.com/file/d/13IMHyXj-h4ea2q2BoWYcGNfODgU_n9wV/view",
+  "Movers_PowerUp3/Movers_S-L1_Meet_the_family.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/PU3/Movers_S-L1_Meet_the_family.pptx?v=20261012j",
   "Movers_PowerUp3/Movers_S-L1_Homework.pdf": "https://drive.google.com/file/d/1PrrwdQZFdXyfydmOFLIeo6HaPptQ_OxT/view",
   "Movers_PowerUp3/Movers_S-L1_Answer_key.pdf": "https://drive.google.com/file/d/1u9lRaLpheJSp8VKK6NB81Xmg4LGq0L6u/view",
   "Movers_PowerUp3/Movers_U1-L1_Countryside.pptx": "https://drive.google.com/file/d/1JoyCxg68GUgT2NkBmVbEWFdG4P_DD-of/view",
