@@ -99,6 +99,15 @@
     .due { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; margin-top: 6px; }
     .due.soon { background: var(--amber-100); color: var(--amber-700); }
     .due.late { background: var(--red-100); color: #b3261e; }
+    .cal-one { border: 0; background: transparent; font-size: 18px; cursor: pointer; vertical-align: middle; padding: 2px 4px; }
+    .cal-card { background: #eef6ff; border: 1.5px solid #b9d8f5; border-radius: 18px; padding: 14px 16px; margin: 16px 0; }
+    .cal-title { font-weight: 800; margin: 0 0 6px; }
+    .cal-text, .cal-note { font-size: 14px; margin: 0 0 10px; }
+    .cal-note { font-size: 12px; opacity: .75; margin: 10px 0 0; }
+    .cal-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+    .cal-btn { display: inline-block; padding: 9px 14px; border-radius: 99px; background: #1f4e8c; color: #fff; text-decoration: none; font-weight: 700; font-size: 14px; border: 0; cursor: pointer; }
+    .cal-btn.ghost { background: transparent; color: #1f4e8c; border: 1.5px solid #1f4e8c; }
+    .cal-reopen button { border: 0; background: transparent; color: #1f4e8c; text-decoration: underline; cursor: pointer; font-size: 13px; padding: 0; }
     .due.ok { background: var(--navy-100); color: var(--navy-800); }
 
     .tick {
@@ -1504,7 +1513,7 @@
           <div>
             <p class="title">${esc(i["Title"])}</p>
             ${i.className ? `<p class="meta">${esc(i.className)}</p>` : ""}
-            ${dueBadge(i["Due Date"], i.done)}
+            ${dueBadge(i["Due Date"], i.done)}${!i.done && parseDate(i["Due Date"]) ? ` <button type="button" class="cal-one" data-cal-one="${esc(i["Homework ID"])}" title="Add to calendar · Aggiungi al calendario">📅</button>` : ""}
           </div>
           <button class="tick ${i.done ? "is-done" : ""}" type="button"
                   data-id="${esc(i["Homework ID"])}" data-next="${i.done ? "Not started" : "Done"}"
@@ -1515,7 +1524,7 @@
           ${hwExtraHtml(i)}
         </article>`;
 
-      main.innerHTML = journeyHtml() + testsHtml() +
+      main.innerHTML = journeyHtml() + testsHtml() + calendarCardHtml() +
         `<h2>To do · Da fare (${todo.length})</h2>` +
         (todo.length ? todo.map(card_).join("") : `<div class="empty">All done! Well done. 🎉<br>Tutto fatto, bravo/a!</div>`) +
         (finished.length ? `<h2>Done · Fatti (${finished.length})</h2>` + finished.map(card_).join("") : "") +
@@ -1526,8 +1535,66 @@
         button.addEventListener("click", () => toggle(button));
       });
       bindHwExtra(main);
+      bindCalendar(main, items);
       main.querySelectorAll("[data-test]").forEach((b) => b.addEventListener("click", () => startTeacherTest(b.dataset.test)));
       bindJourney(main);
+    }
+
+    /* ---------- 12 Oct 2026: homework in the phone calendar ----------
+       1) 📅 on each homework: downloads a one-off calendar event (.ics) with a reminder the evening before.
+       2) "Homework reminders" card: subscribe once to the student's live homework calendar (Apps Script V36,
+          action=studentCalendar). The card only appears when the feed answers, so it switches itself on when V36 is live. */
+    const CAL_HIDE = "lls_cal_card_hidden_v1";
+    let calFeedOk = null; // null = not checked yet
+    function calFeedUrl() { return API_URL + "?action=studentCalendar&key=" + encodeURIComponent(KEY); }
+    function checkCalFeed() {
+      if (calFeedOk !== null || !KEY) return;
+      calFeedOk = false;
+      fetch(calFeedUrl(), { cache: "no-store", redirect: "follow" }).then((r) => r.text()).then((t) => {
+        if (/^BEGIN:VCALENDAR/.test(t.trim())) { calFeedOk = true; if (typeof tab === "undefined" || tab === "homework") { try { renderHomework(); } catch (_) {} } }
+      }).catch(() => {});
+    }
+    function calendarCardHtml() {
+      checkCalFeed();
+      if (!calFeedOk) return "";
+      let hidden = false; try { hidden = localStorage.getItem(CAL_HIDE) === "1"; } catch (_) {}
+      if (hidden) return `<p class="cal-reopen"><button type="button" data-cal-show>📅 Homework reminders in your calendar · Promemoria nel calendario</button></p>`;
+      const webcal = calFeedUrl().replace(/^https:/, "webcal:");
+      const google = "https://calendar.google.com/calendar/r?cid=" + encodeURIComponent(webcal);
+      return `<div class="cal-card">
+        <p class="cal-title">📅 Never forget your homework · Non dimenticare i compiti</p>
+        <p class="cal-text">Add your homework to your phone's calendar once. New homework appears by itself, with a reminder the evening before.<br><em>Aggiungi i compiti al calendario del telefono una volta sola: i nuovi compiti compaiono da soli, con un promemoria la sera prima.</em></p>
+        <div class="cal-buttons">
+          <a class="cal-btn" href="${esc(webcal)}">🍎 iPhone / iPad</a>
+          <a class="cal-btn" href="${esc(google)}" target="_blank" rel="noopener">🤖 Android · Google Calendar</a>
+          <button type="button" class="cal-btn ghost" data-cal-hide>Not now · Non ora</button>
+        </div>
+        <p class="cal-note">Google Calendar: open the link on a computer or in the browser if the app doesn't open it. Then check the "LLS Homework" calendar has notifications on.<br>Google Calendar: se l'app non si apre, usa il browser. Poi attiva le notifiche per il calendario "LLS Homework".</p>
+      </div>`;
+    }
+    function icsDay(d) { return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0"); }
+    function icsEsc(t) { return String(t || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); }
+    function downloadIcs(item) {
+      const due = parseDate(item["Due Date"]); if (!due) return;
+      const end = new Date(due.getFullYear(), due.getMonth(), due.getDate() + 1);
+      const title = "📚 Homework: " + (item["Title"] || "English homework");
+      const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//London Language School//Homework//EN", "BEGIN:VEVENT",
+        "UID:hw-" + item["Homework ID"] + "-" + Date.now() + "@londonlanguageschool", "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, ""),
+        "DTSTART;VALUE=DATE:" + icsDay(due), "DTEND;VALUE=DATE:" + icsDay(end), "SUMMARY:" + icsEsc(title),
+        "DESCRIPTION:" + icsEsc([item["Description"] || "", item.className ? "Class: " + item.className : "", location.href.split("?")[0]].filter(Boolean).join("\n")),
+        "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + icsEsc("Due tomorrow · Per domani: " + (item["Title"] || "")), "TRIGGER:-PT6H", "END:VALARM",
+        "END:VEVENT", "END:VCALENDAR"];
+      const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = "LLS-homework.ics";
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    }
+    function bindCalendar(root, items) {
+      root.querySelectorAll("[data-cal-one]").forEach((b) => b.addEventListener("click", () => {
+        const it = items.find((x) => String(x["Homework ID"]) === b.dataset.calOne); if (it) downloadIcs(it);
+      }));
+      root.querySelectorAll("[data-cal-hide]").forEach((b) => b.addEventListener("click", () => { try { localStorage.setItem(CAL_HIDE, "1"); } catch (_) {} renderHomework(); }));
+      root.querySelectorAll("[data-cal-show]").forEach((b) => b.addEventListener("click", () => { try { localStorage.removeItem(CAL_HIDE); } catch (_) {} renderHomework(); }));
     }
 
     /* ---------- 2 Oct: homework files (Apps Script V29) ----------
