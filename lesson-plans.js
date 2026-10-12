@@ -10,7 +10,8 @@
 window.LLS_PLANS = {
  "folder": "https://drive.google.com/drive/folders/1_AyE9xHLZX-tR057npuZEDeoPWiVDOgB",
  "links": {
-  "Red_Elementary/EFE_2A_Tidy_or_untidy.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2A_Tidy_or_untidy.pptx?v=20261012f",
+  "Red_Elementary/EFE_2A_Tidy_or_untidy.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2A_Tidy_or_untidy.pptx?v=20261012g",
+  "Red_Elementary/EFE_2B_Made_in_America.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2B_Made_in_America.pptx?v=20261012g",
   "Kitchen_English_Chefs/Chef_L02_Kitchen_equipment.pptx": "https://drive.google.com/file/d/1Wu_KZxK9oigJgx-uNW-YJq_ejwxxyYv5/view",
   "Kitchen_English_Chefs/Chef_L03_Ingredients_and_stock.pptx": "https://drive.google.com/file/d/12KaSioPcoHFBoR7z_OVUvmRNM4XhAAc5/view",
   "Kitchen_English_Chefs/Chef_L04_Kitchen_commands.pptx": "https://drive.google.com/file/d/1aE5QcqPxfRCNiStGYYSkbrKx-DGB_BX2/view",
@@ -419,7 +420,9 @@ window.LLS_PLANS = {
   "title": "Made in America",
   "focus": "adjectives · colours, adjectives, very / really / quite · long and short vowels",
   "pages": "SB pp.16–17",
-  "skills": {}
+  "skills": {},
+  "slides": 18,
+  "file": "Red_Elementary/EFE_2B_Made_in_America.pptx"
  },
  {
   "id": "2C",
