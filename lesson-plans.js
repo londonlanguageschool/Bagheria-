@@ -196,7 +196,7 @@ window.LLS_PLANS = {
   "B1_Green_Course_6B-10B/B1_8A-1_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/12YmBZa8bywNQfxc0Mphy0XUEfzNARbf-/view",
   "B1_Green_Course_6B-10B/B1_8A-1_Teacher_answer_key.pdf": "https://drive.google.com/file/d/10iVT1viaBi6yyT1qU8pZhPvGy3nhn7xb/view",
   "B1_Green_Course_6B-10B/B1_8A_Photocopiables.pdf": "https://drive.google.com/file/d/1u5ehVjtQ9x62fys9w19_mnQDX7phW-Tn/view",
-  "B1_Green_Course_6B-10B/B1_8A-2_The_right_job_for_you.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_8A-2_The_right_job_for_you.pptx?v=20261012i",
+  "B1_Green_Course_6B-10B/B1_8A-2_The_right_job_for_you.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_8A-2_The_right_job_for_you.pptx?v=20261013b",
   "B1_Green_Course_6B-10B/B1_8A-2_Homework_sheet.pdf": "https://drive.google.com/file/d/16UHZeHFHAheXkJeZ3wjVMAei7meAdAfE/view",
   "B1_Green_Course_6B-10B/B1_8A-2_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1i00OS9M9_CfDtPbgI4wyT_LcHfCM7dSJ/view",
   "B1_Green_Course_6B-10B/B1_8A-2_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1IXbx-4um5UH9MHHBWtnxPvwXUgV11q1x/view",
