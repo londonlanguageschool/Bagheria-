@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#082d5c">
   <meta name="description" content="London Language School management portal">
   <title>LLS Portal | London Language School</title>
-  <link rel="stylesheet" href="portal.css?v=20261013a">
-  <link rel="stylesheet" href="portal-theme.css?v=20261013a">
+  <link rel="stylesheet" href="portal.css?v=20261014a">
+  <link rel="stylesheet" href="portal-theme.css?v=20261014a">
 </head>
 
 <body>
@@ -787,30 +787,40 @@
             </div>
 
             <div class="panel lw-gate">
-              <p class="section-label step-label" style="margin-top:0;"><span class="step-n s6">5</span> 📝 Homework <span class="muted">(every lesson, all groups: goes straight to the students' app)</span></p>
-              <div class="form-grid">
-                <div class="form-field form-field-wide">
-                  <label for="lessonHwTitle">Homework</label>
-                  <input id="lessonHwTitle" type="text" placeholder="e.g. Workbook p.12 ex 1–3">
-                  <div id="lessonHwSuggest" class="sk-chips" style="margin-top:8px;" hidden></div>
-                  <div id="lessonHwIdeas" class="sk-chips" style="margin-top:8px;" hidden></div>
-                  <div id="lessonWbBox" class="wb-box" hidden></div>
-                </div>
-                <div class="form-field form-field-wide">
-                  <label for="lessonHwText">Instructions (optional)</label>
-                  <textarea id="lessonHwText" rows="2"></textarea>
-                </div>
-                <div class="form-field">
-                  <label for="lessonHwDue">Due</label>
+              <p class="section-label step-label" style="margin-top:0;"><span class="step-n s6">5</span> 📝 Homework <span class="muted">(goes straight to the students' app)</span></p>
+              <div id="lessonHwFromSlides" class="hw-slides" hidden></div>
+              <div class="form-field form-field-wide">
+                <label for="lessonHwTitle">What should they do?</label>
+                <input id="lessonHwTitle" type="text" placeholder="e.g. Workbook 2B ex. 1–3">
+                <div id="lessonHwSuggest" class="sk-chips" style="margin-top:8px;" hidden></div>
+                <div id="lessonHwIdeas" class="sk-chips" style="margin-top:8px;" hidden></div>
+              </div>
+              <div class="hw-due">
+                <div id="lessonHwDueLine" class="hw-due-line"></div>
+                <button type="button" class="button button-secondary hw-due-btn" id="lessonHwDueChange">Change</button>
+                <div class="form-field hw-due-box" id="lessonHwDueBox" hidden>
+                  <label for="lessonHwDue">Due date</label>
                   <input id="lessonHwDue" type="date">
                 </div>
-                <div class="form-field form-field-wide">
-                  <div id="lessonHwSheetHint" class="hw-sheet-hint" hidden></div>
-                  <label for="lessonHwFiles">📎 Attach files <span class="muted">(optional: worksheet, photo of the page, audio · max 8 MB each)</span></label>
-                  <input id="lessonHwFiles" type="file" multiple accept="image/*,application/pdf,audio/*,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt">
-                  <small id="lessonHwFilesPicked" class="muted"></small>
-                </div>
               </div>
+              <details class="hw-more">
+                <summary>More options: instructions, Workbook pages, attach a file</summary>
+                <div class="form-grid" style="margin-top:10px;">
+                  <div class="form-field form-field-wide">
+                    <label for="lessonHwText">Instructions for students <span class="muted">(optional)</span></label>
+                    <textarea id="lessonHwText" rows="3"></textarea>
+                  </div>
+                  <div class="form-field form-field-wide">
+                    <div id="lessonWbBox" class="wb-box" hidden></div>
+                  </div>
+                  <div class="form-field form-field-wide">
+                    <div id="lessonHwSheetHint" class="hw-sheet-hint" hidden></div>
+                    <label for="lessonHwFiles">📎 Attach files <span class="muted">(worksheet, photo of the page, audio · max 8 MB each)</span></label>
+                    <input id="lessonHwFiles" type="file" multiple accept="image/*,application/pdf,audio/*,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt">
+                    <small id="lessonHwFilesPicked" class="muted"></small>
+                  </div>
+                </div>
+              </details>
               <div id="lessonHwList"></div>
             </div>
 
@@ -2360,12 +2370,13 @@
   ========================== -->
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
-  <script src="practice/courses.js?v=20261013a"></script>
-  <script src="lesson-plans.js?v=20261013a"></script>
-  <script src="workbook.js?v=20261013a"></script>
-  <script src="portal.js?v=20261013a"></script>
-  <script src="resources.js?v=20261013a"></script>
-  <script src="report.js?v=20261013a"></script>
-  <script src="portal-i18n.js?v=20261013a"></script>
+  <script src="practice/courses.js?v=20261014a"></script>
+  <script src="lesson-plans.js?v=20261014a"></script>
+  <script src="deck-homework.js?v=20261014a"></script>
+  <script src="workbook.js?v=20261014a"></script>
+  <script src="portal.js?v=20261014a"></script>
+  <script src="resources.js?v=20261014a"></script>
+  <script src="report.js?v=20261014a"></script>
+  <script src="portal-i18n.js?v=20261014a"></script>
 </body>
 </html>

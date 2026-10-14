@@ -617,3 +617,41 @@ input[type="checkbox"] { border-radius: 4px; }
 .confirm-extra-facts { margin: 0; color: var(--ink-600, #555); font-size: 0.92rem; }
 .confirm-extra-warn { margin: 0; padding: 10px 12px; border-radius: 12px; background: #fff1d6; color: #7a5200; font-size: 0.92rem; }
 #confirmActionButton:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 14 Oct (owner): simpler Lesson page – step 2 as two questions, skills as tick boxes, homework from the slides. */
+.plan-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.plan-date { background: var(--sky-tile); color: var(--pill); font-weight: 800; border-radius: 999px; padding: 5px 14px; font-size: 15px; }
+.plan-course { margin: 4px 0 10px; font-size: 13.5px; font-weight: 700; }
+.plan-q { border: 0; margin: 16px 0 0; padding: 0; display: grid; gap: 8px; }
+.plan-q legend { font-weight: 800; font-size: 16px; color: var(--ink); margin-bottom: 8px; padding: 0; }
+.plan-q.needs-pick legend::after { content: " ← choose one"; color: #c2410c; font-weight: 800; font-size: 14px; }
+.plan-opt { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 10px 14px; border: 2px solid var(--sky-tile); border-radius: 14px; background: #fff; font-weight: 700; cursor: pointer; }
+.plan-opt input { width: 20px; height: 20px; accent-color: var(--pill); flex: none; }
+.plan-opt small { margin-left: auto; color: #5b6680; font-weight: 700; font-size: 13px; }
+.plan-opt.on { border-color: var(--pill); background: var(--sky-soft); font-weight: 800; }
+.plan-q .today-select { margin: 0 0 4px 34px; width: calc(100% - 34px); }
+.plan-fin { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.plan-fin-btn { min-height: 46px; padding: 0 18px; border-radius: 12px; border: 2px solid var(--sky-tile); background: #fff; color: var(--ink); font: inherit; font-weight: 800; cursor: pointer; }
+.plan-fin-btn.on { border-color: var(--pill); background: var(--pill); color: #fff; }
+.plan-fin-btn.on.yes { border-color: #177b52; background: #e6f6ef; color: #12603f; }
+#planStopSlide { width: 96px; min-height: 46px; border-radius: 12px; }
+.plan-fin-note { margin: 4px 0 0; font-size: 13.5px; }
+.plan-all > summary { font-weight: 800; color: var(--pill); cursor: pointer; margin-top: 16px; }
+.lesson-skills .sk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.lesson-skills .sk-check { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px; border: 2px solid var(--sky-tile); border-radius: 12px; background: #fff; font-weight: 700; cursor: pointer; }
+.lesson-skills .sk-check input { width: 18px; height: 18px; accent-color: var(--pill); }
+.lesson-skills .sk-check.on { border-color: var(--pill); background: var(--sky-soft); font-weight: 800; }
+.lesson-skills.needs .sk-grid { outline: 2px solid #e2554a; outline-offset: 4px; border-radius: 12px; }
+.lesson-skills .sk-rows { margin-top: 12px; }
+.hw-slides { background: linear-gradient(135deg, #fff1a8, #fff8d6); border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; }
+.hw-slides-h { margin: 0 0 6px; font-weight: 800; color: var(--ink); }
+.hw-slides ul { margin: 0 0 10px; padding-left: 20px; display: grid; gap: 3px; font-weight: 700; }
+.hw-slides-acts { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 13.5px; }
+.hw-due { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: var(--sky-soft); }
+.hw-due-line { font-size: 15.5px; color: var(--ink); }
+.hw-due-line strong { color: var(--pill); font-size: 16px; }
+.hw-due-l { font-weight: 800; margin-right: 6px; }
+.hw-due-btn { margin-left: auto; min-height: 40px; }
+.hw-due-box { flex-basis: 100%; margin: 0; }
+.hw-more { margin-top: 14px; }
+.hw-more > summary { font-weight: 800; color: var(--pill); cursor: pointer; }
