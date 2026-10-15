@@ -8385,7 +8385,8 @@ async function llsRenderLesson() {
   const saveBtn = byId("lessonSaveButton");
   if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "💾 Save lesson"; }
   byId("lessonLast").hidden = true;
-  llsLesson.happen = ""; llsPlanPick = ""; llsPlanForm = "";
+  llsLesson.happen = ""; llsLesson.happenOpen = false; llsPlanPick = ""; llsPlanForm = "";
+  setValue("lessonHwSet", "set"); llsHwSetApply_();
   ["lessonDone", "lessonNotes", "lessonHwTitle", "lessonHwText"].forEach((id) => setValue(id, ""));
   llsSetProgress_(0);
   llsSkillState = {}; llsSkillsAuto_ = "";
@@ -8406,6 +8407,7 @@ async function llsRenderLesson() {
   llsLesson.noteTouched = false;
   llsLesson.homework = [];
   llsLesson.status = [];
+  llsRenderHwCheck_();
 
   // 27 Sept: show the register straight away from the class list we already
   // have; saved marks and notes fill in when Google answers. A lesson saved on
@@ -8603,7 +8605,7 @@ function llsRenderLessonHomework(classSize) {
   const box = byId("lessonHwList");
   if (!box) return;
   const items = [...llsLesson.homework].sort((a, b) => String(b["Created At"] || b["Assigned Date"] || "").localeCompare(String(a["Created At"] || a["Assigned Date"] || ""))).slice(0, 4);
-  box.innerHTML = items.length ? `<p class="section-label" style="margin:14px 0 6px;">Recent homework</p>` + items.map((h) => {
+  box.innerHTML = items.length ? `<details class="hw-recent"><summary>All recent homework (${items.length})</summary>` + items.map((h) => {
     const id = String(h["Homework ID"] || "");
     const done = llsLesson.status.filter((s) => String(s["Homework ID"] || "") === id && String(s["Status"] || "") === "Done").length;
     const due = h["Due Date"] ? ` · due ${formatDate(String(h["Due Date"]))}` : "";
@@ -8611,11 +8613,105 @@ function llsRenderLessonHomework(classSize) {
     return `<div class="lesson-hw-item"><span>${escapeHtml(String(h["Title"] || ""))}<span class="muted">${escapeHtml(due)}</span></span>
       <span class="lesson-hw-actions"><strong>${done}/${classSize} done</strong>
       ${id ? `<button type="button" class="row-action" data-lhw-files="${escapeAttribute(id)}">📎 Files${f.teacher ? " (" + f.teacher + ")" : ""}</button>
-      <button type="button" class="row-action${f.toMark ? " has-new" : ""}" data-lhw-mark="${escapeAttribute(id)}">${f.students ? `📥 Work (${f.students})${f.toMark ? " · " + f.toMark + " to mark" : ""}` : "View / Mark"}</button>` : ""}</span></div>`;
-  }).join("") : "";
+      <button type="button" class="row-action${f.toMark ? " has-new" : ""}" data-lhw-mark="${escapeAttribute(id)}">${f.students ? `📥 Mark their work (${f.students})${f.toMark ? " · " + f.toMark + " to mark" : ""}` : "✓ Mark who did it"}</button>` : ""}</span></div>`;
+  }).join("") + `</details>` : "";
   const useLesson = () => { llsHomeworkCache = { classId: llsLesson.classId, homework: llsLesson.homework, status: llsLesson.status, files: llsLesson.files || [], fromLesson: true }; };
   box.querySelectorAll("[data-lhw-files]").forEach((b) => b.addEventListener("click", () => { useLesson(); llsOpenHwFiles(b.dataset.lhwFiles); }));
   box.querySelectorAll("[data-lhw-mark]").forEach((b) => b.addEventListener("click", () => { useLesson(); openHomeworkStatusModal(b.dataset.lhwMark); }));
+  llsRenderHwCheck_();
+}
+
+/* 15 Oct (owner): step 1 – the homework due today, marked together at the start of the lesson.
+   One drop-down per student; it saves straight away (the student sees it in their app). */
+const LLS_HWC_OPTS = [["correct", "Done, all correct"], ["mistakes", "Done, some mistakes"], ["not", "Not done"], ["forgot", "Forgot it / next time"]];
+function llsHwDueToday_() {
+  const date = byId("lessonDate")?.value || "";
+  const hw = (llsLesson.homework || []).filter((h) => h["Homework ID"]);
+  const d10 = (x) => String(x || "").slice(0, 10);
+  const due = hw.filter((h) => d10(h["Due Date"]) === date);
+  if (due.length) return due;
+  // Nothing due exactly today: the latest homework set before today (normally last lesson's).
+  const before = hw.filter((h) => d10(h["Assigned Date"] || h["Created At"]) < date && (!d10(h["Due Date"]) || d10(h["Due Date"]) <= date))
+    .sort((a, b) => d10(b["Assigned Date"] || b["Created At"]).localeCompare(d10(a["Assigned Date"] || a["Created At"])));
+  return before.slice(0, 1);
+}
+function llsHwCheckValue_(rec) {
+  if (!rec) return "";
+  const st = String(rec["Status"] || ""), mark = String(rec["Mark"] || "").trim(), notes = String(rec["Notes"] || "");
+  if (st === "Done") return mark === "All correct" ? "correct" : mark === "Some mistakes" ? "mistakes" : "done";
+  if (/forgot/i.test(notes)) return "forgot";
+  return /not done/i.test(notes) ? "not" : "";
+}
+function llsStepNums_() {
+  const check = !byId("lessonHwCheckPanel")?.hidden;
+  [["[data-step-reg]", 1], ["[data-step-teach]", 2], ["[data-step-hw]", 3]].forEach(([sel, n]) => { const el = document.querySelector(sel); if (el) el.textContent = String(n + (check ? 1 : 0)); });
+}
+function llsRenderHwCheck_() {
+  const panel = byId("lessonHwCheckPanel"), box = byId("lessonHwCheck");
+  if (!panel || !box) return;
+  const list = llsHwDueToday_();
+  panel.hidden = !list.length;
+  llsStepNums_();
+  if (!list.length) { box.innerHTML = ""; return; }
+  const students = llsStudentsForClass(llsLesson.classId);
+  const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
+  const from = { files: llsLesson.files || [], status: llsLesson.status || [] };
+  box.innerHTML = list.map((h) => {
+    const id = String(h["Homework ID"]);
+    const set = String(h["Assigned Date"] || h["Created At"] || "").slice(0, 10);
+    const due = String(h["Due Date"] || "").slice(0, 10);
+    const fmt = (iso) => iso ? new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "2-digit" }) : "";
+    const f = llsHwFileCounts_(id, from);
+    // The answer key of the lesson the homework was set in.
+    const entry = (llsLesson.entries || []).find((e) => String(e.lessonDate || "").slice(0, 10) === set);
+    const code = entry ? llsPlanCode_(entry.unit) : "";
+    const plan = cls && code ? llsPlansFor_(cls).find((x) => x.id === code) : null;
+    const key = plan ? llsPlanUrl_(plan, "key") : "";
+    const recs = students.map((st) => {
+      const sid = String(st["Student ID"] || "").trim();
+      const rec = (llsLesson.status || []).find((r) => String(r["Homework ID"] || "") === id && String(r["Student ID"] || "").trim() === sid);
+      return { st, sid, rec, v: llsHwCheckValue_(rec), sent: from.files.filter((x) => x.kind === "Work" && x.homeworkId === id && x.studentId === sid).length };
+    });
+    const done = recs.filter((r) => ["correct", "mistakes", "done"].includes(r.v)).length;
+    return `<div class="hwc">
+      <div class="hwc-head">
+        <div class="hwc-title"><b>${escapeHtml(String(h["Title"] || "Homework"))}</b>
+          <small>Set ${escapeHtml(fmt(set))}${due ? " · due " + escapeHtml(fmt(due)) : ""} · ${done} of ${recs.length} done</small></div>
+        <div class="hwc-acts">
+          ${f.teacher ? `<button type="button" class="row-action" data-lhw-files="${escapeAttribute(id)}">📎 Show the exercise</button>` : ""}
+          ${key ? `<a class="row-action" href="${escapeAttribute(key)}" target="_blank" rel="noopener">🔑 Answer key</a>` : ""}
+          ${f.students ? `<button type="button" class="row-action${f.toMark ? " has-new" : ""}" data-lhw-mark="${escapeAttribute(id)}">📥 Their work (${f.students})${f.toMark ? " · " + f.toMark + " to mark" : ""}</button>` : ""}
+        </div>
+      </div>
+      ${h["Description"] ? `<p class="hwc-desc">${escapeHtml(String(h["Description"]))}</p>` : ""}
+      <div class="hwc-rows">${recs.map((r) => `<div class="hwc-row">
+        <span class="hwc-name">${escapeHtml(llsStudentName(r.st))}${r.sent ? ` <small>· sent in the app</small>` : ""}</span>
+        <select data-hwc="${escapeAttribute(id)}" data-hwc-st="${escapeAttribute(r.sid)}" class="hwc-sel${r.v ? " set v-" + r.v : ""}" aria-label="${escapeAttribute(llsStudentName(r.st))}: homework">
+          ${r.v ? "" : `<option value="" selected>Choose…</option>`}
+          ${r.v === "done" ? `<option value="done" selected>Done (in the app)</option>` : ""}
+          ${LLS_HWC_OPTS.map(([v, t]) => `<option value="${v}"${r.v === v ? " selected" : ""}>${t}</option>`).join("")}
+        </select></div>`).join("")}</div>
+    </div>`;
+  }).join("");
+  const useLesson = () => { llsHomeworkCache = { classId: llsLesson.classId, homework: llsLesson.homework, status: llsLesson.status, files: llsLesson.files || [], fromLesson: true }; };
+  box.querySelectorAll("[data-lhw-files]").forEach((b) => b.addEventListener("click", () => { useLesson(); llsOpenHwFiles(b.dataset.lhwFiles); }));
+  box.querySelectorAll("[data-lhw-mark]").forEach((b) => b.addEventListener("click", () => { useLesson(); openHomeworkStatusModal(b.dataset.lhwMark); }));
+  box.querySelectorAll("[data-hwc]").forEach((sel) => sel.addEventListener("change", () => {
+    const hwId = sel.dataset.hwc, sid = sel.dataset.hwcSt, v = sel.value;
+    if (!v || v === "done") return;
+    let rec = (llsLesson.status || []).find((r) => String(r["Homework ID"] || "") === hwId && String(r["Student ID"] || "").trim() === sid);
+    if (!rec) { rec = { "Homework ID": hwId, "Student ID": sid }; llsLesson.status.push(rec); }
+    if (v === "correct" || v === "mistakes") {
+      const mark = v === "correct" ? "All correct" : "Some mistakes";
+      Object.assign(rec, { Status: "Done", Mark: mark });
+      llsQueueSave("homework mark", { action: "markHomeworkFeedback", homeworkId: hwId, studentId: sid, mark, feedback: String(rec["Feedback"] || "") });
+    } else {
+      const notes = v === "forgot" ? "Forgot – bring it next time" : "Not done";
+      Object.assign(rec, { Status: "Not started", Notes: notes });
+      llsQueueSave("homework ticks", { action: "markHomeworkStatus", homeworkId: hwId, studentId: sid, status: "Not started", notes });
+    }
+    llsRenderHwCheck_();
+  }));
 }
 
 // "How did they do?" lives at the start of the attendance note: "[Good] note".
@@ -8708,7 +8804,7 @@ async function llsSaveLesson() {
   const doneText = [...llsSkillLines(llsSkillState), choiceOn ? LLS_CHOICE_MARK + choiceTitle : "", value("lessonDone").trim()].filter(Boolean).join("\n") || (specialOn ? specialTitle + " lesson" : nobodyHere ? LLS_NOBODY_CAME : "");
   const needDone = false; // 11 Oct (Helen): the skills + topics already say what was done; no extra description required
   if (value("lessonProgress") === "stop" && !(Number(value("lessonStopSlide")) > 0)) {
-    showToast("Write the slide number where you stopped (step 2 · Did you finish it?).", "error");
+    showToast("Write the slide number where you stopped (What did you teach? · Did you finish it?).", "error");
     (byId("planStopSlide") || byId("lessonStopSlide"))?.focus();
     return;
   }
@@ -8717,12 +8813,13 @@ async function llsSaveLesson() {
   if (unrated.length || needSkill || (noTopic.length && !nobodyHere) || needDone) {
     // 6 Oct (owner): say exactly what is missing, in a box that stays on screen, and jump to it.
     const missing = [];
-    if (unrated.length) missing.push(`<b>3 · Register</b>: choose "How did they do?" for ${unrated.map((r) => escapeHtml(r.querySelector(".reg-name")?.textContent || "")).join(", ")}.`);
-    if (needSkill) missing.push(`<b>4 · What did you do today?</b> Tap at least one: Grammar, Vocabulary, Reading…`);
+    if (unrated.length) missing.push(`<b>${document.querySelector("[data-step-reg]")?.textContent || 2} · Register</b>: choose "How did they do?" for ${unrated.map((r) => escapeHtml(r.querySelector(".reg-name")?.textContent || "")).join(", ")}.`);
+    if (needSkill) missing.push(`<b>${document.querySelector("[data-step-teach]")?.textContent || 3} · What did you teach?</b> Skills: tap at least one: Grammar, Vocabulary, Reading…`);
     if (noTopic.length && !nobodyHere) missing.push(...noTopic.map((s) => `<b>${escapeHtml(s.k)}</b>: write the topic in its box (e.g. ${escapeHtml(s.k === "Games & songs" ? "animals bingo" : s.k === "Grammar" ? "past simple" : s.k === "Vocabulary" ? "clothes" : "the topic you covered")}) – or untick ${escapeHtml(s.k)}.`));
     if (needDone) missing.push(`<b>What exactly did you do?</b> Write at least a couple of clear lines (activities in order).`);
     if (errBox) { errBox.innerHTML = `<strong>⚠ Not saved yet – please fix:</strong><ul>${missing.map((m) => `<li>${m}</li>`).join("")}</ul>`; errBox.hidden = false; }
     showToast(`Not saved yet: ${missing.length} thing${missing.length === 1 ? "" : "s"} to fix (see the red box above the Save button).`, "error");
+    if (needSkill || (noTopic.length && !nobodyHere)) { const w = byId("lessonSkillsWrap"); if (w) w.open = true; }
     const target = unrated[0]?.querySelector(".reg-rating") || (noTopic.length && !nobodyHere ? byId("lessonSkills")?.querySelector(".sk-row.needs input") : null) || (needSkill ? byId("lessonSkills")?.querySelector(".sk-toggle") : null) || (needDone ? byId("lessonDone") : null);
     target?.scrollIntoView({ behavior: "smooth", block: "center" });
     target?.focus({ preventScroll: true });
@@ -8736,12 +8833,14 @@ async function llsSaveLesson() {
     // 28 Sept: a rating only counts for students who were there.
     notes: llsJoinRating(["Present", "Late"].includes(r.dataset.status || "Present") ? (r.querySelector(".reg-rating")?.value || "") : "", r.querySelector(".reg-note")?.value.trim() || "")
   }));
-  const hwTitle = value("lessonHwTitle").trim();
+  // 15 Oct (owner): "No homework today" in step 4 means no homework and no question.
+  const hwNone = value("lessonHwSet") === "none";
+  const hwTitle = hwNone ? "" : value("lessonHwTitle").trim();
   // 11 Oct (owner): homework is never forgotten by accident – ask once if the box is empty
   // (not when nobody came, and not when re-saving a lesson that already has homework).
   const ownSaved = llsLesson.entries.find((e) => e.lessonDate === date);
-  if (!hwTitle && !nobodyHere && !(ownSaved && ownSaved.homeworkSet)) { // 11 Oct (owner): homework for ALL groups, every lesson
-    const ok = window.confirm("No homework for this class " + llsDayInfo_().on + "?\n\nOK = save without homework\nCancel = go back and add homework (there are ideas under the Homework box)");
+  if (!hwTitle && !hwNone && !nobodyHere && !(ownSaved && ownSaved.homeworkSet)) { // 11 Oct (owner): homework for ALL groups, every lesson
+    const ok = window.confirm("No homework for this class " + llsDayInfo_().on + "?\n\nOK = save without homework\nCancel = go back and add homework (step 4)");
     if (!ok) { const hw = byId("lessonHwTitle"); hw?.scrollIntoView({ behavior: "smooth", block: "center" }); hw?.focus({ preventScroll: true }); return; }
   }
   const note = {
@@ -9664,8 +9763,8 @@ function llsApplyQueuedHomework_(cache) {
     const b = st.body || {};
     if (b.action === "markHomeworkStatus") {
       const rec = cache.status.find((x) => String(x["Homework ID"] || "") === b.homeworkId && String(x["Student ID"] || "").trim() === b.studentId);
-      if (rec) rec["Status"] = b.status;
-      else cache.status.push({ "Homework ID": b.homeworkId, "Student ID": b.studentId, "Status": b.status });
+      if (rec) { rec["Status"] = b.status; if (b.notes != null) rec["Notes"] = b.notes; }
+      else cache.status.push({ "Homework ID": b.homeworkId, "Student ID": b.studentId, "Status": b.status, "Notes": b.notes || "" });
     }
     if (b.action === "markHomeworkFeedback") {
       const rec = cache.status.find((x) => String(x["Homework ID"] || "") === b.homeworkId && String(x["Student ID"] || "").trim() === b.studentId);
@@ -9817,6 +9916,10 @@ function llsRenderSkills() {
     i.closest(".sk-row")?.classList.remove("needs");
     clearTimeout(llsHwIdeasTimer_); llsHwIdeasTimer_ = setTimeout(llsRenderHwIdeas, 400);
   }));
+  // 15 Oct (owner): skills fold away once ticked (they fill in from the slides); open when nothing is ticked.
+  const sum = byId("lessonSkillsSum"), wrap = byId("lessonSkillsWrap");
+  if (sum) sum.innerHTML = rows.length ? `✓ Skills: <b>${rows.map((r) => escapeHtml(r.k)).join(", ")}</b> <span class="muted">· tap to change</span>` : `Skills: tick what you did`;
+  if (wrap && !rows.length) wrap.open = true;
   llsRenderHwIdeas();
 }
 
@@ -10905,7 +11008,7 @@ function llsApplyPlan_(p) {
     llsSkillState[k] = { on: true, topic: String(topic || ""), focus: (st && st.focus) || "" };
   });
   llsSkillsAuto_ = JSON.stringify(llsSkillState);
-  if (p.skills) { byId("lessonSkills")?.classList.remove("needs"); llsRenderSkills(); }
+  if (p.skills) { byId("lessonSkills")?.classList.remove("needs"); llsRenderSkills(); const w = byId("lessonSkillsWrap"); if (w) w.open = false; }
   llsLesson.noteTouched = true;
   byId("lessonDone")?.classList.remove("needs");
 }
@@ -10915,8 +11018,10 @@ function llsRenderPlanPanel() {
   const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
   const plans = cls ? llsPlansFor_(cls) : [];
   box.hidden = !plans.length;
+  const startBox = byId("lessonStart");
   if (!plans.length) {
     box.innerHTML = "";
+    if (startBox) startBox.innerHTML = "";
     byId("lessonTypeBar") && (byId("lessonTypeBar").hidden = false);
     byId("lessonProgressField") && (byId("lessonProgressField").hidden = false);
     byId("lessonUnitPageField") && (byId("lessonUnitPageField").hidden = llsLessonType_() !== "book");
@@ -10934,7 +11039,14 @@ function llsRenderPlanPanel() {
   const doneCount = plans.filter((p) => taught[p.id]).length;
   let lastIdx = -1;
   plans.forEach((p, i) => { if (taught[p.id]) lastIdx = i; });
-  const nextIdx = plans.findIndex((p, i) => i > lastIdx && !taught[p.id]);
+  let nextIdx = plans.findIndex((p, i) => i > lastIdx && !taught[p.id]);
+  // 15 Oct (owner): if the class's LAST lesson wasn't finished, that lesson is the one to continue,
+  // wherever it is in the course.
+  { const lastE = (llsLesson.entries || []).filter((e) => String(e.lessonDate || "").slice(0, 10) < date && !llsIsCancelUnit(e.unit))
+      .sort((a, b) => String(b.lessonDate).localeCompare(String(a.lessonDate)))[0];
+    const lc = lastE ? llsPlanCode_(lastE.unit) : "";
+    const li = lc && partial[lc] ? plans.findIndex((p) => p.id === lc) : -1;
+    if (li >= 0) nextIdx = li; }
   const next = nextIdx >= 0 ? plans[nextIdx] : null;
   const when = (iso) => iso ? new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "";
   const status = (p) => {
@@ -10970,34 +11082,43 @@ function llsRenderPlanPanel() {
   const stopOn = value("lessonProgress") === "stop";
   const radio = (v, label, extra) => `<label class="plan-opt${sel === v ? " on" : ""}"><input type="radio" name="planTaught" value="${v}"${sel === v ? " checked" : ""}><span>${label}</span>${extra ? `<small>${extra}</small>` : ""}</label>`;
   ["lessonTypeBar", "lessonProgressField", "lessonUnitPageField"].forEach((id) => { const el = byId(id); if (el) el.hidden = true; });
-  box.innerHTML = `
-    <div class="plan-head"><p class="section-label step-label" style="margin:0;"><span class="step-n s3">2</span> 📚 Lesson</p><span class="plan-date">${escapeHtml(day.short)}</span></div>
-    <p class="plan-course muted">${escapeHtml(name)} · ${doneCount} of ${plans.length} lessons done</p>
-    ${feat ? `<div class="today-card">
-      ${partial[feat.id] ? `<div class="today-continue">⏸ Start from <b>slide ${partial[feat.id].slide}</b>: the class stopped there on ${escapeHtml(new Date(partial[feat.id].date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" }))}${partial[feat.id].teacher ? " (" + escapeHtml(partial[feat.id].teacher) + ")" : ""}.</div>` : ""}
-      <div class="today-title"><span class="plan-code">${escapeHtml(feat.id)}</span> <strong>${escapeHtml(feat.title)}</strong></div>
-      <small>${escapeHtml(feat.focus)}${feat.pages ? " · " + escapeHtml(feat.pages) : ""}</small>
+  // 15 Oct (owner): "Start here" (top of the page) = the lesson to teach + its materials. Step 3 = two drop-downs.
+  const startTitle = part && feat && feat.id === next.id
+    ? `Continue <span class="plan-code">${escapeHtml(feat.id)}</span> ${escapeHtml(feat.title)} from <b>slide ${part.slide}</b>`
+    : feat ? `${picked ? "" : "Next: "}<span class="plan-code">${escapeHtml(feat.id)}</span> ${escapeHtml(feat.title)}` : "";
+  if (startBox) startBox.innerHTML = feat ? `<div class="start-card">
+      <div class="start-title">${startTitle}</div>
+      <small class="start-focus">${escapeHtml(feat.focus)}${feat.pages ? " · " + escapeHtml(feat.pages) : ""} · ${escapeHtml(name)} · ${doneCount} of ${plans.length} lessons done</small>
       <div class="plan-feature-actions">${llsPlanMaterialLinks_(feat, true) || '<span class="muted">Slides are being uploaded – ask the office.</span>'}</div>
       ${llsPlanUrl_(feat, "file") ? `<details class="plan-audio-d"><summary>🔊 How to play the audio and videos</summary>${llsPlanAudioTip_(cls, feat)}</details>` : ""}
-    </div>` : `<div class="today-card"><strong>🎉 This class has done every lesson in the course.</strong></div>`}
-    <fieldset class="plan-q${sel ? "" : " needs-pick"}"><legend>1. What did you teach ${escapeHtml(day.on)}?</legend>
-      ${next ? (part ? radio("plan", `Continue ${escapeHtml(next.id)} · ${escapeHtml(next.title)} from slide ${part.slide}`, "where the class stopped") : radio("plan", `${escapeHtml(next.id)} · ${escapeHtml(next.title)}`, "planned")) : ""}
-      ${after ? radio("after", `Start the next lesson: ${escapeHtml(after.id)} · ${escapeHtml(after.title)}`, "") : ""}
-      ${radio("other", "A different lesson from the book", "")}
-      ${sel === "other" ? `<select id="planOther" class="today-select"><option value="">Choose the lesson…</option>${plans.map((p) => `<option value="${escapeAttribute(p.id)}"${picked && picked.id === p.id ? " selected" : ""}>${escapeHtml(p.id)} ${escapeHtml(p.title)} – ${escapeHtml(p.focus)}${status(p) ? "  [" + escapeHtml(status(p)) + "]" : ""}</option>`).join("")}</select>
-      ${picked && taught[picked.id] ? `<p class="plan-warn">⚠ This class already had ${escapeHtml(picked.id)} (${escapeHtml(status(picked))}). That's fine if you're repeating it.</p>` : ""}` : ""}
-      ${radio("choice", "My own lesson (not from the book)", "")}
-      ${radio("special", "Special lesson", "Halloween, Christmas…")}
-    </fieldset>
-    ${showFinish ? `<fieldset class="plan-q"><legend>2. Did you finish it?</legend>
-      <div class="plan-fin">
-        <button type="button" class="plan-fin-btn${stopOn ? "" : " on yes"}" data-fin="yes" aria-pressed="${!stopOn}">Yes, all of it</button>
-        <button type="button" class="plan-fin-btn${stopOn ? " on" : ""}" data-fin="stop" aria-pressed="${stopOn}">No, we stopped at slide</button>
-        <input id="planStopSlide" type="number" min="1" max="80" inputmode="numeric" placeholder="e.g. 14" aria-label="Slide number where you stopped" value="${stopN || ""}"${stopOn ? "" : " hidden"}>
-        ${stopOn && picked && llsDeckBase_(picked) ? `<button type="button" class="plan-fin-btn plan-fin-look" data-view-deck="${escapeAttribute(llsDeckBase_(picked))}" data-view-title="${escapeAttribute(picked.id + " " + picked.title)}" data-view-pick="1" data-view-stop="${stopN || ""}">👀 Can't remember? Look at the slides</button>` : ""}
+    </div>` : `<div class="start-card"><strong>🎉 This class has done every lesson in the course.</strong></div>`;
+  const opt = (v, label) => `<option value="${v}"${sel === v ? " selected" : ""}>${label}</option>`;
+  box.innerHTML = `
+    <div class="teach-grid">
+      <div class="form-field">
+        <label for="planTaughtSel">Lesson</label>
+        <select id="planTaughtSel" class="teach-sel${sel ? "" : " needs-pick"}">
+          ${sel ? "" : `<option value="" selected>Choose…</option>`}
+          ${next ? opt("plan", part ? `Continued ${escapeHtml(next.id)} · ${escapeHtml(next.title)} (from slide ${part.slide})` : `${escapeHtml(next.id)} · ${escapeHtml(next.title)} (planned)`) : ""}
+          ${after ? opt("after", `Next lesson: ${escapeHtml(after.id)} · ${escapeHtml(after.title)}`) : ""}
+          ${opt("other", "Another lesson from the book…")}
+          ${opt("choice", "My own lesson (not from the book)")}
+          ${opt("special", "Special lesson (Halloween, Christmas…)")}
+        </select>
+        ${sel === "other" ? `<select id="planOther" class="today-select" aria-label="Which lesson from the book?"><option value="">Choose the lesson…</option>${plans.map((p) => `<option value="${escapeAttribute(p.id)}"${picked && picked.id === p.id ? " selected" : ""}>${escapeHtml(p.id)} ${escapeHtml(p.title)} – ${escapeHtml(p.focus)}${partial[p.id] ? "  [⏸ stopped at slide " + partial[p.id].slide + "]" : status(p) ? "  [" + escapeHtml(status(p)) + "]" : ""}</option>`).join("")}</select>` : ""}
       </div>
-      ${stopOn ? `<p class="muted plan-fin-note">The next lesson starts from this slide.${picked && llsDeckBase_(picked) ? " Not sure? Tap “Look at the slides”, find the slide, then tap “We stopped here”." : ""}</p>` : ""}
-    </fieldset>` : ""}
+      ${showFinish ? `<div class="form-field">
+        <label for="planFinSel">Did you finish it?</label>
+        <div class="teach-fin">
+          <select id="planFinSel">
+            <option value="yes"${stopOn ? "" : " selected"}>Yes, all of it</option>
+            <option value="stop"${stopOn ? " selected" : ""}>No, we stopped at slide…</option>
+          </select>
+          <input id="planStopSlide" type="number" min="1" max="80" inputmode="numeric" placeholder="e.g. 14" aria-label="Slide number where you stopped" value="${stopN || ""}"${stopOn ? "" : " hidden"}>
+        </div>
+        ${stopOn && picked && llsDeckBase_(picked) ? `<button type="button" class="row-action teach-look" data-view-deck="${escapeAttribute(llsDeckBase_(picked))}" data-view-title="${escapeAttribute(picked.id + " " + picked.title)}" data-view-pick="1" data-view-stop="${stopN || ""}">👀 Not sure? Pick it on the slides</button>` : ""}
+      </div>` : ""}
+    </div>
     <details class="plan-all"${llsPlanShowAll ? " open" : ""}><summary>More: all lessons (${doneCount}/${plans.length} done), mark as done or skip, lesson library, report a problem</summary>
       ${next && !picked ? `<div class="today-acts">
         <button type="button" class="today-act${llsPlanForm === "done" ? " on" : ""}" data-plan-form="done">✓ Class already did ${escapeHtml(next.id)}</button>
@@ -11014,14 +11135,14 @@ function llsRenderPlanPanel() {
       <p class="plan-report" style="margin-bottom:4px;">Need a lesson from another course (trial lesson, revision)? <a href="#" data-open-library>📚 Lesson library</a></p>
       <p class="plan-report">Mistake in a lesson? <a href="#" data-report-lesson="${escapeAttribute((feat ? feat.id + " " + feat.title : "") + " · " + name)}">⚠ Report a problem</a> (lesson, slide number, what's wrong).</p>
     </details>`;
-  box.querySelectorAll("[data-fin]").forEach((b) => b.addEventListener("click", () => {
-    const stop = b.dataset.fin === "stop";
+  byId("planFinSel")?.addEventListener("change", (e) => {
+    const stop = e.target.value === "stop";
     setValue("lessonProgress", stop ? "stop" : "");
     if (!stop) setValue("lessonStopSlide", "");
     llsLesson.noteTouched = true;
     llsRenderPlanPanel();
     if (stop) byId("planStopSlide")?.focus();
-  }));
+  });
   byId("planStopSlide")?.addEventListener("input", (e) => { setValue("lessonStopSlide", e.target.value); llsLesson.noteTouched = true; });
   llsRenderHwSheetHint_();
   box.querySelector(".plan-all")?.addEventListener("toggle", (e) => { llsPlanShowAll = e.target.open; });
@@ -11049,16 +11170,17 @@ function llsRenderPlanPanel() {
     delete m[String(b.dataset.planUndone).toUpperCase()];
     if (llsPlansDoneSave_(cls, m)) { llsRenderPlanPanel(); showToast(`${b.dataset.planUndone} is back on the list.`, "success"); }
   }));
-  box.querySelectorAll('input[name="planTaught"]').forEach((r) => r.addEventListener("change", (e) => {
+  byId("planTaughtSel")?.addEventListener("change", (e) => {
     const v = e.target.value;
+    if (!v) return;
     llsPlanPick = v === "other" ? "other" : v === "after" ? "after" : "";
     if (v === "after" && after) { llsApplyPlan_(after); showToast(`${after.id} "${after.title}" is the lesson ${llsDayInfo_().on}.`, "info"); }
     else if (v === "plan" && next) { llsApplyPlan_(next); showToast(`${next.id} "${next.title}" is the lesson ${llsDayInfo_().on}. Now take the register (step 3).`, "info"); }
     else if (v === "choice" || v === "special") { if (llsPlanCode_(value("lessonUnitPage"))) setValue("lessonUnitPage", cls.currentUnit || ""); llsPickLessonType_(v); }
     else if (v === "other") { if (llsLessonType_() !== "book") llsPickLessonType_("book"); }
     llsRenderPlanPanel();
-  }));
-  if (part && feat && feat.id === next.id) { const vb = box.querySelector(".today-card [data-view-deck]"); if (vb) { vb.dataset.viewStop = String(part.slide); vb.textContent = `👀 View slides (from slide ${part.slide})`; } }
+  });
+  if (part && feat && feat.id === next.id && startBox) { const vb = startBox.querySelector("[data-view-deck]"); if (vb) { vb.dataset.viewStop = String(part.slide); vb.textContent = `👀 See the slides (from slide ${part.slide})`; } }
   byId("planOther")?.addEventListener("change", (e) => {
     const p = plans.find((x) => x.id === e.target.value);
     if (!p) return;
@@ -11900,7 +12022,7 @@ function llsAutoHappen_(cls, date, entry) {
   if (llsIsCancelled(cls.id, date)) return "yes";
   const what = entry ? String(entry.whatWeDid || "") : "";
   if (entry) return what.trim() === LLS_NOBODY_CAME ? "nobody-saved" : "yes";
-  return "";
+  return "yes"; // 15 Oct (owner): the teacher is teaching it unless they tap "Not me / cancelled"
 }
 function llsRenderHappen_() {
   const box = byId("lessonHappen"), work = byId("lessonWork");
@@ -11909,12 +12031,16 @@ function llsRenderHappen_() {
   const h = llsLesson.happen || "";
   const open = h === "yes" || h === "nobody-saved";
   work.classList.toggle("lw-wait", !open || h === "nobody-saved");
-  if (llsRole() !== "teacher") { box.hidden = true; return; }
+  if (llsRole() !== "teacher") { box.hidden = true; const nm = byId("lessonNotMe"); if (nm) nm.hidden = true; return; }
   box.hidden = false;
   const usual = llsTeacherOnDay(cls, llsLessonDay_());
   const names = llsMyNames();
   const covering = names && !llsIsMine(usual, names);
   const coverNote = covering ? `<p class="cover-note">🔄 You're covering this class (usual teacher: <b>${escapeHtml(usual || "?")}</b>). Your report is saved under your name.</p>` : "";
+  // 15 Oct (owner): normally just "I'm teaching it" – no big tiles. They open from "Not me / cancelled".
+  const notMe = byId("lessonNotMe");
+  if (notMe) notMe.hidden = h !== "yes" || !!llsLesson.happenOpen;
+  if (h === "yes" && !llsLesson.happenOpen) { box.innerHTML = coverNote; box.hidden = !coverNote; return; }
   const tile = (v, icon, text, sub, cls2) => `<button type="button" class="happen-tile ${cls2}${h === v || (v === "nobody" && h === "nobody-saved") ? " sel" : ""}" data-happen="${v}"><b>${icon}</b><span>${text}</span>${sub ? `<small>${sub}</small>` : ""}</button>`;
   let follow = "";
   if (h === "other") follow = `
@@ -11938,16 +12064,16 @@ function llsRenderHappen_() {
   else if (h === "nobody-saved") follow = `<div class="happen-follow done">✅ Saved: nobody came. Today's lesson stays for next time. <button type="button" class="row-action" data-happen="yes">Students came after all? Fill in the lesson</button></div>`;
   else if (h === "sent") follow = `<div class="happen-follow done">✅ ${escapeHtml(llsLesson.happenMsg || "Sent to Rosanna.")}</div>`;
   box.innerHTML = `
-    <p class="section-label step-label" style="margin:0 0 10px;"><span class="step-n s1">1</span> Who is teaching this lesson?</p>
+    <p class="section-label step-label" style="margin:0 0 10px;">Not you, or no lesson?</p>
     ${coverNote}
-    <div class="happen-tiles${open && h === "yes" ? " compact" : ""}" role="group" aria-label="Did the lesson happen?">
-      ${tile("yes", "✅", "I'm teaching it", "or I taught it", "t-green")}
+    <div class="happen-tiles${open && h === "yes" ? " compact" : ""}${llsLesson.happenOpen ? " three" : ""}" role="group" aria-label="Did the lesson happen?">
+      ${llsLesson.happenOpen ? "" : tile("yes", "✅", "I'm teaching it", "or I taught it", "t-green")}
       ${tile("other", "👥", "Another teacher is teaching it", "choose their name", "t-blue")}
       ${tile("nobody", "😴", "Nobody came", "all students absent", "t-yellow")}
       ${tile("cancel", "🚫", "It was cancelled", "", "t-pink")}
     </div>
     ${follow}
-    ${h === "yes" ? `<p class="happen-next">👇 Now follow steps 2 to 5, then press <b>💾 Save lesson</b> at the bottom.</p>` : ""}`;
+    ${llsLesson.happenOpen && h !== "nobody-saved" && h !== "sent" ? `<p class="happen-next"><button type="button" class="row-action" data-happen="yes">← Back: I'm teaching it</button></p>` : ""}`;
 }
 async function llsHappenSend_(kind) {
   const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
@@ -11984,8 +12110,9 @@ document.addEventListener("click", (e) => {
   if (!t) return;
   if (t.dataset.happenSend) { llsHappenSend_(t.dataset.happenSend); return; }
   llsLesson.happen = t.dataset.happen;
+  if (llsLesson.happen === "yes") llsLesson.happenOpen = false;
   llsRenderHappen_();
-  if (llsLesson.happen === "yes") byId("lessonLast")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (llsLesson.happen === "yes") byId("lessonStartPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 // Step 2 — what happened last time: a short summary, everything else one tap away.
@@ -12004,38 +12131,32 @@ function llsEntrySummary_(e) {
   };
 }
 function llsRenderLastLesson_(date) {
+  // 15 Oct (owner): part of the "Start here" card – one short line about last time, everything else one tap away.
   const box = byId("lessonLast");
   if (!box) return;
   const all = (llsLesson.entries || []).filter((e) => String(e.lessonDate || "") < date);
   const list = all.filter((e) => !llsIsCancelUnit(e.unit));
   box.hidden = false;
-  const head = `<p class="section-label step-label" style="margin:0 0 10px;">📖 Last time in this class <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:500;">· just read it, nothing to fill in</span></p>`;
-  if (!list.length) { box.innerHTML = head + `<p class="muted" style="margin:0;">No earlier lesson saved for this class yet.</p>`; return; }
+  if (!list.length) { box.innerHTML = `<p class="muted" style="margin:0;">No earlier lesson saved for this class yet.</p>`; return; }
   const s = llsEntrySummary_(list[0]);
-  const short = s.lines.slice(0, 3);
-  // 15 Oct (owner): look at last lesson's slides right here (no downloading), jump to where they stopped,
-  // and continue that lesson today with one tap.
   const lcls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
   const lcode = llsPlanCode_(list[0].unit);
   const lplan = lcls && lcode ? llsPlansFor_(lcls).find((x) => x.id === lcode) : null;
   const lbase = lplan ? llsDeckBase_(lplan) : "";
   const lstop = llsStopSlide_(list[0]);
+  const forYou = s.notes.replace(/^⏸ Stopped at slide \d+\n?/, "").trim();
+  const what = s.lines.slice(0, 3).map((l) => l.replace(/^\S+\s/, "")).join(" · ");
   const earlier = all.filter((e) => e !== list[0]).slice(0, 5);
-  box.innerHTML = head + `
-    <div class="last-card">
-      <div class="last-meta"><b>${escapeHtml(s.date)}</b> · ${escapeHtml(s.teacher)}${s.unit ? ` <span class="last-chip">${escapeHtml(s.unit)}</span>` : ""}</div>
-      ${short.length ? `<ul class="last-lines">${short.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>` : ""}
-      ${llsStopSlide_(list[0]) ? `<div class="last-stop">⏸ They stopped at <b>slide ${llsStopSlide_(list[0])}</b>${s.unit ? " of " + escapeHtml(s.unit) : ""}: start from there.</div>` : ""}
-      ${s.notes.replace(/^⏸ Stopped at slide \d+\n?/, "").trim() ? `<div class="last-note">📌 <b>For you:</b> ${escapeHtml(s.notes.replace(/^⏸ Stopped at slide \d+\n?/, "").trim())}</div>` : ""}
-      <div class="last-hw">📝 Homework set: ${s.hw ? escapeHtml(s.hw) : "none"}</div>
-      ${lbase ? `<div class="last-view"><button type="button" class="button button-primary" data-view-deck="${escapeAttribute(lbase)}" data-view-title="${escapeAttribute(lplan.id + " " + lplan.title)}" data-view-stop="${lstop || ""}" data-view-plan="${escapeAttribute(lplan.id)}">👀 Look at the ${escapeHtml(lplan.id)} slides${lstop ? ` (from slide ${lstop})` : ""}</button>
-        <span class="muted">${lstop ? "Start from the slide marked ⏸." : "Not finished? In the slides, tap the last slide you did, then “Continue this lesson today”."}</span></div>` : ""}
-      <details class="last-more"><summary>Show everything from this lesson</summary>${llsLessonLogEntryHtml(list[0])}</details>
-      ${earlier.length ? `<details class="last-more"><summary>Earlier lessons (${earlier.length})</summary><div class="last-older">${earlier.map((e) => {
+  box.innerHTML = `
+    <p class="start-last-line"><b>Last time</b> (${escapeHtml(s.date)}, ${escapeHtml(s.teacher)}): ${s.unit ? `<b>${escapeHtml(s.unit)}</b>` : ""}${what ? " · " + escapeHtml(what) : ""}${lstop ? ` · <b>stopped at slide ${lstop}</b>` : s.unit && lcode ? " · finished" : ""}.</p>
+    ${forYou ? `<p class="start-last-note">📌 <b>For you:</b> ${escapeHtml(forYou)}</p>` : ""}
+    <div class="start-last-acts">
+      ${lbase ? `<button type="button" class="row-action" data-view-deck="${escapeAttribute(lbase)}" data-view-title="${escapeAttribute(lplan.id + " " + lplan.title)}" data-view-stop="${lstop || ""}" data-view-plan="${escapeAttribute(lplan.id)}">👀 Last lesson's slides</button>` : ""}
+      <details class="last-more"><summary>Everything from last lesson</summary>${llsLessonLogEntryHtml(list[0])}${earlier.length ? `<div class="last-older"><b>Earlier:</b>${earlier.map((e) => {
         if (llsIsCancelUnit(e.unit)) return `<div>🚫 <b>${escapeHtml(llsEntrySummary_(e).date)}</b> · cancelled</div>`;
         const x = llsEntrySummary_(e);
         return `<div><b>${escapeHtml(x.date)}</b> · ${escapeHtml(x.teacher)}${x.unit ? " · " + escapeHtml(x.unit) : ""}${x.lines[0] ? ` — ${escapeHtml(x.lines[0])}` : ""}</div>`;
-      }).join("")}</div></details>` : ""}
+      }).join("")}</div>` : ""}</details>
     </div>`;
 }
 
@@ -12159,3 +12280,18 @@ document.addEventListener("click", (e) => {
   e.preventDefault();
   llsOpenSlides_({ deck: b.dataset.viewDeck, title: b.dataset.viewTitle, stop: b.dataset.viewStop, pick: b.dataset.viewPick === "1", plan: b.dataset.viewPlan || "" });
 });
+
+// 15 Oct (owner): "Not me / cancelled" in the class header opens the four choices (another teacher, nobody came, cancelled).
+document.addEventListener("click", (e) => {
+  if (!(e.target && e.target.closest && e.target.closest("#lessonNotMe"))) return;
+  llsLesson.happenOpen = true;
+  llsLesson.happen = "";
+  llsRenderHappen_();
+  byId("lessonHappen")?.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+// 15 Oct (owner): step 4 "Set homework / No homework today".
+function llsHwSetApply_() {
+  const none = value("lessonHwSet") === "none";
+  const f = byId("lessonHwFields"); if (f) f.hidden = none;
+}
+document.addEventListener("change", (e) => { if (e.target && e.target.id === "lessonHwSet") { llsHwSetApply_(); llsLesson.noteTouched = true; } });
