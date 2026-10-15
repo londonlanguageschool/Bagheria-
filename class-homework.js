@@ -6,6 +6,10 @@ window.LLS_CLASS_HW = {
  "CLS0008": {
   label: "Easier homework for B1.1 Young (no book needed)",
   lessons: {
+   "Y1": [
+    ["My weekend diary", "Write 5 sentences about your weekend.\n• 2 PLANS with going to (e.g. I'm going to tidy my room.)\n• 3 ARRANGEMENTS with a day and time (e.g. I'm meeting Sara on Saturday at 4.)"],
+    ["Reply to the chat", "Your friend writes: 'What are you doing on Saturday? Do you want to go to the beach?'\nWrite a reply (3–4 sentences): say what you're doing, when you're free, and ask a question."]
+   ],
    "1A-1": [
     ["Food words", "1. Write 8 food words you learnt today.\n2. Put them in two lists: I LOVE… / I DON'T LIKE…\n3. Write 3 sentences, e.g. I love pasta but I don't like fish."],
     ["My favourite meal", "Write 5–6 sentences about your favourite meal.\n• What is it?\n• Who cooks it?\n• When do you eat it?\n• Why do you like it?"]

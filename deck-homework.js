@@ -157,5 +157,12 @@ window.LLS_DECK_HW = {
    "Workbook 2B: 3a (long and short sounds)",
    "Write: 5 things you have + an adjective"
   ]
+ },
+ "LLS-B1Y": {
+  "Y1": [
+   "Write your weekend diary: 5 sentences (going to + present continuous)",
+   "Learn the 12 weekend words",
+   "Easier homework in the LLS app"
+  ]
  }
 };

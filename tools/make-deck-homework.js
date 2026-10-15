@@ -3,7 +3,7 @@
 // Run: node tools/make-deck-homework.js  (reads ../lls-course/v2/lessons, writes deck-homework.js)
 const fs = require("fs"), path = require("path");
 const SRC = process.env.LESSONS || "/home/claude/lls-course/v2/lessons";
-const BOOK = { B1: "EF-B1", A2: "EF-A2B1", B2: "EF-B2", EFE: "EF-A1A2" };
+const BOOK = { B1: "EF-B1", A2: "EF-A2B1", B2: "EF-B2", EFE: "EF-A1A2", B1Y: "LLS-B1Y" };
 const out = {};
 for (const f of fs.readdirSync(SRC).filter((x) => x.endsWith(".js")).sort()) {
   let L;

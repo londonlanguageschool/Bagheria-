@@ -10,6 +10,7 @@
 window.LLS_PLANS = {
  "folder": "https://drive.google.com/drive/folders/1_AyE9xHLZX-tR057npuZEDeoPWiVDOgB",
  "links": {
+  "B1Y/B1Y_Y1_Weekend_plans.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1Y/B1Y_Y1_Weekend_plans.pptx?v=20261015c",
   "Red_Elementary/EFE_2A_Tidy_or_untidy.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2A_Tidy_or_untidy.pptx?v=20261015b",
   "Red_Elementary/EFE_2B_Made_in_America.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2B_Made_in_America.pptx?v=20261015b",
   "Kitchen_English_Chefs/Chef_L02_Kitchen_equipment.pptx": "https://drive.google.com/file/d/1Wu_KZxK9oigJgx-uNW-YJq_ejwxxyYv5/view",
@@ -364,6 +365,7 @@ window.LLS_PLANS = {
   "A2_Adults_Rebuilt/A2_PE1_Role_cards.pdf": "https://drive.google.com/file/d/1GznE6Yrffoz7IA9mdLZgncEtaHzjOf90/view"
  },
  "names": {
+  "LLS-B1Y": "LLS teens course – low B1 (until Prepare Level 4)",
   "EF-A2B1": "English File A2/B1 (blue) – full course",
   "EF-B1": "English File B1 (green) – full course, units 1–10",
   "CHEF": "Kitchen English for chefs – 10 lessons",
@@ -372,6 +374,9 @@ window.LLS_PLANS = {
   "EF-A1A2": "English File Elementary (red) – A1/A2"
  },
  "courses": {
+  "LLS-B1Y": [
+   {"id": "Y1", "unit": 1, "title": "Weekend plans", "focus": "free time • be going to • present continuous for arrangements", "pages": "LLS original lesson · no book needed", "slides": 18, "file": "B1Y/B1Y_Y1_Weekend_plans.pptx", "skills": {"Grammar": "going to and present continuous (future)", "Vocabulary": "free time / weekend activities", "Reading": "Group chat: Saturday?", "Speaking": "Are you free on Saturday?", "Writing": "Reply to the group chat", "Games & songs": "Mime it! · Diary race!"}}
+  ],
   "EF-A1A2": [
  {
   "id": "1A",
