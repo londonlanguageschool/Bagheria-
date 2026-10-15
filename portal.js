@@ -10784,6 +10784,23 @@ function llsRenderHwSheetHint_() {
   if (!card) return;
   const items = llsDeckHw_(cls, p);
   if (!p) { card.hidden = true; card.innerHTML = ""; llsRenderHwIdeas(); return; }
+  // 15 Oct (owner): a class with its own homework (e.g. B1.1 Young: easier, no book) gets that instead of the book homework.
+  const own = cls && window.LLS_CLASS_HW && LLS_CLASS_HW[cls.id];
+  const ownSet = own && own.lessons && own.lessons[p.id];
+  if (ownSet && ownSet.length) {
+    card.hidden = false;
+    card.innerHTML = `<p class="hw-slides-h">📌 ${escapeHtml(own.label || "Homework for this class")} · ${escapeHtml(p.id)}</p>
+      ${ownSet.map(([t, x], i) => `<div class="hw-own"><strong>${escapeHtml(t)}</strong><p>${escapeHtml(x).replace(/\n/g, "<br>")}</p><button type="button" class="button button-primary" data-hw-own="${i}">Use this homework</button></div>`).join("")}`;
+    card.querySelectorAll("[data-hw-own]").forEach((b) => b.addEventListener("click", () => {
+      const [t, x] = ownSet[Number(b.dataset.hwOwn)];
+      setValue("lessonHwTitle", `${p.id}: ${t}`);
+      setValue("lessonHwText", x);
+      byId("lessonHwTitle")?.classList.remove("needs");
+      showToast(`Homework set: ${t}. Check the due date, then save.`, "success");
+    }));
+    llsRenderHwIdeas();
+    return;
+  }
   card.hidden = false;
   card.innerHTML = items.length
     ? `<p class="hw-slides-h">📌 Homework on the ${escapeHtml(p.id)} slides <span class="muted">(what the class saw at the end)</span></p>

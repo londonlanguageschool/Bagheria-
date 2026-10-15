@@ -655,3 +655,6 @@ input[type="checkbox"] { border-radius: 4px; }
 .hw-due-box { flex-basis: 100%; margin: 0; }
 .hw-more { margin-top: 14px; }
 .hw-more > summary { font-weight: 800; color: var(--pill); cursor: pointer; }
+
+.hw-own { background: rgba(255,255,255,.7); border-radius: 12px; padding: 10px 12px; margin-top: 8px; }
+.hw-own p { margin: 4px 0 8px; font-size: 14px; }
