@@ -682,3 +682,4 @@ input[type="checkbox"] { border-radius: 4px; }
 .sv-t.stop { border-color: #f0b400; background: #fff4d6; }
 .last-view { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; font-size: 13.5px; }
 @media (max-width: 640px) { .sv { padding: 0; } .sv-box { border-radius: 0; height: 100%; } .sv-main img { max-height: 45vh; } .sv-arrow { width: 34px; } }
+.plan-fin-look { background: #eaf1fa; border-color: #082d5c; color: #082d5c; }

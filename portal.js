@@ -10994,9 +10994,9 @@ function llsRenderPlanPanel() {
         <button type="button" class="plan-fin-btn${stopOn ? "" : " on yes"}" data-fin="yes" aria-pressed="${!stopOn}">Yes, all of it</button>
         <button type="button" class="plan-fin-btn${stopOn ? " on" : ""}" data-fin="stop" aria-pressed="${stopOn}">No, we stopped at slide</button>
         <input id="planStopSlide" type="number" min="1" max="80" inputmode="numeric" placeholder="e.g. 14" aria-label="Slide number where you stopped" value="${stopN || ""}"${stopOn ? "" : " hidden"}>
-        ${stopOn && picked && llsDeckBase_(picked) ? `<button type="button" class="row-action" data-view-deck="${escapeAttribute(llsDeckBase_(picked))}" data-view-title="${escapeAttribute(picked.id + " " + picked.title)}" data-view-pick="1" data-view-stop="${stopN || ""}">👀 Find the slide</button>` : ""}
+        ${stopOn && picked && llsDeckBase_(picked) ? `<button type="button" class="plan-fin-btn plan-fin-look" data-view-deck="${escapeAttribute(llsDeckBase_(picked))}" data-view-title="${escapeAttribute(picked.id + " " + picked.title)}" data-view-pick="1" data-view-stop="${stopN || ""}">👀 Can't remember? Look at the slides</button>` : ""}
       </div>
-      ${stopOn ? `<p class="muted plan-fin-note">The next lesson starts from this slide.</p>` : ""}
+      ${stopOn ? `<p class="muted plan-fin-note">The next lesson starts from this slide.${picked && llsDeckBase_(picked) ? " Not sure? Tap “Look at the slides”, find the slide, then tap “We stopped here”." : ""}</p>` : ""}
     </fieldset>` : ""}
     <details class="plan-all"${llsPlanShowAll ? " open" : ""}><summary>More: all lessons (${doneCount}/${plans.length} done), mark as done or skip, lesson library, report a problem</summary>
       ${next && !picked ? `<div class="today-acts">
@@ -12121,7 +12121,7 @@ function llsOpenSlides_(o) {
         <div class="sv-head"><strong>${escapeHtml(o.title || "")}</strong><span class="sv-n">Slide ${cur} of ${n}${Number(o.stop) === cur ? " · ⏸ they stopped here" : ""}</span><button type="button" class="sv-report" data-sv-report title="Tell the school what's wrong with this slide">⚠ Problem with this slide</button><button type="button" class="sv-x" aria-label="Close">✕</button></div>
         <div class="sv-main"><button type="button" class="sv-arrow" data-sv="-1" aria-label="Previous slide"${cur <= 1 ? " disabled" : ""}>‹</button><img src="${src(cur)}" alt="Slide ${cur}"><button type="button" class="sv-arrow" data-sv="1" aria-label="Next slide"${cur >= n ? " disabled" : ""}>›</button></div>
         <div class="sv-acts">
-          ${o.pick ? `<button type="button" class="button button-primary" data-sv-pick>⏸ We stopped at slide ${cur}</button>` : ""}
+          ${o.pick ? `<button type="button" class="button button-primary" data-sv-pick>⏸ We stopped here (slide ${cur})</button>` : ""}
           ${o.plan ? `<button type="button" class="button button-primary" data-sv-continue>▶ Continue this lesson today from slide ${cur}</button>` : ""}
           <span class="muted">Answers show on these pictures; in PowerPoint they appear on click.</span>
         </div>
