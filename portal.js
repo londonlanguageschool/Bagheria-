@@ -8388,6 +8388,7 @@ async function llsRenderLesson() {
   byId("lessonLast").hidden = true;
   llsLesson.happen = ""; llsLesson.happenOpen = false; llsPlanPick = ""; llsPlanForm = ""; llsPlanAutoKey_ = ""; llsHwAuto_ = "";
   { const w = byId("lessonNotesWrap"); if (w) w.open = false; byId("lessonRegister")?.classList.remove("show-notes"); }
+  { const tf = byId("lessonTrialForm"); if (tf) { tf.hidden = true; tf.innerHTML = ""; } const tb = byId("lessonTrialBtn"); if (tb) tb.hidden = llsRole() !== "teacher"; }
   setValue("lessonHwSet", "set"); llsHwSetApply_();
   ["lessonDone", "lessonNotes", "lessonHwTitle", "lessonHwText"].forEach((id) => setValue(id, ""));
   llsSetProgress_(0);
@@ -12332,3 +12333,36 @@ function llsHwSetApply_() {
   const f = byId("lessonHwFields"); if (f) f.hidden = none;
 }
 document.addEventListener("change", (e) => { if (e.target && e.target.id === "lessonHwSet") { llsHwSetApply_(); llsLesson.noteTouched = true; } });
+
+// 16 Oct (owner): a student came for a trial (or to join) – tell Rosanna from the register, with how they did.
+function llsTrialForm_() {
+  const form = byId("lessonTrialForm");
+  const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
+  const date = byId("lessonDate")?.value || "";
+  if (!form || !cls || !date) return;
+  if (!form.hidden) { form.hidden = true; form.innerHTML = ""; return; }
+  form.innerHTML = `
+    <div class="trial-grid">
+      <label><span>Name and surname</span><input type="text" data-trial-name maxlength="80" placeholder="e.g. Sofia Rossi"></label>
+      <label><span>This lesson was</span><select data-trial-kind><option value="trial">A trial lesson</option><option value="join">Their first lesson: they are joining</option></select></label>
+      <label><span>How did they do?</span><select data-trial-how><option value="">Choose…</option><option>Excellent</option><option>Good</option><option>OK</option><option>Needs support</option></select></label>
+      <label><span>Right level for this class?</span><select data-trial-level><option value="">Not sure</option><option>Yes, right level</option><option>Too easy for them</option><option>Too hard for them</option></select></label>
+      <label class="trial-wide"><span>Note for Rosanna <span class="muted">(optional)</span></span><input type="text" data-trial-note maxlength="300" placeholder="e.g. shy but understood everything; parent's phone…"></label>
+    </div>
+    <div class="trial-btns"><button type="button" class="button button-primary" data-trial-send>Send to Rosanna</button><button type="button" class="button button-secondary" data-trial-cancel>Cancel</button></div>`;
+  form.hidden = false;
+  form.querySelector("[data-trial-name]").focus();
+  form.querySelector("[data-trial-cancel]").addEventListener("click", () => { form.hidden = true; form.innerHTML = ""; });
+  form.querySelector("[data-trial-send]").addEventListener("click", () => {
+    const name = form.querySelector("[data-trial-name]").value.trim();
+    if (!name) { showToast("Write the student's name.", "error"); form.querySelector("[data-trial-name]").focus(); return; }
+    const join = form.querySelector("[data-trial-kind]").value === "join";
+    const how = form.querySelector("[data-trial-how]").value, level = form.querySelector("[data-trial-level]").value;
+    const extra = form.querySelector("[data-trial-note]").value.trim();
+    const note = [join ? "JOINING the class (first lesson)" : "TRIAL lesson", how ? "How they did: " + how : "", level ? "Level: " + level : "", extra].filter(Boolean).join(" · ");
+    llsQueueSave("student request", { action: "reportLessonIssue", classId: cls.id, lessonDate: date, lessonTime: String(cls.time || "").slice(0, 10), kind: "Add student", studentName: name, note });
+    form.innerHTML = `<p class="tell-sent">✓ Sent to Rosanna: ${escapeHtml(name)} (${join ? "joining" : "trial"}${how ? ", " + escapeHtml(how) : ""}). ${join ? "She adds them to the class and the fees." : "She follows up with the family."}</p>`;
+    setTimeout(() => { if (form.querySelector(".tell-sent")) { form.hidden = true; form.innerHTML = ""; } }, 9000);
+  });
+}
+document.addEventListener("click", (e) => { if (e.target && e.target.closest && e.target.closest("#lessonTrialBtn")) llsTrialForm_(); });
