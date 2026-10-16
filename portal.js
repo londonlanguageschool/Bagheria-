@@ -8372,6 +8372,7 @@ async function llsRenderLesson() {
 
   byId("lessonClassName").textContent = cls.name;
   llsRenderDateBar_();
+  { const d = llsDayInfo_(), q = byId("lessonTeachQ"); if (q) q.textContent = d.isToday ? "What did you teach in today's lesson?" : `What did you teach in the lesson on ${d.short}?`; }
   byId("lessonClassMeta").textContent = [llsDayInfo_().short, llsTeacherOnDay(cls, dayName), cls.level, cls.book ? `${(window.LLS_COURSES && LLS_COURSES[cls.book]?.title) || cls.book}` : ""].filter(Boolean).join(" · ");
   const unitBox = byId("lessonUnitBox");
   unitBox.hidden = !cls.book;
@@ -8831,7 +8832,7 @@ async function llsSaveLesson() {
     // 6 Oct (owner): say exactly what is missing, in a box that stays on screen, and jump to it.
     const missing = [];
     if (unrated.length) missing.push(`<b>${document.querySelector("[data-step-reg]")?.textContent || 2} · Register</b>: choose "How did they do?" for ${unrated.map((r) => escapeHtml(r.querySelector(".reg-name")?.textContent || "")).join(", ")}.`);
-    if (needSkill) missing.push(`<b>${document.querySelector("[data-step-teach]")?.textContent || 3} · What did you teach?</b> Skills: tap at least one: Grammar, Vocabulary, Reading…`);
+    if (needSkill) missing.push(`<b>${document.querySelector("[data-step-teach]")?.textContent || 3} · What did you teach in the lesson?</b> Skills: tap at least one: Grammar, Vocabulary, Reading…`);
     if (noTopic.length && !nobodyHere) missing.push(...noTopic.map((s) => `<b>${escapeHtml(s.k)}</b>: write the topic in its box (e.g. ${escapeHtml(s.k === "Games & songs" ? "animals bingo" : s.k === "Grammar" ? "past simple" : s.k === "Vocabulary" ? "clothes" : "the topic you covered")}) – or untick ${escapeHtml(s.k)}.`));
     if (needDone) missing.push(`<b>What exactly did you do?</b> Write at least a couple of clear lines (activities in order).`);
     if (errBox) { errBox.innerHTML = `<strong>⚠ Not saved yet – please fix:</strong><ul>${missing.map((m) => `<li>${m}</li>`).join("")}</ul>`; errBox.hidden = false; }
