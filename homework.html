@@ -445,6 +445,34 @@
     .feedback { background: #fff; border-radius: 16px; padding: 10px 14px; box-shadow: 0 2px 8px rgba(15,27,61,.08); }
     .feedback strong { font-family: var(--display); }
     .feedback p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+    /* 16 Oct 2026 (owner): simpler student app – one-line header, 3 bottom tabs, no repeated progress blocks */
+    header { padding-bottom: 10px !important; }
+    .hello-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+    header h1 { font-size: 26px !important; margin: 14px 0 2px !important; }
+    .help-btn { flex: none; font-weight: 800; font-size: 14px; color: var(--navy-800, #16275c); text-decoration: none; background: #fff; border-radius: 999px; padding: 8px 14px; box-shadow: 0 2px 8px rgba(15,27,61,.10); margin-bottom: 4px; }
+    .progress-card { display: none !important; }
+    body { padding-bottom: 92px; }
+    .bottom-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; margin: 0 !important; display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid #e3e8f0; box-shadow: 0 -6px 18px rgba(15,27,61,.08); }
+    .bottom-tabs[hidden] { display: none !important; }
+    .bottom-tabs .tab { display: flex; flex-direction: column; align-items: center; gap: 1px; min-height: 58px; padding: 6px 4px; border: 0 !important; border-radius: 14px; background: transparent; color: #455269; font-size: 13px; font-weight: 800; box-shadow: none !important; }
+    .bottom-tabs .tab span { font-size: 20px; line-height: 1; }
+    .bottom-tabs .tab small { font-size: 10.5px; font-weight: 700; opacity: .75; }
+    .bottom-tabs .tab[aria-selected="true"] { background: #eaf1fa; color: var(--navy-800, #16275c); }
+    @media (min-width: 720px) { .bottom-tabs { left: 50%; right: auto; transform: translateX(-50%); width: 560px; border-radius: 20px 20px 0 0; } }
+    .done-fold { margin-top: 18px; }
+    .done-fold > summary { cursor: pointer; font-family: var(--display); font-weight: 800; font-size: 16px; color: var(--navy-800, #16275c); padding: 6px 2px; }
+    .extra-practice { display: flex; align-items: center; gap: 12px; margin: 18px 0 6px; padding: 14px 16px; border-radius: 18px; background: #e3f6ec; }
+    .extra-practice div { flex: 1; }
+    .extra-practice strong { display: block; font-size: 15px; }
+    .extra-practice small { color: #455269; font-weight: 700; }
+    .extra-practice button { border: 0; border-radius: 12px; background: #18a86b; color: #fff; font-weight: 800; font-size: 15px; padding: 11px 18px; cursor: pointer; }
+    .prog-numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+    .prog-numbers div { background: #f4f6f9; border-radius: 14px; padding: 10px 6px; text-align: center; }
+    .prog-numbers b { display: block; font-family: var(--display); font-size: 22px; }
+    .prog-numbers small { font-size: 11.5px; font-weight: 700; color: #455269; }
+    .prog-more { margin-top: 12px; }
+    .prog-more > summary { cursor: pointer; font-weight: 800; color: var(--navy-800, #16275c); padding: 8px 2px; }
+    .course-line { font-size: 13px; font-weight: 700; color: #455269; margin: 4px 0 0; }
   </style>
 </head>
 <body>
@@ -457,8 +485,13 @@
           <span>We make English fun!</span>
         </div>
       </div>
-      <h1 id="hello">My homework</h1>
-      <p class="sub" id="subtitle">I compiti di inglese</p>
+      <div class="hello-row">
+        <div>
+          <h1 id="hello">My homework</h1>
+          <p class="sub" id="subtitle">I compiti di inglese</p>
+        </div>
+        <a href="#" class="help-btn" id="helpBtn">❓ Help</a>
+      </div>
     </div>
   </header>
 
@@ -479,9 +512,11 @@
       <div class="split" id="progressHint" hidden></div>
       <div class="classes" id="classList"></div>
     </section>
-    <nav class="tabs" id="tabs" role="tablist" hidden>
-      <button class="tab" type="button" role="tab" id="tabHomework" aria-selected="true">📝 Homework · Compiti</button>
-      <button class="tab" type="button" role="tab" id="tabPractice" aria-selected="false">🎯 Practice · Esercizi</button>
+    <!-- 16 Oct (owner): three tabs at the bottom, like a phone app. Homework opens first. -->
+    <nav class="tabs bottom-tabs" id="tabs" role="tablist" hidden>
+      <button class="tab" type="button" role="tab" id="tabHomework" aria-selected="true"><span aria-hidden="true">📝</span>Homework<small>Compiti</small></button>
+      <button class="tab" type="button" role="tab" id="tabPractice" aria-selected="false"><span aria-hidden="true">🎯</span>Practice<small>Esercizi</small></button>
+      <button class="tab" type="button" role="tab" id="tabProgress" aria-selected="false"><span aria-hidden="true">📈</span>My progress<small>Progressi</small></button>
     </nav>
   </div>
 
@@ -504,10 +539,10 @@
                "Homework", "Your class's homework. When it's done, tap «Mark done»: your teacher can see it."],
         ["📷", "Consegna il compito", "Se l'insegnante ha allegato una scheda (📄), toccala per aprirla. Per consegnare, tocca «📷 Hand in your work · Consegna» e fai una foto del quaderno (o scegli un PDF). L'insegnante la corregge e qui vedi il voto ⭐ e il commento.",
                "Hand in your work", "Tap a 📄 file from your teacher to open it. To hand in, tap «📷 Hand in your work» and take a photo of your work. Your teacher's mark ⭐ and comment appear here."],
-        ["🎯", "Esercizi", "Nella scheda «Practice · Esercizi» ti alleni con il tuo libro: grammatica, vocabolario e pronuncia. Superi un esercizio con almeno metà delle risposte giuste.",
+        ["🎯", "Esercizi", "Nella scheda «Practice» (in basso) ti alleni con il tuo libro: grammatica, vocabolario e pronuncia. Superi un esercizio con almeno metà delle risposte giuste.",
                "Practice", "In «Practice» you train with your book: grammar, vocabulary and speaking. Half the answers right = passed."],
-        ["🗺️", "Il mio percorso", "Le unità del libro come una strada, le stelle che guadagni, i tuoi obiettivi e, in «Cosa ho imparato», tutto quello che avete fatto in classe.",
-               "My journey", "Your book units as a road, your stars, your goals and, in «What I've learnt», everything you did in class."],
+        ["📈", "I miei progressi", "Nella scheda «My progress» (in basso a destra) vedi il tuo livello, le stelle, le unità del libro e cosa avete fatto in classe.",
+               "My progress", "In the «My progress» tab (bottom right): your level, stars, book units and what you did in class."],
         ["🏆", "Test", "Quando l'insegnante ti dà un test, lo trovi tra i compiti. Fallo con calma: vedi il punteggio alla fine.",
                "Tests", "Tests from your teacher appear with your homework. You see your score at the end."],
         ["👨‍👩‍👧", "Fratelli e sorelle", "Se usate lo stesso telefono, in fondo alla pagina tocca «Cambia studente».",
@@ -785,7 +820,7 @@
     const TYPE_NAMES = { g: "Grammar", v: "Vocabulary", s: "Speaking", r: "Review", t: "Mini test" };
     const TYPE_IT = { g: "Grammatica", v: "Vocabolario", s: "Pronuncia", r: "Ripasso", t: "Mini test" };
     const BOOK_STORE = "lls_practice_book";
-    let tab = location.hash === "#practice" ? "practice" : "homework";
+    let tab = location.hash === "#practice" ? "practice" : location.hash === "#progress" ? "progress" : "homework";
     let banks = {};
     let quiz = null;
 
@@ -972,17 +1007,23 @@
     function render() {
       const name = data.student.firstName;
       document.getElementById("hello").textContent = name ? `Hi ${name}!` : "My English";
-      document.getElementById("subtitle").textContent = "Homework and practice · Compiti ed esercizi";
       renderProgress();
+      { // 16 Oct (owner): one line under the name – class · level · stars
+        let stars = 0; try { stars = journeyStars(); } catch (_) {}
+        const cls = data.classes.map((c) => c["Class Name"]).join(", ");
+        document.getElementById("subtitle").textContent = [cls, `Level ${Math.floor(stars / 10) + 1}`, `⭐ ${stars}`].filter(Boolean).join(" · ");
+      }
 
       const tabs = document.getElementById("tabs");
       tabs.hidden = false;
       document.getElementById("tabHomework").setAttribute("aria-selected", String(tab === "homework"));
       document.getElementById("tabPractice").setAttribute("aria-selected", String(tab === "practice"));
+      document.getElementById("tabProgress").setAttribute("aria-selected", String(tab === "progress"));
 
       if (quiz) renderQuiz();
       else if (chat) renderChat();
       else if (tab === "practice") renderPractice();
+      else if (tab === "progress") renderProgressTab();
       else renderHomework();
       if (!quiz && !chat && window.llsInstallCard) window.llsInstallCard(); // 9 Oct: "put LLS on your phone" card
     }
@@ -991,11 +1032,14 @@
       tab = next;
       quiz = null;
       if (chat) endChat();
-      try { history.replaceState(null, "", next === "practice" ? "#practice" : location.pathname + location.search); } catch (_) {}
+      try { history.replaceState(null, "", next === "practice" ? "#practice" : next === "progress" ? "#progress" : location.pathname + location.search); } catch (_) {}
       render();
+      try { window.scrollTo(0, 0); } catch (_) {}
     }
     document.getElementById("tabHomework").addEventListener("click", () => setTab("homework"));
     document.getElementById("tabPractice").addEventListener("click", () => setTab("practice"));
+    document.getElementById("tabProgress").addEventListener("click", () => setTab("progress"));
+    document.getElementById("helpBtn").addEventListener("click", (e) => { e.preventDefault(); document.getElementById("openGuide")?.click(); });
 
 
     /* ---------- road map: "My journey" (27 Sept) ----------
@@ -1471,6 +1515,51 @@
       main.querySelectorAll("[data-journey-all]").forEach((b) => b.addEventListener("click", () => { journeyOpen = true; renderHomework(); }));
     }
 
+    // 16 Oct (owner): one green box on the Homework tab: extra practice for the unit the class is on.
+    function extraPracticeHtml() {
+      const left = currentUnitPracticeLeft();
+      if (!left) return "";
+      return `<div class="extra-practice"><div><strong>Extra practice: Unit ${left.unit}</strong><small>${left.left} short games to do · earn stars · Esercizi extra</small></div><button type="button" data-journey-practice>Play</button></div>`;
+    }
+
+    // 16 Oct (owner): "My progress" tab – level, units, 3 numbers, the last lessons; everything else folded.
+    function renderProgressTab() {
+      const main = document.getElementById("main");
+      const stars = journeyStars();
+      const level = Math.floor(stars / 10) + 1, inLevel = stars % 10;
+      const items = homeworkItems();
+      const hwDone = items.filter((i) => i.done).length;
+      const cp = courseProgress();
+      const setsDone = Object.keys(resultsById()).filter((id) => !/-(R|T)\d+$/.test(id) && passed(resultsById()[id])).length;
+      const steps = journeySteps();
+      const todayIso = isoDay(new Date().toISOString().slice(0, 10));
+      const past = steps.filter((s) => s.date && s.date <= todayIso && !(s.cls === "hw" || s.cls === "test"));
+      const shown = journeyOpen ? past.slice().reverse() : past.slice(-2).reverse();
+      const stepHtml = (s) => `<li class="step ${s.cls}"><span class="dot">${s.icon}</span><div><strong>${esc(s.title)}</strong><small>${s.date && s.date < "9999" ? esc(shortDay(s.date)) + " · " : ""}${esc(s.sub)}</small>${(s.skills || []).length ? `<div class="sk-badges">${s.skills.map((k) => `<span class="sk-badge">${k.icon} <b>${esc(k.k)}</b> ${esc(k.topic)}</span>`).join("")}</div>` : ""}</div></li>`;
+      main.innerHTML = `
+        <section class="journey" aria-label="My progress">
+          <div class="j-head"><h2>📈 My progress · I miei progressi</h2><span class="j-level">Level ${level}</span></div>
+          <div class="j-stars"><span>⭐ ${stars} ${stars === 1 ? "star" : "stars"}</span><div class="j-bar"><i style="width:${inLevel * 10}%"></i></div><small>${10 - inLevel} to Level ${level + 1}</small></div>
+          ${cp.total ? `<p class="course-line">Lesson ${Math.max(1, cp.held)} of ${cp.total} this year · Lezione ${Math.max(1, cp.held)} di ${cp.total}</p>` : ""}
+          ${safeHtml(roadHtml)}
+          <div class="prog-numbers">
+            <div><b>${cp.held}</b><small>lessons · lezioni</small></div>
+            <div><b>${hwDone}/${items.length}</b><small>homework · compiti</small></div>
+            <div><b>${setsDone}</b><small>practice · esercizi</small></div>
+          </div>
+          ${shown.length ? `<p class="j-sub">📘 What we did · Cosa abbiamo fatto</p><ol class="path">${shown.map(stepHtml).join("")}
+            ${!journeyOpen && past.length > shown.length ? `<li class="more"><button type="button" data-journey-all>All lessons (${past.length}) · Tutte ›</button></li>` : ""}</ol>` : ""}
+          <details class="prog-more"><summary>What I've learnt · goals · my weeks ›</summary>
+            ${safeHtml(learntHtml)}
+            ${safeHtml(goalsHtml)}
+            ${safeHtml(weeksHtml)}
+          </details>
+        </section>` + safeHtml(reviewHtml);
+      bindReview(main);
+      main.querySelectorAll("[data-journey-practice]").forEach((b) => b.addEventListener("click", () => setTab("practice")));
+      main.querySelectorAll("[data-journey-all]").forEach((b) => b.addEventListener("click", () => { journeyOpen = true; renderProgressTab(); }));
+    }
+
     /* ---------- homework ---------- */
 
     function testsHtml() {
@@ -1497,7 +1586,7 @@
       const items = homeworkItems();
 
       if (!items.length) {
-        main.innerHTML = journeyHtml() + testsHtml() + `<div class="empty" style="margin-top:18px">No homework yet. 🎉<br>Nessun compito per ora.<br><br>Why not try some practice? · Prova gli esercizi!</div>` + safeHtml(reviewHtml);
+        main.innerHTML = testsHtml() + `<div class="empty" style="margin-top:18px">No homework yet. 🎉<br>Nessun compito per ora.</div>` + extraPracticeHtml();
         bindReview(main);
         main.querySelectorAll("[data-test]").forEach((b) => b.addEventListener("click", () => startTeacherTest(b.dataset.test)));
         bindJourney(main);
@@ -1524,11 +1613,12 @@
           ${hwExtraHtml(i)}
         </article>`;
 
-      main.innerHTML = journeyHtml() + testsHtml() + calendarCardHtml() +
+      main.innerHTML = testsHtml() +
         `<h2>To do · Da fare (${todo.length})</h2>` +
         (todo.length ? todo.map(card_).join("") : `<div class="empty">All done! Well done. 🎉<br>Tutto fatto, bravo/a!</div>`) +
-        (finished.length ? `<h2>Done · Fatti (${finished.length})</h2>` + finished.map(card_).join("") : "") +
-        safeHtml(reviewHtml);
+        extraPracticeHtml() +
+        (finished.length ? `<details class="done-fold"><summary>Done · Fatti (${finished.length}) ›</summary>` + finished.map(card_).join("") + `</details>` : "") +
+        calendarCardHtml();
       bindReview(main);
 
       main.querySelectorAll(".tick[data-id]").forEach((button) => {
