@@ -737,3 +737,57 @@ input[type="checkbox"] { border-radius: 4px; }
 }
 .happen-tiles.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 640px) { .happen-tiles.three { grid-template-columns: 1fr; } }
+
+/* 16 Oct 2026 (owner): ONE card, calm and simple – like design A */
+#lessonWork { gap: 0; background: #fff; border: 1px solid #dce2ea; border-radius: 22px; overflow: visible; padding: 6px 0 0; }
+#lessonWork > .panel, #lessonWork > details.panel { margin: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; padding: 18px 24px; }
+#lessonWork > .panel + .panel, #lessonWork > .panel + details.panel { border-top: 1px solid #edf0f5; }
+#lessonWork > .lesson-date-bar { margin: 8px 16px 0; }
+#lessonWork > .lesson-head { padding-bottom: 8px; }
+#lessonWork > .lesson-head h3 { font-size: 22px; }
+#lessonWork > .start-panel { background: #fff3c4; border-radius: 16px; margin: 4px 16px 10px; padding: 16px 18px; border-top: 0 !important; }
+#lessonWork > .start-panel + .panel { border-top: 0; }
+#lessonWork > .lesson-step.step-1 { border: 0; background: #fff7f9; margin: 0 16px 10px; border-radius: 16px; }
+#lessonWork .step-label, #lessonWork .step-label.section-label { text-transform: none; letter-spacing: 0; color: #172033; font-size: 17px; font-weight: 800; gap: 0; margin-bottom: 10px; }
+#lessonWork .step-n { width: auto; height: auto; background: none !important; border-radius: 0; font-size: 17px; font-weight: 800; color: #172033; display: inline; margin-right: 6px; }
+#lessonWork .step-n::after { content: "."; }
+#lessonWork .step-sub { font-size: 14px; font-weight: 700; margin-left: 8px; }
+.start-panel .start-label { font-size: 12px; margin-bottom: 6px; }
+.start-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.start-row .start-title { flex: 1 1 300px; }
+.start-see { min-height: 44px; }
+.start-more { margin-top: 2px; }
+.start-more > summary, .last-more > summary, .teach-notes > summary, .plan-all > summary, .lesson-extras > summary, .hw-more > summary { cursor: pointer; font-size: 14px; font-weight: 800; color: #16275c; }
+.start-more-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.start-more-links a.row-action { text-decoration: none; }
+.start-last { margin-top: 10px; padding-top: 10px; }
+.start-last-line { font-size: 14px; }
+.plan-panel#lessonPlanPanel .plan-all { margin-top: 10px; }
+.plan-panel#lessonPlanPanel .plan-all > summary { font-size: 13px; font-weight: 700; color: #455269; }
+.skills-wrap { background: transparent; border: 0; padding: 0; margin: 4px 0 8px; }
+.skills-wrap > summary { font-size: 14px; }
+.teach-notes { margin-top: 4px; }
+.link-btn { background: none; border: 0; padding: 6px 0 0; font: inherit; font-size: 14px; font-weight: 800; color: #16275c; cursor: pointer; }
+.link-btn:hover { text-decoration: underline; }
+/* register: one line per student; notes only when asked for */
+#lessonRegister .reg-row { grid-template-columns: minmax(120px, 1fr) auto 210px; border-radius: 0; padding: 8px 0; }
+#lessonRegister .reg-how { display: contents; }
+#lessonRegister .reg-how .reg-rating { width: 100%; flex-basis: auto; }
+#lessonRegister .reg-note { display: none; grid-column: 1 / -1; }
+#lessonRegister.show-notes .reg-note { display: block; }
+#lessonRegister .reg-row.needs .reg-rating { border-color: #c2410c; box-shadow: 0 0 0 2px #fcd9c5; }
+@media (max-width: 760px) {
+  #lessonRegister .reg-row { grid-template-columns: 1fr; }
+  #lessonWork > .panel, #lessonWork > details.panel { padding: 16px; }
+}
+.hwc { border-width: 1px; }
+.hwc-head { padding: 10px 14px; }
+.lesson-extras { padding-top: 14px !important; padding-bottom: 14px !important; }
+.lesson-extras .extras-sec { margin-top: 12px; }
+.lesson-extras .quiz-wrap > summary.section-label, .lesson-extras .extras-sec > details > summary.section-label { text-transform: none; letter-spacing: 0; font-size: 14px; color: #16275c; }
+#lessonWork > .lesson-save-bar { padding: 12px 24px 16px; background: linear-gradient(rgba(255,255,255,0), #fff 35%); border-radius: 0 0 22px 22px; }
+#lessonWork > .lesson-save-errors { margin: 0 24px; }
+#lessonWork > .lesson-head { order: -2; }
+#lessonWork > .lesson-date-bar { order: -1; position: static; margin: 0 16px 8px; }
+#lessonWork > .lesson-date-bar.not-today { position: sticky; }
+#lessonWork > .lesson-date-bar:not(.not-today) { display: none; }

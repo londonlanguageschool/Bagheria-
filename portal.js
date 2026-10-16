@@ -8372,7 +8372,7 @@ async function llsRenderLesson() {
 
   byId("lessonClassName").textContent = cls.name;
   llsRenderDateBar_();
-  byId("lessonClassMeta").textContent = [llsTeacherOnDay(cls, dayName), cls.level, cls.book ? `${(window.LLS_COURSES && LLS_COURSES[cls.book]?.title) || cls.book}` : ""].filter(Boolean).join(" · ");
+  byId("lessonClassMeta").textContent = [llsDayInfo_().short, llsTeacherOnDay(cls, dayName), cls.level, cls.book ? `${(window.LLS_COURSES && LLS_COURSES[cls.book]?.title) || cls.book}` : ""].filter(Boolean).join(" · ");
   const unitBox = byId("lessonUnitBox");
   unitBox.hidden = !cls.book;
   byId("lessonUnitValue").textContent = cls.currentUnit || "?";
@@ -8385,7 +8385,8 @@ async function llsRenderLesson() {
   const saveBtn = byId("lessonSaveButton");
   if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "💾 Save lesson"; }
   byId("lessonLast").hidden = true;
-  llsLesson.happen = ""; llsLesson.happenOpen = false; llsPlanPick = ""; llsPlanForm = "";
+  llsLesson.happen = ""; llsLesson.happenOpen = false; llsPlanPick = ""; llsPlanForm = ""; llsPlanAutoKey_ = ""; llsHwAuto_ = "";
+  { const w = byId("lessonNotesWrap"); if (w) w.open = false; byId("lessonRegister")?.classList.remove("show-notes"); }
   setValue("lessonHwSet", "set"); llsHwSetApply_();
   ["lessonDone", "lessonNotes", "lessonHwTitle", "lessonHwText"].forEach((id) => setValue(id, ""));
   llsSetProgress_(0);
@@ -8431,6 +8432,7 @@ async function llsRenderLesson() {
   const fromPending = new Map(((local && local.rows) || []).map((r) => [r.studentId, { Status: r.status, Notes: r.notes }]));
   llsDrawRegister(regBody, students, fromPending);
   if (local && local.note) llsFillLessonNote(local.note, cls);
+  llsNotesWrapSync_();
 
   // Saved register (only fills rows the teacher hasn't touched yet)
   llsApiGet("getAttendance", { classId: cls.id, lessonDate: date }).then((att) => {
@@ -8441,6 +8443,7 @@ async function llsRenderLesson() {
       if (rec) llsSetRegisterRow(row, String(rec["Status"] || "Present"), rec["Notes"]);
     });
     llsLessonCount();
+    llsNotesWrapSync_();
   }).catch((e) => {
     if (llsLesson.loadedKey !== key) return;
     const n = document.createElement("p");
@@ -8543,7 +8546,21 @@ function llsFillLessonNote(entry, cls) {
   setValue("lessonNotes", String(mat.notes || "").replace(/^⏸ Stopped at slide \d+\n?/, ""));
   llsSetProgress_(stop ? Number(stop[1]) : 0);
   llsRenderSkills();
+  llsNotesWrapSync_();
 }
+// 16 Oct (owner): notes and per-student notes stay folded unless there is something in them.
+function llsNotesWrapSync_() {
+  const w = byId("lessonNotesWrap");
+  if (w && (value("lessonDone").trim() || value("lessonNotes").trim())) w.open = true;
+  const reg = byId("lessonRegister");
+  if (reg && [...reg.querySelectorAll(".reg-note")].some((i) => i.value.trim())) reg.classList.add("show-notes");
+}
+document.addEventListener("click", (e) => {
+  if (!(e.target && e.target.closest && e.target.closest("#lessonNotesToggle"))) return;
+  const reg = byId("lessonRegister"); if (!reg) return;
+  reg.classList.toggle("show-notes");
+  reg.querySelector(".reg-note")?.focus();
+});
 function llsSetProgress_(n) {
   setValue("lessonProgress", n ? "stop" : "");
   setValue("lessonStopSlide", n ? String(n) : "");
@@ -10889,38 +10906,35 @@ function llsRenderHwSheetHint_() {
   if (!card) return;
   const items = llsDeckHw_(cls, p);
   if (!p) { card.hidden = true; card.innerHTML = ""; llsRenderHwIdeas(); return; }
+  // 16 Oct (owner): the homework from the slides is filled in for the teacher (they can change it).
+  // Never when this lesson was already saved with homework (no duplicate homework).
+  const dateNow = byId("lessonDate")?.value || "";
+  const savedHw = (llsLesson.entries || []).some((e) => String(e.lessonDate || "").slice(0, 10) === dateNow && String(e.homeworkSet || "").trim());
+  const autoFill = (title, text) => {
+    const cur = value("lessonHwTitle").trim();
+    if (savedHw || (cur && cur !== llsHwAuto_)) return;
+    setValue("lessonHwTitle", title); setValue("lessonHwText", text); llsHwAuto_ = title;
+    byId("lessonHwTitle")?.classList.remove("needs");
+  };
   // 15 Oct (owner): a class with its own homework (e.g. B1.1 Young: easier, no book) gets that instead of the book homework.
   const own = cls && window.LLS_CLASS_HW && LLS_CLASS_HW[cls.id];
   const ownSet = own && own.lessons && own.lessons[p.id];
   if (ownSet && ownSet.length) {
-    card.hidden = false;
-    card.innerHTML = `<p class="hw-slides-h">📌 ${escapeHtml(own.label || "Homework for this class")} · ${escapeHtml(p.id)}</p>
-      ${ownSet.map(([t, x], i) => `<div class="hw-own"><strong>${escapeHtml(t)}</strong><p>${escapeHtml(x).replace(/\n/g, "<br>")}</p><button type="button" class="button button-primary" data-hw-own="${i}">Use this homework</button></div>`).join("")}`;
+    autoFill(`${p.id}: ${ownSet[0][0]}`, ownSet[0][1]);
+    card.hidden = ownSet.length < 2;
+    card.innerHTML = `<p class="hw-slides-h">Other homework for this class: ${ownSet.map(([t], i) => `<button type="button" class="row-action" data-hw-own="${i}">${escapeHtml(t)}</button>`).join(" ")}</p>`;
     card.querySelectorAll("[data-hw-own]").forEach((b) => b.addEventListener("click", () => {
       const [t, x] = ownSet[Number(b.dataset.hwOwn)];
       setValue("lessonHwTitle", `${p.id}: ${t}`);
-      setValue("lessonHwText", x);
+      setValue("lessonHwText", x); llsHwAuto_ = `${p.id}: ${t}`;
       byId("lessonHwTitle")?.classList.remove("needs");
       showToast(`Homework set: ${t}. Check the due date, then save.`, "success");
     }));
     llsRenderHwIdeas();
     return;
   }
-  card.hidden = false;
-  card.innerHTML = items.length
-    ? `<p class="hw-slides-h">📌 Homework on the ${escapeHtml(p.id)} slides <span class="muted">(what the class saw at the end)</span></p>
-       <ul>${items.map((t) => `<li>${escapeHtml(t)}</li>`).join("")}</ul>
-       <div class="hw-slides-acts"><button type="button" class="button button-primary" data-hw-slides>Use this homework</button>
-       ${url ? `<span class="muted">Then attach the homework sheet: <b>More options › Attach files</b>.</span>` : ""}</div>`
-    : `<p class="hw-slides-h">📌 ${escapeHtml(p.id)} ${escapeHtml(p.title)}</p>
-       <p class="muted" style="margin:0;">The slides for this lesson don't list homework yet. Write it in the box${url ? `, or use the homework sheet (<a href="${escapeAttribute(url)}" target="_blank" rel="noopener">open it</a>, then attach it under More options)` : ""}.</p>`;
-  card.querySelector("[data-hw-slides]")?.addEventListener("click", () => {
-    const first = items[0];
-    setValue("lessonHwTitle", `${p.id} homework: ${first}${items.length > 1 ? ` + ${items.length - 1} more` : ""}`);
-    setValue("lessonHwText", `Homework for ${p.id} ${p.title}:\n` + items.map((t) => "• " + t).join("\n"));
-    byId("lessonHwTitle")?.classList.remove("needs");
-    showToast(`Homework set from the ${p.id} slides. Check the due date, then save.`, "success");
-  });
+  card.hidden = true; card.innerHTML = "";
+  if (items.length) autoFill(`${p.id} homework: ${items[0]}${items.length > 1 ? ` + ${items.length - 1} more` : ""}`, `Homework for ${p.id} ${p.title}:\n` + items.map((t) => "• " + t).join("\n"));
   llsRenderHwIdeas();
 }
 // 14 Oct (owner): the due date as one clear line ("Thu 15/10/2026 · next lesson") with a Change button.
@@ -10970,6 +10984,8 @@ function llsPlanPartial_(taught) {
 let llsPlanShowAll = false;
 let llsPlanConfirm = "";
 let llsPlanPick = "";   // 7 Oct: "other" = the teacher is choosing a different lesson from the book
+let llsPlanAutoKey_ = "";
+let llsHwAuto_ = "";
 let llsPlanForm = "";   // 7 Oct: "done" | "skip" = the little form under today's lesson is open
 // 7 Oct: "Plans Done" (Classes column S) = comma list of tokens: "1A-1" (done, old format),
 // "1A-1|done|2026-09-30|Helen" (done, when, who) or "1A-1|skip|Not right for this class".
@@ -11086,11 +11102,20 @@ function llsRenderPlanPanel() {
   const startTitle = part && feat && feat.id === next.id
     ? `Continue <span class="plan-code">${escapeHtml(feat.id)}</span> ${escapeHtml(feat.title)} from <b>slide ${part.slide}</b>`
     : feat ? `${picked ? "" : "Next: "}<span class="plan-code">${escapeHtml(feat.id)}</span> ${escapeHtml(feat.title)}` : "";
+  // 16 Oct (owner): Start here = one line + "See the slides"; the other materials fold away.
+  const fvb = feat ? llsDeckBase_(feat) : "";
+  const fm = feat ? llsPlanMaterials_(feat) : {};
+  const moreLinks = feat ? [fm.slides ? `<a class="row-action" href="${escapeAttribute(fm.slides)}" target="_blank" rel="noopener">🖥 Slides (PowerPoint)</a>` : "",
+    fm.hw ? `<a class="row-action" href="${escapeAttribute(fm.hw)}" target="_blank" rel="noopener">📝 Homework sheet</a>` : "",
+    fm.easy ? `<a class="row-action" href="${escapeAttribute(fm.easy)}" target="_blank" rel="noopener">📝 Easier homework</a>` : "",
+    fm.key ? `<a class="row-action" href="${escapeAttribute(fm.key)}" target="_blank" rel="noopener">🔑 Answer key</a>` : "",
+    fm.pcm ? `<a class="row-action" href="${escapeAttribute(fm.pcm)}" target="_blank" rel="noopener">🖨 Photocopiables</a>` : ""].join("") : "";
   if (startBox) startBox.innerHTML = feat ? `<div class="start-card">
-      <div class="start-title">${startTitle}</div>
-      <small class="start-focus">${escapeHtml(feat.focus)}${feat.pages ? " · " + escapeHtml(feat.pages) : ""} · ${escapeHtml(name)} · ${doneCount} of ${plans.length} lessons done</small>
-      <div class="plan-feature-actions">${llsPlanMaterialLinks_(feat, true) || '<span class="muted">Slides are being uploaded – ask the office.</span>'}</div>
-      ${llsPlanUrl_(feat, "file") ? `<details class="plan-audio-d"><summary>🔊 How to play the audio and videos</summary>${llsPlanAudioTip_(cls, feat)}</details>` : ""}
+      <div class="start-row">
+        <div class="start-title">${startTitle}</div>
+        ${fvb ? `<button type="button" class="button button-primary start-see" data-view-deck="${escapeAttribute(fvb)}" data-view-title="${escapeAttribute(feat.id + " " + feat.title)}">See the slides</button>` : ""}
+      </div>
+      ${moreLinks ? `<details class="start-more"><summary>PowerPoint, homework sheet, answer key${llsPlanUrl_(feat, "file") ? ", audio" : ""}</summary><div class="start-more-links">${moreLinks}</div>${llsPlanUrl_(feat, "file") ? `<details class="plan-audio-d"><summary>🔊 How to play the audio and videos</summary>${llsPlanAudioTip_(cls, feat)}</details>` : ""}</details>` : ""}
     </div>` : `<div class="start-card"><strong>🎉 This class has done every lesson in the course.</strong></div>`;
   const opt = (v, label) => `<option value="${v}"${sel === v ? " selected" : ""}>${label}</option>`;
   box.innerHTML = `
@@ -11119,7 +11144,7 @@ function llsRenderPlanPanel() {
         ${stopOn && picked && llsDeckBase_(picked) ? `<button type="button" class="row-action teach-look" data-view-deck="${escapeAttribute(llsDeckBase_(picked))}" data-view-title="${escapeAttribute(picked.id + " " + picked.title)}" data-view-pick="1" data-view-stop="${stopN || ""}">👀 Not sure? Pick it on the slides</button>` : ""}
       </div>` : ""}
     </div>
-    <details class="plan-all"${llsPlanShowAll ? " open" : ""}><summary>More: all lessons (${doneCount}/${plans.length} done), mark as done or skip, lesson library, report a problem</summary>
+    <details class="plan-all"${llsPlanShowAll ? " open" : ""}><summary>All lessons (${doneCount}/${plans.length} done) · mark done or skip · report a problem</summary>
       ${next && !picked ? `<div class="today-acts">
         <button type="button" class="today-act${llsPlanForm === "done" ? " on" : ""}" data-plan-form="done">✓ Class already did ${escapeHtml(next.id)}</button>
         <button type="button" class="today-act${llsPlanForm === "skip" ? " on" : ""}" data-plan-form="skip">⏭ Skip ${escapeHtml(next.id)}</button>
@@ -11172,6 +11197,7 @@ function llsRenderPlanPanel() {
   }));
   byId("planTaughtSel")?.addEventListener("change", (e) => {
     const v = e.target.value;
+    llsPlanAutoKey_ = "manual";
     if (!v) return;
     llsPlanPick = v === "other" ? "other" : v === "after" ? "after" : "";
     if (v === "after" && after) { llsApplyPlan_(after); showToast(`${after.id} "${after.title}" is the lesson ${llsDayInfo_().on}.`, "info"); }
@@ -11180,10 +11206,21 @@ function llsRenderPlanPanel() {
     else if (v === "other") { if (llsLessonType_() !== "book") llsPickLessonType_("book"); }
     llsRenderPlanPanel();
   });
-  if (part && feat && feat.id === next.id && startBox) { const vb = startBox.querySelector("[data-view-deck]"); if (vb) { vb.dataset.viewStop = String(part.slide); vb.textContent = `👀 See the slides (from slide ${part.slide})`; } }
+  if (part && feat && feat.id === next.id && startBox) { const vb = startBox.querySelector("[data-view-deck]"); if (vb) { vb.dataset.viewStop = String(part.slide); vb.textContent = `See the slides (from slide ${part.slide})`; } }
+  // 16 Oct (owner): the planned (or unfinished) lesson is already chosen – the teacher only changes it if needed.
+  const autoable = !sel || (llsPlanAutoKey_ && llsPlanAutoKey_ !== "manual" && picked && picked.id === llsPlanAutoKey_);
+  if (autoable && next && (!picked || picked.id !== next.id) && llsLessonType_() === "book" && !(llsLesson.entries || []).some((e) => String(e.lessonDate || "").slice(0, 10) === date)) {
+    llsPlanAutoKey_ = next.id;
+    const touched = llsLesson.noteTouched;
+    llsApplyPlan_(next);
+    llsLesson.noteTouched = touched;
+    llsRenderPlanPanel();
+    return;
+  }
   byId("planOther")?.addEventListener("change", (e) => {
     const p = plans.find((x) => x.id === e.target.value);
     if (!p) return;
+    llsPlanAutoKey_ = "manual";
     llsPlanPick = "other";
     llsApplyPlan_(p);
     llsRenderPlanPanel();
@@ -12151,8 +12188,7 @@ function llsRenderLastLesson_(date) {
     <p class="start-last-line"><b>Last time</b> (${escapeHtml(s.date)}, ${escapeHtml(s.teacher)}): ${s.unit ? `<b>${escapeHtml(s.unit)}</b>` : ""}${what ? " · " + escapeHtml(what) : ""}${lstop ? ` · <b>stopped at slide ${lstop}</b>` : s.unit && lcode ? " · finished" : ""}.</p>
     ${forYou ? `<p class="start-last-note">📌 <b>For you:</b> ${escapeHtml(forYou)}</p>` : ""}
     <div class="start-last-acts">
-      ${lbase ? `<button type="button" class="row-action" data-view-deck="${escapeAttribute(lbase)}" data-view-title="${escapeAttribute(lplan.id + " " + lplan.title)}" data-view-stop="${lstop || ""}" data-view-plan="${escapeAttribute(lplan.id)}">👀 Last lesson's slides</button>` : ""}
-      <details class="last-more"><summary>Everything from last lesson</summary>${llsLessonLogEntryHtml(list[0])}${earlier.length ? `<div class="last-older"><b>Earlier:</b>${earlier.map((e) => {
+      <details class="last-more"><summary>Everything from last lesson</summary>${lbase ? `<p><button type="button" class="row-action" data-view-deck="${escapeAttribute(lbase)}" data-view-title="${escapeAttribute(lplan.id + " " + lplan.title)}" data-view-stop="${lstop || ""}" data-view-plan="${escapeAttribute(lplan.id)}">👀 Last lesson's slides</button></p>` : ""}${llsLessonLogEntryHtml(list[0])}${earlier.length ? `<div class="last-older"><b>Earlier:</b>${earlier.map((e) => {
         if (llsIsCancelUnit(e.unit)) return `<div>🚫 <b>${escapeHtml(llsEntrySummary_(e).date)}</b> · cancelled</div>`;
         const x = llsEntrySummary_(e);
         return `<div><b>${escapeHtml(x.date)}</b> · ${escapeHtml(x.teacher)}${x.unit ? " · " + escapeHtml(x.unit) : ""}${x.lines[0] ? ` — ${escapeHtml(x.lines[0])}` : ""}</div>`;
@@ -12264,7 +12300,7 @@ function llsOpenSlides_(o) {
       const p = cls && llsPlansFor_(cls).find((x) => x.id === o.plan);
       close();
       if (!p) return;
-      llsPlanPick = "other"; llsApplyPlan_(p); llsRenderPlanPanel();
+      llsPlanPick = "other"; llsPlanAutoKey_ = "manual"; llsApplyPlan_(p); llsRenderPlanPanel();
       byId("lessonPlanPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
       showToast(`Today: ${p.id} again, from slide ${cur}. Open the slides and go to slide ${cur}.`, "info");
     });
