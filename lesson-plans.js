@@ -334,7 +334,7 @@ window.LLS_PLANS = {
   "B2_Violet_Course/B2_6B-1_Homework_sheet.pdf": "https://drive.google.com/file/d/155m-_stey-NW4MtydES6LeN1x66Rrmj3/view",
   "B2_Violet_Course/B2_6B-1_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1vcqEK7rJPc3OPJXzsxC1oxfUNu21q8sJ/view",
   "B2_Violet_Course/B2_6B-1_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1ihhHCEFtKY1p7YUFW3WKYT63yLaxflbv/view",
-  "B2_Violet_Course/B2_6B-2_Music_to_my_ears.pptx": "https://drive.google.com/file/d/14tLiJSPIyMi7_gr8rP90fi8vECc-LrCE/view",
+  "B2_Violet_Course/B2_6B-2_Music_to_my_ears.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B2/B2_6B-2_Music_to_my_ears.pptx?v=20261016a",
   "B2_Violet_Course/B2_6B-2_Homework_sheet.pdf": "https://drive.google.com/file/d/1HMepsh1hOhsjv37dK0Ls_5SF0Pq5MPHK/view",
   "B2_Violet_Course/B2_6B-2_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1hyZ_-FazL6T4vofHNp7O1P5AjipiLzuB/view",
   "B2_Violet_Course/B2_6B-2_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1mlqFbOALE_nvMTrI9N1jxGbPVJQzM0gl/view",
@@ -2491,7 +2491,7 @@ window.LLS_PLANS = {
     "hw": "B2_Violet_Course/B2_6B-2_Homework_sheet.pdf",
     "easy": "B2_Violet_Course/B2_6B-2_Homework_sheet_easier.pdf",
     "key": "B2_Violet_Course/B2_6B-2_Teacher_answer_key.pdf",
-    "skills": {},
+    "skills": {"Vocabulary": "music and work: uplifting, soothing, bland, eerie, opt for", "Reading": "Music while you work? · What doctors listen to", "Speaking": "the hospital music rule · playlist battle", "Grammar": "-ing or to (revision)"},
     "pcm": "B2_Violet_Course/B2_6B-2_Role_cards.pdf"
    },
    {

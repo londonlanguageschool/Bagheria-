@@ -143,6 +143,10 @@ window.LLS_DECK_HW = {
    "Workbook 6B: 1a, 1b, 1c, 1d (gerunds and infinitives)",
    "Workbook 6B: 2a, 2b, 2c, 2e (music · borrowed words)",
    "Workbook 6B: 2d, 2f, 2g, 2h with the Workbook audio"
+  ],
+  "6B-2": [
+   "Make a 5-song homework playlist: one sentence per song – why does it help?",
+   "Write 80–100 words: music in class – yes or no? 2 reasons + an example."
   ]
  },
  "EF-A1A2": {
