@@ -1601,7 +1601,7 @@
         <article class="item ${i.done ? "done" : ""}">
           <div>
             <p class="title">${esc(i["Title"])}</p>
-            ${i.className ? `<p class="meta">${esc(i.className)}</p>` : ""}
+            ${i.className || i["Assigned Date"] ? `<p class="meta">${[i.className, i["Assigned Date"] ? "Set · Assegnati: " + shortDay(String(i["Assigned Date"]).slice(0, 10)) : ""].filter(Boolean).map(esc).join(" · ")}</p>` : ""}
             ${dueBadge(i["Due Date"], i.done)}${!i.done && parseDate(i["Due Date"]) ? ` <button type="button" class="cal-one" data-cal-one="${esc(i["Homework ID"])}" title="Add to calendar · Aggiungi al calendario">📅</button>` : ""}
           </div>
           <button class="tick ${i.done ? "is-done" : ""}" type="button"

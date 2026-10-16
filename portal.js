@@ -8410,7 +8410,9 @@ async function llsRenderLesson() {
   llsLesson.noteTouched = false;
   llsLesson.homework = [];
   llsLesson.status = [];
+  llsLesson.hwAnother = false;
   llsRenderHwCheck_();
+  llsRenderHwSetNow_();
 
   // 27 Sept: show the register straight away from the class list we already
   // have; saved marks and notes fill in when Google answers. A lesson saved on
@@ -8624,7 +8626,8 @@ function llsRenderLessonHomework(classSize) {
   const box = byId("lessonHwList");
   if (!box) return;
   const items = [...llsLesson.homework].sort((a, b) => String(b["Created At"] || b["Assigned Date"] || "").localeCompare(String(a["Created At"] || a["Assigned Date"] || ""))).slice(0, 4);
-  box.innerHTML = items.length ? `<details class="hw-recent"><summary>All recent homework (${items.length})</summary>` + items.map((h) => {
+  // 16 Oct (owner): the lesson page shows only last lesson's homework (step 1) and this lesson's (step 4) – no older list.
+  box.innerHTML = false ? `<details class="hw-recent"><summary>All recent homework (${items.length})</summary>` + items.map((h) => {
     const id = String(h["Homework ID"] || "");
     const done = llsLesson.status.filter((s) => String(s["Homework ID"] || "") === id && String(s["Status"] || "") === "Done").length;
     const due = h["Due Date"] ? ` · due ${formatDate(String(h["Due Date"]))}` : "";
@@ -8638,6 +8641,7 @@ function llsRenderLessonHomework(classSize) {
   box.querySelectorAll("[data-lhw-files]").forEach((b) => b.addEventListener("click", () => { useLesson(); llsOpenHwFiles(b.dataset.lhwFiles); }));
   box.querySelectorAll("[data-lhw-mark]").forEach((b) => b.addEventListener("click", () => { useLesson(); openHomeworkStatusModal(b.dataset.lhwMark); }));
   llsRenderHwCheck_();
+  llsRenderHwSetNow_();
 }
 
 /* 15 Oct (owner): step 1 – the homework due today, marked together at the start of the lesson.
@@ -8647,12 +8651,30 @@ function llsHwDueToday_() {
   const date = byId("lessonDate")?.value || "";
   const hw = (llsLesson.homework || []).filter((h) => h["Homework ID"]);
   const d10 = (x) => String(x || "").slice(0, 10);
-  const due = hw.filter((h) => d10(h["Due Date"]) === date);
-  if (due.length) return due;
-  // Nothing due exactly today: the latest homework set before today (normally last lesson's).
-  const before = hw.filter((h) => d10(h["Assigned Date"] || h["Created At"]) < date && (!d10(h["Due Date"]) || d10(h["Due Date"]) <= date))
-    .sort((a, b) => d10(b["Assigned Date"] || b["Created At"]).localeCompare(d10(a["Assigned Date"] || a["Created At"])));
-  return before.slice(0, 1);
+  // 16 Oct (owner): ONLY the homework set in the previous lesson (whatever its due date) – that is what the class
+  // checks, marks or hands in today. Nothing older.
+  const setOn = (h) => d10(h["Assigned Date"] || h["Created At"]);
+  const before = hw.filter((h) => setOn(h) && setOn(h) < date);
+  if (!before.length) return [];
+  const last = before.map(setOn).sort().pop();
+  return before.filter((h) => setOn(h) === last);
+}
+// 16 Oct (owner): step 4 shows clearly the homework already set IN THIS lesson (no duplicates, no guessing).
+function llsRenderHwSetNow_() {
+  const box = byId("lessonHwSetNow");
+  if (!box) return;
+  const date = byId("lessonDate")?.value || "";
+  const d10 = (x) => String(x || "").slice(0, 10);
+  const mine = (llsLesson.homework || []).filter((h) => d10(h["Assigned Date"] || h["Created At"]) === date && h["Title"]);
+  const sel = byId("lessonHwSet"), fields = byId("lessonHwFields");
+  if (!mine.length) { box.hidden = true; box.innerHTML = ""; if (sel) sel.hidden = false; llsHwSetApply_(); return; }
+  const fmt = (iso) => iso ? new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "2-digit" }) : "";
+  box.hidden = false;
+  box.innerHTML = `<p class="hwnow-h">✓ Homework set in this lesson</p>` + mine.map((h) => `<div class="hwnow"><b>${escapeHtml(String(h["Title"]))}</b>${h["Due Date"] ? ` <span>· due ${escapeHtml(fmt(d10(h["Due Date"])))}</span>` : ""}${h["Description"] ? `<small>${escapeHtml(String(h["Description"]))}</small>` : ""}</div>`).join("") +
+    `<button type="button" class="link-btn" id="lessonHwAnother">${llsLesson.hwAnother ? "− Close" : "+ Set another homework"}</button>`;
+  if (sel) sel.hidden = true;
+  if (fields) fields.hidden = !llsLesson.hwAnother;
+  byId("lessonHwAnother")?.addEventListener("click", () => { llsLesson.hwAnother = !llsLesson.hwAnother; llsRenderHwSetNow_(); });
 }
 function llsHwCheckValue_(rec) {
   if (!rec) return "";
@@ -8670,6 +8692,7 @@ function llsRenderHwCheck_() {
   if (!panel || !box) return;
   const list = llsHwDueToday_();
   panel.hidden = !list.length;
+  { const h = byId("lessonHwCheckWhen"); if (h) { const d = list[0] ? String(list[0]["Assigned Date"] || list[0]["Created At"] || "").slice(0, 10) : ""; h.textContent = d ? "(set " + new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) + ") · check and mark it together" : ""; } }
   llsStepNums_();
   if (!list.length) { box.innerHTML = ""; return; }
   const students = llsStudentsForClass(llsLesson.classId);
@@ -8858,7 +8881,7 @@ async function llsSaveLesson() {
   // 11 Oct (owner): homework is never forgotten by accident – ask once if the box is empty
   // (not when nobody came, and not when re-saving a lesson that already has homework).
   const ownSaved = llsLesson.entries.find((e) => e.lessonDate === date);
-  if (!hwTitle && !hwNone && !nobodyHere && !(ownSaved && ownSaved.homeworkSet)) { // 11 Oct (owner): homework for ALL groups, every lesson
+  if (!hwTitle && !hwNone && !nobodyHere && !(ownSaved && ownSaved.homeworkSet) && byId("lessonHwSetNow")?.hidden !== false) { // 11 Oct (owner): homework for ALL groups, every lesson
     const ok = window.confirm("No homework for this class " + llsDayInfo_().on + "?\n\nOK = save without homework\nCancel = go back and add homework (step 4)");
     if (!ok) { const hw = byId("lessonHwTitle"); hw?.scrollIntoView({ behavior: "smooth", block: "center" }); hw?.focus({ preventScroll: true }); return; }
   }
@@ -8903,7 +8926,8 @@ async function llsSaveLesson() {
   if (llsIsCancelled(cls.id, date)) { delete llsCancelled[cls.id + "|" + date]; llsCancelStore_(); llsAfterCancelChange_(); }
   llsRenderLessonLogList(byId("lessonHistory"), llsLesson.entries);
   if (hwTitle) {
-    llsLesson.homework = [{ Title: hwTitle, "Due Date": value("lessonHwDue"), "Created At": new Date().toISOString() }, ...llsLesson.homework];
+    llsLesson.homework = [{ Title: hwTitle, Description: value("lessonHwText").trim(), "Assigned Date": date, "Due Date": value("lessonHwDue"), "Created At": new Date().toISOString() }, ...llsLesson.homework];
+    llsLesson.hwAnother = false;
     llsRenderLessonHomework(rows.length);
     setValue("lessonHwTitle", ""); setValue("lessonHwText", "");
     delete llsWbState.lessonWbBox; llsLessonWb_();
