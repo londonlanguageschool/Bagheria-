@@ -12183,6 +12183,10 @@ function llsRenderLastLesson_(date) {
   const lplan = lcls && lcode ? llsPlansFor_(lcls).find((x) => x.id === lcode) : null;
   const lbase = lplan ? llsDeckBase_(lplan) : "";
   const lstop = llsStopSlide_(list[0]);
+  // 16 Oct (owner: "B1 Teens isn't letting me see the slides"): a lesson saved as just "6a" (no part) → offer the slides of each part.
+  const um = !lplan && lcls ? String(list[0].unit || "").match(/^\s*(\d{1,2})\s*([a-c])\b/i) : null;
+  const alts = um ? llsPlansFor_(lcls).filter((x) => x.id.toUpperCase().startsWith(um[1] + um[2].toUpperCase() + "-") && llsDeckBase_(x)) : [];
+  const viewBtn = (pl, stop) => `<button type="button" class="row-action" data-view-deck="${escapeAttribute(llsDeckBase_(pl))}" data-view-title="${escapeAttribute(pl.id + " " + pl.title)}" data-view-stop="${stop || ""}" data-view-plan="${escapeAttribute(pl.id)}">👀 ${escapeHtml(pl.id)} slides${stop ? " (from " + stop + ")" : ""}</button>`;
   const forYou = s.notes.replace(/^⏸ Stopped at slide \d+\n?/, "").trim();
   const what = s.lines.slice(0, 3).map((l) => l.replace(/^\S+\s/, "")).join(" · ");
   const earlier = all.filter((e) => e !== list[0]).slice(0, 5);
@@ -12190,7 +12194,8 @@ function llsRenderLastLesson_(date) {
     <p class="start-last-line"><b>Last time</b> (${escapeHtml(s.date)}, ${escapeHtml(s.teacher)}): ${s.unit ? `<b>${escapeHtml(s.unit)}</b>` : ""}${what ? " · " + escapeHtml(what) : ""}${lstop ? ` · <b>stopped at slide ${lstop}</b>` : s.unit && lcode ? " · finished" : ""}.</p>
     ${forYou ? `<p class="start-last-note">📌 <b>For you:</b> ${escapeHtml(forYou)}</p>` : ""}
     <div class="start-last-acts">
-      <details class="last-more"><summary>Everything from last lesson</summary>${lbase ? `<p><button type="button" class="row-action" data-view-deck="${escapeAttribute(lbase)}" data-view-title="${escapeAttribute(lplan.id + " " + lplan.title)}" data-view-stop="${lstop || ""}" data-view-plan="${escapeAttribute(lplan.id)}">👀 Last lesson's slides</button></p>` : ""}${llsLessonLogEntryHtml(list[0])}${earlier.length ? `<div class="last-older"><b>Earlier:</b>${earlier.map((e) => {
+      ${lbase ? viewBtn(lplan, lstop) : ""}${alts.map((x) => viewBtn(x, 0)).join("")}
+      <details class="last-more"><summary>Everything from last lesson</summary>${llsLessonLogEntryHtml(list[0])}${earlier.length ? `<div class="last-older"><b>Earlier:</b>${earlier.map((e) => {
         if (llsIsCancelUnit(e.unit)) return `<div>🚫 <b>${escapeHtml(llsEntrySummary_(e).date)}</b> · cancelled</div>`;
         const x = llsEntrySummary_(e);
         return `<div><b>${escapeHtml(x.date)}</b> · ${escapeHtml(x.teacher)}${x.unit ? " · " + escapeHtml(x.unit) : ""}${x.lines[0] ? ` — ${escapeHtml(x.lines[0])}` : ""}</div>`;
