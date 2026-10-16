@@ -8372,7 +8372,7 @@ async function llsRenderLesson() {
 
   byId("lessonClassName").textContent = cls.name;
   llsRenderDateBar_();
-  { const d = llsDayInfo_(), q = byId("lessonTeachQ"); if (q) q.textContent = d.isToday ? "What did you teach in today's lesson?" : `What did you teach in the lesson on ${d.short}?`; }
+  { const d = llsDayInfo_(), q = byId("lessonTeachQ"); if (q) q.textContent = d.isToday ? "At the end: what did you do today?" : `At the end: what did you do on ${d.short}?`; }
   byId("lessonClassMeta").textContent = [llsDayInfo_().short, llsTeacherOnDay(cls, dayName), cls.level, cls.book ? `${(window.LLS_COURSES && LLS_COURSES[cls.book]?.title) || cls.book}` : ""].filter(Boolean).join(" · ");
   const unitBox = byId("lessonUnitBox");
   unitBox.hidden = !cls.book;
@@ -8386,7 +8386,7 @@ async function llsRenderLesson() {
   const saveBtn = byId("lessonSaveButton");
   if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "💾 Save lesson"; }
   byId("lessonLast").hidden = true;
-  llsLesson.happen = ""; llsLesson.happenOpen = false; llsPlanPick = ""; llsPlanForm = ""; llsPlanAutoKey_ = ""; llsHwAuto_ = "";
+  llsLesson.happen = ""; llsLesson.happenOpen = false; llsPlanPick = ""; llsPlanForm = ""; llsPlanAutoKey_ = ""; llsHwAuto_ = ""; llsLesson.changeOpen = false;
   { const w = byId("lessonNotesWrap"); if (w) w.open = false; byId("lessonRegister")?.classList.remove("show-notes"); }
   { const tf = byId("lessonTrialForm"); if (tf) { tf.hidden = true; tf.innerHTML = ""; } const tb = byId("lessonTrialBtn"); if (tb) tb.hidden = llsRole() !== "teacher"; }
   setValue("lessonHwSet", "set"); llsHwSetApply_();
@@ -8684,15 +8684,45 @@ function llsHwCheckValue_(rec) {
   return /not done/i.test(notes) ? "not" : "";
 }
 function llsStepNums_() {
-  const check = !byId("lessonHwCheckPanel")?.hidden;
-  [["[data-step-reg]", 1], ["[data-step-teach]", 2], ["[data-step-hw]", 3]].forEach(([sel, n]) => { const el = document.querySelector(sel); if (el) el.textContent = String(n + (check ? 1 : 0)); });
+  let n = 0;
+  document.querySelectorAll("#lessonWork [data-step]").forEach((el) => { const pan = el.closest(".panel"); if (pan && pan.hidden) return; el.textContent = String(++n); });
+}
+// 16 Oct evening (owner): older homework still open = set BEFORE last lesson, with students who haven't done it
+// or work handed in and not marked yet. Each row: who's missing + Mark button.
+function llsRenderHwOlder_(lastList) {
+  const panel = byId("lessonHwOlderPanel"), box = byId("lessonHwOlder");
+  if (!panel || !box) return;
+  const date = byId("lessonDate")?.value || "";
+  const d10 = (x) => String(x || "").slice(0, 10);
+  const setOn = (h) => d10(h["Assigned Date"] || h["Created At"]);
+  const lastIds = new Set((lastList || []).map((h) => String(h["Homework ID"])));
+  const students = llsStudentsForClass(llsLesson.classId);
+  const from = { files: llsLesson.files || [], status: llsLesson.status || [] };
+  const rows = (llsLesson.homework || []).filter((h) => h["Homework ID"] && setOn(h) && setOn(h) < date && !lastIds.has(String(h["Homework ID"]))).map((h) => {
+    const id = String(h["Homework ID"]);
+    const done = students.filter((st) => (from.status || []).some((r) => String(r["Homework ID"] || "") === id && String(r["Student ID"] || "").trim() === String(st["Student ID"] || "").trim() && String(r["Status"] || "") === "Done"));
+    const missing = students.filter((st) => !done.includes(st));
+    const f = llsHwFileCounts_(id, from);
+    return { h, id, missing, toMark: f.toMark, files: f.teacher };
+  }).filter((r) => r.missing.length || r.toMark).sort((a, b) => setOn(b.h).localeCompare(setOn(a.h))).slice(0, 6);
+  panel.hidden = !rows.length;
+  if (!rows.length) { box.innerHTML = ""; return; }
+  const fmt = (iso) => iso ? new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : "";
+  box.innerHTML = rows.map((r) => `<div class="hwo-row">
+      <div class="hwo-t"><b>${escapeHtml(String(r.h["Title"] || "Homework"))}</b> <small>set ${escapeHtml(fmt(setOn(r.h)))}</small>
+        <small>${r.missing.length ? "Not done: " + r.missing.map((st) => escapeHtml(llsStudentName(st))).join(", ") : "Everyone did it"}${r.toMark ? ` · <b>${r.toMark} to mark</b>` : ""}</small></div>
+      <button type="button" class="row-action${r.toMark ? " has-new" : ""}" data-hwo-mark="${escapeAttribute(r.id)}">${r.toMark ? "📥 Mark their work" : "✓ Mark who did it"}</button>
+    </div>`).join("");
+  const useLesson = () => { llsHomeworkCache = { classId: llsLesson.classId, homework: llsLesson.homework, status: llsLesson.status, files: llsLesson.files || [], fromLesson: true }; };
+  box.querySelectorAll("[data-hwo-mark]").forEach((b) => b.addEventListener("click", () => { useLesson(); openHomeworkStatusModal(b.dataset.hwoMark); }));
 }
 function llsRenderHwCheck_() {
   const panel = byId("lessonHwCheckPanel"), box = byId("lessonHwCheck");
   if (!panel || !box) return;
   const list = llsHwDueToday_();
   panel.hidden = !list.length;
-  { const h = byId("lessonHwCheckWhen"); if (h) { const d = list[0] ? String(list[0]["Assigned Date"] || list[0]["Created At"] || "").slice(0, 10) : ""; h.textContent = d ? "(set " + new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) + ") · check and mark it together" : ""; } }
+  llsRenderHwOlder_(list);
+  { const h = byId("lessonHwCheckWhen"); if (h) { const d = list[0] ? String(list[0]["Assigned Date"] || list[0]["Created At"] || "").slice(0, 10) : ""; h.textContent = d ? "set in the last lesson (" + new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) + ") · who did it? mark it together" : ""; } }
   llsStepNums_();
   if (!list.length) { box.innerHTML = ""; return; }
   const students = llsStudentsForClass(llsLesson.classId);
@@ -9931,7 +9961,7 @@ function llsRenderSkills() {
   // them from the deck (llsApplyPlan_); the teacher can untick or change anything. Suggestions = a dropdown list on the box.
   const plan = typeof llsPickedPlan_ === "function" ? llsPickedPlan_() : null;
   box.innerHTML = `
-    <p class="sk-q">What did you do ${escapeHtml(llsDayInfo_().on)}? <span class="muted" style="font-weight:600">${plan ? `Filled in from ${escapeHtml(plan.id)}: untick what you didn't do` : "Tick one or more"} · students see this on their road map</span></p>
+    <p class="sk-q">What did you do ${escapeHtml(llsDayInfo_().on)}? <span class="muted" style="font-weight:600">${plan && plan.skills && Object.keys(plan.skills).length ? `Filled in from ${escapeHtml(plan.id)}: untick what you didn't do` : "Tick one or more"} · students see this on their road map</span></p>
     <div class="sk-grid">${LLS_SKILLS.map((s) => `<label class="sk-check${llsSkillState[s.k]?.on ? " on" : ""}"><input type="checkbox" data-skill="${escapeHtml(s.k)}"${llsSkillState[s.k]?.on ? " checked" : ""}> ${escapeHtml(s.k)}</label>`).join("")}</div>
     ${rows.length ? `<div class="sk-rows">${rows.map((s) => {
       const st = llsSkillState[s.k];
@@ -11128,36 +11158,54 @@ function llsRenderPlanPanel() {
   const startTitle = part && feat && feat.id === next.id
     ? `Continue <span class="plan-code">${escapeHtml(feat.id)}</span> ${escapeHtml(feat.title)} from <b>slide ${part.slide}</b>`
     : feat ? `${picked ? "" : "Next: "}<span class="plan-code">${escapeHtml(feat.id)}</span> ${escapeHtml(feat.title)}` : "";
-  // 16 Oct (owner): Start here = one line + "See the slides"; the other materials fold away.
-  const fvb = feat ? llsDeckBase_(feat) : "";
-  const fm = feat ? llsPlanMaterials_(feat) : {};
-  const moreLinks = feat ? [fm.slides ? `<a class="row-action" href="${escapeAttribute(fm.slides)}" target="_blank" rel="noopener">🖥 Slides (PowerPoint)</a>` : "",
-    fm.hw ? `<a class="row-action" href="${escapeAttribute(fm.hw)}" target="_blank" rel="noopener">📝 Homework sheet</a>` : "",
-    fm.easy ? `<a class="row-action" href="${escapeAttribute(fm.easy)}" target="_blank" rel="noopener">📝 Easier homework</a>` : "",
-    fm.key ? `<a class="row-action" href="${escapeAttribute(fm.key)}" target="_blank" rel="noopener">🔑 Answer key</a>` : "",
-    fm.pcm ? `<a class="row-action" href="${escapeAttribute(fm.pcm)}" target="_blank" rel="noopener">🖨 Photocopiables</a>` : ""].join("") : "";
-  if (startBox) startBox.innerHTML = feat ? `<div class="start-card">
-      <div class="start-row">
-        <div class="start-title">${startTitle}</div>
-        ${fvb ? `<button type="button" class="button button-primary start-see" data-view-deck="${escapeAttribute(fvb)}" data-view-title="${escapeAttribute(feat.id + " " + feat.title)}">See the slides</button>` : ""}
-      </div>
-      ${moreLinks ? `<details class="start-more"><summary>PowerPoint, homework sheet, answer key${llsPlanUrl_(feat, "file") ? ", audio" : ""}</summary><div class="start-more-links">${moreLinks}</div>${llsPlanUrl_(feat, "file") ? `<details class="plan-audio-d"><summary>🔊 How to play the audio and videos</summary>${llsPlanAudioTip_(cls, feat)}</details>` : ""}</details>` : ""}
-    </div>` : `<div class="start-card"><strong>🎉 This class has done every lesson in the course.</strong></div>`;
-  const opt = (v, label) => `<option value="${v}"${sel === v ? " selected" : ""}>${label}</option>`;
+  // 16 Oct evening (owner's order): 1 today's lesson · 2 where last lesson finished + its slides (#lessonLast) ·
+  // 3 change today's lesson? · 4 open / download today's slides.
+  const todayLbl = day.isToday ? "Today's lesson" : `Lesson on ${day.short}`;
+  if (startBox) startBox.innerHTML = feat ? `<div class="start-today"><span class="start-k">${escapeHtml(todayLbl)}:</span> <span class="start-title">${startTitle.replace(/^Next: /, "")}</span></div>`
+    : `<div class="start-today"><strong>🎉 This class has done every lesson in the course.</strong></div>`;
+  const chBox = byId("lessonStartChange"), opBox = byId("lessonStartOpen");
+  const changed = sel && sel !== "plan" && llsPlanAutoKey_ === "manual";
+  const showSel = llsLesson.changeOpen || changed || !sel;
+  if (chBox) chBox.innerHTML = `<div class="start-change">
+      <span class="start-k">Change today's lesson?</span>
+      <button type="button" class="chg-btn${showSel ? "" : " on"}" data-chg="no">No, keep it</button>
+      <button type="button" class="chg-btn${showSel ? " on" : ""}" data-chg="yes">Yes, choose another</button>
+    </div>
+    ${showSel ? `<div class="start-change-sel">
+      <select id="planTaughtSel" class="teach-sel${sel ? "" : " needs-pick"}" aria-label="Today's lesson">
+        ${sel ? "" : `<option value="" selected>Choose…</option>`}
+        ${next ? `<option value="plan"${sel === "plan" ? " selected" : ""}>${part ? `Continue ${escapeHtml(next.id)} · ${escapeHtml(next.title)} (from slide ${part.slide})` : `${escapeHtml(next.id)} · ${escapeHtml(next.title)} (planned)`}</option>` : ""}
+        ${after ? `<option value="after"${sel === "after" ? " selected" : ""}>Next lesson: ${escapeHtml(after.id)} · ${escapeHtml(after.title)}</option>` : ""}
+        <option value="other"${sel === "other" ? " selected" : ""}>Another lesson from the book…</option>
+        <option value="choice"${sel === "choice" ? " selected" : ""}>My own lesson (not from the book)</option>
+        <option value="special"${sel === "special" ? " selected" : ""}>Special lesson (Halloween, Christmas…)</option>
+      </select>
+      ${sel === "other" ? `<select id="planOther" class="today-select" aria-label="Which lesson from the book?"><option value="">Choose the lesson…</option>${plans.map((p) => `<option value="${escapeAttribute(p.id)}"${picked && picked.id === p.id ? " selected" : ""}>${escapeHtml(p.id)} ${escapeHtml(p.title)} – ${escapeHtml(p.focus)}${partial[p.id] ? "  [⏸ stopped at slide " + partial[p.id].slide + "]" : status(p) ? "  [" + escapeHtml(status(p)) + "]" : ""}</option>`).join("")}</select>` : ""}
+    </div>` : ""}`;
+  const opPlan = (sel === "choice" || sel === "special") ? null : (picked || feat);
+  const ovb = opPlan ? llsDeckBase_(opPlan) : "";
+  const om = opPlan ? llsPlanMaterials_(opPlan) : {};
+  const moreLinks = opPlan ? [om.hw ? `<a class="row-action" href="${escapeAttribute(om.hw)}" target="_blank" rel="noopener">📝 Homework sheet</a>` : "",
+    om.easy ? `<a class="row-action" href="${escapeAttribute(om.easy)}" target="_blank" rel="noopener">📝 Easier homework</a>` : "",
+    om.key ? `<a class="row-action" href="${escapeAttribute(om.key)}" target="_blank" rel="noopener">🔑 Answer key</a>` : "",
+    om.pcm ? `<a class="row-action" href="${escapeAttribute(om.pcm)}" target="_blank" rel="noopener">🖨 Photocopiables</a>` : ""].join("") : "";
+  if (opBox) opBox.innerHTML = opPlan ? `<div class="start-open">
+      <span class="start-k">${escapeHtml(opPlan.id)} ${escapeHtml(opPlan.title)}:</span>
+      ${ovb ? `<button type="button" class="button button-primary" data-view-deck="${escapeAttribute(ovb)}" data-view-title="${escapeAttribute(opPlan.id + " " + opPlan.title)}"${part && opPlan.id === next.id ? ` data-view-stop="${part.slide}"` : ""}>▶ Open the slides${part && opPlan.id === next.id ? " (from slide " + part.slide + ")" : ""}</button>` : ""}
+      ${om.slides ? `<a class="button button-secondary" href="${escapeAttribute(om.slides)}" target="_blank" rel="noopener">⬇ Download PowerPoint</a>` : ""}
+    </div>
+    ${moreLinks || llsPlanUrl_(opPlan, "file") ? `<details class="start-more"><summary>Homework sheet, answer key${llsPlanUrl_(opPlan, "file") ? ", how to play the audio" : ""}</summary><div class="start-more-links">${moreLinks}</div>${llsPlanUrl_(opPlan, "file") ? llsPlanAudioTip_(cls, opPlan) : ""}</details>` : ""}`
+    : (sel === "choice" || sel === "special") ? `<p class="muted" style="margin:8px 0 0">Your own / special lesson: describe it at the end of the lesson.</p>` : "";
+  chBox?.querySelectorAll("[data-chg]").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.chg === "no") {
+      llsLesson.changeOpen = false;
+      if (next && llsPlanAutoKey_ === "manual") { llsPlanAutoKey_ = next.id; llsPlanPick = ""; llsApplyPlan_(next); }
+    } else llsLesson.changeOpen = true;
+    llsRenderPlanPanel();
+  }));
   box.innerHTML = `
     <div class="teach-grid">
-      <div class="form-field">
-        <label for="planTaughtSel">Lesson</label>
-        <select id="planTaughtSel" class="teach-sel${sel ? "" : " needs-pick"}">
-          ${sel ? "" : `<option value="" selected>Choose…</option>`}
-          ${next ? opt("plan", part ? `Continued ${escapeHtml(next.id)} · ${escapeHtml(next.title)} (from slide ${part.slide})` : `${escapeHtml(next.id)} · ${escapeHtml(next.title)} (planned)`) : ""}
-          ${after ? opt("after", `Next lesson: ${escapeHtml(after.id)} · ${escapeHtml(after.title)}`) : ""}
-          ${opt("other", "Another lesson from the book…")}
-          ${opt("choice", "My own lesson (not from the book)")}
-          ${opt("special", "Special lesson (Halloween, Christmas…)")}
-        </select>
-        ${sel === "other" ? `<select id="planOther" class="today-select" aria-label="Which lesson from the book?"><option value="">Choose the lesson…</option>${plans.map((p) => `<option value="${escapeAttribute(p.id)}"${picked && picked.id === p.id ? " selected" : ""}>${escapeHtml(p.id)} ${escapeHtml(p.title)} – ${escapeHtml(p.focus)}${partial[p.id] ? "  [⏸ stopped at slide " + partial[p.id].slide + "]" : status(p) ? "  [" + escapeHtml(status(p)) + "]" : ""}</option>`).join("")}</select>` : ""}
-      </div>
+      <div class="form-field"><label>Lesson</label><div class="teach-what">${sel === "choice" ? "My own lesson" : sel === "special" ? "Special lesson" : picked ? escapeHtml(picked.id + " · " + picked.title) : "Choose it at the top (Start here)"}</div></div>
       ${showFinish ? `<div class="form-field">
         <label for="planFinSel">Did you finish it?</label>
         <div class="teach-fin">
@@ -12215,7 +12263,7 @@ function llsRenderLastLesson_(date) {
   const what = s.lines.slice(0, 3).map((l) => l.replace(/^\S+\s/, "")).join(" · ");
   const earlier = all.filter((e) => e !== list[0]).slice(0, 5);
   box.innerHTML = `
-    <p class="start-last-line"><b>Last time</b> (${escapeHtml(s.date)}, ${escapeHtml(s.teacher)}): ${s.unit ? `<b>${escapeHtml(s.unit)}</b>` : ""}${what ? " · " + escapeHtml(what) : ""}${lstop ? ` · <b>stopped at slide ${lstop}</b>` : s.unit && lcode ? " · finished" : ""}.</p>
+    <p class="start-last-line"><b>Last lesson</b> (${escapeHtml(s.date)}, ${escapeHtml(s.teacher)}): ${s.unit ? `<b>${escapeHtml(s.unit)}</b>` : ""}${what ? " · " + escapeHtml(what) : ""}${lstop ? ` · <b>stopped at slide ${lstop}</b>` : s.unit && lcode ? " · finished" : ""}.</p>
     ${forYou ? `<p class="start-last-note">📌 <b>For you:</b> ${escapeHtml(forYou)}</p>` : ""}
     <div class="start-last-acts">
       ${lbase ? viewBtn(lplan, lstop) : ""}${alts.map((x) => viewBtn(x, 0)).join("")}
@@ -12395,3 +12443,9 @@ function llsTrialForm_() {
   });
 }
 document.addEventListener("click", (e) => { if (e.target && e.target.closest && e.target.closest("#lessonTrialBtn")) llsTrialForm_(); });
+
+// 16 Oct evening (owner): quiz / test results belong in "At the end" – move the quiz block there once.
+document.addEventListener("DOMContentLoaded", () => {
+  const slot = byId("lessonTestsSlot"), q = document.querySelector("#lessonWork .quiz-wrap"), sec = byId("lessonEndTests");
+  if (slot && q && sec) { slot.appendChild(q); sec.hidden = false; const old = slot.closest("#lessonWork")?.querySelector(".lesson-extras .extras-sec:empty"); if (old) old.remove(); }
+});

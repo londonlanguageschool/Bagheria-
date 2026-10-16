@@ -7,7 +7,7 @@
   <meta name="description" content="London Language School management portal">
   <title>LLS Portal | London Language School</title>
   <link rel="stylesheet" href="portal.css?v=20261014a">
-  <link rel="stylesheet" href="portal-theme.css?v=20261016e">
+  <link rel="stylesheet" href="portal-theme.css?v=20261016f">
 </head>
 
 <body>
@@ -704,19 +704,27 @@
             <!-- 15 Oct (owner): one card. Start here = where to start + last time, then 4 short steps. -->
             <div class="panel start-panel lw-gate" id="lessonStartPanel">
               <p class="section-label start-label">Start here</p>
+              <!-- 16 Oct evening (owner's order): today's lesson → where last lesson finished → its slides → change? → open today's slides -->
               <div id="lessonStart"></div>
               <div class="start-last" id="lessonLast" hidden></div>
+              <div id="lessonStartChange"></div>
+              <div id="lessonStartOpen"></div>
             </div>
 
             <div class="panel lw-gate" id="lessonHwCheckPanel" hidden>
-              <p class="section-label step-label" style="margin-top:0;"><span class="step-n s6">1</span> Homework from last lesson <span class="muted step-sub" id="lessonHwCheckWhen"></span></p>
+              <p class="section-label step-label" style="margin-top:0;"><span class="step-n s6" data-step>1</span> Homework for this lesson <span class="muted step-sub" id="lessonHwCheckWhen"></span></p>
               <div id="lessonHwCheck"></div>
               <div id="lessonHwList"></div>
             </div>
 
+            <div class="panel lw-gate" id="lessonHwOlderPanel" hidden>
+              <p class="section-label step-label" style="margin-top:0;"><span class="step-n s6" data-step>2</span> Older homework still open <span class="muted step-sub">missing or not marked yet</span></p>
+              <div id="lessonHwOlder"></div>
+            </div>
+
             <div class="panel lw-gate">
               <div class="lesson-sec-head">
-                <p class="section-label step-label" style="margin:0;"><span class="step-n s4" data-step-reg>2</span> Register <span id="lessonRegCount" class="muted step-sub"></span></p>
+                <p class="section-label step-label" style="margin:0;"><span class="step-n s4" data-step data-step-reg>2</span> Register <span id="lessonRegCount" class="muted step-sub"></span></p>
                 <button class="row-action" id="lessonAllHere" type="button">Everyone here</button>
               </div>
               <div id="lessonRegister"></div>
@@ -728,7 +736,7 @@
             </div>
 
             <div class="panel lw-gate">
-              <p class="section-label step-label" style="margin-top:0;"><span class="step-n s5" data-step-teach>3</span> <span id="lessonTeachQ">What did you teach in today's lesson?</span></p>
+              <p class="section-label step-label" style="margin-top:0;"><span class="step-n s5" data-step data-step-teach>3</span> <span id="lessonTeachQ">At the end: what did you do today?</span></p>
               <div class="plan-panel" id="lessonPlanPanel" hidden></div>
               <div class="lesson-type" id="lessonTypeBar" role="radiogroup" aria-label="What kind of lesson?">
                 <button type="button" class="lesson-type-btn active" role="radio" aria-checked="true" data-ltype="book"><span>📘</span><strong>Coursebook</strong><small>the normal lesson</small></button>
@@ -816,10 +824,12 @@
                 </div>
                 </div>
               </details>
-            </div>
-
-            <div class="panel lw-gate">
-              <p class="section-label step-label" style="margin-top:0;"><span class="step-n s6" data-step-hw>4</span> Homework for next time</p>
+              <div class="end-sub" id="lessonEndTests" hidden>
+                <p class="end-h">Quiz / test results</p>
+                <div id="lessonTestsSlot"></div>
+              </div>
+              <div class="end-sub">
+              <p class="end-h"><span data-step-hw hidden></span>New homework for next time</p>
               <div id="lessonHwSetNow" class="hwnow-box" hidden></div>
               <select id="lessonHwSet" class="hw-set" aria-label="Homework for next time">
                 <option value="set">Set homework</option>
@@ -860,10 +870,11 @@
                 </div>
               </details>
               </div>
+              </div>
             </div>
 
             <details class="panel lesson-extras">
-              <summary>More: quiz · all lesson notes · tell the office</summary>
+              <summary>More: all lesson notes · tell the office</summary>
             <div class="lw-gate extras-sec">
               <details class="quiz-wrap">
                 <summary class="section-label" style="cursor:pointer;">🧠 Quiz <span class="muted" style="text-transform:none;letter-spacing:0;">(optional: students take it in their app, it marks itself)</span></summary>
@@ -2417,7 +2428,7 @@
   <script src="deck-homework.js?v=20261016a"></script>
   <script src="class-homework.js?v=20261015b"></script>
   <script src="workbook.js?v=20261014a"></script>
-  <script src="portal.js?v=20261016e"></script>
+  <script src="portal.js?v=20261016f"></script>
   <script src="resources.js?v=20261014a"></script>
   <script src="report.js?v=20261014a"></script>
   <script src="portal-i18n.js?v=20261014a"></script>
