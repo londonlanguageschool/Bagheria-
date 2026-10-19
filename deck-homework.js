@@ -149,6 +149,12 @@ window.LLS_DECK_HW = {
    "Write 80–100 words: music in class – yes or no? 2 reasons + an example."
   ]
  },
+ "PREP": {
+  "1A": [
+   "Workbook p.4: exercises 1–4 (describing people)",
+   "Workbook p.5: read 'Birth order', exercises 1–4"
+  ]
+ },
  "EF-A1A2": {
   "2A": [
    "Workbook 2A: 1a, 1b, 2a, 2b, 2c",
