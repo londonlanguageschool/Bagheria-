@@ -355,7 +355,7 @@ window.LLS_PLANS = {
   "A2_Adults_Rebuilt/A2_1B_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1023DF2JEq_5vmY1bWCJct1hAW0K5yKPH/view",
   "A2_Adults_Rebuilt/A2_1B_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1bGbru3k9UxD-c76Nufr27NIkZbVeGtd_/view",
   "A2_Adults_Rebuilt/A2_2A_Wheres_my_passport.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_2A_Wheres_my_passport_v3.pptx?v=20261015b",
-  "A2_Adults_Rebuilt/A2_2B_Thats_me_in_the_picture.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_2B_Thats_me_in_the_picture_v3.pptx?v=20261015b",
+  "A2_Adults_Rebuilt/A2_2B_Thats_me_in_the_picture.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_2B_Thats_me_in_the_picture_v3.pptx?v=20261019a",
   "A2_Adults_Rebuilt/A2_1C_The_Remake_Project.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_1C_The_Remake_Project_v3.pptx?v=20261015b",
   "A2_Adults_Rebuilt/A2_1C_Homework_sheet.pdf": "https://drive.google.com/file/d/1BaGtZe-FI06belhTDQAFdT88dQrnTwT1/view",
   "A2_Adults_Rebuilt/A2_1C_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1pnVpxPy3q9sXWbmxbO-jL-2cU-ejGjKA/view",
