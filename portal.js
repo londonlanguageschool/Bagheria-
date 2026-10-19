@@ -8234,8 +8234,20 @@ function llsLessonsOn(dateIso, onlyMine) {
       if (!llsIsMine(llsTeacherOnDay(cls, d), names)) return;
       out.push({ cls, time: t || "" });
     });
+    // 19 Oct (owner: "chefs are still not showing on my lessons today"): a moved / make-up lesson.
+    // Write it in the class Notes: "Make-up: 2026-10-19 17:00" (several allowed). The class then shows on that day.
+    llsMakeups_(cls).forEach((m) => {
+      if (m.date !== dateIso || out.some((o) => o.cls === cls)) return;
+      if (!llsIsMine(llsTeacherOnDay(cls, cls.day), names)) return;
+      out.push({ cls, time: m.time || cls.time || "", makeup: true });
+    });
   });
   return out.sort((a, b) => a.time.localeCompare(b.time));
+}
+function llsMakeups_(cls) {
+  const out = [];
+  String((cls && cls.notes) || "").replace(/make-?\s?up:?\s*(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}[:.]\d{2}))?/gi, (x, d, t) => { out.push({ date: d, time: t ? t.replace(".", ":").padStart(5, "0") : "" }); return x; });
+  return out;
 }
 
 function llsNextLessonDate(cls, fromIso) {
