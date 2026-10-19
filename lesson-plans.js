@@ -57,7 +57,7 @@ window.LLS_PLANS = {
   "B1_Green_Course_6B-10B/B1_1B-1_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1kBW-CwFupKsGOhUf9BqlVC8Ah2d3jElY/view",
   "B1_Green_Course_6B-10B/B1_1B-1_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1xi75sUk9wT54gxzNAeQOOv2zuGkVnyzW/view",
   "B1_Green_Course_6B-10B/B1_1B_Photocopiables.pdf": "https://drive.google.com/file/d/1PWwQNxokJR4De2t5O2-GkebU9wQMZegV/view",
-  "B1_Green_Course_6B-10B/B1_1B-2_Modern_families.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_1B-2_Modern_families.pptx?v=20261015b",
+  "B1_Green_Course_6B-10B/B1_1B-2_Modern_families.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_1B-2_Modern_families.pptx?v=20261019a",
   "B1_Green_Course_6B-10B/B1_1B-2_Homework_sheet.pdf": "https://drive.google.com/file/d/1g4LozelRIVSlULNM3VFtUlreeAj-hehJ/view",
   "B1_Green_Course_6B-10B/B1_1B-2_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1mxqKCDjj5Llk4uDNYjxDE2dDv03BoSvZ/view",
   "B1_Green_Course_6B-10B/B1_1B-2_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1AHJkZfdL7Hjbx1nV7eH9wlYsV3L3XWRv/view",
