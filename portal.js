@@ -11119,7 +11119,10 @@ function llsRenderPlanPanel() {
     llsRenderHwSheetHint_(); return;
   }
   const date = byId("lessonDate")?.value || "";
-  const taught = llsPlanTaught_((llsLesson.entries || []).filter((e) => String(e.lessonDate || "").slice(0, 10) !== date));
+  // 19 Oct: a class that changed book (class Notes "Book from: 2026-10-19") – earlier lessons were in the OLD book
+  // and don't count as done in the new one (B1.1 Young: green book 1A ≠ Prepare 1A).
+  const bookFrom = ((cls && String(cls.notes || "").match(/book from:?\s*(\d{4}-\d{2}-\d{2})/i)) || [])[1] || "";
+  const taught = llsPlanTaught_((llsLesson.entries || []).filter((e) => String(e.lessonDate || "").slice(0, 10) !== date && String(e.lessonDate || "").slice(0, 10) >= bookFrom));
   const marks = llsPlansDoneMap_(cls);
   Object.entries(marks).forEach(([code, m]) => { if (!taught[code]) taught[code] = [{ date: m.date || "", teacher: m.who || "", earlier: true, skip: m.kind === "skip", reason: m.reason || "" }]; });
   const partial = llsPlanPartial_(taught);
