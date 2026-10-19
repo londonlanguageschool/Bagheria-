@@ -473,6 +473,23 @@
     .prog-more { margin-top: 12px; }
     .prog-more > summary { cursor: pointer; font-weight: 800; color: var(--navy-800, #16275c); padding: 8px 2px; }
     .course-line { font-size: 13px; font-weight: 700; color: #455269; margin: 4px 0 0; }
+    /* 19 Oct (owner): "want to see the slides from today's lesson?" – view only, up to where the teacher stopped */
+    .slides-card { display: flex; align-items: center; gap: 12px; width: 100%; margin: 4px 0 16px; padding: 14px 16px; border: 2px solid #c9d8f0; border-radius: 16px; background: #fff; text-align: left; font: inherit; color: #16275c; cursor: pointer; box-shadow: 0 2px 8px rgba(22,39,92,.06); }
+    .slides-card .sc-ico { font-size: 28px; line-height: 1; }
+    .slides-card b { display: block; font-size: 16px; }
+    .slides-card small { display: block; color: #56617a; font-size: 13px; margin-top: 2px; }
+    .slides-card .sc-go { margin-left: auto; font-weight: 800; color: #0b5cad; white-space: nowrap; }
+    .sv-stu { position: fixed; inset: 0; z-index: 9999; background: #0c142d; display: flex; flex-direction: column; color: #fff; }
+    .sv-stu .sv-top { display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
+    .sv-stu .sv-top b { flex: 1; font-size: 15px; }
+    .sv-stu .sv-x { background: #fff; color: #16275c; border: 0; border-radius: 10px; font-size: 18px; font-weight: 800; width: 40px; height: 40px; cursor: pointer; }
+    .sv-stu .sv-pic { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0 8px; min-height: 0; }
+    .sv-stu .sv-pic img { max-width: 100%; max-height: 100%; border-radius: 10px; background: #fff; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; pointer-events: none; }
+    .sv-stu .sv-nav { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 12px 14px 22px; }
+    .sv-stu .sv-nav button { background: #ffd84d; color: #16275c; border: 0; border-radius: 12px; font-size: 16px; font-weight: 800; padding: 12px 20px; cursor: pointer; }
+    .sv-stu .sv-nav button:disabled { opacity: .35; cursor: default; }
+    .sv-stu .sv-n { min-width: 120px; text-align: center; font-weight: 700; font-size: 14px; }
+    .sv-stu .sv-end { text-align: center; font-size: 13px; color: #cfd8ea; padding: 0 14px 6px; }
   </style>
 </head>
 <body>
@@ -1581,15 +1598,98 @@
       }).join("");
     }
 
+    /* ---------- 19 Oct 2026 (owner): "Want to see the slides from today's lesson?" ----------
+       Students LOOK at the slides of their last lesson (pictures only, no download), up to the slide where the
+       teacher pressed "We stopped here". The slide number comes from Apps Script V37 (lessons[].stopSlide); before
+       V37 is live the whole deck is shown. Deck pictures: materials/view/<deck>/NN.jpg (same as the teacher viewer). */
+    let slidePlans = null, slideIndex = null;
+    function loadSlideData() {
+      if (slidePlans !== null) return;
+      slidePlans = false;
+      const again = () => { if (tab === "homework" && slidePlans && slideIndex) { try { renderHomework(); } catch (_) {} } };
+      const sc = document.createElement("script");
+      sc.src = "lesson-plans.js?v=20261019a";
+      sc.onload = () => { slidePlans = window.LLS_PLANS || {}; again(); };
+      sc.onerror = () => { slidePlans = {}; };
+      document.head.appendChild(sc);
+      fetch("materials/view/index.json?v=" + Date.now().toString().slice(0, 7)).then((r) => r.ok ? r.json() : {})
+        .then((j) => { slideIndex = j || {}; again(); }).catch(() => { slideIndex = {}; });
+    }
+    function lessonDeck(l) {
+      const P = slidePlans;
+      if (!P || !P.courses || !slideIndex) return null;
+      const cls = (data.classes || []).find((c) => String(c["Class ID"]) === String(l.classId));
+      if (!cls) return null;
+      const plans = P.courses[String(cls["Book"] || "").trim()] || [];
+      const u = String(l.unit || "").split("·")[0].trim().toLowerCase();
+      if (!u || /^(cancelled|special|teacher)/.test(u)) return null;
+      const p = plans.find((x) => String(x.id).toLowerCase() === u) || plans.find((x) => String(x.id).toLowerCase().startsWith(u + "-"));
+      if (!p || !p.file) return null;
+      const url = (P.links && P.links[p.file]) || "";
+      const m = String(url).match(/\/materials\/[^/]+\/([^/?#]+)\.pptx/i);
+      if (!m || !slideIndex[m[1]]) return null;
+      const n = Number(slideIndex[m[1]]) || 0, stop = Number(l.stopSlide) || 0;
+      return { deck: m[1], n, upto: stop ? Math.min(stop, n) : n, stop, title: p.title || u, date: isoDay(l.lessonDate) || String(l.lessonDate).slice(0, 10) };
+    }
+    let lastSlides = null;
+    function slidesCardHtml() {
+      loadSlideData();
+      lastSlides = null;
+      const todayIso = isoDay(new Date().toISOString().slice(0, 10));
+      const ls = (data.lessons || []).filter((l) => !isCancelled(l) && (isoDay(l.lessonDate) || String(l.lessonDate)) <= todayIso)
+        .sort((a, b) => String(isoDay(b.lessonDate) || b.lessonDate).localeCompare(String(isoDay(a.lessonDate) || a.lessonDate)));
+      for (const l of ls.slice(0, 3)) { const d = lessonDeck(l); if (d) { lastSlides = d; break; } }
+      if (!lastSlides) return "";
+      const d = lastSlides, today = d.date === todayIso;
+      return `<button type="button" class="slides-card" data-slides>
+        <span class="sc-ico">📽️</span>
+        <span><b>${today ? "Want to see the slides from today's lesson?" : "Want to see the slides from your last lesson?"}</b>
+        <small>${today ? "Vuoi rivedere le slide di oggi?" : "Vuoi rivedere le slide dell'ultima lezione?"} · ${esc(d.title)} · ${esc(shortDay(d.date))}</small></span>
+        <span class="sc-go">Look ›</span></button>`;
+    }
+    function openStudentSlides() {
+      const d = lastSlides;
+      if (!d) return;
+      let cur = 1;
+      const box = document.createElement("div");
+      box.className = "sv-stu";
+      box.setAttribute("role", "dialog");
+      box.setAttribute("aria-label", "Lesson slides");
+      const src = (i) => `materials/view/${encodeURIComponent(d.deck)}/${String(i).padStart(2, "0")}.jpg`;
+      const draw = () => {
+        box.innerHTML = `<div class="sv-top"><b>📽️ ${esc(d.title)} · ${esc(shortDay(d.date))}</b><button type="button" class="sv-x" data-x aria-label="Close">✕</button></div>
+          <div class="sv-pic"><img src="${src(cur)}" alt="Slide ${cur}" draggable="false"></div>
+          ${cur === d.upto && d.stop && d.stop < d.n ? `<p class="sv-end">⏸ We stopped here in class · Ci siamo fermati qui</p>` : ""}
+          <div class="sv-nav"><button type="button" data-p ${cur <= 1 ? "disabled" : ""}>‹ Back</button>
+          <span class="sv-n">Slide ${cur} of ${d.upto}</span>
+          <button type="button" data-n ${cur >= d.upto ? "disabled" : ""}>Next ›</button></div>`;
+        box.querySelector("[data-x]").addEventListener("click", close);
+        box.querySelector("[data-p]").addEventListener("click", () => { if (cur > 1) { cur--; draw(); } });
+        box.querySelector("[data-n]").addEventListener("click", () => { if (cur < d.upto) { cur++; draw(); } });
+        if (cur < d.upto) { const pre = new Image(); pre.src = src(cur + 1); }
+      };
+      const key = (e) => { if (e.key === "Escape") close(); else if (e.key === "ArrowRight" && cur < d.upto) { cur++; draw(); } else if (e.key === "ArrowLeft" && cur > 1) { cur--; draw(); } };
+      let sx = null;
+      box.addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; }, { passive: true });
+      box.addEventListener("touchend", (e) => { if (sx === null) return; const dx = e.changedTouches[0].clientX - sx; sx = null; if (dx < -50 && cur < d.upto) { cur++; draw(); } else if (dx > 50 && cur > 1) { cur--; draw(); } });
+      box.addEventListener("contextmenu", (e) => e.preventDefault());
+      function close() { document.removeEventListener("keydown", key); box.remove(); }
+      document.addEventListener("keydown", key);
+      document.body.appendChild(box);
+      draw();
+    }
+    function bindSlides(main) { main.querySelectorAll("[data-slides]").forEach((b) => b.addEventListener("click", openStudentSlides)); }
+
     function renderHomework() {
       const main = document.getElementById("main");
       const items = homeworkItems();
 
       if (!items.length) {
-        main.innerHTML = testsHtml() + `<div class="empty" style="margin-top:18px">No homework yet. 🎉<br>Nessun compito per ora.</div>` + extraPracticeHtml();
+        main.innerHTML = slidesCardHtml() + testsHtml() + `<div class="empty" style="margin-top:18px">No homework yet. 🎉<br>Nessun compito per ora.</div>` + extraPracticeHtml();
         bindReview(main);
         main.querySelectorAll("[data-test]").forEach((b) => b.addEventListener("click", () => startTeacherTest(b.dataset.test)));
         bindJourney(main);
+        bindSlides(main);
         return;
       }
 
@@ -1613,7 +1713,7 @@
           ${hwExtraHtml(i)}
         </article>`;
 
-      main.innerHTML = testsHtml() +
+      main.innerHTML = slidesCardHtml() + testsHtml() +
         `<h2>To do · Da fare (${todo.length})</h2>` +
         (todo.length ? todo.map(card_).join("") : `<div class="empty">All done! Well done. 🎉<br>Tutto fatto, bravo/a!</div>`) +
         extraPracticeHtml() +
@@ -1628,6 +1728,7 @@
       bindCalendar(main, items);
       main.querySelectorAll("[data-test]").forEach((b) => b.addEventListener("click", () => startTeacherTest(b.dataset.test)));
       bindJourney(main);
+      bindSlides(main);
     }
 
     /* ---------- 12 Oct 2026: homework in the phone calendar ----------
