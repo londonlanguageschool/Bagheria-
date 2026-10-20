@@ -825,3 +825,12 @@ input[type="checkbox"] { border-radius: 4px; }
 .hwo-row:last-child { border-bottom: 0; }
 .hwo-t { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .hwo-t small { color: #455269; font-weight: 700; }
+
+/* 20 Oct: homework check – who handed it in, open the work, feedback in the lesson */
+.hwc-row2 { flex-wrap: wrap; gap: 8px 12px; }
+.hwc-who { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; flex: 1 1 260px; min-width: 0; }
+.hwc-in { font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 999px; border: 2px solid; }
+.hwc-in.in { color: #0d6e45; background: #e3f7ea; border-color: #a8e5be; }
+.hwc-in.tick { color: #0b5cad; background: #e3f1fd; border-color: #a9d3f5; }
+.hwc-in.no { color: #6b7280; background: #f4f6f9; border-color: #dce2ea; }
+.hwc-fb { flex: 1 1 100%; min-height: 40px; border: 2px solid #cdbff3; border-radius: 10px; padding: 6px 12px; font: inherit; font-size: 14px; }

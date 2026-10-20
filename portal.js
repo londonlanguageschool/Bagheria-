@@ -8757,8 +8757,11 @@ function llsRenderHwCheck_() {
     const recs = students.map((st) => {
       const sid = String(st["Student ID"] || "").trim();
       const rec = (llsLesson.status || []).find((r) => String(r["Homework ID"] || "") === id && String(r["Student ID"] || "").trim() === sid);
-      return { st, sid, rec, v: llsHwCheckValue_(rec), sent: from.files.filter((x) => x.kind === "Work" && x.homeworkId === id && x.studentId === sid).length };
+      const work = from.files.filter((x) => x.kind === "Work" && x.homeworkId === id && x.studentId === sid);
+      return { st, sid, rec, v: llsHwCheckValue_(rec), sent: work.length, work };
     });
+    // 20 Oct (owner): open the lesson → see straight away who handed it in → open their work → give feedback there.
+    recs.sort((a, b) => (b.sent ? 2 : b.v ? 1 : 0) - (a.sent ? 2 : a.v ? 1 : 0));
     const done = recs.filter((r) => ["correct", "mistakes", "done"].includes(r.v)).length;
     return `<div class="hwc">
       <div class="hwc-head">
@@ -8771,18 +8774,37 @@ function llsRenderHwCheck_() {
         </div>
       </div>
       ${h["Description"] ? `<p class="hwc-desc">${escapeHtml(String(h["Description"]))}</p>` : ""}
-      <div class="hwc-rows">${recs.map((r) => `<div class="hwc-row">
-        <span class="hwc-name">${escapeHtml(llsStudentName(r.st))}${r.sent ? ` <small>· sent in the app</small>` : ""}</span>
+      <div class="hwc-rows">${recs.map((r) => {
+        const ticked = r.rec && String(r.rec["Status"] || "") === "Done";
+        const when = r.rec && r.rec["Completed Date"] ? " " + escapeHtml(fmt(String(r.rec["Completed Date"]).slice(0, 10))) : "";
+        const state = r.sent ? `<span class="hwc-in in">📥 Handed in${when} · ${r.sent} file${r.sent > 1 ? "s" : ""}</span>`
+          : ticked ? `<span class="hwc-in tick">✓ Ticked done in the app${when} (no file)</span>`
+          : `<span class="hwc-in no">— Nothing in the app yet</span>`;
+        const fb = String((r.rec && r.rec["Feedback"]) || "");
+        return `<div class="hwc-row hwc-row2">
+        <div class="hwc-who"><span class="hwc-name">${escapeHtml(llsStudentName(r.st))}</span>${state}
+          ${r.work.map((w, k) => `<button type="button" class="row-action hwc-open" data-hwc-open="${escapeAttribute(w.fileId)}">👀 Open${r.work.length > 1 ? " " + (k + 1) : ""}</button>`).join("")}</div>
         <select data-hwc="${escapeAttribute(id)}" data-hwc-st="${escapeAttribute(r.sid)}" class="hwc-sel${r.v ? " set v-" + r.v : ""}" aria-label="${escapeAttribute(llsStudentName(r.st))}: homework">
           ${r.v ? "" : `<option value="" selected>Choose…</option>`}
           ${r.v === "done" ? `<option value="done" selected>Done (in the app)</option>` : ""}
           ${LLS_HWC_OPTS.map(([v, t]) => `<option value="${v}"${r.v === v ? " selected" : ""}>${t}</option>`).join("")}
-        </select></div>`).join("")}</div>
+        </select>
+        ${r.sent || ticked || fb ? `<input type="text" class="hwc-fb" maxlength="300" data-hwc-fb="${escapeAttribute(id)}" data-hwc-st="${escapeAttribute(r.sid)}" value="${escapeAttribute(fb)}" placeholder="Feedback – the student sees it in the app" aria-label="Feedback for ${escapeAttribute(llsStudentName(r.st))}">` : ""}</div>`;
+      }).join("")}</div>
     </div>`;
   }).join("");
   const useLesson = () => { llsHomeworkCache = { classId: llsLesson.classId, homework: llsLesson.homework, status: llsLesson.status, files: llsLesson.files || [], fromLesson: true }; };
   box.querySelectorAll("[data-lhw-files]").forEach((b) => b.addEventListener("click", () => { useLesson(); llsOpenHwFiles(b.dataset.lhwFiles); }));
   box.querySelectorAll("[data-lhw-mark]").forEach((b) => b.addEventListener("click", () => { useLesson(); openHomeworkStatusModal(b.dataset.lhwMark); }));
+  box.querySelectorAll("[data-hwc-open]").forEach((b) => b.addEventListener("click", () => llsOpenFile_(b.dataset.hwcOpen)));
+  box.querySelectorAll("[data-hwc-fb]").forEach((inp) => inp.addEventListener("change", () => {
+    const hwId = inp.dataset.hwcFb, sid = inp.dataset.hwcSt, feedback = inp.value.trim();
+    let rec = (llsLesson.status || []).find((r) => String(r["Homework ID"] || "") === hwId && String(r["Student ID"] || "").trim() === sid);
+    if (!rec) { rec = { "Homework ID": hwId, "Student ID": sid }; llsLesson.status.push(rec); }
+    Object.assign(rec, { Status: "Done", Feedback: feedback });
+    llsQueueSave("homework feedback", { action: "markHomeworkFeedback", homeworkId: hwId, studentId: sid, mark: String(rec["Mark"] || ""), feedback });
+    showToast("Feedback saved – the student sees it in the app.", "success");
+  }));
   box.querySelectorAll("[data-hwc]").forEach((sel) => sel.addEventListener("change", () => {
     const hwId = sel.dataset.hwc, sid = sel.dataset.hwcSt, v = sel.value;
     if (!v || v === "done") return;
