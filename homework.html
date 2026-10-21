@@ -479,6 +479,9 @@
     .slides-card b { display: block; font-size: 16px; }
     .slides-card small { display: block; color: #56617a; font-size: 13px; margin-top: 2px; }
     .slides-card .sc-go { margin-left: auto; font-weight: 800; color: #0b5cad; white-space: nowrap; }
+    .remind-note { margin: 6px 0; padding: 6px 10px; border-radius: 10px; background: #fff6cc; border: 2px solid #ffe07a; font-size: 13px; font-weight: 700; color: #7a4a00; }
+    .today-alert { margin: 4px 0 14px; padding: 14px 16px; border-radius: 16px; background: #fff6cc; border: 2px solid #ffe07a; color: #16275c; font-size: 15px; line-height: 1.45; }
+    .today-alert small { display: block; color: #56617a; font-size: 13px; margin-top: 4px; }
     .sv-stu { position: fixed; inset: 0; z-index: 9999; background: #0c142d; display: flex; flex-direction: column; color: #fff; }
     .sv-stu .sv-top { display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
     .sv-stu .sv-top b { flex: 1; font-size: 15px; }
@@ -846,10 +849,11 @@
     function homeworkItems() {
       const classById = {};
       data.classes.forEach((c) => { classById[String(c["Class ID"])] = c; });
-      const statusById = {};
-      data.status.forEach((s) => { statusById[String(s["Homework ID"])] = s["Status"]; });
+      const statusById = {}, remindById = {};
+      data.status.forEach((s) => { statusById[String(s["Homework ID"])] = s["Status"]; if (/^reminder/i.test(String(s["Notes"] || ""))) remindById[String(s["Homework ID"])] = String(s["Notes"]); });
       return data.homework.map((h) => ({
         ...h,
+        reminder: remindById[String(h["Homework ID"])] || "",
         done: statusById[String(h["Homework ID"])] === "Done",
         className: classById[String(h["Class ID"])]?.["Class Name"] || ""
       }));
@@ -1678,6 +1682,21 @@
       document.body.appendChild(box);
       draw();
     }
+    /* 21 Oct (owner): "You have a lesson today at 16:00 – have you completed your homework?" */
+    function lessonTodayHtml() {
+      const now = new Date(), dayName = now.toLocaleDateString("en-GB", { weekday: "long" }).toLowerCase();
+      const hm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+      const slots = [];
+      (data.classes || []).forEach((c) => [[c["Day"], c["Time"]], [c["Day 2"], c["Time 2"]]].forEach(([d, t]) => {
+        if (String(d || "").toLowerCase() === dayName && t) slots.push({ t: String(t).slice(0, 5), name: c["Class Name"] });
+      }));
+      const next = slots.filter((x) => x.t >= hm).sort((a, b) => a.t.localeCompare(b.t))[0];
+      if (!next) return "";
+      const todo = homeworkItems().filter((i) => !i.done).length;
+      return `<div class="today-alert"><b>📅 You have English today at ${esc(next.t)}!</b><br>
+        ${todo ? `Have you done your homework? You've got <b>${todo}</b> to do. · Hai fatto i compiti? Ne hai ancora <b>${todo}</b>.` : `Homework all done – well done! 🎉 · Compiti fatti, bravo/a!`}
+        <small>Oggi hai lezione alle ${esc(next.t)}.</small></div>`;
+    }
     function bindSlides(main) { main.querySelectorAll("[data-slides]").forEach((b) => b.addEventListener("click", openStudentSlides)); }
 
     function renderHomework() {
@@ -1685,7 +1704,7 @@
       const items = homeworkItems();
 
       if (!items.length) {
-        main.innerHTML = slidesCardHtml() + testsHtml() + `<div class="empty" style="margin-top:18px">No homework yet. 🎉<br>Nessun compito per ora.</div>` + extraPracticeHtml();
+        main.innerHTML = lessonTodayHtml() + slidesCardHtml() + testsHtml() + `<div class="empty" style="margin-top:18px">No homework yet. 🎉<br>Nessun compito per ora.</div>` + extraPracticeHtml();
         bindReview(main);
         main.querySelectorAll("[data-test]").forEach((b) => b.addEventListener("click", () => startTeacherTest(b.dataset.test)));
         bindJourney(main);
@@ -1702,6 +1721,7 @@
           <div>
             <p class="title">${esc(i["Title"])}</p>
             ${i.className || i["Assigned Date"] ? `<p class="meta">${[i.className, i["Assigned Date"] ? "Set · Assegnati: " + shortDay(String(i["Assigned Date"]).slice(0, 10)) : ""].filter(Boolean).map(esc).join(" · ")}</p>` : ""}
+            ${!i.done && i.reminder ? `<p class="remind-note">⏰ Your teacher reminds you: please finish it and hand it in! · Il tuo insegnante ti ricorda di finirlo e consegnarlo!</p>` : ""}
             ${dueBadge(i["Due Date"], i.done)}${!i.done && parseDate(i["Due Date"]) ? ` <button type="button" class="cal-one" data-cal-one="${esc(i["Homework ID"])}" title="Add to calendar · Aggiungi al calendario">📅</button>` : ""}
           </div>
           <button class="tick ${i.done ? "is-done" : ""}" type="button"
@@ -1713,7 +1733,7 @@
           ${hwExtraHtml(i)}
         </article>`;
 
-      main.innerHTML = slidesCardHtml() + testsHtml() +
+      main.innerHTML = lessonTodayHtml() + slidesCardHtml() + testsHtml() +
         `<h2>To do · Da fare (${todo.length})</h2>` +
         (todo.length ? todo.map(card_).join("") : `<div class="empty">All done! Well done. 🎉<br>Tutto fatto, bravo/a!</div>`) +
         extraPracticeHtml() +

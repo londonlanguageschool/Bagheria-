@@ -834,3 +834,12 @@ input[type="checkbox"] { border-radius: 4px; }
 .hwc-in.tick { color: #0b5cad; background: #e3f1fd; border-color: #a9d3f5; }
 .hwc-in.no { color: #6b7280; background: #f4f6f9; border-color: #dce2ea; }
 .hwc-fb { flex: 1 1 100%; min-height: 40px; border: 2px solid #cdbff3; border-radius: 10px; padding: 6px 12px; font: inherit; font-size: 14px; }
+
+/* 21 Oct: older homework opens into the full card; reminders */
+.hwo-row > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.hwo-row > summary::-webkit-details-marker { display: none; }
+.hwo-row .hwo-open { margin-left: auto; }
+.hwo-row[open] .hwo-open { visibility: hidden; }
+.hwo-row .hwc { margin-top: 10px; }
+.hwc-in.rem { color: #9a5b00; background: #fff6cc; border-color: #ffe07a; }
+.hwc-remind { border-color: #ffe07a !important; }

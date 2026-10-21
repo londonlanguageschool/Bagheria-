@@ -8704,6 +8704,7 @@ function llsStepNums_() {
 }
 // 16 Oct evening (owner): older homework still open = set BEFORE last lesson, with students who haven't done it
 // or work handed in and not marked yet. Each row: who's missing + Mark button.
+let llsHwOlderOpen_ = {};
 function llsRenderHwOlder_(lastList) {
   const panel = byId("lessonHwOlderPanel"), box = byId("lessonHwOlder");
   if (!panel || !box) return;
@@ -8723,13 +8724,17 @@ function llsRenderHwOlder_(lastList) {
   panel.hidden = !rows.length;
   if (!rows.length) { box.innerHTML = ""; return; }
   const fmt = (iso) => iso ? new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : "";
-  box.innerHTML = rows.map((r) => `<div class="hwo-row">
-      <div class="hwo-t"><b>${escapeHtml(String(r.h["Title"] || "Homework"))}</b> <small>set ${escapeHtml(fmt(setOn(r.h)))}</small>
-        <small>${r.missing.length ? "Not done: " + r.missing.map((st) => escapeHtml(llsStudentName(st))).join(", ") : "Everyone did it"}${r.toMark ? ` · <b>${r.toMark} to mark</b>` : ""}</small></div>
-      <button type="button" class="row-action${r.toMark ? " has-new" : ""}" data-hwo-mark="${escapeAttribute(r.id)}">${r.toMark ? "📥 Mark their work" : "✓ Mark who did it"}</button>
-    </div>`).join("");
-  const useLesson = () => { llsHomeworkCache = { classId: llsLesson.classId, homework: llsLesson.homework, status: llsLesson.status, files: llsLesson.files || [], fromLesson: true }; };
-  box.querySelectorAll("[data-hwo-mark]").forEach((b) => b.addEventListener("click", () => { useLesson(); openHomeworkStatusModal(b.dataset.hwoMark); }));
+  // 21 Oct (owner): mark, see their work and send reminders right here (same card as "Homework for this lesson").
+  const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
+  llsHwOlderOpen_ = llsHwOlderOpen_ || {};
+  box.innerHTML = rows.map((r) => `<details class="hwo-row"${llsHwOlderOpen_[r.id] ? " open" : ""} data-hwo-id="${escapeAttribute(r.id)}">
+      <summary class="hwo-t"><b>${escapeHtml(String(r.h["Title"] || "Homework"))}</b> <small>set ${escapeHtml(fmt(setOn(r.h)))}</small>
+        <small>${r.missing.length ? "Not done: " + r.missing.map((st) => escapeHtml(llsStudentName(st))).join(", ") : "Everyone did it"}${r.toMark ? ` · <b>${r.toMark} to mark</b>` : ""}</small>
+        <span class="row-action hwo-open">Open ›</span></summary>
+      ${llsHwCardHtml_(r.h, { students, cls, from, older: true })}
+    </details>`).join("");
+  box.querySelectorAll("details[data-hwo-id]").forEach((d) => d.addEventListener("toggle", () => { llsHwOlderOpen_[d.dataset.hwoId] = d.open; }));
+  llsBindHwCards_(box);
 }
 function llsRenderHwCheck_() {
   const panel = byId("lessonHwCheckPanel"), box = byId("lessonHwCheck");
@@ -8743,7 +8748,13 @@ function llsRenderHwCheck_() {
   const students = llsStudentsForClass(llsLesson.classId);
   const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
   const from = { files: llsLesson.files || [], status: llsLesson.status || [] };
-  box.innerHTML = list.map((h) => {
+  box.innerHTML = list.map((h) => llsHwCardHtml_(h, { students, cls, from })).join("");
+  llsBindHwCards_(box);
+}
+// 21 Oct: one homework card (who handed it in · open their work · mark · feedback · remind). Used for this lesson's
+// homework AND for older homework still open.
+function llsHwCardHtml_(h, ctx) {
+  const { students, cls, from } = ctx;
     const id = String(h["Homework ID"]);
     const set = String(h["Assigned Date"] || h["Created At"] || "").slice(0, 10);
     const due = String(h["Due Date"] || "").slice(0, 10);
@@ -8763,7 +8774,8 @@ function llsRenderHwCheck_() {
     // 20 Oct (owner): open the lesson → see straight away who handed it in → open their work → give feedback there.
     recs.sort((a, b) => (b.sent ? 2 : b.v ? 1 : 0) - (a.sent ? 2 : a.v ? 1 : 0));
     const done = recs.filter((r) => ["correct", "mistakes", "done"].includes(r.v)).length;
-    return `<div class="hwc">
+    const remind = recs.filter((r) => !r.v || r.v === "not" || r.v === "forgot").filter((r) => !r.sent);
+    return `<div class="hwc${ctx.older ? " hwc-older" : ""}">
       <div class="hwc-head">
         <div class="hwc-title"><b>${escapeHtml(String(h["Title"] || "Homework"))}</b>
           <small>Set ${escapeHtml(fmt(set))}${due ? " · due " + escapeHtml(fmt(due)) : ""} · ${done} of ${recs.length} done</small></div>
@@ -8771,6 +8783,7 @@ function llsRenderHwCheck_() {
           ${f.teacher ? `<button type="button" class="row-action" data-lhw-files="${escapeAttribute(id)}">📎 Show the exercise</button>` : ""}
           ${key ? `<a class="row-action" href="${escapeAttribute(key)}" target="_blank" rel="noopener">🔑 Answer key</a>` : ""}
           ${f.students ? `<button type="button" class="row-action${f.toMark ? " has-new" : ""}" data-lhw-mark="${escapeAttribute(id)}">📥 Their work (${f.students})${f.toMark ? " · " + f.toMark + " to mark" : ""}</button>` : ""}
+          ${remind.length ? `<button type="button" class="row-action hwc-remind" data-hwc-remind="${escapeAttribute(id)}" data-hwc-who="${escapeAttribute(remind.map((r) => r.sid).join(","))}" title="They see a reminder in the app">⏰ Remind (${remind.length})</button>` : ""}
         </div>
       </div>
       ${h["Description"] ? `<p class="hwc-desc">${escapeHtml(String(h["Description"]))}</p>` : ""}
@@ -8780,9 +8793,10 @@ function llsRenderHwCheck_() {
         const state = r.sent ? `<span class="hwc-in in">📥 Handed in${when} · ${r.sent} file${r.sent > 1 ? "s" : ""}</span>`
           : ticked ? `<span class="hwc-in tick">✓ Ticked done in the app${when} (no file)</span>`
           : `<span class="hwc-in no">— Nothing in the app yet</span>`;
+        const rem = /^reminder/i.test(String((r.rec && r.rec["Notes"]) || "")) ? `<span class="hwc-in rem">⏰ ${escapeHtml(String(r.rec["Notes"]).split(" – ")[0])}</span>` : "";
         const fb = String((r.rec && r.rec["Feedback"]) || "");
         return `<div class="hwc-row hwc-row2">
-        <div class="hwc-who"><span class="hwc-name">${escapeHtml(llsStudentName(r.st))}</span>${state}
+        <div class="hwc-who"><span class="hwc-name">${escapeHtml(llsStudentName(r.st))}</span>${state}${rem}
           ${r.work.map((w, k) => `<button type="button" class="row-action hwc-open" data-hwc-open="${escapeAttribute(w.fileId)}">👀 Open${r.work.length > 1 ? " " + (k + 1) : ""}</button>`).join("")}</div>
         <select data-hwc="${escapeAttribute(id)}" data-hwc-st="${escapeAttribute(r.sid)}" class="hwc-sel${r.v ? " set v-" + r.v : ""}" aria-label="${escapeAttribute(llsStudentName(r.st))}: homework">
           ${r.v ? "" : `<option value="" selected>Choose…</option>`}
@@ -8792,7 +8806,22 @@ function llsRenderHwCheck_() {
         ${r.sent || ticked || fb ? `<input type="text" class="hwc-fb" maxlength="300" data-hwc-fb="${escapeAttribute(id)}" data-hwc-st="${escapeAttribute(r.sid)}" value="${escapeAttribute(fb)}" placeholder="Feedback – the student sees it in the app" aria-label="Feedback for ${escapeAttribute(llsStudentName(r.st))}">` : ""}</div>`;
       }).join("")}</div>
     </div>`;
-  }).join("");
+}
+function llsBindHwCards_(box) {
+  const rerender = () => llsRenderHwCheck_();
+  box.querySelectorAll("[data-hwc-remind]").forEach((b) => b.addEventListener("click", () => {
+    const hwId = b.dataset.hwcRemind, sids = String(b.dataset.hwcWho || "").split(",").filter(Boolean);
+    const today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" });
+    const notes = `Reminder ${today} – please finish it and hand it in`;
+    sids.forEach((sid) => {
+      let rec = (llsLesson.status || []).find((r) => String(r["Homework ID"] || "") === hwId && String(r["Student ID"] || "").trim() === sid);
+      if (!rec) { rec = { "Homework ID": hwId, "Student ID": sid }; llsLesson.status.push(rec); }
+      Object.assign(rec, { Status: "Not started", Notes: notes });
+      llsQueueSave("homework reminder", { action: "markHomeworkStatus", homeworkId: hwId, studentId: sid, status: "Not started", notes });
+    });
+    showToast(`Reminder sent to ${sids.length} student${sids.length > 1 ? "s" : ""} – they see it in the app.`, "success");
+    rerender();
+  }));
   const useLesson = () => { llsHomeworkCache = { classId: llsLesson.classId, homework: llsLesson.homework, status: llsLesson.status, files: llsLesson.files || [], fromLesson: true }; };
   box.querySelectorAll("[data-lhw-files]").forEach((b) => b.addEventListener("click", () => { useLesson(); llsOpenHwFiles(b.dataset.lhwFiles); }));
   box.querySelectorAll("[data-lhw-mark]").forEach((b) => b.addEventListener("click", () => { useLesson(); openHomeworkStatusModal(b.dataset.lhwMark); }));
@@ -8819,7 +8848,7 @@ function llsRenderHwCheck_() {
       Object.assign(rec, { Status: "Not started", Notes: notes });
       llsQueueSave("homework ticks", { action: "markHomeworkStatus", homeworkId: hwId, studentId: sid, status: "Not started", notes });
     }
-    llsRenderHwCheck_();
+    rerender();
   }));
 }
 
@@ -11148,6 +11177,9 @@ function llsRenderPlanPanel() {
   const marks = llsPlansDoneMap_(cls);
   Object.entries(marks).forEach(([code, m]) => { if (!taught[code]) taught[code] = [{ date: m.date || "", teacher: m.who || "", earlier: true, skip: m.kind === "skip", reason: m.reason || "" }]; });
   const partial = llsPlanPartial_(taught);
+  // 21 Oct (owner): "I finished the last slides in 10 minutes, then started the next lesson" – a lesson marked done
+  // on/after the day it was stopped is finished, not partial.
+  Object.keys(partial).forEach((code) => { const m = marks[code]; if (m && m.kind === "done" && String(m.date || "") >= String(partial[code].date || "")) delete partial[code]; });
   Object.keys(partial).forEach((code) => { delete taught[code]; });
   const todayCode = llsPlanCode_(value("lessonUnitPage"));
   const day = llsDayInfo_();
@@ -11241,6 +11273,11 @@ function llsRenderPlanPanel() {
       ${ovb ? `<button type="button" class="button button-primary" data-view-deck="${escapeAttribute(ovb)}" data-view-title="${escapeAttribute(opPlan.id + " " + opPlan.title)}"${part && part.kind !== "page" && opPlan.id === next.id ? ` data-view-stop="${part.slide}"` : ""}>▶ Open the slides${part && part.kind !== "page" && opPlan.id === next.id ? " (from slide " + part.slide + ")" : ""}</button>` : ""}
       ${om.slides ? `<a class="button button-secondary" href="${escapeAttribute(om.slides)}" target="_blank" rel="noopener">⬇ Download PowerPoint</a>` : ""}
     </div>
+    ${part && after && opPlan.id === next.id ? `<div class="start-open start-then">
+      <span class="start-k">Then (if you finish early): ${escapeHtml(after.id)} ${escapeHtml(after.title)}:</span>
+      ${llsDeckBase_(after) ? `<button type="button" class="button button-secondary" data-view-deck="${escapeAttribute(llsDeckBase_(after))}" data-view-title="${escapeAttribute(after.id + " " + after.title)}">▶ Open the next slides</button>` : ""}
+      ${llsPlanUrl_(after, "file") ? `<a class="button button-secondary" href="${escapeAttribute(llsPlanUrl_(after, "file"))}" target="_blank" rel="noopener">⬇ Download</a>` : ""}
+    </div>` : ""}
     ${moreLinks || llsPlanUrl_(opPlan, "file") ? `<details class="start-more"><summary>Homework sheet, answer key${llsPlanUrl_(opPlan, "file") ? ", how to play the audio" : ""}</summary><div class="start-more-links">${moreLinks}</div>${llsPlanUrl_(opPlan, "file") ? llsPlanAudioTip_(cls, opPlan) : ""}</details>` : ""}`
     : (sel === "choice" || sel === "special") ? `<p class="muted" style="margin:8px 0 0">Your own / special lesson: describe it at the end of the lesson.</p>` : "";
   chBox?.querySelectorAll("[data-chg]").forEach((b) => b.addEventListener("click", () => {
@@ -11259,6 +11296,7 @@ function llsRenderPlanPanel() {
           <select id="planFinSel">
             <option value="yes"${stopOn ? "" : " selected"}>Yes, all of it</option>
             <option value="stop"${stopOn ? " selected" : ""}>No, we stopped at…</option>
+            ${sel === "plan" && part && after ? `<option value="both">Yes – and we started the next lesson (${escapeHtml(after.id)})</option>` : ""}
           </select>
           <input id="planStopSlide" type="number" min="1" max="400" inputmode="numeric" placeholder="e.g. 14" aria-label="Number where you stopped" value="${stopN || ""}"${stopOn ? "" : " hidden"}>
           <select id="planStopKind" aria-label="Slide or page"${stopOn ? "" : " hidden"}><option value="slide"${stopKind === "slide" ? " selected" : ""}>slide</option><option value="page"${stopKind === "page" ? " selected" : ""}>page (book)</option></select>
@@ -11283,6 +11321,20 @@ function llsRenderPlanPanel() {
       <p class="plan-report">Mistake in a lesson? <a href="#" data-report-lesson="${escapeAttribute((feat ? feat.id + " " + feat.title : "") + " · " + name)}">⚠ Report a problem</a> (lesson, slide number, what's wrong).</p>
     </details>`;
   byId("planFinSel")?.addEventListener("change", (e) => {
+    if (e.target.value === "both" && part && after) {
+      // finished the old lesson today → mark it done; today's lesson becomes the next one
+      const m = llsPlansDoneMap_(cls);
+      m[next.id] = { kind: "done", date, who: (llsMyNames ? [...(llsMyNames() || [])][0] : "") || "" };
+      if (!llsPlansDoneSave_(cls, m)) return;
+      llsPlanAutoKey_ = "manual"; llsPlanPick = "";
+      setValue("lessonProgress", ""); setValue("lessonStopSlide", "");
+      llsApplyPlan_(after);
+      setValue("lessonDone", (`Finished ${next.id} first. ` + (value("lessonDone") || "")).trim());
+      llsLesson.noteTouched = true;
+      llsRenderPlanPanel();
+      showToast(`${next.id} saved as finished. Today's lesson is now ${after.id} – did you finish it?`, "success");
+      return;
+    }
     const stop = e.target.value === "stop";
     setValue("lessonProgress", stop ? "stop" : "");
     if (!stop) setValue("lessonStopSlide", "");
