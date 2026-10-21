@@ -15,6 +15,7 @@ window.LLS_PLANS = {
   "Red_Elementary/EFE_2B_Made_in_America.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2B_Made_in_America.pptx?v=20261021b",
   "Kitchen_English_Chefs/Chef_L01_Welcome_to_the_kitchen.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/CHEF/Chef_L01_Welcome_to_the_kitchen.pptx?v=20261021b",
   "Prepare/PREP_1A_All_about_me.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/PREP/PREP_1A_All_about_me.pptx?v=20261021b",
+  "Prepare/PREP_1B_All_about_me_2.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/PREP/PREP_1B_All_about_me_2.pptx?v=20261021c",
   "Kitchen_English_Chefs/Chef_L02_Kitchen_equipment.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/CHEF/Chef_L02_Kitchen_equipment.pptx?v=20261021b",
   "Kitchen_English_Chefs/Chef_L03_Ingredients_and_stock.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/CHEF/Chef_L03_Ingredients_and_stock.pptx?v=20261021b",
   "Kitchen_English_Chefs/Chef_L04_Kitchen_commands.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/CHEF/Chef_L04_Kitchen_commands.pptx?v=20261021b",
@@ -2029,7 +2030,8 @@ window.LLS_PLANS = {
    }
   ],
   "PREP": [
-   {"id": "1A", "unit": 1, "title": "All about me", "focus": "describing people • personality adjectives • online profiles (all.about.me) • B1 Preliminary Reading Part 6", "pages": "SB pp.10–11 · WB pp.4–5", "slides": 17, "file": "Prepare/PREP_1A_All_about_me.pptx", "skills": {"Vocabulary": "describing people: looks + personality adjectives and opposites", "Reading": "all.about.me: three online profiles · open cloze", "Speaking": "Who is it? · Guess who! · Talking points", "Games & songs": "30-second word race · Opposites ping-pong"}}
+   {"id": "1A", "unit": 1, "title": "All about me", "focus": "describing people • personality adjectives • online profiles (all.about.me) • B1 Preliminary Reading Part 6", "pages": "SB pp.10–11 · WB pp.4–5", "slides": 17, "file": "Prepare/PREP_1A_All_about_me.pptx", "skills": {"Vocabulary": "describing people: looks + personality adjectives and opposites", "Reading": "all.about.me: three online profiles · open cloze", "Speaking": "Who is it? · Guess who! · Talking points", "Games & songs": "30-second word race · Opposites ping-pong"}},
+   {"id": "1B", "unit": 1, "title": "All about me (2)", "focus": "present simple and continuous • stative verbs • prefixes un-, in-, im- • writing an online profile", "pages": "SB pp.12–13 · WB pp.6–7", "slides": 18, "file": "Prepare/PREP_1B_All_about_me_2.pptx", "homework": "Workbook p.6: grammar 1–4 and vocabulary 1–3 · Write your online profile (about 80 words, WB p.7 helps)", "skills": {"Grammar": "present simple and continuous · time words · stative verbs", "Vocabulary": "opposites with un-, in-, im-", "Writing": "an online profile: Prepare to write phrases, adverbs quite/very/a bit", "Games & songs": "Who wrote it? · Quick choice!"}}
   ],
   "CHEF": [
    {
