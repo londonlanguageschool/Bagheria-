@@ -157,6 +157,10 @@ window.LLS_DECK_HW = {
   "1B": [
    "Workbook p.6: grammar 1–4 and vocabulary 1–3",
    "Write your online profile (about 80 words)"
+  ],
+  "2A": [
+   "Workbook p.8: exercises 1–4 (clothes adjectives)",
+   "Workbook p.9: read 'What do you think about shoes?', exercises 1–4"
   ]
  },
  "EF-A1A2": {
