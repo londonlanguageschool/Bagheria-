@@ -161,6 +161,10 @@ window.LLS_DECK_HW = {
   "2A": [
    "Workbook p.8: exercises 1–4 (clothes adjectives)",
    "Workbook p.9: read 'What do you think about shoes?', exercises 1–4"
+  ],
+  "2B": [
+   "Workbook p.10: grammar exercises 1–5 (past simple)",
+   "Workbook p.11: vocabulary exercises 1–2 (adverbs)"
   ]
  },
  "EF-A1A2": {
