@@ -390,6 +390,20 @@
     .road-wrap .j-book { margin: 8px 14px 0; }
     .road-svg { display: block; width: 100%; height: auto; }
     .road-svg text { font-family: var(--display); }
+    /* 21 Oct: road map v3 (owner's "Kitchen English" sketch) */
+    .road-wrap.rd3 { background: #fff8ec; border: 2px solid #f3e7d1; padding: 10px 4px 4px; overflow: hidden; }
+    .rd-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 2px 10px 0; }
+    .rd-title { margin: 0; font-family: var(--display); font-weight: 800; font-size: 19px; color: #16275c; line-height: 1.15; }
+    .rd-sub { margin: 2px 0 0; font-size: 12px; font-weight: 700; color: #56617a; }
+    .rd-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .rd-meta span { background: #fff; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 800; color: #16275c; }
+    .rd-key { display: flex; flex-direction: column; gap: 3px; font-size: 10.5px; font-weight: 700; color: #16275c; white-space: nowrap; padding-top: 2px; }
+    .rd-key i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+    .rd-key .k-pin { border: 2px solid #f2a3c4; background: #fff; }
+    .rd-key .k-cp { background: #18a86b; }
+    .cp-pulse { animation: cpPulse 1.6s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+    @keyframes cpPulse { 0%, 100% { opacity: .9; } 50% { opacity: .2; } }
+    @media (prefers-reduced-motion: reduce) { .cp-pulse { animation: none; } }
     .glance { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 14px 0 4px; }
     .g-tile { border-radius: 16px; padding: 10px 8px; text-align: center; background: var(--sky-soft); }
     .g-tile:nth-child(3n+2) { background: var(--butter-soft); }
@@ -1218,116 +1232,193 @@
       return (data.attendance || []).filter((a) => a.status === "Present" || a.status === "Late");
     }
 
+    /* 21 Oct (owner, from his "Kitchen English" sketch): road map v3 – cream card, a winding road,
+       one round pin per unit/lesson with a small icon and a badge (U1 / L1), coloured section flags,
+       green checkpoint flags ON the road between sections, and a sun at the finish. */
+    const ROAD_TONES = [
+      { line: "#f2a3c4", soft: "#fde3ee", flag: "#f7b3cf" },
+      { line: "#8cc4ee", soft: "#e0f0fc", flag: "#a9d4f5" },
+      { line: "#f2cf5b", soft: "#fdf1c7", flag: "#ffd966" },
+      { line: "#86d3a2", soft: "#dcf5e5", flag: "#8fd9a8" }
+    ];
+    // Courses without practice sets still get a road (lessons from the course plan).
+    const SIMPLE_ROADS = {
+      CHEF: { title: "Kitchen English", level: "A2", badge: "L", goal: "Ready for service!", goalIcon: "👨‍🍳", sections: [
+        ["My kitchen", [["Meet the team", "👥"], ["Name the tools", "🍳"], ["Check a delivery", "🧺"]]],
+        ["Prep & cook", [["Follow commands", "🔪"], ["Explain a recipe", "🔥"], ["Weights & times", "⏱️"]]],
+        ["Safe kitchen", [["Safety rules", "🛡️"], ["Allergen questions", "⚠️"]]],
+        ["Service!", [["Talk at the pass", "🛎️"], ["Tell your shift", "⭐"]]]] },
+      PREP: { title: "Prepare B1 Preliminary", level: "B1", badge: "U", goal: "Ready for the exam!", goalIcon: "🎓", sections: [
+        ["Me and my style", [["All about me", "🙂"], ["In fashion", "👕"], ["Unit 3", ""]]],
+        ["Units 4–6", [["Unit 4", ""], ["Unit 5", ""], ["Unit 6", ""]]],
+        ["Units 7–9", [["Unit 7", ""], ["Unit 8", ""], ["Unit 9", ""]]],
+        ["Units 10–12", [["Unit 10", ""], ["Unit 11", ""], ["Unit 12", ""]]]] }
+    };
+    const UNIT_ICONS = [[/food|cook|eat|restaurant|kitchen/i, "🍳"], [/money|spend|shopping|buy/i, "🛍️"], [/transport|drive|travel|holiday|trip/i, "🚗"], [/famil|relationship|met\b|people|personality|friend/i, "👪"],
+      [/phone|digital|device|technolog|internet/i, "📱"], [/sport|superstition|fit/i, "⚽"], [/cinema|film|picture|scene|story|murder|crime/i, "🎬"], [/body|health|doctor/i, "🩺"], [/learn|education|school/i, "🎓"], [/house|home|hotel/i, "🏠"],
+      [/job|work/i, "💼"], [/cloth|fashion/i, "👕"], [/music|song|idol|icon/i, "🎵"], [/weather|nature|animal|world/i, "🌍"], [/time|lucky|encounter/i, "🍀"], [/manners|can\b|ability/i, "✋"]];
+    function unitIcon(text) { const m = UNIT_ICONS.find(([re]) => re.test(text || "")); return m ? m[1] : ""; }
+
     function roadStopsForBook(book) {
       const course = COURSES[book.id];
       const range = PRACTICE.parseUnits(book.id, book.units);
       const cur = Number(book.current) || 0;
       const res = resultsById();
-      const stops = [{ kind: "start", label: "START" }];
+      const stops = [];
+      const blocks = (course.reviews || []).filter((b) => b[1] >= range.from && b[0] <= range.to);
       for (let n = range.from; n <= range.to; n++) {
+        const bi = blocks.findIndex((b) => b[0] <= n && n <= b[1]);
+        const sec = bi < 0 ? 0 : bi;
+        const startsSection = bi >= 0 && (blocks[bi][0] === n || n === range.from);
+        const lesson = course.lessons.find((l) => l.unit === n);
+        const pic = course.practice === false && course.emoji ? course.emoji[n] : unitIcon(lesson ? lesson.title + " " + lesson.vocab : "");
+        stops.push({ kind: "stop", label: lesson ? lesson.title : `Unit ${n}`, badge: `U${n}`, mark: pic || String(n), state: cur && n < cur ? "done" : n === cur ? "now" : "next", sec,
+          section: startsSection ? (blocks.length > 1 ? `Units ${Math.max(blocks[bi][0], range.from)}–${Math.min(blocks[bi][1], range.to)}` : "") : "" });
         const flags = [];
         (course.reviews || []).forEach((b, i) => { if (b[1] === n && b[0] >= range.from) flags.push({ t: "r", id: `${book.id}-R${i + 1}` }); });
         (course.tests || []).forEach((b, i) => { if (b[1] === n && b[0] >= range.from && b[1] <= range.to) flags.push({ t: "t", id: `${book.id}-T${i + 1}` }); });
-        const icons = flags.map((f) => {
-          const r = res[f.id];
-          const won = f.t === "t" ? Boolean(r) : passed(r);
-          return won ? "⭐" : (!cur || cur >= n) ? (f.t === "t" ? "🏁" : "🔁") : "🔒";
-        }).join("");
-        // 1 Oct: picture books (Power Up) show the unit's name and a picture.
-        const lesson = course.practice === false ? course.lessons.find((l) => l.unit === n) : null;
-        const pic = lesson && course.emoji ? course.emoji[n] : "";
-        stops.push({ kind: "stop", label: lesson ? lesson.title : `Unit ${n}`, mark: pic || String(n), state: cur && n < cur ? "done" : n === cur ? "now" : "next", icons, practice: flags.length > 0 });
+        if (flags.length) {
+          const won = flags.every((f) => f.t === "t" ? Boolean(res[f.id]) : passed(res[f.id]));
+          const open = !cur || cur >= n;
+          stops.push({ kind: "check", state: won ? "won" : open ? "open" : "locked", sec, practice: true,
+            label: flags.map((f) => f.t === "t" ? "Mini test" : "Review").join(" + ") });
+        }
       }
       const exam = /exam/i.test(book.className || "");
-      stops.push({ kind: "goal", label: exam ? "EXAM 🎓" : "GOAL 🏆", state: cur > range.to ? "done" : "next" });
-      return { title: `${(COURSES[book.id] || {}).title || book.id} · ${book.className || ""}`, stops };
+      stops.push({ kind: "goal", label: exam ? "Ready for the exam!" : "Goal reached!", icon: exam ? "🎓" : "🏆", state: cur > range.to ? "done" : "next" });
+      const units = range.to - range.from + 1, checks = stops.filter((s) => s.kind === "check").length;
+      return { title: (COURSES[book.id] || {}).title || book.id, sub: book.className || "", meta: [course.level || "", `${units} units`, checks ? `${checks} checkpoints` : ""], stops };
+    }
+
+    function roadStopsForSimple(id, c) {
+      const R = SIMPLE_ROADS[id];
+      const cur = Number(c["Current Unit"]) || 0;
+      const stops = [];
+      let n = 0;
+      R.sections.forEach(([name, items], si) => {
+        items.forEach(([label, icon], k) => {
+          n++;
+          stops.push({ kind: "stop", label, badge: R.badge + n, mark: icon || String(n), state: cur && n < cur ? "done" : n === cur ? "now" : "next", sec: si, section: k === 0 ? name : "" });
+        });
+        stops.push({ kind: "check", state: cur > n ? "won" : "locked", sec: si, label: "Checkpoint" });
+      });
+      stops.push({ kind: "goal", label: R.goal, icon: R.goalIcon, state: cur > n ? "done" : "next" });
+      return { title: R.title, sub: c["Class Name"] || "", meta: [R.level, `${n} ${R.badge === "L" ? "lessons" : "units"}`, `${R.sections.length} checkpoints`], stops };
     }
 
     function roadStopsForYear() {
-      // Classes without a book: the school year, Sept 2026 → May 2027.
-      const months = [["2026-10", "Oct"], ["2026-11", "Nov"], ["2026-12", "Dec"], ["2027-01", "Jan"], ["2027-02", "Feb"], ["2027-03", "Mar"], ["2027-04", "Apr"], ["2027-05", "May"]];
+      // Classes without a book: the school year, Oct 2026 → May 2027, in three terms.
+      const months = [["2026-10", "October", 0], ["2026-11", "November", 0], ["2026-12", "December", 0], ["2027-01", "January", 1], ["2027-02", "February", 1], ["2027-03", "March", 1], ["2027-04", "April", 2], ["2027-05", "May", 2]];
+      const terms = ["Autumn", "Winter", "Spring"], icons = ["🎃", "🍂", "🎄", "❄️", "⛄", "🌱", "🌷", "☀️"];
       const nowKey = isoDay(new Date().toISOString().slice(0, 10)).slice(0, 7);
       const perMonth = {};
       attendedMarks().forEach((a) => { const k = String(a.lessonDate || "").slice(0, 7); perMonth[k] = (perMonth[k] || 0) + 1; });
-      const stops = [{ kind: "start", label: "START", sub: "28 Sept" }];
-      months.forEach(([k, label]) => {
+      const stops = [];
+      months.forEach(([k, label, t], i) => {
         const state = k < nowKey ? "done" : k === nowKey ? "now" : "next";
-        stops.push({ kind: "stop", label, mark: label.slice(0, 1), state, icons: perMonth[k] ? `${perMonth[k]}✓` : "" });
+        stops.push({ kind: "stop", label, badge: perMonth[k] ? `${perMonth[k]}✓` : label.slice(0, 3), mark: icons[i], state, sec: t, section: i === 0 || months[i - 1][2] !== t ? terms[t] : "" });
+        if (i === months.length - 1 || months[i + 1][2] !== t) stops.push({ kind: "check", state: k < nowKey ? "won" : "locked", sec: t, label: "End of term" });
       });
-      if (nowKey < "2026-10") stops[0].state = "now";
-      stops.push({ kind: "goal", label: "GOAL 🏆", state: nowKey > "2027-05" ? "done" : "next" });
+      stops.push({ kind: "goal", label: "Summer – well done!", icon: "🏆", state: nowKey > "2027-05" ? "done" : "next" });
       const name = (data.classes[0] || {})["Class Name"] || "";
-      return { title: `School year 2026/27 · Anno scolastico${name ? " · " + name : ""}`, stops };
-    }
-
-    function roadSvg(road) {
-      const PER = 4, W = 340, TOP = 50, ROW = 96, xs = [52, 132, 212, 292];
-      const rows = Math.ceil(road.stops.length / PER);
-      const H = TOP + (rows - 1) * ROW + 58;
-      const pos = road.stops.map((s, i) => {
-        const r = Math.floor(i / PER), c = i % PER;
-        return { x: r % 2 ? xs[PER - 1 - c] : xs[c], y: TOP + r * ROW };
-      });
-      // One continuous road: straight rows joined by U-turns at the ends.
-      let d = `M ${r0x(0)} ${TOP}`;
-      function r0x(r) { return r % 2 ? 318 : 22; }
-      for (let r = 0; r < rows; r++) {
-        const y = TOP + r * ROW;
-        const endX = r % 2 ? 22 : 318;
-        const lastRow = r === rows - 1;
-        if (lastRow) {
-          const lastIdx = road.stops.length - 1;
-          d += ` L ${pos[lastIdx].x + (r % 2 ? -26 : 26)} ${y}`;
-        } else {
-          d += ` L ${endX} ${y} A 20 ${ROW / 2} 0 0 ${r % 2 ? 0 : 1} ${endX} ${y + ROW}`;
-        }
-      }
-      const nowIdx = road.stops.findIndex((s) => s.state === "now");
-      const parts = road.stops.map((s, i) => {
-        const { x, y } = pos[i];
-        if (s.kind === "start" || s.kind === "goal") {
-          const w = s.kind === "goal" ? 74 : 58;
-          const fill = s.kind === "goal" ? (s.state === "done" ? "#18a86b" : "#ea2a2a") : "#16275c";
-          return `<g><rect x="${x - w / 2}" y="${y - 15}" width="${w}" height="30" rx="9" fill="${fill}"/>` +
-            `<path d="M ${x - 5} ${y + 15} L ${x} ${y + 22} L ${x + 5} ${y + 15} Z" fill="${fill}"/>` +
-            `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">${esc(s.label)}</text>` +
-            (s.sub ? `<text x="${x}" y="${y + 38}" text-anchor="middle" font-size="10" font-weight="700" fill="#56617a">${esc(s.sub)}</text>` : "") + `</g>`;
-        }
-        const st = s.state;
-        const circle = st === "done"
-          ? `<circle cx="${x}" cy="${y}" r="15" fill="#dff5e9" stroke="#18a86b" stroke-width="2.5"/><text x="${x}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="800" fill="#18a86b">★</text>`
-          : st === "now"
-            ? `<circle cx="${x}" cy="${y}" r="18" fill="#ffd23f" stroke="#16275c" stroke-width="3"/><text x="${x}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="800" fill="#0f1b3d">${esc(s.mark)}</text>`
-            : `<circle cx="${x}" cy="${y}" r="15" fill="#ffffff" stroke="#9fc4ea" stroke-width="2" stroke-dasharray="4 3"/><text x="${x}" y="${y + 5}" text-anchor="middle" font-size="13" font-weight="800" fill="#7b8aa8">${esc(s.mark)}</text>`;
-        // 1 Oct: long unit names (Power Up) wrap onto two lines.
-        let lines = [s.label];
-        if (s.label.length > 11 && s.label.includes(" ")) {
-          const w = s.label.split(" ");
-          let best = 1, diff = 1e9;
-          for (let i = 1; i < w.length; i++) { const d = Math.abs(w.slice(0, i).join(" ").length - w.slice(i).join(" ").length); if (d < diff) { diff = d; best = i; } }
-          lines = [w.slice(0, best).join(" "), w.slice(best).join(" ")];
-        }
-        const label = `<text x="${x}" y="${y + 34}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${st === "now" ? "#16275c" : "#56617a"}">${lines.map((t, i) => `<tspan x="${x}" dy="${i ? 12 : 0}">${esc(t)}</tspan>`).join("")}</text>`;
-        const icons = s.icons ? `<text x="${x + 17}" y="${y - 13}" font-size="12" font-weight="800" fill="#18a86b">${esc(s.icons)}</text>` : "";
-        const tap = s.practice ? ` data-journey-practice style="cursor:pointer"` : "";
-        return `<g${tap}>${circle}${label}${icons}</g>`;
-      }).join("");
-      const walker = nowIdx >= 0 ? `<g class="walker"><circle cx="${pos[nowIdx].x}" cy="${pos[nowIdx].y - 34}" r="14" fill="#fff" stroke="#ffd23f" stroke-width="3"/><text x="${pos[nowIdx].x}" y="${pos[nowIdx].y - 28}" text-anchor="middle" font-size="16">🧑‍🎓</text></g>` : "";
-      const doneCount = road.stops.filter((s) => s.state === "done").length;
-      const aria = `Road map: ${doneCount} of ${road.stops.length} stops done` + (nowIdx >= 0 ? `, you are at ${road.stops[nowIdx].label}` : "");
-      return `<div class="road-wrap"><p class="j-book">${esc(road.title)}</p>
-        <svg class="road-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria)}">
-          <path d="${d}" fill="none" stroke="#c9dcf2" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="${d}" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-dasharray="8 8" stroke-linecap="round"/>
-          ${parts}${walker}
-        </svg></div>`;
+      return { title: "School year 2026/27", sub: name, meta: ["Oct → May", "3 terms"], stops };
     }
 
     function roadHtml() {
       const books = myBooks();
-      if (books.length && PRACTICE) return books.map((b) => roadSvg(roadStopsForBook(b))).join("");
+      const simple = [];
+      const seen = {};
+      data.classes.forEach((c) => { const id = String(c["Book"] || "").trim(); if (SIMPLE_ROADS[id] && !seen[id]) { seen[id] = 1; simple.push(roadSvg(roadStopsForSimple(id, c))); } });
+      if ((books.length && PRACTICE) || simple.length) return books.map((b) => roadSvg(roadStopsForBook(b))).join("") + simple.join("");
       if (!data.classes.length) return "";
       return roadSvg(roadStopsForYear());
+    }
+
+    function roadSvg(road) {
+      const PER = 4, W = 340, TOP = 74, ROW = 122, xs = [44, 126, 214, 296];
+      const st = road.stops;
+      const rows = Math.ceil(st.length / PER);
+      const H = TOP + (rows - 1) * ROW + 70;
+      const pos = st.map((s, i) => {
+        const r = Math.floor(i / PER), c = i % PER;
+        return { x: r % 2 ? xs[PER - 1 - c] : xs[c], y: TOP + r * ROW };
+      });
+      // One continuous road: straight rows joined by U-turns at the ends.
+      let d = `M 14 ${TOP}`;
+      for (let r = 0; r < rows; r++) {
+        const y = TOP + r * ROW, endX = r % 2 ? 22 : 318;
+        if (r === rows - 1) d += ` L ${pos[st.length - 1].x + (r % 2 ? -30 : 30)} ${y}`;
+        else d += ` L ${endX} ${y} A 24 ${ROW / 2} 0 0 ${r % 2 ? 0 : 1} ${endX} ${y + ROW}`;
+      }
+      const T = (i) => ROAD_TONES[(st[i].sec || 0) % ROAD_TONES.length];
+      const wrap = (label, max) => {
+        if (label.length <= max || !label.includes(" ")) return [label];
+        const w = label.split(" ");
+        let best = 1, diff = 1e9;
+        for (let i = 1; i < w.length; i++) { const dd = Math.abs(w.slice(0, i).join(" ").length - w.slice(i).join(" ").length); if (dd < diff) { diff = dd; best = i; } }
+        return [w.slice(0, best).join(" "), w.slice(best).join(" ")];
+      };
+      const nowIdx = st.findIndex((s) => s.state === "now");
+      let secNo = 0;
+      const flagsSvg = [], pinsSvg = [];
+      st.forEach((s, i) => {
+        const { x, y } = pos[i];
+        if (s.section) { // coloured section flag on a pole above the first stop of the section
+          secNo++;
+          const tone = T(i), text = s.section, w = Math.min(150, 34 + text.length * 6.6);
+          const fx = Math.max(4, Math.min(W - w - 8, x - 10)), fy = y - 58;
+          flagsSvg.push(`<g><line x1="${x - 4}" y1="${fy + 20}" x2="${x - 4}" y2="${y - 24}" stroke="#16275c" stroke-width="3" stroke-linecap="round"/>` +
+            `<path d="M ${fx} ${fy} H ${fx + w} L ${fx + w + 8} ${fy + 11} L ${fx + w} ${fy + 22} H ${fx} Z" fill="${tone.flag}"/>` +
+            `<circle cx="${fx + 13}" cy="${fy + 11}" r="7.5" fill="#fff"/><text x="${fx + 13}" y="${fy + 14.5}" text-anchor="middle" font-size="10" font-weight="800" fill="#16275c">${secNo}</text>` +
+            `<text x="${fx + 26}" y="${fy + 15.5}" font-size="12.5" font-weight="800" fill="#16275c">${esc(text)}</text></g>`);
+        }
+        if (s.kind === "check") {
+          const fill = s.state === "won" ? "#18a86b" : s.state === "open" ? "#18a86b" : "#c4ccd8";
+          const inner = s.state === "won"
+            ? `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="13" fill="#ffd23f">★</text>`
+            : `<path d="M ${x - 4} ${y + 7} V ${y - 7} H ${x + 5} L ${x + 3} ${y - 3.5} L ${x + 5} ${y} H ${x - 4}" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/>`;
+          const tap = s.practice ? ` data-journey-practice style="cursor:pointer"` : "";
+          pinsSvg.push(`<g${tap}><title>${esc(s.label)}</title><circle cx="${x}" cy="${y + 2}" r="14" fill="#0f6e45" opacity=".35"/><circle cx="${x}" cy="${y}" r="14" fill="${fill}" stroke="#fff" stroke-width="2.5"/>${inner}` +
+            (s.state === "open" ? `<circle cx="${x}" cy="${y}" r="19" fill="none" stroke="#18a86b" stroke-width="2" stroke-dasharray="3 4" class="cp-pulse"/>` : "") + `</g>`);
+          return;
+        }
+        if (s.kind === "goal") {
+          const pts = [];
+          for (let k = 0; k < 24; k++) { const r = k % 2 ? 19 : 25, a = (Math.PI * 2 * k) / 24; pts.push(`${(x + r * Math.cos(a)).toFixed(1)},${(y + r * Math.sin(a)).toFixed(1)}`); }
+          const lines = wrap(s.label, 12);
+          pinsSvg.push(`<g><polygon points="${pts.join(" ")}" fill="${s.state === "done" ? "#ffd23f" : "#ffe27a"}"/><circle cx="${x}" cy="${y}" r="16" fill="#fff"/>` +
+            `<text x="${x}" y="${y + 6}" text-anchor="middle" font-size="16">${s.icon || "🏆"}</text>` +
+            `<text x="${x}" y="${y + 42}" text-anchor="middle" font-size="12" font-weight="800" fill="#16275c">${lines.map((t, k) => `<tspan x="${x}" dy="${k ? 13 : 0}">${esc(t)}</tspan>`).join("")}</text></g>`);
+          return;
+        }
+        const tone = T(i), done = s.state === "done", now = s.state === "now";
+        const r = now ? 20 : 17;
+        const lines = wrap(s.label, 12);
+        const isEmoji = s.mark && !/^\d+$/.test(s.mark);
+        pinsSvg.push(`<g>` +
+          (now ? `<circle cx="${x}" cy="${y}" r="${r + 6}" fill="#ffd23f" opacity=".45"/>` : "") +
+          `<circle cx="${x}" cy="${y}" r="${r}" fill="${done ? tone.soft : "#fff"}" stroke="${tone.line}" stroke-width="${now ? 4 : 3}"${s.state === "next" ? ` stroke-opacity=".65"` : ""}/>` +
+          `<text x="${x}" y="${y + (isEmoji ? 5.5 : 5)}" text-anchor="middle" font-size="${isEmoji ? 15 : 14}" font-weight="800" fill="#16275c"${s.state === "next" ? ` opacity=".55"` : ""}>${esc(s.mark)}</text>` +
+          `<rect x="${x + 6}" y="${y - r - 7}" width="${Math.max(20, String(s.badge).length * 6.5 + 8)}" height="14" rx="7" fill="${tone.flag}" stroke="#fff" stroke-width="1.5"/>` +
+          `<text x="${x + 6 + Math.max(20, String(s.badge).length * 6.5 + 8) / 2}" y="${y - r + 3.5}" text-anchor="middle" font-size="9" font-weight="800" fill="#16275c">${esc(s.badge)}</text>` +
+          (done ? `<circle cx="${x - r + 3}" cy="${y + r - 3}" r="7" fill="#18a86b" stroke="#fff" stroke-width="1.5"/><text x="${x - r + 3}" y="${y + r}" text-anchor="middle" font-size="8.5" font-weight="800" fill="#fff">✓</text>` : "") +
+          (now ? `<text x="${x + r - 2}" y="${y + r + 2}" text-anchor="middle" font-size="14">🧑‍🎓</text>` : "") +
+          `<text x="${x}" y="${y + r + 16}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${now ? "#16275c" : "#3d4a66"}">${lines.map((t, k) => `<tspan x="${x}" dy="${k ? 12 : 0}">${esc(t)}</tspan>`).join("")}</text></g>`);
+      });
+      const doneCount = st.filter((s) => s.state === "done" || s.state === "won").length;
+      const aria = `Road map: ${doneCount} of ${st.length} stops done` + (nowIdx >= 0 ? `, you are at ${st[nowIdx].label}` : "");
+      const meta = (road.meta || []).filter(Boolean);
+      return `<div class="road-wrap rd3">
+        <div class="rd-head"><div><p class="rd-title">${esc(road.title)}</p>${road.sub ? `<p class="rd-sub">${esc(road.sub)}</p>` : ""}
+          ${meta.length ? `<div class="rd-meta">${meta.map((m) => `<span>${esc(m)}</span>`).join("")}</div>` : ""}</div>
+          <div class="rd-key"><span><i class="k-pin"></i>Lesson</span><span><i class="k-cp"></i>Checkpoint</span></div></div>
+        <svg class="road-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria)}">
+          <circle cx="${W - 10}" cy="10" r="48" fill="#fde3ee" opacity=".8"/><circle cx="-6" cy="${TOP + ROW * 0.9}" r="34" fill="#e0f0fc" opacity=".9"/><circle cx="${W - 16}" cy="${H - 6}" r="44" fill="#fdf1c7" opacity=".9"/>
+          <path d="${d}" fill="none" stroke="#e8dcc6" stroke-width="27" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="${d}" fill="none" stroke="#fffdf7" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="${d}" fill="none" stroke="#e3d6bd" stroke-width="2" stroke-dasharray="7 7" stroke-linecap="round"/>
+          ${flagsSvg.join("")}${pinsSvg.join("")}
+        </svg></div>`;
     }
 
     function glanceNumbers() {
