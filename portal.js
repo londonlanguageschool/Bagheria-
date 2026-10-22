@@ -8663,7 +8663,7 @@ function llsRenderLessonHomework(classSize) {
 
 /* 15 Oct (owner): step 1 – the homework due today, marked together at the start of the lesson.
    One drop-down per student; it saves straight away (the student sees it in their app). */
-const LLS_HWC_OPTS = [["correct", "Done, all correct"], ["mistakes", "Done, some mistakes"], ["not", "Not done"], ["forgot", "Forgot it / next time"]];
+const LLS_HWC_OPTS = [["correct", "✓ Done – all correct"], ["mistakes", "✏️ Done – some mistakes"], ["not", "✗ Not done"], ["forgot", "⏭ Forgot – bring next time"]];
 function llsHwDueToday_() {
   const date = byId("lessonDate")?.value || "";
   const hw = (llsLesson.homework || []).filter((h) => h["Homework ID"]);
@@ -8706,7 +8706,6 @@ function llsStepNums_() {
 }
 // 16 Oct evening (owner): older homework still open = set BEFORE last lesson, with students who haven't done it
 // or work handed in and not marked yet. Each row: who's missing + Mark button.
-let llsHwOlderOpen_ = {};
 function llsRenderHwOlder_(lastList) {
   const panel = byId("lessonHwOlderPanel"), box = byId("lessonHwOlder");
   if (!panel || !box) return;
@@ -8728,15 +8727,37 @@ function llsRenderHwOlder_(lastList) {
   const fmt = (iso) => iso ? new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : "";
   // 21 Oct (owner): mark, see their work and send reminders right here (same card as "Homework for this lesson").
   const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
-  llsHwOlderOpen_ = llsHwOlderOpen_ || {};
-  box.innerHTML = rows.map((r) => `<details class="hwo-row"${llsHwOlderOpen_[r.id] ? " open" : ""} data-hwo-id="${escapeAttribute(r.id)}">
-      <summary class="hwo-t"><b>${escapeHtml(String(r.h["Title"] || "Homework"))}</b> <small>set ${escapeHtml(fmt(setOn(r.h)))}</small>
-        <small>${r.missing.length ? "Not done: " + r.missing.map((st) => escapeHtml(llsStudentName(st))).join(", ") : "Everyone did it"}${r.toMark ? ` · <b>${r.toMark} to mark</b>` : ""}</small>
-        <span class="row-action hwo-open">Open ›</span></summary>
-      ${llsHwCardHtml_(r.h, { students, cls, from, older: true })}
-    </details>`).join("");
-  box.querySelectorAll("details[data-hwo-id]").forEach((d) => d.addEventListener("toggle", () => { llsHwOlderOpen_[d.dataset.hwoId] = d.open; }));
+  // 22 Oct (owner: "still confusing"): older homework = the same simple card, no fold-out.
+  box.innerHTML = rows.map((r) => llsHwCardHtml_(r.h, { students, cls, from, older: true })).join("");
   llsBindHwCards_(box);
+}
+// 22 Oct (owner): "a note to the teacher: in this class you need to mark… and these students owe homework". Keep it simple.
+function llsRenderHwTodo_() {
+  const el = byId("lessonHwTodo");
+  if (!el) return;
+  const date = byId("lessonDate")?.value || "";
+  const d10 = (x) => String(x || "").slice(0, 10);
+  const students = llsStudentsForClass(llsLesson.classId);
+  const open = (llsLesson.homework || []).filter((h) => h["Homework ID"] && d10(h["Assigned Date"] || h["Created At"]) && d10(h["Assigned Date"] || h["Created At"]) < date);
+  const toMark = [], owe = {};
+  open.forEach((h) => {
+    const id = String(h["Homework ID"]), short = String(h["Title"] || "Homework").split(":")[0].replace(/ homework$/i, "");
+    students.forEach((st) => {
+      const sid = String(st["Student ID"] || "").trim();
+      const rec = (llsLesson.status || []).find((r) => String(r["Homework ID"] || "") === id && String(r["Student ID"] || "").trim() === sid);
+      const files = (llsLesson.files || []).filter((x) => x.kind === "Work" && x.homeworkId === id && x.studentId === sid);
+      const marked = rec && (String(rec["Mark"] || "").trim() || String(rec["Feedback"] || "").trim());
+      if (files.length && !marked) toMark.push(llsStudentName(st) + " (" + short + ")");
+      else if (!files.length && !(rec && String(rec["Status"] || "") === "Done")) (owe[llsStudentName(st)] = owe[llsStudentName(st)] || []).push(short);
+    });
+  });
+  const oweList = Object.entries(owe).map(([n, hw]) => n + " (" + hw.join(", ") + ")");
+  if (!toMark.length && !oweList.length) { el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  el.innerHTML = `<b>📌 Homework in this class</b>
+    ${toMark.length ? `<div>✍️ <b>To mark (${toMark.length}):</b> ${escapeHtml(toMark.join(" · "))}</div>` : ""}
+    ${oweList.length ? `<div>⏳ <b>Still due (${oweList.length}):</b> ${escapeHtml(oweList.join(" · "))}</div>` : ""}
+    <small>Mark it below: one drop-down per student. 👀 opens their file.</small>`;
 }
 function llsRenderHwCheck_() {
   const panel = byId("lessonHwCheckPanel"), box = byId("lessonHwCheck");
@@ -8744,6 +8765,7 @@ function llsRenderHwCheck_() {
   const list = llsHwDueToday_();
   panel.hidden = !list.length;
   llsRenderHwOlder_(list);
+  llsRenderHwTodo_();
   { const h = byId("lessonHwCheckWhen"); if (h) { const d = list[0] ? String(list[0]["Assigned Date"] || list[0]["Created At"] || "").slice(0, 10) : ""; h.textContent = d ? "set in the last lesson (" + new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) + ") · who did it? mark it together" : ""; } }
   llsStepNums_();
   if (!list.length) { box.innerHTML = ""; return; }
@@ -8782,30 +8804,36 @@ function llsHwCardHtml_(h, ctx) {
         <div class="hwc-title"><b>${escapeHtml(String(h["Title"] || "Homework"))}</b>
           <small>Set ${escapeHtml(fmt(set))}${due ? " · due " + escapeHtml(fmt(due)) : ""} · ${done} of ${recs.length} done</small></div>
         <div class="hwc-acts">
-          ${f.teacher ? `<button type="button" class="row-action" data-lhw-files="${escapeAttribute(id)}">📎 Show the exercise</button>` : ""}
+          ${f.teacher ? `<button type="button" class="row-action" data-lhw-files="${escapeAttribute(id)}">📎 Exercise file</button>` : ""}
           ${key ? `<a class="row-action" href="${escapeAttribute(key)}" target="_blank" rel="noopener">🔑 Answer key</a>` : ""}
           ${f.students ? `<button type="button" class="row-action${f.toMark ? " has-new" : ""}" data-lhw-mark="${escapeAttribute(id)}">📥 Their work (${f.students})${f.toMark ? " · " + f.toMark + " to mark" : ""}</button>` : ""}
           ${remind.length ? `<button type="button" class="row-action hwc-remind" data-hwc-remind="${escapeAttribute(id)}" data-hwc-who="${escapeAttribute(remind.map((r) => r.sid).join(","))}" title="They see a reminder in the app">⏰ Remind (${remind.length})</button>` : ""}
         </div>
       </div>
-      ${h["Description"] ? `<p class="hwc-desc">${escapeHtml(String(h["Description"]))}</p>` : ""}
+      <div class="hwc-what"><span>📋 What was set:</span> ${h["Description"] ? escapeHtml(String(h["Description"])).replace(/\n/g, "<br>") : escapeHtml(String(h["Title"] || ""))}</div>
       <div class="hwc-rows">${recs.map((r) => {
+        // 22 Oct (owner): one simple line per student – name · where it is · file · ONE drop-down.
         const ticked = r.rec && String(r.rec["Status"] || "") === "Done";
-        const when = r.rec && r.rec["Completed Date"] ? " " + escapeHtml(fmt(String(r.rec["Completed Date"]).slice(0, 10))) : "";
-        const state = r.sent ? `<span class="hwc-in in">📥 Handed in${when} · ${r.sent} file${r.sent > 1 ? "s" : ""}</span>`
-          : ticked ? `<span class="hwc-in tick">✓ Ticked done in the app${when} (no file)</span>`
-          : `<span class="hwc-in no">— Nothing in the app yet</span>`;
-        const rem = /^reminder/i.test(String((r.rec && r.rec["Notes"]) || "")) ? `<span class="hwc-in rem">⏰ ${escapeHtml(String(r.rec["Notes"]).split(" – ")[0])}</span>` : "";
+        const day = (x) => x ? new Date(x + "T12:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" }) : "";
+        const when = r.rec && r.rec["Completed Date"] ? " " + escapeHtml(day(String(r.rec["Completed Date"]).slice(0, 10))) : "";
+        const late = due && due < (byId("lessonDate")?.value || "");
+        const state = r.sent ? `<span class="hwc-in in">📥 Handed in${when}</span>`
+          : ticked ? `<span class="hwc-in tick">✓ Done in the app${when}</span>`
+          : r.v === "not" || r.v === "forgot" ? `<span class="hwc-in no">✗ ${r.v === "forgot" ? "Bring next time" : "Not done"}</span>`
+          : `<span class="hwc-in ${late ? "late" : "no"}">⏳ Still due${due ? " · due " + escapeHtml(day(due)) : ""}</span>`;
+        const rem = /^reminder/i.test(String((r.rec && r.rec["Notes"]) || "")) ? `<span class="hwc-in rem">⏰ reminded</span>` : "";
         const fb = String((r.rec && r.rec["Feedback"]) || "");
-        return `<div class="hwc-row hwc-row2">
-        <div class="hwc-who"><span class="hwc-name">${escapeHtml(llsStudentName(r.st))}</span>${state}${rem}
-          ${r.work.map((w, k) => `<button type="button" class="row-action hwc-open" data-hwc-open="${escapeAttribute(w.fileId)}">👀 Open${r.work.length > 1 ? " " + (k + 1) : ""}</button>`).join("")}</div>
+        const file = r.work.map((w, k) => `<button type="button" class="row-action hwc-open" data-hwc-open="${escapeAttribute(w.fileId)}">👀 File${r.work.length > 1 ? " " + (k + 1) : ""}</button>`).join("") || `<span class="hwc-nofile">no file</span>`;
+        return `<div class="hwc-line">
+        <span class="hwc-name">${escapeHtml(llsStudentName(r.st))}</span>
+        <span class="hwc-state">${state}${rem}</span>
+        <span class="hwc-file">${file}</span>
         <select data-hwc="${escapeAttribute(id)}" data-hwc-st="${escapeAttribute(r.sid)}" class="hwc-sel${r.v ? " set v-" + r.v : ""}" aria-label="${escapeAttribute(llsStudentName(r.st))}: homework">
-          ${r.v ? "" : `<option value="" selected>Choose…</option>`}
-          ${r.v === "done" ? `<option value="done" selected>Done (in the app)</option>` : ""}
+          ${r.v ? "" : `<option value="" selected>Mark it…</option>`}
+          ${r.v === "done" ? `<option value="done" selected>Done – to mark</option>` : ""}
           ${LLS_HWC_OPTS.map(([v, t]) => `<option value="${v}"${r.v === v ? " selected" : ""}>${t}</option>`).join("")}
         </select>
-        ${r.sent || ticked || fb ? `<input type="text" class="hwc-fb" maxlength="300" data-hwc-fb="${escapeAttribute(id)}" data-hwc-st="${escapeAttribute(r.sid)}" value="${escapeAttribute(fb)}" placeholder="Feedback – the student sees it in the app" aria-label="Feedback for ${escapeAttribute(llsStudentName(r.st))}">` : ""}</div>`;
+        ${r.sent || ticked || fb ? `<input type="text" class="hwc-fb" maxlength="300" data-hwc-fb="${escapeAttribute(id)}" data-hwc-st="${escapeAttribute(r.sid)}" value="${escapeAttribute(fb)}" placeholder="Feedback (optional) – the student sees it in the app" aria-label="Feedback for ${escapeAttribute(llsStudentName(r.st))}">` : ""}</div>`;
       }).join("")}</div>
     </div>`;
 }
@@ -9251,8 +9279,18 @@ function llsIsCurrentLesson(job) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  // 22 Oct (owner: "I logged in and out – the alert is still there"): after a new login, lessons and changes that
+  // failed only because the session had expired are sent again automatically.
+  if (sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY)) {
+    try {
+      const box = llsOutboxLoad();
+      if (box.some((j) => /log in/i.test(j.error || ""))) llsOutboxSave(box.map((j) => /log in/i.test(j.error || "") ? Object.assign(j, { error: "", sending: false }) : j));
+      const q = llsSaveQLoad();
+      if (q.some((j) => /log in/i.test(j.error || ""))) llsSaveQStore(q.map((j) => /log in/i.test(j.error || "") ? Object.assign(j, { error: "" }) : j));
+    } catch (_) {}
+  }
   llsOutboxPaint();
-  setTimeout(() => llsOutboxRun(), 1500);
+  setTimeout(() => { llsOutboxRun(); if (typeof llsSaveQRun === "function") llsSaveQRun(); }, 1500);
   window.addEventListener("online", () => llsOutboxRun());
   // 30 Sept: back on the page (phone unlocked, tab re-opened): send at once.
   document.addEventListener("visibilitychange", () => {
