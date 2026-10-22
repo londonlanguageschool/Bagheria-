@@ -132,8 +132,15 @@ window.LLS_DECK_HW = {
    "Grammar Bank 2B p.129: exercise b",
    "Write: your favourite photo (SB p.114) – 80–100 words"
   ],
+  "2C": [
+   "Workbook 2C pp.16–17: exercises 1–3"
+  ],
   "3A": [
    "Workbook 3A pp.18–19: exercises 1–3"
+  ],
+  "3B": [
+   "Workbook 3B pp.20–21: exercises 1–3",
+   "SB p.115: write an informal email about travel arrangements"
   ],
   "R1-2": [
    "Redo the test questions you got wrong",
