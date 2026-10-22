@@ -131,6 +131,13 @@ window.LLS_DECK_HW = {
    "Workbook 2B (past continuous, at / in / on)",
    "Grammar Bank 2B p.129: exercise b",
    "Write: your favourite photo (SB p.114) – 80–100 words"
+  ],
+  "3A": [
+   "Workbook 3A pp.18–19: exercises 1–3"
+  ],
+  "R1-2": [
+   "Redo the test questions you got wrong",
+   "Write 6 sentences: family · now · last holiday"
   ]
  },
  "EF-B2": {
