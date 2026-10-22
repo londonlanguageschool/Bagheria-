@@ -11272,6 +11272,7 @@ function llsRenderPlanPanel() {
       <span class="start-k">${escapeHtml(opPlan.id)} ${escapeHtml(opPlan.title)}:</span>
       ${ovb ? `<button type="button" class="button button-primary" data-view-deck="${escapeAttribute(ovb)}" data-view-title="${escapeAttribute(opPlan.id + " " + opPlan.title)}"${part && part.kind !== "page" && opPlan.id === next.id ? ` data-view-stop="${part.slide}"` : ""}>▶ Open the slides${part && part.kind !== "page" && opPlan.id === next.id ? " (from slide " + part.slide + ")" : ""}</button>` : ""}
       ${om.slides ? `<a class="button button-secondary" href="${escapeAttribute(om.slides)}" target="_blank" rel="noopener">⬇ Download PowerPoint</a>` : ""}
+      ${!ovb && !om.slides ? `<span class="muted">No slides for this lesson yet – teach from the book (${escapeHtml(opPlan.pages || "Student's Book")}). At the end, write the <b>page</b> where you stopped.</span>` : ""}
     </div>
     ${part && after && opPlan.id === next.id ? `<div class="start-open start-then">
       <span class="start-k">Then (if you finish early): ${escapeHtml(after.id)} ${escapeHtml(after.title)}:</span>
