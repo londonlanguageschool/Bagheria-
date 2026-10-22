@@ -861,3 +861,25 @@ input[type="checkbox"] { border-radius: 4px; }
 .hwc-in.late { background: #fdecec; color: #a32222; border-color: #f3b6b6; }
 .hwc-nofile { color: #9aa3b5; font-size: 0.85rem; }
 @media (max-width: 760px) { .hwc-line { grid-template-columns: 1fr auto; } .hwc-line .hwc-state { grid-column: 1 / -1; } .hwc-line select { grid-column: 1 / -1; } }
+
+/* 22 Oct: Quick activities A–Z */
+.act-dir { margin: 0 0 16px; border-radius: 20px; background: linear-gradient(180deg, #fff8e6, #fff); border: 2px solid #f5d77a; padding: 0 16px; }
+.act-dir > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; padding: 14px 0; font-size: 1.02rem; }
+.act-dir > summary::-webkit-details-marker { display: none; }
+.act-count { color: #7a6420; font-size: 0.85rem; font-weight: 700; }
+.act-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.act-bar input[type=search] { flex: 1 1 220px; }
+.act-who { display: inline-flex; border-radius: 999px; background: #f1f3f8; padding: 3px; }
+.act-who button { border: 0; background: transparent; border-radius: 999px; padding: 7px 14px; font-weight: 700; cursor: pointer; }
+.act-who button.on { background: #16275c; color: #fff; }
+.act-az { display: grid; gap: 6px; max-height: 70vh; overflow: auto; padding-right: 4px; }
+.act-letter { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: start; }
+.act-L { font-family: var(--display, inherit); font-weight: 800; font-size: 1.3rem; color: #e23b5a; text-align: center; padding-top: 6px; }
+.act-card { background: #fff; border: 1px solid #e6e9f0; border-radius: 14px; padding: 0 12px; margin-bottom: 6px; }
+.act-card > summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 9px 0; }
+.act-meta { color: #6b7385; font-size: 0.82rem; }
+.act-card ol { margin: 4px 0 6px 18px; padding: 0; }
+.act-lang, .act-eg, .act-src { margin: 4px 0; font-size: 0.9rem; }
+.act-eg { color: #4a3a8a; font-style: italic; }
+.act-pick { border-color: #f5b400; box-shadow: 0 0 0 3px #ffe48a; }
+.act-note { font-size: 0.82rem; color: #6b7385; margin: 10px 0 14px; }
