@@ -843,3 +843,7 @@ input[type="checkbox"] { border-radius: 4px; }
 .hwo-row .hwc { margin-top: 10px; }
 .hwc-in.rem { color: #9a5b00; background: #fff6cc; border-color: #ffe07a; }
 .hwc-remind { border-color: #ffe07a !important; }
+
+/* 22 Oct: class days on the lesson chips */
+.lesson-chip .chip-days { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 0.72em; font-weight: 700; background: rgba(22, 39, 92, 0.08); color: inherit; opacity: .85; vertical-align: 1px; }
+.lesson-chip.active .chip-days { background: rgba(255, 255, 255, 0.18); }

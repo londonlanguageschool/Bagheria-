@@ -8325,14 +8325,16 @@ function llsRenderLessonPicker() {
     return `<button type="button" class="lesson-chip${cls.id === llsLesson.classId ? " active" : ""}${st ? " is-saved-" + st : ""}${off ? " is-cancelled" : ""}"${off ? ' title="Cancelled"' : ""} data-lesson-class="${escapeHtml(cls.id)}">${label}${mark}</button>`;
   };
   const dayLabel = new Date(date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
+  // 22 Oct (owner): show the class days on every chip, e.g. "Tue & Thu", for the teacher's reference.
+  const daysOf = (c) => { const d = [c.day, c.day2].filter(Boolean).map((x) => String(x).slice(0, 3)); return d.length ? `<small class="chip-days">${escapeHtml(d.join(" & "))}</small>` : ""; };
   // 28 Sept: while Google is still sending the class list, say so (not "No lessons").
   const loading = !llsCoreSettled && !today.length;
   box.innerHTML = `
     <p class="section-label" style="margin:0 0 8px;">${onlyMine ? "My lessons" : "Lessons"} on ${escapeHtml(dayLabel)}</p>
-    <div class="lesson-chips">${today.length ? today.map(({ cls, time }) => chip(cls, `<strong>${escapeHtml(time)}</strong> ${escapeHtml(cls.name)}`)).join("") : (loading ? `<span class="muted">⏳ Loading your classes from Google… (up to 30 seconds)</span>` : !(state.classes || []).length ? (llsCoreLoadPromise ? `<span class="muted">⏳ Loading your classes from Google…</span>` : llsCoreLoadProblemHtml_()) : `<span class="muted">No lessons on this day.</span>`)}</div>
+    <div class="lesson-chips">${today.length ? today.map(({ cls, time }) => chip(cls, `<strong>${escapeHtml(time)}</strong> ${escapeHtml(cls.name)} ${daysOf(cls)}`)).join("") : (loading ? `<span class="muted">⏳ Loading your classes from Google… (up to 30 seconds)</span>` : !(state.classes || []).length ? (llsCoreLoadPromise ? `<span class="muted">⏳ Loading your classes from Google…</span>` : llsCoreLoadProblemHtml_()) : `<span class="muted">No lessons on this day.</span>`)}</div>
     <details class="lesson-all"${today.length ? "" : " open"}>
       <summary>${onlyMine ? "All my classes" : "All classes"} (${all.length})</summary>
-      <div class="lesson-chips">${all.map((c) => chip(c, escapeHtml(c.name))).join("")}</div>
+      <div class="lesson-chips">${all.map((c) => chip(c, `${escapeHtml(c.name)} ${daysOf(c)}`)).join("")}</div>
     </details>
     ${names ? `<div class="cover-row"><button type="button" class="button button-secondary" id="lessonCoverBtn">🔄 Covering someone else's class?</button>
       <select id="lessonCoverPick"${llsLesson.coverOpen ? "" : " hidden"}><option value="">Choose the class you're teaching…</option>${llsLessonClasses().filter((c) => !llsIsMine(c.teacherName, names) && !/^demo/i.test(c.name || "")).sort((a, b) => a.name.localeCompare(b.name)).map((c) => `<option value="${escapeAttribute(c.id)}"${c.id === llsLesson.classId ? " selected" : ""}>${escapeHtml(c.name)} · ${escapeHtml(c.teacherName || "?")} · ${escapeHtml([c.day && c.day.slice(0, 3) + " " + (c.time || ""), c.day2 && c.day2.slice(0, 3) + " " + (c.time2 || "")].filter(Boolean).join(", "))}</option>`).join("")}</select></div>` : ""}`;
