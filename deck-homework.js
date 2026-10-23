@@ -161,6 +161,14 @@ window.LLS_DECK_HW = {
   "6B-2": [
    "Make a 5-song homework playlist: one sentence per song – why does it help?",
    "Write 80–100 words: music in class – yes or no? 2 reasons + an example."
+  ],
+  "7A-1": [
+   "Workbook 7A pp.46–47: 1a–1d, 2a",
+   "Grammar Bank 7A p.144: exercise b"
+  ],
+  "7A-2": [
+   "Workbook 7A pp.47–48: 3 and 4a–4b",
+   "Write an online comment (60–80 words)"
   ]
  },
  "PREP": {
