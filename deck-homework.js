@@ -85,6 +85,14 @@ window.LLS_DECK_HW = {
    "Vocabulary Bank p.160: test yourself",
    "Homework sheet in the LLS app"
   ],
+  "7A-1": [
+   "Workbook 7A: 1a–1d, 2a",
+   "Homework sheet 7A-1 (My school)"
+  ],
+  "7A-2": [
+   "Workbook 7A: grammar (first conditional)",
+   "Grammar Bank 7A p.144: exercise b"
+  ],
   "8A-1": [
    "Workbook 8A: 1a, 1b, 3a, 3b",
    "Grammar Bank 8A: a 6–10, b 6–9",
