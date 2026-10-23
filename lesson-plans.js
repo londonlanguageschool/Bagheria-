@@ -23,6 +23,7 @@ window.LLS_PLANS = {
   "Red_Elementary/EFE_R3-4_Revise_and_Check_3-4.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_R3-4_Revise_and_Check_3-4.pptx?v=20261023k",
   "Red_Elementary/EFE_5A_Vote_for_me.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_5A_Vote_for_me.pptx?v=20261023l",
   "Red_Elementary/EFE_5B_A_quiet_life.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_5B_A_quiet_life.pptx?v=20261023m",
+  "Red_Elementary/EFE_5C_A_city_for_all_seasons.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_5C_A_city_for_all_seasons.pptx?v=20261023n",
   "Red_Elementary/EFE_2B_Made_in_America.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2B_Made_in_America.pptx?v=20261021b",
   "Kitchen_English_Chefs/Chef_L01_Welcome_to_the_kitchen.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/CHEF/Chef_L01_Welcome_to_the_kitchen.pptx?v=20261021b",
   "Prepare/PREP_1A_All_about_me.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/PREP/PREP_1A_All_about_me.pptx?v=20261021b",
@@ -577,7 +578,9 @@ window.LLS_PLANS = {
   "unit": 5,
   "title": "A city for all seasons",
   "focus": "present simple or present continuous? · the weather and seasons",
-  "pages": "SB pp.42–43",
+  "file": "Red_Elementary/EFE_5C_A_city_for_all_seasons.pptx",
+    "slides": 14,
+    "pages": "SB pp.42–43",
   "skills": {}
  },
  {
