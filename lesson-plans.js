@@ -2523,7 +2523,17 @@ window.LLS_PLANS = {
     "easy": "B2_Violet_Course/B2_R5-6_Homework_sheet_easier.pdf",
     "key": "B2_Violet_Course/B2_R5-6_Teacher_answer_key.pdf",
     "skills": {}
-   }
+   },
+   {"id": "7A-1", "unit": 7, "title": "Let's not argue", "focus": "past modals: must have, might have, can't have, should have · weak form of have · classic student house arguments", "pages": "SB pp.66–67"},
+   {"id": "7A-2", "unit": 7, "title": "Let's not argue", "focus": "how to argue better (psychologist) · would rather · verbs often confused · how to win an online argument", "pages": "SB pp.68–69"},
+   {"id": "7B-1", "unit": 7, "title": "It's all an act", "focus": "verbs of the senses: look, look like, look as if · film stills · how to improve your acting skills", "pages": "SB pp.70–71"},
+   {"id": "7B-2", "unit": 7, "title": "It's all an act", "focus": "the body · silent consonants · the best way to spot a liar · describing a photo", "pages": "SB pp.72–73"},
+   {"id": "CE6-7", "unit": 7, "title": "Colloquial English 6&7: performances", "focus": "interview with Simon Callow · modifiers · the conversation: live or recorded?", "pages": "SB pp.74–75"},
+   {"id": "8A-1", "unit": 8, "title": "Cutting crime", "focus": "street crime advice (Stay safe) · crime and punishment · Beat the burglar · the letter u", "pages": "SB pp.76–77"},
+   {"id": "8A-2", "unit": 8, "title": "Cutting crime", "focus": "the passive (all forms), have something done, it is said that… · true crime stories · identity theft", "pages": "SB pp.78–79"},
+   {"id": "8B-1", "unit": 8, "title": "Fake news", "focus": "news stories · reporting verbs (persuade, deny, agree…) · word stress", "pages": "SB pp.80–81"},
+   {"id": "8B-2", "unit": 8, "title": "Fake news", "focus": "the media · 8 tips on how to spot fake news · video: the speed of news", "pages": "SB pp.82–83"},
+   {"id": "R7-8", "unit": 8, "title": "Revise and Check 7 & 8", "focus": "Files 7–8 test · Solving crimes from the bedroom · street interviews", "pages": "SB pp.84–85"}
   ]
  },
  "extras": {
