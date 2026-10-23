@@ -20,6 +20,7 @@ window.LLS_PLANS = {
   "Red_Elementary/EFE_4A_Family_photos.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_4A_Family_photos.pptx?v=20261023i",
   "Red_Elementary/EFE_4B_From_morning_to_night.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_4B_From_morning_to_night.pptx?v=20261023j",
   "Red_Elementary/EFE_4C_Blue_Zones.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_4C_Blue_Zones.pptx?v=20261023j",
+  "Red_Elementary/EFE_R3-4_Revise_and_Check_3-4.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_R3-4_Revise_and_Check_3-4.pptx?v=20261023k",
   "Red_Elementary/EFE_2B_Made_in_America.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2B_Made_in_America.pptx?v=20261021b",
   "Kitchen_English_Chefs/Chef_L01_Welcome_to_the_kitchen.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/CHEF/Chef_L01_Welcome_to_the_kitchen.pptx?v=20261021b",
   "Prepare/PREP_1A_All_about_me.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/PREP/PREP_1A_All_about_me.pptx?v=20261021b",
@@ -544,7 +545,9 @@ window.LLS_PLANS = {
   "unit": 4,
   "title": "Revise and Check 3&4",
   "focus": "revision of Files 3–4",
-  "pages": "SB pp.36–37",
+  "file": "Red_Elementary/EFE_R3-4_Revise_and_Check_3-4.pptx",
+    "slides": 16,
+    "pages": "SB pp.36–37",
   "skills": {}
  },
  {

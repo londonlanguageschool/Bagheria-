@@ -239,6 +239,10 @@ window.LLS_DECK_HW = {
   "R1-2": [
    "Workbook: redo the Files 1–2 exercises you got wrong",
    "Write 5 sentences about you"
+  ],
+  "R3-4": [
+   "Workbook: redo the Files 3–4 exercises you got wrong",
+   "Write about your typical day"
   ]
  },
  "LLS-B1Y": {
