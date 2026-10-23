@@ -18,6 +18,8 @@ window.LLS_PLANS = {
   "Red_Elementary/EFE_3C_Love_me_love_my_dog.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_3C_Love_me_love_my_dog.pptx?v=20261023g",
   "Red_Elementary/EFE_PE2_Coffee_to_take_away.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_PE2_Coffee_to_take_away.pptx?v=20261023h",
   "Red_Elementary/EFE_4A_Family_photos.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_4A_Family_photos.pptx?v=20261023i",
+  "Red_Elementary/EFE_4B_From_morning_to_night.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_4B_From_morning_to_night.pptx?v=20261023j",
+  "Red_Elementary/EFE_4C_Blue_Zones.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_4C_Blue_Zones.pptx?v=20261023j",
   "Red_Elementary/EFE_2B_Made_in_America.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2B_Made_in_America.pptx?v=20261021b",
   "Kitchen_English_Chefs/Chef_L01_Welcome_to_the_kitchen.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/CHEF/Chef_L01_Welcome_to_the_kitchen.pptx?v=20261021b",
   "Prepare/PREP_1A_All_about_me.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/PREP/PREP_1A_All_about_me.pptx?v=20261021b",
@@ -522,7 +524,9 @@ window.LLS_PLANS = {
   "unit": 4,
   "title": "From morning to night",
   "focus": "daily routine · prepositions of time and place · linking",
-  "pages": "SB pp.32–33",
+  "file": "Red_Elementary/EFE_4B_From_morning_to_night.pptx",
+    "slides": 14,
+    "pages": "SB pp.32–33",
   "skills": {}
  },
  {
@@ -530,7 +534,9 @@ window.LLS_PLANS = {
   "unit": 4,
   "title": "Blue Zones",
   "focus": "adverbs and expressions of frequency · months · the letter h",
-  "pages": "SB pp.34–35",
+  "file": "Red_Elementary/EFE_4C_Blue_Zones.pptx",
+    "slides": 17,
+    "pages": "SB pp.34–35",
   "skills": {}
  },
  {
