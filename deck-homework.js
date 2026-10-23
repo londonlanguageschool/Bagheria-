@@ -223,6 +223,9 @@ window.LLS_DECK_HW = {
    "Workbook 3C pp.22–23",
    "Writing p.113: a personal profile"
   ],
+  "PE2": [
+   "Workbook Practical English 2 + Can you remember? 1–3"
+  ],
   "R1-2": [
    "Workbook: redo the Files 1–2 exercises you got wrong",
    "Write 5 sentences about you"
