@@ -12,6 +12,8 @@ window.LLS_PLANS = {
  "links": {
   "B1Y/B1Y_Y1_Weekend_plans.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1Y/B1Y_Y1_Weekend_plans.pptx?v=20261021b",
   "Red_Elementary/EFE_2A_Tidy_or_untidy.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2A_Tidy_or_untidy.pptx?v=20261021b",
+  "Red_Elementary/EFE_R1-2_Revise_and_Check_1-2.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_R1-2_Revise_and_Check_1-2.pptx?v=20261023e",
+  "Red_Elementary/EFE_3A_Britain_good_and_bad.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_3A_Britain_good_and_bad.pptx?v=20261023e",
   "Red_Elementary/EFE_2B_Made_in_America.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2B_Made_in_America.pptx?v=20261021b",
   "Kitchen_English_Chefs/Chef_L01_Welcome_to_the_kitchen.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/CHEF/Chef_L01_Welcome_to_the_kitchen.pptx?v=20261021b",
   "Prepare/PREP_1A_All_about_me.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/PREP/PREP_1A_All_about_me.pptx?v=20261021b",
@@ -456,7 +458,9 @@ window.LLS_PLANS = {
   "unit": 2,
   "title": "Revise and Check 1 & 2",
   "focus": "revision of Files 1–2",
-  "pages": "SB pp.20–21",
+  "file": "Red_Elementary/EFE_R1-2_Revise_and_Check_1-2.pptx",
+    "slides": 16,
+    "pages": "SB pp.20–21",
   "skills": {}
  },
  {
@@ -464,7 +468,9 @@ window.LLS_PLANS = {
   "unit": 3,
   "title": "Britain: the good and the bad",
   "focus": "present simple (+) and (−) · verb phrases · third person -s",
-  "pages": "SB pp.22–23",
+  "file": "Red_Elementary/EFE_3A_Britain_good_and_bad.pptx",
+    "slides": 19,
+    "pages": "SB pp.22–23",
   "skills": {}
  },
  {

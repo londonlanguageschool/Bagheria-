@@ -212,6 +212,13 @@ window.LLS_DECK_HW = {
    "Workbook 2B: 2a–2e (adjectives)",
    "Workbook 2B: 3a (long and short sounds)",
    "Write: 5 things you have + an adjective"
+  ],
+  "3A": [
+   "Workbook 3A pp.18–19: exercises 1–3"
+  ],
+  "R1-2": [
+   "Workbook: redo the Files 1–2 exercises you got wrong",
+   "Write 5 sentences about you"
   ]
  },
  "LLS-B1Y": {
