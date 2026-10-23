@@ -172,7 +172,7 @@ window.LLS_PLANS = {
   "B1_Green_Course_6B-10B/B1_6B-2_Homework_sheet.pdf": "https://drive.google.com/file/d/1l7h7ecbIZ3VCftOar44iC4HVOfP4Mfal/view",
   "B1_Green_Course_6B-10B/B1_6B-2_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1kQwDmPoogkyPjRoOtvaw2XJTxy39o5Vv/view",
   "B1_Green_Course_6B-10B/B1_6B-2_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1NPYz1DEeLyfhnbtqOXk0eudpEG1lgIAB/view",
-  "B1_Green_Course_6B-10B/B1_R5-6_Revise_and_Check_5_6.pptx": "https://drive.google.com/file/d/1LvAYdqtFMuHbhkScDXq7JvAUl4wVBu7q/view",
+  "B1_Green_Course_6B-10B/B1_R5-6_Revise_and_Check_5_6.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_R5-6_Revise_and_Check_5_6.pptx?v=20261023c",
   "B1_Green_Course_6B-10B/B1_R5-6_Homework_sheet.pdf": "https://drive.google.com/file/d/18g0ihq8uLFq0AoqYxY7RGEqo5dj89Pu6/view",
   "B1_Green_Course_6B-10B/B1_R5-6_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/162Nq381erYZ8H4V_oeYWaET0SUi636hs/view",
   "B1_Green_Course_6B-10B/B1_R5-6_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1QJ49fPlSPSZgzsRxTUaqvF_XLjsaL3ck/view",

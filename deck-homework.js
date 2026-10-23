@@ -114,6 +114,10 @@ window.LLS_DECK_HW = {
    "SB p.25: Can you understand this text? a, b",
    "Online Practice: Check your progress",
    "Homework sheet R1-2"
+  ],
+  "R5-6": [
+   "Redo the test questions you got wrong",
+   "Homework sheet in the LLS app"
   ]
  },
  "EF-A2B1": {
