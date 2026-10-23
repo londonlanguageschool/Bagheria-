@@ -17,6 +17,7 @@ window.LLS_PLANS = {
   "Red_Elementary/EFE_3B_9_to_5.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_3B_9_to_5.pptx?v=20261023f",
   "Red_Elementary/EFE_3C_Love_me_love_my_dog.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_3C_Love_me_love_my_dog.pptx?v=20261023g",
   "Red_Elementary/EFE_PE2_Coffee_to_take_away.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_PE2_Coffee_to_take_away.pptx?v=20261023h",
+  "Red_Elementary/EFE_4A_Family_photos.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_4A_Family_photos.pptx?v=20261023i",
   "Red_Elementary/EFE_2B_Made_in_America.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2B_Made_in_America.pptx?v=20261021b",
   "Kitchen_English_Chefs/Chef_L01_Welcome_to_the_kitchen.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/CHEF/Chef_L01_Welcome_to_the_kitchen.pptx?v=20261021b",
   "Prepare/PREP_1A_All_about_me.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/PREP/PREP_1A_All_about_me.pptx?v=20261021b",
@@ -504,6 +505,80 @@ window.LLS_PLANS = {
   "file": "Red_Elementary/EFE_PE2_Coffee_to_take_away.pptx",
     "slides": 15,
     "pages": "SB pp.28–29",
+  "skills": {}
+ },
+ {
+  "id": "4A",
+  "unit": 4,
+  "title": "Family photos",
+  "focus": "possessive 's · Whose…? · family · /ʌ/, the letter o",
+  "file": "Red_Elementary/EFE_4A_Family_photos.pptx",
+    "slides": 15,
+    "pages": "SB pp.30–31",
+  "skills": {}
+ },
+ {
+  "id": "4B",
+  "unit": 4,
+  "title": "From morning to night",
+  "focus": "daily routine · prepositions of time and place · linking",
+  "pages": "SB pp.32–33",
+  "skills": {}
+ },
+ {
+  "id": "4C",
+  "unit": 4,
+  "title": "Blue Zones",
+  "focus": "adverbs and expressions of frequency · months · the letter h",
+  "pages": "SB pp.34–35",
+  "skills": {}
+ },
+ {
+  "id": "R3-4",
+  "unit": 4,
+  "title": "Revise and Check 3&4",
+  "focus": "revision of Files 3–4",
+  "pages": "SB pp.36–37",
+  "skills": {}
+ },
+ {
+  "id": "5A",
+  "unit": 5,
+  "title": "Vote for me!",
+  "focus": "can / can't · verb phrases · sentence stress",
+  "pages": "SB pp.38–39",
+  "skills": {}
+ },
+ {
+  "id": "5B",
+  "unit": 5,
+  "title": "A quiet life?",
+  "focus": "present continuous · noise: verbs and verb phrases · /ŋ/",
+  "pages": "SB pp.40–41",
+  "skills": {}
+ },
+ {
+  "id": "5C",
+  "unit": 5,
+  "title": "A city for all seasons",
+  "focus": "present simple or present continuous? · the weather and seasons",
+  "pages": "SB pp.42–43",
+  "skills": {}
+ },
+ {
+  "id": "PE3",
+  "unit": 5,
+  "title": "Practical English 3: In a clothes shop",
+  "focus": "buying clothes · clothes",
+  "pages": "SB pp.44–45",
+  "skills": {}
+ },
+ {
+  "id": "6A",
+  "unit": 6,
+  "title": "A North African story",
+  "focus": "object pronouns · words in a story · /aɪ/, /ɪ/, /iː/",
+  "pages": "SB pp.46–47",
   "skills": {}
  }
 ],
