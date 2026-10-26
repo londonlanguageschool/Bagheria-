@@ -8795,10 +8795,11 @@ function llsHwmState_(h) {
     const doneTick = rec && String(rec["Status"] || "") === "Done";
     let state = "missing";
     // A "Redo" that comes back (handed in again / ticked done again) needs marking again.
-    if (mark || fb) state = /redo/i.test(mark) ? (doneTick ? "tomark" : "redo") : "marked";
+    if (mark || fb) state = /redo/i.test(mark) ? (doneTick && work.length ? "tomark" : "redo") : "marked";
     else if (/^not done|forgot/i.test(notes)) state = "notdone";
-    else if (work.length || doneTick) state = "tomark";
-    return { st, sid, rec, work, state, mark, fb, reminded: /^reminder/i.test(notes) };
+    // 26 Oct (owner): a "done" tick WITHOUT a file is not evidence – it stays missing ("said done, no photo").
+    else if (work.length) state = "tomark";
+    return { st, sid, rec, work, state, mark, fb, reminded: /^reminder/i.test(notes), saidDone: !work.length && !!doneTick && !(mark || fb) };
   });
 }
 function llsHwmRows_() {
@@ -8880,8 +8881,8 @@ function llsHwmDraw_() {
       ${m.teacherFiles ? `<button type="button" class="hwm-tool" id="hwmExFile">📎 The exercise</button>` : ""}
     </div>
     ${studentCard}
-    ${missing.length ? `<div class="hwm-card hwm-miss"><div class="hwm-who"><b>⏳ Not handed in (${missing.length})</b><button type="button" class="hwm-file" id="hwmRemind">⏰ Remind all</button></div>
-      ${missing.map((x) => `<div class="hwm-mrow"><span>${escapeHtml(llsStudentName(x.st))}${x.reminded ? ` <small class="hwm-muted">· reminded</small>` : ""}</span><button type="button" class="hwm-link" data-hwm-nd="${escapeAttribute(x.sid)}">✗ Not done</button></div>`).join("")}</div>` : ""}
+    ${missing.length ? `<div class="hwm-card hwm-miss"><div class="hwm-who"><b>⏳ No work handed in (${missing.length})</b><button type="button" class="hwm-file" id="hwmRemind">⏰ Remind all</button></div>
+      ${missing.map((x) => `<div class="hwm-mrow"><span>${escapeHtml(llsStudentName(x.st))}${x.saidDone ? ` <small class="hwm-muted">· ticked done, no photo</small>` : ""}${x.reminded ? ` <small class="hwm-muted">· reminded</small>` : ""}</span><span><button type="button" class="hwm-link" data-hwm-ok="${escapeAttribute(x.sid)}" title="You saw it in class">✅ Seen in class</button> <button type="button" class="hwm-link" data-hwm-nd="${escapeAttribute(x.sid)}">✗ Not done</button></span></div>`).join("")}</div>` : ""}
   </div>`;
   byId("hwmBack").addEventListener("click", llsHwmClose_);
   el.querySelectorAll("[data-hwm-file]").forEach((b) => b.addEventListener("click", () => llsOpenFile_(b.dataset.hwmFile)));
@@ -8904,6 +8905,7 @@ function llsHwmDraw_() {
   if (cur && llsHwmAiCan_(cur) && !m.ai[cur.sid]) llsHwmAi_(cur.sid);
   { const a = cur && m.ai[cur.sid] && m.ai[cur.sid].res; const t = byId("hwmCm"); if (a && t && a.feedbackKeep != null) t.value = a.feedbackKeep; }
   el.querySelectorAll("[data-hwm-nd]").forEach((b) => b.addEventListener("click", () => { llsHwmSave_(b.dataset.hwmNd, "not", ""); llsHwmDraw_(); }));
+  el.querySelectorAll("[data-hwm-ok]").forEach((b) => b.addEventListener("click", () => { llsHwmSave_(b.dataset.hwmOk, "good", "Checked in class"); llsHwmDraw_(); }));
   byId("hwmRemind")?.addEventListener("click", () => {
     const today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" });
     const notes = `Reminder ${today} – please finish it and hand it in`;

@@ -1826,7 +1826,7 @@
           <button class="tick ${i.done ? "is-done" : ""}" type="button"
                   data-id="${esc(i["Homework ID"])}" data-next="${i.done ? "Not started" : "Done"}"
                   aria-pressed="${i.done}">
-            ${i.done ? "Done ✓" : "Mark done"}
+            ${i.done ? "Done ✓" : "📷 Hand in"}
           </button>
           ${i["Description"] ? `<p class="desc">${esc(i["Description"])}</p>` : ""}
           ${hwExtraHtml(i)}
@@ -2047,6 +2047,17 @@
     function toggle(button) {
       const id = button.dataset.id;
       const next = button.dataset.next;
+      // 26 Oct 2026 (owner): homework only counts as done WITH evidence – a photo/PDF/audio of the work.
+      // No file yet → explain and open the camera / file picker instead of ticking.
+      const mine = (data.files || []).filter((f) => f.kind === "Work" && f.homeworkId === id);
+      if (next === "Done" && !mine.length) {
+        const card = button.closest("article");
+        const st = card && card.querySelector("[data-handin-status]");
+        if (st) st.innerHTML = `<b>📷 To show your homework is complete, please upload a photo of your work.</b><br>Per segnare i compiti come fatti, carica una foto del tuo lavoro.`;
+        const input = card && card.querySelector("[data-handin]");
+        if (input) input.click();
+        return;
+      }
       const existing = data.status.find((s) => String(s["Homework ID"]) === id);
       if (existing) existing["Status"] = next;
       else data.status.push({ "Homework ID": id, "Status": next });
