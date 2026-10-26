@@ -871,12 +871,16 @@
     function homeworkItems() {
       const classById = {};
       data.classes.forEach((c) => { classById[String(c["Class ID"])] = c; });
-      const statusById = {}, remindById = {};
-      data.status.forEach((s) => { statusById[String(s["Homework ID"])] = s["Status"]; if (/^reminder/i.test(String(s["Notes"] || ""))) remindById[String(s["Homework ID"])] = String(s["Notes"]); });
+      const statusById = {}, remindById = {}, markedById = {};
+      data.status.forEach((s) => { statusById[String(s["Homework ID"])] = s["Status"]; if (String(s["Mark"] || "").trim() || String(s["Feedback"] || "").trim()) markedById[String(s["Homework ID"])] = true; if (/^reminder/i.test(String(s["Notes"] || ""))) remindById[String(s["Homework ID"])] = String(s["Notes"]); });
+      // 26 Oct 2026 (owner): done only WITH evidence – work handed in (a file) or marked by the teacher.
+      // An old tick without a file goes back to "To do".
+      const handedIn = {};
+      (data.files || []).forEach((f) => { if (f.kind === "Work") handedIn[String(f.homeworkId)] = true; });
       return data.homework.map((h) => ({
         ...h,
         reminder: remindById[String(h["Homework ID"])] || "",
-        done: statusById[String(h["Homework ID"])] === "Done",
+        done: statusById[String(h["Homework ID"])] === "Done" && (handedIn[String(h["Homework ID"])] || markedById[String(h["Homework ID"])] || false),
         className: classById[String(h["Class ID"])]?.["Class Name"] || ""
       }));
     }
