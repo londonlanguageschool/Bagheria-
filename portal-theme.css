@@ -925,3 +925,21 @@ body.hwm-open { overflow: hidden; }
 .hwm-donecard small { display: block; font-size: 13.5px; color: #6b7280; font-weight: 700; margin-top: 4px; }
 .hwm-mrow { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid #f0f4fa; font-size: 15px; }
 @media (max-width: 520px) { .hwm-big button { font-size: 15px; padding: 15px 4px; } .hwm-row { align-items: flex-start; } }
+
+/* 26 Oct (stage 2): AI pre-marking box */
+.hwm-ai { background: #f3f0ff; border-radius: 12px; padding: 10px 12px; margin-top: 10px; font-size: 14.5px; }
+.hwm-ai-h { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.hwm-tot { margin-left: auto; font-weight: 800; font-size: 16px; background: #fff; border-radius: 999px; padding: 2px 10px; }
+.hwm-note { background: #fff8d6; color: #92400e; border-radius: 8px; padding: 6px 9px; margin-top: 8px; font-weight: 700; }
+.hwm-sec { background: #fff; border-radius: 10px; padding: 8px 10px; margin-top: 8px; }
+.hwm-ex { display: flex; justify-content: space-between; font-weight: 800; margin-bottom: 4px; }
+.hwm-sc { background: #dff5e9; color: #15803d; border-radius: 999px; padding: 1px 9px; font-size: 13px; }
+.hwm-sc.some { background: #fff8d6; color: #92400e; }
+.hwm-q { display: grid; grid-template-columns: 24px 1fr; gap: 6px; padding: 6px 0; border-top: 1px solid #f0f4fa; cursor: pointer; }
+.hwm-q .mk { font-weight: 800; font-size: 18px; text-align: center; }
+.hwm-q.ok .mk { color: #15803d; } .hwm-q.no .mk { color: #b91c1c; } .hwm-q.un .mk { color: #6b7280; }
+.hwm-q.no .ans { color: #b91c1c; text-decoration: line-through; }
+.hwm-q .fix, .hwm-essay .fixw { color: #15803d; font-weight: 800; }
+.hwm-essay { background: #fafafa; border-radius: 8px; padding: 8px; line-height: 1.6; white-space: pre-line; }
+.hwm-essay mark { background: #ffe1e1; border-radius: 4px; padding: 0 2px; }
+.hwm-big button.sug { box-shadow: 0 0 0 3px #7c3aed inset; }

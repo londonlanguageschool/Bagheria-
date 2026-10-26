@@ -8836,7 +8836,7 @@ function llsHwmOpen_(hwId) {
   const key = plan ? llsPlanUrl_(plan, "key") : "";
   const teacherFiles = llsHwFileCounts_(String(hwId), { files: llsLesson.files || [], status: llsLesson.status || [] }).teacher;
   const queue = llsHwmState_(h).filter((x) => x.state === "tomark").map((x) => x.sid);
-  llsHwm = { hwId: String(hwId), h, key, teacherFiles, queue, i: 0, done: 0 };
+  llsHwm = { hwId: String(hwId), h, key, teacherFiles, queue, i: 0, done: 0, ai: {} };
   let el = byId("hwmView");
   if (!el) { el = document.createElement("div"); el.id = "hwmView"; el.className = "hwm-view"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); document.body.appendChild(el); }
   el.hidden = false;
@@ -8861,13 +8861,14 @@ function llsHwmDraw_() {
       <div class="hwm-who"><b>${escapeHtml(llsStudentName(cur.st))}</b>
         <span>${cur.work.length ? cur.work.map((w, k) => `<button type="button" class="hwm-file" data-hwm-file="${escapeAttribute(w.fileId)}">👀 ${cur.work.length > 1 ? "File " + (k + 1) : "Open their work"}</button>`).join("") : `<span class="hwm-muted">no file – done in the app</span>`}</span></div>
       <div class="hwm-muted">${cur.work.length ? "Handed in" : "Ticked done"}${cur.rec && cur.rec["Completed Date"] ? " " + escapeHtml(day(cur.rec["Completed Date"])) : ""} · ${m.i + 1} of ${m.queue.length}</div>
+      ${llsHwmAiHtml_(cur)}
       <div class="hwm-big">
-        <button type="button" class="b-good" data-hwm-mark="good">✅ Good</button>
-        <button type="button" class="b-redo" data-hwm-mark="redo">🔁 Redo</button>
+        <button type="button" class="b-good${m.ai[cur.sid] && m.ai[cur.sid].res && m.ai[cur.sid].res.suggest === "good" ? " sug" : ""}" data-hwm-mark="good">✅ Good</button>
+        <button type="button" class="b-redo${m.ai[cur.sid] && m.ai[cur.sid].res && m.ai[cur.sid].res.suggest === "redo" ? " sug" : ""}" data-hwm-mark="redo">🔁 Redo</button>
         <button type="button" class="b-not" data-hwm-mark="not">✗ Not done</button>
       </div>
-      <div class="hwm-foot"><button type="button" class="hwm-link" id="hwmCmBtn">+ add a comment</button><button type="button" class="hwm-link" id="hwmSkip">Skip ▸</button></div>
-      <textarea id="hwmCm" class="hwm-cm" rows="2" maxlength="300" placeholder="Comment (optional) – the student sees it in the app" hidden></textarea>
+      <div class="hwm-foot">${m.ai[cur.sid] && m.ai[cur.sid].res && m.ai[cur.sid].res.feedback ? "<span></span>" : `<button type="button" class="hwm-link" id="hwmCmBtn">+ add a comment</button>`}<button type="button" class="hwm-link" id="hwmSkip">Skip ▸</button></div>
+      <textarea id="hwmCm" class="hwm-cm" rows="2" maxlength="300" placeholder="Comment (optional) – the student sees it in the app"${m.ai[cur.sid] && m.ai[cur.sid].res && m.ai[cur.sid].res.feedback ? "" : " hidden"}>${escapeHtml((m.ai[cur.sid] && m.ai[cur.sid].res && m.ai[cur.sid].res.feedback) || "")}</textarea>
     </div>`
     : `<div class="hwm-card hwm-donecard">${m.queue.length ? "🎉 All marked!" : "Nothing to mark right now."}<small>Students see the result in their app.</small></div>`;
   el.innerHTML = `<div class="hwm-wrap">
@@ -8893,6 +8894,15 @@ function llsHwmDraw_() {
     llsHwmSave_(cur.sid, b.dataset.hwmMark, (byId("hwmCm")?.value || "").trim());
     setTimeout(() => { m.i++; llsHwmDraw_(); }, 250);
   }));
+  el.querySelectorAll("[data-hwm-flip]").forEach((row) => row.addEventListener("click", () => {
+    const a = cur && m.ai[cur.sid] && m.ai[cur.sid].res; if (!a) return;
+    const [si, ii] = row.dataset.hwmFlip.split(".").map(Number); const it = a.sections[si] && a.sections[si].items[ii]; if (!it) return;
+    it.ok = it.ok === true ? false : true; a.feedbackKeep = byId("hwmCm")?.value; llsHwmDraw_();
+  }));
+  el.querySelectorAll("[data-hwm-sec]").forEach((b) => b.addEventListener("click", () => { const a = m.ai[cur.sid].res; a.open = a.open || {}; a.open[b.dataset.hwmSec] = !a.open[b.dataset.hwmSec]; a.feedbackKeep = byId("hwmCm")?.value; llsHwmDraw_(); }));
+  byId("hwmAiRetry")?.addEventListener("click", () => { delete m.ai[cur.sid]; llsHwmDraw_(); });
+  if (cur && llsHwmAiCan_(cur) && !m.ai[cur.sid]) llsHwmAi_(cur.sid);
+  { const a = cur && m.ai[cur.sid] && m.ai[cur.sid].res; const t = byId("hwmCm"); if (a && t && a.feedbackKeep != null) t.value = a.feedbackKeep; }
   el.querySelectorAll("[data-hwm-nd]").forEach((b) => b.addEventListener("click", () => { llsHwmSave_(b.dataset.hwmNd, "not", ""); llsHwmDraw_(); }));
   byId("hwmRemind")?.addEventListener("click", () => {
     const today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" });
@@ -8905,6 +8915,65 @@ function llsHwmDraw_() {
     llsHwmDraw_();
   });
 }
+// 26 Oct (stage 2): the AI pre-marks photos / PDFs (Apps Script V39 aiMarkHomework). It only SUGGESTS:
+// the teacher taps a line to change ✓/✗ and presses Good / Redo. Nothing is saved until then.
+function llsHwmAiCan_(cur) {
+  return (window.llsServerVersion || 0) >= 39 && cur && cur.work.some((w) => /^(image\/(jpeg|png|webp|gif)|application\/pdf)$/i.test(w.type || ""));
+}
+function llsHwmAiScore_(a) {
+  const items = (a.sections || []).flatMap((s) => s.items).filter((it) => it.ok !== null);
+  return { got: items.filter((it) => it.ok).length, total: items.length };
+}
+async function llsHwmAi_(sid) {
+  const m = llsHwm; if (!m) return;
+  m.ai[sid] = { loading: true };
+  try {
+    const payload = { action: "aiMarkHomework", homeworkId: m.hwId, studentId: sid, answerKey: m.keyText || "",
+      token: sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY) || "", requestId: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "r" + Date.now() };
+    const url = new URL(LLS_API_URL);
+    url.searchParams.set("action", "mutate"); url.searchParams.set("payload", JSON.stringify(payload)); url.searchParams.set("_", String(Date.now()));
+    const response = await llsFetch_(url.toString(), { method: "GET", cache: "no-store", redirect: "follow" }, { timeoutMs: 150000 });
+    const data = JSON.parse(await response.text());
+    if (!data.success) throw new Error(data.error || "The AI could not check it.");
+    if (llsHwm !== m) return;
+    m.ai[sid] = { res: data };
+  } catch (error) {
+    if (llsHwm !== m) return;
+    const msg = /AI_NOT_SET_UP/.test(error.message || "") ? "The AI isn't switched on yet." : (error.message || "The AI could not check it.");
+    m.ai[sid] = { err: msg };
+  }
+  if (llsHwm === m && m.queue[m.i] === sid) llsHwmDraw_();
+}
+function llsHwmAiHtml_(cur) {
+  const m = llsHwm;
+  if (!cur || !llsHwmAiCan_(cur)) return "";
+  const st = m.ai[cur.sid];
+  if (!st || st.loading) return `<div class="hwm-ai">🤖 <b>The AI is checking the work…</b> <span class="hwm-muted">about 20–40 seconds. You can mark it yourself meanwhile.</span></div>`;
+  if (st.err) return `<div class="hwm-ai">🤖 ${escapeHtml(st.err)} <button type="button" class="hwm-link" id="hwmAiRetry">Try again</button></div>`;
+  const a = st.res, sc = llsHwmAiScore_(a);
+  const secs = (a.sections || []).map((s, si) => {
+    const known = s.items.filter((it) => it.ok !== null), right = known.filter((it) => it.ok).length;
+    const allOk = known.length && right === known.length && known.length === s.items.length;
+    const open = (a.open && a.open[si]) || !allOk;
+    const head = `<div class="hwm-ex"><span>${escapeHtml(s.title || "Exercise")}</span><span class="hwm-sc${allOk ? "" : " some"}">${right} / ${known.length}</span></div>`;
+    if (!open) return `<div class="hwm-sec">${head}<button type="button" class="hwm-link" data-hwm-sec="${si}">All correct ✓ – show the answers</button></div>`;
+    return `<div class="hwm-sec">${head}${s.items.map((it, ii) => `<div class="hwm-q ${it.ok === true ? "ok" : it.ok === false ? "no" : "un"}" data-hwm-flip="${si}.${ii}" role="button" tabindex="0">
+      <span class="mk">${it.ok === true ? "✓" : it.ok === false ? "✗" : "?"}</span>
+      <span>${escapeHtml(it.n ? it.n + " " : "")}${escapeHtml(it.q || "")} → <b class="ans">${escapeHtml(it.given || "(nothing)")}</b>${it.ok === false && it.correct ? ` <span class="fix">${escapeHtml(it.correct)}</span>` : ""}${it.ok === null ? ` <span class="hwm-muted">can't read it – tap to mark</span>` : ""}</span></div>`).join("")}</div>`;
+  }).join("");
+  const wr = (a.writing || []).map((w) => {
+    let t = escapeHtml(w.text || "");
+    (w.mistakes || []).forEach((x) => { const wrong = escapeHtml(x.wrong || ""); if (!wrong) return; const i = t.indexOf(wrong); if (i >= 0) t = t.slice(0, i) + `<mark>${wrong}</mark><span class="fixw"> ${escapeHtml(x.right || "")}</span>` + t.slice(i + wrong.length); });
+    return `<div class="hwm-sec"><div class="hwm-ex"><span>✍️ ${escapeHtml(w.title || "Writing")}</span>${w.words ? `<span class="hwm-muted">${w.words} words</span>` : ""}</div>
+      <div class="hwm-essay">${t}</div>${w.comment ? `<div class="hwm-muted" style="margin-top:4px">🤖 ${escapeHtml(w.comment)}</div>` : ""}</div>`;
+  }).join("");
+  return `<div class="hwm-ai on">
+    <div class="hwm-ai-h">🤖 <b>AI pre-marked this</b>${a.usedKey ? " with the answer key" : ""}. <span class="hwm-muted">Tap a line to change ✓ / ✗.</span>${sc.total ? `<span class="hwm-tot">${sc.got} / ${sc.total}</span>` : ""}</div>
+    ${a.note ? `<div class="hwm-note">⚠ ${escapeHtml(a.note)}</div>` : ""}
+    ${secs}${wr}
+    <div class="hwm-muted" style="margin-top:6px">AI suggests: <b>${a.suggest === "redo" ? "🔁 Redo" : "✅ Good"}</b> · its comment for the student is in the box below (change it or leave it).</div>
+  </div>`;
+}
 function llsHwmRec_(sid) {
   const m = llsHwm;
   let rec = (llsLesson.status || []).find((r) => String(r["Homework ID"] || "") === m.hwId && String(r["Student ID"] || "").trim() === sid);
@@ -8916,7 +8985,8 @@ function llsHwmSave_(sid, kind, comment) {
   const m = llsHwm; if (!m) return;
   const rec = llsHwmRec_(sid);
   if (kind === "good" || kind === "redo") {
-    const mark = kind === "good" ? "✅ Good" : "🔁 Redo";
+    const a = m.ai[sid] && m.ai[sid].res, sc = a ? llsHwmAiScore_(a) : null;
+    const mark = (kind === "good" ? "✅ Good" : "🔁 Redo") + (sc && sc.total ? ` · ${sc.got}/${sc.total}` : "");
     Object.assign(rec, { Status: "Done", Mark: mark, Feedback: comment || String(rec["Feedback"] || "") });
     llsQueueSave("homework mark", { action: "markHomeworkFeedback", homeworkId: m.hwId, studentId: sid, mark, feedback: String(rec["Feedback"] || "") });
     if (kind === "redo") {
