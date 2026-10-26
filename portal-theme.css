@@ -883,3 +883,45 @@ input[type="checkbox"] { border-radius: 4px; }
 .act-eg { color: #4a3a8a; font-style: italic; }
 .act-pick { border-color: #f5b400; box-shadow: 0 0 0 3px #ffe48a; }
 .act-note { font-size: 0.82rem; color: #6b7385; margin: 10px 0 14px; }
+
+/* 26 Oct 2026 (owner: "super simple"): homework = one line per homework + a marking screen, one student at a time. */
+.hwm-list { display: flex; flex-direction: column; }
+.hwm-row { display: flex; align-items: center; gap: 12px; padding: 12px 2px; border-bottom: 1px solid #dfe9f5; }
+.hwm-row:last-child { border-bottom: 0; }
+.hwm-t { flex: 1; min-width: 0; }
+.hwm-t b { font-size: 17px; }
+.hwm-when { color: #6b7280; font-size: 13px; font-weight: 700; }
+.hwm-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+.hwm-chip { font-size: 13px; font-weight: 800; border-radius: 999px; padding: 3px 10px; }
+.hwm-chip.c-done { background: #dff5e9; color: #15803d; }
+.hwm-chip.c-mark { background: #fff8d6; color: #92400e; }
+.hwm-chip.c-miss { background: #ffe1e1; color: #b91c1c; }
+.hwm-go { border: 0; border-radius: 12px; background: #16275c; color: #fff; font: inherit; font-weight: 800; font-size: 15px; padding: 11px 16px; cursor: pointer; white-space: nowrap; }
+.hwm-go.ghost { background: #eef7ff; color: #16275c; }
+body.hwm-open { overflow: hidden; }
+.hwm-view { position: fixed; inset: 0; z-index: 9000; background: #f6fbff; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.hwm-wrap { max-width: 760px; margin: 0 auto; padding: 14px 16px 40px; }
+.hwm-back { border: 0; border-radius: 12px; background: #eef7ff; color: #16275c; font: inherit; font-weight: 800; padding: 10px 14px; cursor: pointer; }
+.hwm-h { font-size: 22px; margin: 14px 0 8px; color: #0f1b3d; }
+.hwm-task { background: #eef7ff; border-radius: 12px; padding: 10px 12px; font-size: 15px; line-height: 1.45; }
+.hwm-tools { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.hwm-tool { display: inline-block; border: 0; border-radius: 12px; background: #fff; border: 2px solid #3fb3f0; color: #16275c; font: inherit; font-weight: 800; padding: 9px 13px; text-decoration: none; cursor: pointer; }
+.hwm-tool.off { border-color: #dfe9f5; color: #6b7280; cursor: default; }
+.hwm-card { background: #fff; border: 1px solid #dfe9f5; border-radius: 16px; padding: 14px; margin-top: 12px; }
+.hwm-who { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hwm-who b { font-size: 19px; }
+.hwm-file { border: 0; border-radius: 10px; background: #eef7ff; color: #16275c; font: inherit; font-weight: 800; padding: 7px 11px; margin-left: 4px; cursor: pointer; }
+.hwm-muted { color: #6b7280; font-size: 13.5px; }
+.hwm-big { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px; }
+.hwm-big button { border: 0; border-radius: 14px; padding: 17px 6px; font: inherit; font-weight: 800; font-size: 17px; cursor: pointer; }
+.hwm-big .b-good { background: #dff5e9; color: #15803d; }
+.hwm-big .b-redo { background: #fff8d6; color: #92400e; }
+.hwm-big .b-not { background: #ffe1e1; color: #b91c1c; }
+.hwm-big button.sel { outline: 3px solid #0f1b3d; }
+.hwm-foot { display: flex; justify-content: space-between; margin-top: 10px; }
+.hwm-link { border: 0; background: none; color: #16275c; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 4px; }
+.hwm-cm { width: 100%; margin-top: 8px; border: 1px solid #dfe9f5; border-radius: 10px; padding: 9px; font: inherit; font-size: 15px; }
+.hwm-donecard { text-align: center; font-size: 19px; font-weight: 800; padding: 24px 12px; }
+.hwm-donecard small { display: block; font-size: 13.5px; color: #6b7280; font-weight: 700; margin-top: 4px; }
+.hwm-mrow { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid #f0f4fa; font-size: 15px; }
+@media (max-width: 520px) { .hwm-big button { font-size: 15px; padding: 15px 4px; } .hwm-row { align-items: flex-start; } }

@@ -8760,20 +8760,175 @@ function llsRenderHwTodo_() {
     <small>Mark it below: one drop-down per student. 👀 opens their file.</small>`;
 }
 function llsRenderHwCheck_() {
+  // 26 Oct 2026 (owner: "I'm totally lost… keep it super simple"): ONE line per homework with three counts
+  // (done · to mark · missing) and a Mark button. Marking happens in its own screen, one student at a time.
   const panel = byId("lessonHwCheckPanel"), box = byId("lessonHwCheck");
   if (!panel || !box) return;
-  const list = llsHwDueToday_();
-  panel.hidden = !list.length;
-  llsRenderHwOlder_(list);
-  llsRenderHwTodo_();
-  { const h = byId("lessonHwCheckWhen"); if (h) { const d = list[0] ? String(list[0]["Assigned Date"] || list[0]["Created At"] || "").slice(0, 10) : ""; h.textContent = d ? "set in the last lesson (" + new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) + ") · who did it? mark it together" : ""; } }
+  const older = byId("lessonHwOlderPanel"); if (older) older.hidden = true;
+  const todo = byId("lessonHwTodo"); if (todo) { todo.hidden = true; todo.innerHTML = ""; }
+  const rows = llsHwmRows_();
+  panel.hidden = !rows.length;
+  { const h = byId("lessonHwCheckWhen"); if (h) h.textContent = rows.length ? "tap Mark to check their work" : ""; }
   llsStepNums_();
-  if (!list.length) { box.innerHTML = ""; return; }
+  if (!rows.length) { box.innerHTML = ""; return; }
+  const fmt = (iso) => iso ? new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "2-digit" }) : "";
+  box.innerHTML = `<div class="hwm-list">` + rows.map((r) => {
+    const all = r.toMark === 0 && r.missing === 0;
+    return `<div class="hwm-row">
+      <div class="hwm-t"><b>${escapeHtml(r.short)}</b> <span class="hwm-when">· set ${escapeHtml(fmt(r.set))}${r.last ? " (last lesson)" : ""}</span>
+        <div class="hwm-chips"><span class="hwm-chip c-done">✅ ${r.done}/${r.total} done</span>${r.toMark ? `<span class="hwm-chip c-mark">📥 ${r.toMark} to mark</span>` : ""}${r.missing ? `<span class="hwm-chip c-miss">⏳ ${r.missing} missing</span>` : ""}${all ? `<span class="hwm-chip c-done">✓ all marked</span>` : ""}</div></div>
+      <button type="button" class="hwm-go${all || !r.toMark ? " ghost" : ""}" data-hwm-open="${escapeAttribute(r.id)}">${r.toMark ? "Mark ▸" : "Open ▸"}</button>
+    </div>`;
+  }).join("") + `</div>`;
+  box.querySelectorAll("[data-hwm-open]").forEach((b) => b.addEventListener("click", () => llsHwmOpen_(b.dataset.hwmOpen)));
+}
+// Who is where for one homework. "toMark" = handed in (file) or ticked done in the app, and no mark yet.
+function llsHwmState_(h) {
+  const id = String(h["Homework ID"]);
   const students = llsStudentsForClass(llsLesson.classId);
+  return students.map((st) => {
+    const sid = String(st["Student ID"] || "").trim();
+    const rec = (llsLesson.status || []).find((r) => String(r["Homework ID"] || "") === id && String(r["Student ID"] || "").trim() === sid);
+    const work = (llsLesson.files || []).filter((x) => x.kind === "Work" && x.homeworkId === id && x.studentId === sid);
+    const mark = String((rec && rec["Mark"]) || "").trim(), fb = String((rec && rec["Feedback"]) || "").trim();
+    const notes = String((rec && rec["Notes"]) || "");
+    const doneTick = rec && String(rec["Status"] || "") === "Done";
+    let state = "missing";
+    // A "Redo" that comes back (handed in again / ticked done again) needs marking again.
+    if (mark || fb) state = /redo/i.test(mark) ? (doneTick ? "tomark" : "redo") : "marked";
+    else if (/^not done|forgot/i.test(notes)) state = "notdone";
+    else if (work.length || doneTick) state = "tomark";
+    return { st, sid, rec, work, state, mark, fb, reminded: /^reminder/i.test(notes) };
+  });
+}
+function llsHwmRows_() {
+  const date = byId("lessonDate")?.value || "";
+  const d10 = (x) => String(x || "").slice(0, 10);
+  const setOn = (h) => d10(h["Assigned Date"] || h["Created At"]);
+  const lastIds = new Set(llsHwDueToday_().map((h) => String(h["Homework ID"])));
+  return (llsLesson.homework || []).filter((h) => h["Homework ID"] && setOn(h) && setOn(h) < date).map((h) => {
+    const st = llsHwmState_(h);
+    const id = String(h["Homework ID"]);
+    return {
+      h, id, set: setOn(h), last: lastIds.has(id),
+      short: String(h["Title"] || "Homework").split(":")[0].replace(/ homework$/i, "").slice(0, 60),
+      total: st.length,
+      done: st.filter((x) => ["tomark", "marked", "redo"].includes(x.state)).length,
+      toMark: st.filter((x) => x.state === "tomark").length,
+      missing: st.filter((x) => x.state === "missing").length
+    };
+  }).filter((r) => {
+    // Older homework only while there is something to do: work to mark, or missing work from the last 2 weeks.
+    const recent = (new Date(date + "T12:00:00") - new Date(r.set + "T12:00:00")) / 86400000 <= 14;
+    return r.last || r.toMark || (r.missing && recent);
+  }).sort((a, b) => b.set.localeCompare(a.set)).slice(0, 6);
+}
+// The marking screen: task + answers at the top, then one student at a time with three big buttons.
+let llsHwm = null;
+function llsHwmOpen_(hwId) {
+  const h = (llsLesson.homework || []).find((x) => String(x["Homework ID"]) === String(hwId));
+  if (!h) return;
+  const set = String(h["Assigned Date"] || h["Created At"] || "").slice(0, 10);
+  const entry = (llsLesson.entries || []).find((e) => String(e.lessonDate || "").slice(0, 10) === set);
   const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
-  const from = { files: llsLesson.files || [], status: llsLesson.status || [] };
-  box.innerHTML = list.map((h) => llsHwCardHtml_(h, { students, cls, from })).join("");
-  llsBindHwCards_(box);
+  const code = entry ? llsPlanCode_(entry.unit) : "";
+  const plan = cls && code ? llsPlansFor_(cls).find((x) => x.id === code) : null;
+  const key = plan ? llsPlanUrl_(plan, "key") : "";
+  const teacherFiles = llsHwFileCounts_(String(hwId), { files: llsLesson.files || [], status: llsLesson.status || [] }).teacher;
+  const queue = llsHwmState_(h).filter((x) => x.state === "tomark").map((x) => x.sid);
+  llsHwm = { hwId: String(hwId), h, key, teacherFiles, queue, i: 0, done: 0 };
+  let el = byId("hwmView");
+  if (!el) { el = document.createElement("div"); el.id = "hwmView"; el.className = "hwm-view"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); document.body.appendChild(el); }
+  el.hidden = false;
+  document.body.classList.add("hwm-open");
+  llsHwmDraw_();
+}
+function llsHwmClose_() {
+  const el = byId("hwmView"); if (el) { el.hidden = true; el.innerHTML = ""; }
+  document.body.classList.remove("hwm-open");
+  llsHwm = null;
+  llsRenderHwCheck_();
+}
+function llsHwmDraw_() {
+  const m = llsHwm, el = byId("hwmView");
+  if (!m || !el) return;
+  const all = llsHwmState_(m.h);
+  const cur = m.queue[m.i] ? all.find((x) => x.sid === m.queue[m.i]) : null;
+  const missing = all.filter((x) => x.state === "missing");
+  const day = (x) => x ? new Date(String(x).slice(0, 10) + "T12:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" }) : "";
+  const desc = m.h["Description"] ? escapeHtml(String(m.h["Description"])).replace(/\n/g, "<br>") : escapeHtml(String(m.h["Title"] || ""));
+  const studentCard = cur ? `<div class="hwm-card">
+      <div class="hwm-who"><b>${escapeHtml(llsStudentName(cur.st))}</b>
+        <span>${cur.work.length ? cur.work.map((w, k) => `<button type="button" class="hwm-file" data-hwm-file="${escapeAttribute(w.fileId)}">👀 ${cur.work.length > 1 ? "File " + (k + 1) : "Open their work"}</button>`).join("") : `<span class="hwm-muted">no file – done in the app</span>`}</span></div>
+      <div class="hwm-muted">${cur.work.length ? "Handed in" : "Ticked done"}${cur.rec && cur.rec["Completed Date"] ? " " + escapeHtml(day(cur.rec["Completed Date"])) : ""} · ${m.i + 1} of ${m.queue.length}</div>
+      <div class="hwm-big">
+        <button type="button" class="b-good" data-hwm-mark="good">✅ Good</button>
+        <button type="button" class="b-redo" data-hwm-mark="redo">🔁 Redo</button>
+        <button type="button" class="b-not" data-hwm-mark="not">✗ Not done</button>
+      </div>
+      <div class="hwm-foot"><button type="button" class="hwm-link" id="hwmCmBtn">+ add a comment</button><button type="button" class="hwm-link" id="hwmSkip">Skip ▸</button></div>
+      <textarea id="hwmCm" class="hwm-cm" rows="2" maxlength="300" placeholder="Comment (optional) – the student sees it in the app" hidden></textarea>
+    </div>`
+    : `<div class="hwm-card hwm-donecard">${m.queue.length ? "🎉 All marked!" : "Nothing to mark right now."}<small>Students see the result in their app.</small></div>`;
+  el.innerHTML = `<div class="hwm-wrap">
+    <div class="hwm-top"><button type="button" class="hwm-back" id="hwmBack">◂ Back to the lesson</button></div>
+    <h2 class="hwm-h">${escapeHtml(String(m.h["Title"] || "Homework").split(":")[0])}</h2>
+    <div class="hwm-task">📋 ${desc}</div>
+    <div class="hwm-tools">
+      ${m.key ? `<a class="hwm-tool" href="${escapeAttribute(m.key)}" target="_blank" rel="noopener">🔑 Show answers</a>` : `<span class="hwm-tool off" title="No answer key for this lesson yet">🔑 No answer key yet</span>`}
+      ${m.teacherFiles ? `<button type="button" class="hwm-tool" id="hwmExFile">📎 The exercise</button>` : ""}
+    </div>
+    ${studentCard}
+    ${missing.length ? `<div class="hwm-card hwm-miss"><div class="hwm-who"><b>⏳ Not handed in (${missing.length})</b><button type="button" class="hwm-file" id="hwmRemind">⏰ Remind all</button></div>
+      ${missing.map((x) => `<div class="hwm-mrow"><span>${escapeHtml(llsStudentName(x.st))}${x.reminded ? ` <small class="hwm-muted">· reminded</small>` : ""}</span><button type="button" class="hwm-link" data-hwm-nd="${escapeAttribute(x.sid)}">✗ Not done</button></div>`).join("")}</div>` : ""}
+  </div>`;
+  byId("hwmBack").addEventListener("click", llsHwmClose_);
+  el.querySelectorAll("[data-hwm-file]").forEach((b) => b.addEventListener("click", () => llsOpenFile_(b.dataset.hwmFile)));
+  byId("hwmExFile")?.addEventListener("click", () => { llsHomeworkCache = { classId: llsLesson.classId, homework: llsLesson.homework, status: llsLesson.status, files: llsLesson.files || [], fromLesson: true }; llsOpenHwFiles(m.hwId); });
+  byId("hwmCmBtn")?.addEventListener("click", () => { const t = byId("hwmCm"); t.hidden = false; t.focus(); });
+  byId("hwmSkip")?.addEventListener("click", () => { m.i++; llsHwmDraw_(); });
+  el.querySelectorAll("[data-hwm-mark]").forEach((b) => b.addEventListener("click", () => {
+    if (!cur) return;
+    b.classList.add("sel");
+    llsHwmSave_(cur.sid, b.dataset.hwmMark, (byId("hwmCm")?.value || "").trim());
+    setTimeout(() => { m.i++; llsHwmDraw_(); }, 250);
+  }));
+  el.querySelectorAll("[data-hwm-nd]").forEach((b) => b.addEventListener("click", () => { llsHwmSave_(b.dataset.hwmNd, "not", ""); llsHwmDraw_(); }));
+  byId("hwmRemind")?.addEventListener("click", () => {
+    const today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" });
+    const notes = `Reminder ${today} – please finish it and hand it in`;
+    missing.forEach((x) => {
+      const rec = llsHwmRec_(x.sid); Object.assign(rec, { Status: "Not started", Notes: notes });
+      llsQueueSave("homework reminder", { action: "markHomeworkStatus", homeworkId: m.hwId, studentId: x.sid, status: "Not started", notes });
+    });
+    showToast(`Reminder sent to ${missing.length} student${missing.length > 1 ? "s" : ""} – they see it in the app.`, "success");
+    llsHwmDraw_();
+  });
+}
+function llsHwmRec_(sid) {
+  const m = llsHwm;
+  let rec = (llsLesson.status || []).find((r) => String(r["Homework ID"] || "") === m.hwId && String(r["Student ID"] || "").trim() === sid);
+  if (!rec) { rec = { "Homework ID": m.hwId, "Student ID": sid }; llsLesson.status.push(rec); }
+  return rec;
+}
+// Good = done and fine · Redo = they must do it again (they get a reminder in the app) · Not done.
+function llsHwmSave_(sid, kind, comment) {
+  const m = llsHwm; if (!m) return;
+  const rec = llsHwmRec_(sid);
+  if (kind === "good" || kind === "redo") {
+    const mark = kind === "good" ? "✅ Good" : "🔁 Redo";
+    Object.assign(rec, { Status: "Done", Mark: mark, Feedback: comment || String(rec["Feedback"] || "") });
+    llsQueueSave("homework mark", { action: "markHomeworkFeedback", homeworkId: m.hwId, studentId: sid, mark, feedback: String(rec["Feedback"] || "") });
+    if (kind === "redo") {
+      const notes = "Reminder – please do it again and hand it in";
+      Object.assign(rec, { Status: "Not started", Notes: notes });
+      llsQueueSave("homework redo", { action: "markHomeworkStatus", homeworkId: m.hwId, studentId: sid, status: "Not started", notes });
+    }
+  } else {
+    Object.assign(rec, { Status: "Not started", Notes: "Not done" });
+    llsQueueSave("homework ticks", { action: "markHomeworkStatus", homeworkId: m.hwId, studentId: sid, status: "Not started", notes: "Not done" });
+  }
+  m.done++;
 }
 // 21 Oct: one homework card (who handed it in · open their work · mark · feedback · remind). Used for this lesson's
 // homework AND for older homework still open.
