@@ -562,6 +562,8 @@
     var b=document.getElementById("llsNotice"); b.textContent=""; String(n.text).split("\n").forEach(function(line,i){var p=document.createElement(i===0?"b":"div");p.textContent=line;b.appendChild(p);}); b.style.display="block";
   }).catch(function(){});})();
   </script>
+  <div id="llsClosedDays" hidden></div>
+  <script src="closed-days.js?v=20261027a"></script>
   <main class="wrap" id="main">
     <div class="empty">Loading your homework… · Caricamento…</div>
   </main>
