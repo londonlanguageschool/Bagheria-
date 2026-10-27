@@ -10416,7 +10416,7 @@ function llsForgetCachedData_() {
    logging in is never slowed down.
 ========================================================= */
 const LLS_SCHOOL_START = "2026-09-28";
-const LLS_CLOSED_DAYS = (window.LLS_CLOSED && window.LLS_CLOSED.length) ? window.LLS_CLOSED.map((c) => [c.from, c.to]) : [["2026-12-07", "2026-12-08"], ["2026-12-23", "2027-01-06"], ["2027-03-19", "2027-03-19"], ["2027-04-25", "2027-04-30"], ["2027-05-31", "2027-06-02"]];
+const LLS_CLOSED_DAYS = (window.LLS_CLOSED && window.LLS_CLOSED.length) ? window.LLS_CLOSED.map((c) => [c.from, c.to]) : [["2026-12-07", "2026-12-08"], ["2026-12-23", "2027-01-07"], ["2027-03-19", "2027-03-19"], ["2027-03-25", "2027-03-30"], ["2027-05-31", "2027-06-02"]];
 
 function llsSchoolClosed_(iso) {
   return iso < LLS_SCHOOL_START || LLS_CLOSED_DAYS.some(([a, b]) => iso >= a && iso <= b);

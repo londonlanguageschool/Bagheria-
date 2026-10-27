@@ -3,9 +3,9 @@
    in the student app and the teacher/office portal (#llsClosedDays). */
 window.LLS_CLOSED = [
   { from: "2026-12-07", to: "2026-12-08", it: "7–8 dicembre 2026", en: "7–8 December 2026", why: "Scuola chiusa · School closed" },
-  { from: "2026-12-23", to: "2027-01-06", it: "23 dicembre 2026 – 6 gennaio 2027", en: "23 December 2026 – 6 January 2027", why: "Vacanze di Natale · Christmas holidays" },
+  { from: "2026-12-23", to: "2027-01-07", it: "23 dicembre 2026 – 7 gennaio 2027", en: "23 December 2026 – 7 January 2027", why: "Vacanze di Natale · Christmas holidays" },
   { from: "2027-03-19", to: "2027-03-19", it: "19 marzo 2027", en: "19 March 2027", why: "San Giuseppe, patrono di Bagheria · patron saint of Bagheria" },
-  { from: "2027-04-25", to: "2027-04-30", it: "25–30 aprile 2027", en: "25–30 April 2027", why: "Scuola chiusa · School closed" },
+  { from: "2027-03-25", to: "2027-03-30", it: "25–30 marzo 2027", en: "25–30 March 2027", why: "Vacanze di Pasqua · Easter holidays" },
   { from: "2027-05-31", to: "2027-06-02", it: "31 maggio – 2 giugno 2027", en: "31 May – 2 June 2027", why: "Scuola chiusa · School closed" }
 ];
 (function () {
