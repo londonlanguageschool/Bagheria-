@@ -943,3 +943,16 @@ body.hwm-open { overflow: hidden; }
 .hwm-essay { background: #fafafa; border-radius: 8px; padding: 8px; line-height: 1.6; white-space: pre-line; }
 .hwm-essay mark { background: #ffe1e1; border-radius: 4px; padding: 0 2px; }
 .hwm-big button.sug { box-shadow: 0 0 0 3px #7c3aed inset; }
+
+/* 27 Oct: Set homework? Yes / No + tick what to set */
+.hw-yn { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; }
+.hw-yn-q { font-weight: 800; margin-right: 4px; }
+.hw-yn-b { border: 2px solid #dfe9f5; background: #fff; color: #16275c; border-radius: 12px; padding: 9px 18px; font: inherit; font-weight: 800; cursor: pointer; }
+.hw-yn-b.on[data-hw-yn="set"] { background: #dff5e9; border-color: #15803d; color: #15803d; }
+.hw-yn-b.on[data-hw-yn="none"] { background: #ffe1e1; border-color: #b91c1c; color: #b91c1c; }
+.hw-pick { background: #f6fbff; border: 1px solid #dfe9f5; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
+.hw-pick-h { font-weight: 800; margin: 0 0 6px; }
+.hw-pick-o { display: flex; gap: 10px; align-items: flex-start; padding: 8px 4px; border-top: 1px solid #eef3f9; cursor: pointer; font-size: 15px; }
+.hw-pick-o input { width: 20px; height: 20px; margin-top: 1px; flex: none; }
+.hw-pick-o.other span { color: #455269; }
+.hw-pick-other { width: 100%; margin: 6px 0 2px; border: 1px solid #dfe9f5; border-radius: 10px; padding: 9px; font: inherit; }

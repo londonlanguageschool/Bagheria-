@@ -7,7 +7,7 @@
   <meta name="description" content="London Language School management portal">
   <title>LLS Portal | London Language School</title>
   <link rel="stylesheet" href="portal.css?v=20261014a">
-  <link rel="stylesheet" href="portal-theme.css?v=20261026b">
+  <link rel="stylesheet" href="portal-theme.css?v=20261027a">
 </head>
 
 <body>
@@ -836,13 +836,20 @@
               <div class="end-sub">
               <p class="end-h"><span data-step-hw hidden></span>New homework for next time</p>
               <div id="lessonHwSetNow" class="hwnow-box" hidden></div>
-              <select id="lessonHwSet" class="hw-set" aria-label="Homework for next time">
+              <!-- 27 Oct 2026 (owner): "Set homework? Yes / No", then tick what to set. -->
+              <div class="hw-yn" id="lessonHwYesNo" role="group" aria-label="Set homework?">
+                <span class="hw-yn-q">Set homework?</span>
+                <button type="button" class="hw-yn-b" data-hw-yn="set">✅ Yes</button>
+                <button type="button" class="hw-yn-b" data-hw-yn="none">✗ No</button>
+              </div>
+              <select id="lessonHwSet" class="hw-set" aria-label="Homework for next time" hidden>
                 <option value="set">Set homework</option>
                 <option value="none">No homework today</option>
               </select>
               <div id="lessonHwFields">
               <div id="lessonHwFromSlides" class="hw-slides" hidden></div>
-              <div class="form-field form-field-wide">
+              <div id="lessonHwPick" class="hw-pick" hidden></div>
+              <div class="form-field form-field-wide" id="lessonHwTitleWrap">
                 <label for="lessonHwTitle">What should they do?</label>
                 <input id="lessonHwTitle" type="text" placeholder="e.g. Workbook 2B ex. 1–3">
                 <div id="lessonHwSuggest" class="sk-chips" style="margin-top:8px;" hidden></div>
@@ -2433,7 +2440,7 @@
   <script src="deck-homework.js?v=20261023n"></script>
   <script src="class-homework.js?v=20261015b"></script>
   <script src="workbook.js?v=20261014a"></script>
-  <script src="portal.js?v=20261026c"></script>
+  <script src="portal.js?v=20261027a"></script>
   <script src="resources.js?v=20261014a"></script>
   <script src="activities.js?v=20261022a"></script>
   <script src="report.js?v=20261014a"></script>

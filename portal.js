@@ -8684,12 +8684,13 @@ function llsRenderHwSetNow_() {
   const d10 = (x) => String(x || "").slice(0, 10);
   const mine = (llsLesson.homework || []).filter((h) => d10(h["Assigned Date"] || h["Created At"]) === date && h["Title"]);
   const sel = byId("lessonHwSet"), fields = byId("lessonHwFields");
-  if (!mine.length) { box.hidden = true; box.innerHTML = ""; if (sel) sel.hidden = false; llsHwSetApply_(); return; }
+  const yn = byId("lessonHwYesNo");
+  if (!mine.length) { box.hidden = true; box.innerHTML = ""; if (yn) yn.hidden = false; llsHwSetApply_(); return; }
   const fmt = (iso) => iso ? new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "2-digit" }) : "";
   box.hidden = false;
   box.innerHTML = `<p class="hwnow-h">✓ Homework set in this lesson</p>` + mine.map((h) => `<div class="hwnow"><b>${escapeHtml(String(h["Title"]))}</b>${h["Due Date"] ? ` <span>· due ${escapeHtml(fmt(d10(h["Due Date"])))}</span>` : ""}${h["Description"] ? `<small>${escapeHtml(String(h["Description"]))}</small>` : ""}</div>`).join("") +
     `<button type="button" class="link-btn" id="lessonHwAnother">${llsLesson.hwAnother ? "− Close" : "+ Set another homework"}</button>`;
-  if (sel) sel.hidden = true;
+  if (yn) yn.hidden = true;
   if (fields) fields.hidden = !llsLesson.hwAnother;
   byId("lessonHwAnother")?.addEventListener("click", () => { llsLesson.hwAnother = !llsLesson.hwAnother; llsRenderHwSetNow_(); });
 }
@@ -9237,7 +9238,7 @@ async function llsSaveLesson() {
   const ownSaved = llsLesson.entries.find((e) => e.lessonDate === date);
   if (!hwTitle && !hwNone && !nobodyHere && !(ownSaved && ownSaved.homeworkSet) && byId("lessonHwSetNow")?.hidden !== false) { // 11 Oct (owner): homework for ALL groups, every lesson
     const ok = window.confirm("No homework for this class " + llsDayInfo_().on + "?\n\nOK = save without homework\nCancel = go back and add homework (step 4)");
-    if (!ok) { const hw = byId("lessonHwTitle"); hw?.scrollIntoView({ behavior: "smooth", block: "center" }); hw?.focus({ preventScroll: true }); return; }
+    if (!ok) { const pk = byId("lessonHwPick"); const hw = pk && !pk.hidden ? pk : byId("lessonHwTitle"); hw?.scrollIntoView({ behavior: "smooth", block: "center" }); hw?.focus({ preventScroll: true }); return; }
   }
   const note = {
     // nobody came: no unit, so the lesson plan isn't marked as taught
@@ -11295,7 +11296,7 @@ function llsRenderHwSheetHint_() {
   }
   if (!card) return;
   const items = llsDeckHw_(cls, p);
-  if (!p) { card.hidden = true; card.innerHTML = ""; llsRenderHwIdeas(); return; }
+  if (!p) { card.hidden = true; card.innerHTML = ""; llsHwPickRender_("", "", [], [], true); llsRenderHwIdeas(); return; }
   // 16 Oct (owner): the homework from the slides is filled in for the teacher (they can change it).
   // Never when this lesson was already saved with homework (no duplicate homework).
   const dateNow = byId("lessonDate")?.value || "";
@@ -11309,8 +11310,14 @@ function llsRenderHwSheetHint_() {
   // 15 Oct (owner): a class with its own homework (e.g. B1.1 Young: easier, no book) gets that instead of the book homework.
   const own = cls && window.LLS_CLASS_HW && LLS_CLASS_HW[cls.id];
   const ownSet = own && own.lessons && own.lessons[p.id];
+  const locked = savedHw || (value("lessonHwTitle").trim() && value("lessonHwTitle").trim() !== llsHwAuto_);
   if (ownSet && ownSet.length) {
-    autoFill(`${p.id}: ${ownSet[0][0]}`, ownSet[0][1]);
+    card.hidden = true; card.innerHTML = "";
+    llsHwPickRender_(p.id, p.title, ownSet.map(([t, x]) => ({ t, x })), [0], locked);
+    llsRenderHwIdeas();
+    return;
+  }
+  if (false) {
     card.hidden = ownSet.length < 2;
     card.innerHTML = `<p class="hw-slides-h">Other homework for this class: ${ownSet.map(([t], i) => `<button type="button" class="row-action" data-hw-own="${i}">${escapeHtml(t)}</button>`).join(" ")}</p>`;
     card.querySelectorAll("[data-hw-own]").forEach((b) => b.addEventListener("click", () => {
@@ -11324,7 +11331,7 @@ function llsRenderHwSheetHint_() {
     return;
   }
   card.hidden = true; card.innerHTML = "";
-  if (items.length) autoFill(`${p.id} homework: ${items[0]}${items.length > 1 ? ` + ${items.length - 1} more` : ""}`, `Homework for ${p.id} ${p.title}:\n` + items.map((t) => "• " + t).join("\n"));
+  llsHwPickRender_(p.id, p.title, items.map((t) => ({ t })), items.map((_, i) => i), locked);
   llsRenderHwIdeas();
 }
 // 14 Oct (owner): the due date as one clear line ("Thu 15/10/2026 · next lesson") with a Change button.
@@ -12698,7 +12705,8 @@ let llsViewIndex_ = null;
 fetch("materials/view/index.json?v=" + Date.now().toString().slice(0, 7)).then((r) => r.ok ? r.json() : {}).then((j) => { llsViewIndex_ = j || {}; }).catch(() => { llsViewIndex_ = {}; });
 function llsDeckBase_(p) {
   const url = p ? llsPlanUrl_(p, "file") : "";
-  const m = String(url).match(/\/materials\/[^/]+\/([^/?#]+)\.pptx/i);
+  // 27 Oct: decks kept in Drive (Movers…) have previews too – use the deck's file name.
+  const m = String(url).match(/\/materials\/[^/]+\/([^/?#]+)\.pptx/i) || String((p && p.file) || "").match(/([^/]+)\.pptx$/i);
   if (!m) return "";
   return llsViewIndex_ && Object.keys(llsViewIndex_).length && !llsViewIndex_[m[1]] ? "" : m[1];
 }
@@ -12777,6 +12785,42 @@ document.addEventListener("click", (e) => {
 function llsHwSetApply_() {
   const none = value("lessonHwSet") === "none";
   const f = byId("lessonHwFields"); if (f) f.hidden = none;
+  document.querySelectorAll("[data-hw-yn]").forEach((b) => { const on = b.dataset.hwYn === (none ? "none" : "set"); b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
+}
+document.addEventListener("click", (e) => {
+  const b = e.target && e.target.closest && e.target.closest("[data-hw-yn]");
+  if (!b) return;
+  const sel = byId("lessonHwSet"); if (!sel) return;
+  sel.value = b.dataset.hwYn; sel.dispatchEvent(new Event("change", { bubbles: true }));
+});
+// 27 Oct 2026 (owner): tick boxes of what to set – this lesson's homework from the slides (several can be ticked)
+// + "Something else". The ticked items become the homework title and the list students (and the marking screen) see.
+function llsHwPickRender_(code, title, opts, preTick, locked) {
+  const box = byId("lessonHwPick"), wrap = byId("lessonHwTitleWrap");
+  if (!box) return;
+  if (!opts.length) { box.hidden = true; box.innerHTML = ""; if (wrap) wrap.hidden = false; return; }
+  box.hidden = false;
+  box.innerHTML = `<p class="hw-pick-h">What should they do? <span class="muted">tick one or more</span></p>` +
+    opts.map((o, i) => `<label class="hw-pick-o"><input type="checkbox" data-hw-pick="${i}"${preTick.includes(i) ? " checked" : ""}> <span>${escapeHtml(o.t)}</span></label>`).join("") +
+    `<label class="hw-pick-o other"><input type="checkbox" data-hw-pick="other"> <span>✏️ Something else</span></label>
+     <input type="text" id="lessonHwOther" class="hw-pick-other" placeholder="Write it, e.g. Learn the 10 new words" hidden>`;
+  if (wrap) wrap.hidden = true;
+  const build = () => {
+    const ticked = [...box.querySelectorAll("[data-hw-pick]:checked")].map((c) => c.dataset.hwPick);
+    const other = ticked.includes("other"), otherIn = byId("lessonHwOther");
+    if (otherIn) otherIn.hidden = !other;
+    const picked = ticked.filter((x) => x !== "other").map((x) => opts[Number(x)]);
+    if (other && otherIn && otherIn.value.trim()) picked.push({ t: otherIn.value.trim() });
+    if (!picked.length) { setValue("lessonHwTitle", ""); setValue("lessonHwText", ""); llsHwAuto_ = ""; return; }
+    const t = `${code} homework: ${picked[0].t}${picked.length > 1 ? ` + ${picked.length - 1} more` : ""}`;
+    setValue("lessonHwTitle", t);
+    setValue("lessonHwText", `Homework for ${code} ${title}:\n` + picked.map((o) => "• " + (o.x || o.t)).join("\n"));
+    llsHwAuto_ = t;
+    byId("lessonHwTitle")?.classList.remove("needs");
+  };
+  box.querySelectorAll("[data-hw-pick]").forEach((c) => c.addEventListener("change", () => { build(); llsLesson.noteTouched = true; if (c.dataset.hwPick === "other" && c.checked) byId("lessonHwOther")?.focus(); }));
+  byId("lessonHwOther")?.addEventListener("input", () => { build(); llsLesson.noteTouched = true; });
+  if (!locked) build();
 }
 document.addEventListener("change", (e) => { if (e.target && e.target.id === "lessonHwSet") { llsHwSetApply_(); llsLesson.noteTouched = true; } });
 
