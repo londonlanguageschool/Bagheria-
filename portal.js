@@ -8864,9 +8864,10 @@ function llsHwmDraw_() {
         <span>${cur.work.length ? cur.work.map((w, k) => `<button type="button" class="hwm-file" data-hwm-file="${escapeAttribute(w.fileId)}">👀 ${cur.work.length > 1 ? "File " + (k + 1) : "Open their work"}</button>`).join("") : `<span class="hwm-muted">no file – done in the app</span>`}</span></div>
       <div class="hwm-muted">${cur.work.length ? "Handed in" : "Ticked done"}${cur.rec && cur.rec["Completed Date"] ? " " + escapeHtml(day(cur.rec["Completed Date"])) : ""} · ${m.i + 1} of ${m.queue.length}</div>
       ${llsHwmAiHtml_(cur)}
+      ${llsHwmManHtml_(cur)}
       <div class="hwm-big">
-        <button type="button" class="b-good${m.ai[cur.sid] && m.ai[cur.sid].res && m.ai[cur.sid].res.suggest === "good" ? " sug" : ""}" data-hwm-mark="good">✅ Good</button>
-        <button type="button" class="b-redo${m.ai[cur.sid] && m.ai[cur.sid].res && m.ai[cur.sid].res.suggest === "redo" ? " sug" : ""}" data-hwm-mark="redo">🔁 Redo</button>
+        <button type="button" class="b-good${(m.ai[cur.sid] && m.ai[cur.sid].res && m.ai[cur.sid].res.suggest === "good") || llsHwmManSug_(cur.sid) === "good" ? " sug" : ""}" data-hwm-mark="good">✅ Good</button>
+        <button type="button" class="b-redo${(m.ai[cur.sid] && m.ai[cur.sid].res && m.ai[cur.sid].res.suggest === "redo") || llsHwmManSug_(cur.sid) === "redo" ? " sug" : ""}" data-hwm-mark="redo">🔁 Redo</button>
         <button type="button" class="b-not" data-hwm-mark="not">✗ Not done</button>
       </div>
       <div class="hwm-foot">${m.ai[cur.sid] && m.ai[cur.sid].res && m.ai[cur.sid].res.feedback ? "<span></span>" : `<button type="button" class="hwm-link" id="hwmCmBtn">+ add a comment</button>`}<button type="button" class="hwm-link" id="hwmSkip">Skip ▸</button></div>
@@ -8903,8 +8904,17 @@ function llsHwmDraw_() {
   }));
   el.querySelectorAll("[data-hwm-sec]").forEach((b) => b.addEventListener("click", () => { const a = m.ai[cur.sid].res; a.open = a.open || {}; a.open[b.dataset.hwmSec] = !a.open[b.dataset.hwmSec]; a.feedbackKeep = byId("hwmCm")?.value; llsHwmDraw_(); }));
   byId("hwmAiRetry")?.addEventListener("click", () => { delete m.ai[cur.sid]; llsHwmDraw_(); });
+  el.querySelectorAll("[data-hwm-part]").forEach((b) => b.addEventListener("click", () => {
+    const [pi, v] = b.dataset.hwmPart.split(":"); const st = llsHwmMan_(cur.sid);
+    st.parts[pi] = st.parts[pi] === v ? "" : v; st.extraKeep = byId("hwmCm")?.value; llsHwmDraw_();
+  }));
+  el.querySelectorAll("[data-hwm-chip]").forEach((b) => b.addEventListener("click", () => {
+    const st = llsHwmMan_(cur.sid), c = b.dataset.hwmChip;
+    st.chips = st.chips.includes(c) ? st.chips.filter((x) => x !== c) : st.chips.concat(c); st.extraKeep = byId("hwmCm")?.value; llsHwmDraw_();
+  }));
   if (cur && llsHwmAiCan_(cur) && !m.ai[cur.sid]) llsHwmAi_(cur.sid);
   { const a = cur && m.ai[cur.sid] && m.ai[cur.sid].res; const t = byId("hwmCm"); if (a && t && a.feedbackKeep != null) t.value = a.feedbackKeep; }
+  { const st = cur && m.man && m.man[cur.sid]; const t = byId("hwmCm"); if (st && t && st.extraKeep != null) { t.value = st.extraKeep; if (st.extraKeep) t.hidden = false; } }
   el.querySelectorAll("[data-hwm-nd]").forEach((b) => b.addEventListener("click", () => { llsHwmSave_(b.dataset.hwmNd, "not", ""); llsHwmDraw_(); }));
   el.querySelectorAll("[data-hwm-ok]").forEach((b) => b.addEventListener("click", () => { llsHwmSave_(b.dataset.hwmOk, "good", "Checked in class"); llsHwmDraw_(); }));
   byId("hwmRemind")?.addEventListener("click", () => {
@@ -8977,6 +8987,44 @@ function llsHwmAiHtml_(cur) {
     <div class="hwm-muted" style="margin-top:6px">AI suggests: <b>${a.suggest === "redo" ? "🔁 Redo" : "✅ Good"}</b> · its comment for the student is in the box below (change it or leave it).</div>
   </div>`;
 }
+// 28 Oct (owner): mark it yourself when the AI isn't on (or can't read it): tap ✓ / ~ / ✗ for each part of the
+// homework and pick quick comments. They become the student's feedback; "+ add a comment" adds your own words.
+const LLS_HWM_CHIPS = ["🌟 Well done!", "💪 Great effort!", "✏️ Check your spelling", "🔠 Remember capital letters", "📖 Read the instructions carefully", "🧹 Write more neatly", "🙋 Ask me in class if you're stuck"];
+function llsHwmParts_() {
+  const m = llsHwm; const lines = String(m.h["Description"] || "").split(/\n/).map((x) => x.trim()).filter(Boolean);
+  const bul = lines.filter((x) => /^[•\-*]/.test(x)).map((x) => x.replace(/^[•\-*]\s*/, ""));
+  const plain = lines.filter((x) => !/:\s*$/.test(x));
+  return bul.length ? bul : plain.length ? plain.slice(0, 8) : [String(m.h["Title"] || "The homework").replace(/^[^:]*homework:\s*/i, "") || "The homework"];
+}
+function llsHwmMan_(sid) { const m = llsHwm; m.man = m.man || {}; return (m.man[sid] = m.man[sid] || { parts: {}, chips: [] }); }
+function llsHwmManScore_(sid) {
+  const st = llsHwm && llsHwm.man && llsHwm.man[sid]; if (!st) return null;
+  const v = Object.values(st.parts).filter(Boolean); return v.length ? { got: v.filter((x) => x === "ok").length, total: v.length } : null;
+}
+function llsHwmManSug_(sid) {
+  const st = llsHwm && llsHwm.man && llsHwm.man[sid]; if (!st) return "";
+  const v = Object.values(st.parts).filter(Boolean); return !v.length ? "" : v.includes("no") ? "redo" : "good";
+}
+function llsHwmManText_(sid) {
+  const st = llsHwm && llsHwm.man && llsHwm.man[sid]; if (!st) return "";
+  const parts = llsHwmParts_(), say = { ok: "✅ all right", some: "⚠️ some mistakes – check them", no: "❌ please do it again" };
+  const lines = parts.map((p, i) => st.parts[i] ? `${p}: ${say[st.parts[i]]}` : "").filter(Boolean);
+  return lines.concat(st.chips).join("\n");
+}
+function llsHwmManHtml_(cur) {
+  const m = llsHwm; if (!cur) return "";
+  const a = m.ai[cur.sid]; if (a && (a.res || a.loading)) return "";
+  const st = (m.man && m.man[cur.sid]) || { parts: {}, chips: [] };
+  const parts = llsHwmParts_();
+  const btn = (i, v, label, cls) => `<button type="button" class="hwm-pb ${cls}${st.parts[i] === v ? " on" : ""}" data-hwm-part="${i}:${v}">${label}</button>`;
+  const preview = llsHwmManText_(cur.sid);
+  return `<div class="hwm-man">
+    <div class="hwm-man-h">✍️ <b>Mark it</b> <span class="hwm-muted">tap for each part – the student sees it</span></div>
+    ${parts.map((p, i) => `<div class="hwm-part"><span class="hwm-pt">${escapeHtml(p)}</span><span class="hwm-pbs">${btn(i, "ok", "✓ Right", "ok")}${btn(i, "some", "~ Some mistakes", "some")}${btn(i, "no", "✗ Wrong", "no")}</span></div>`).join("")}
+    <div class="hwm-qcs">${LLS_HWM_CHIPS.map((c) => `<button type="button" class="hwm-qc${st.chips.includes(c) ? " on" : ""}" data-hwm-chip="${escapeAttribute(c)}">${escapeHtml(c)}</button>`).join("")}</div>
+    ${preview ? `<div class="hwm-preview"><span class="hwm-muted">The student will see:</span><br>${escapeHtml(preview).replace(/\n/g, "<br>")}</div>` : ""}
+  </div>`;
+}
 function llsHwmRec_(sid) {
   const m = llsHwm;
   let rec = (llsLesson.status || []).find((r) => String(r["Homework ID"] || "") === m.hwId && String(r["Student ID"] || "").trim() === sid);
@@ -8988,8 +9036,9 @@ function llsHwmSave_(sid, kind, comment) {
   const m = llsHwm; if (!m) return;
   const rec = llsHwmRec_(sid);
   if (kind === "good" || kind === "redo") {
-    const a = m.ai[sid] && m.ai[sid].res, sc = a ? llsHwmAiScore_(a) : null;
-    const mark = (kind === "good" ? "✅ Good" : "🔁 Redo") + (sc && sc.total ? ` · ${sc.got}/${sc.total}` : "");
+    const a = m.ai[sid] && m.ai[sid].res, sc = a ? llsHwmAiScore_(a) : llsHwmManScore_(sid);
+    const mark = (kind === "good" ? "✅ Good" : "🔁 Redo") + (sc && sc.total ? ` · ${sc.got}/${sc.total}${a ? "" : " parts right"}` : "");
+    if (!a) comment = [llsHwmManText_(sid), comment].filter(Boolean).join("\n");
     Object.assign(rec, { Status: "Done", Mark: mark, Feedback: comment || String(rec["Feedback"] || "") });
     llsQueueSave("homework mark", { action: "markHomeworkFeedback", homeworkId: m.hwId, studentId: sid, mark, feedback: String(rec["Feedback"] || "") });
     if (kind === "redo") {

@@ -956,3 +956,18 @@ body.hwm-open { overflow: hidden; }
 .hw-pick-o input { width: 20px; height: 20px; margin-top: 1px; flex: none; }
 .hw-pick-o.other span { color: #455269; }
 .hw-pick-other { width: 100%; margin: 6px 0 2px; border: 1px solid #dfe9f5; border-radius: 10px; padding: 9px; font: inherit; }
+
+/* 28 Oct: mark it yourself (per part + quick comments) */
+.hwm-man{background:#f8fbff;border:1px solid #dfe9f5;border-radius:12px;padding:10px 12px;margin:10px 0}
+.hwm-man-h{margin-bottom:6px}
+.hwm-part{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;padding:7px 0;border-top:1px solid #e8eef7}
+.hwm-pt{flex:1 1 220px;font-size:14.5px}
+.hwm-pbs{display:flex;gap:5px;flex-wrap:wrap}
+.hwm-pb{border:1.5px solid #dfe9f5;background:#fff;border-radius:10px;padding:7px 10px;font:800 13px Nunito,Arial,sans-serif;cursor:pointer;color:#16275c}
+.hwm-pb.ok.on{background:#dff5e9;border-color:#15803d;color:#15803d}
+.hwm-pb.some.on{background:#fff8d6;border-color:#d97706;color:#92400e}
+.hwm-pb.no.on{background:#ffe1e1;border-color:#b91c1c;color:#b91c1c}
+.hwm-qcs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.hwm-qc{border:1.5px solid #dfe9f5;background:#fff;border-radius:999px;padding:5px 10px;font:700 13px Nunito,Arial,sans-serif;cursor:pointer;color:#16275c}
+.hwm-qc.on{background:#eef7ff;border-color:#3fb3f0}
+.hwm-preview{margin-top:8px;background:#fff;border-radius:10px;padding:8px 10px;font-size:14px;line-height:1.45}
