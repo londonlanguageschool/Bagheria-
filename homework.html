@@ -797,6 +797,13 @@
         .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
+    // 30 Oct (owner): links the teacher adds to homework open in a new tab.
+    function linkify(value) {
+      return esc(value).replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g, function (u) {
+        return '<a href="' + u + '" target="_blank" rel="noopener">' + (u.length > 48 ? u.slice(0, 45) + "…" : u) + "</a>";
+      });
+    }
+
     // 27 Sept: Google sometimes loses the reply. Reading, logging in and
     // ticking homework are safe to repeat, so retry those up to 3 times.
     // 30 Sept: every save carries a receipt number (Apps Script V25+), so
@@ -1836,7 +1843,7 @@
                   aria-pressed="${i.done}">
             ${i.done ? "Done ✓" : "📷 Hand in"}
           </button>
-          ${i["Description"] ? `<p class="desc">${esc(i["Description"])}</p>` : ""}
+          ${i["Description"] ? `<p class="desc">${linkify(i["Description"])}</p>` : ""}
           ${hwExtraHtml(i)}
         </article>`;
 

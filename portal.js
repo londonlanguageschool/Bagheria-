@@ -12844,6 +12844,7 @@ document.addEventListener("click", (e) => {
 });
 // 27 Oct 2026 (owner): tick boxes of what to set – this lesson's homework from the slides (several can be ticked)
 // + "Something else". The ticked items become the homework title and the list students (and the marking screen) see.
+let llsHwPickBuild_ = null;
 function llsHwPickRender_(code, title, opts, preTick, locked) {
   const box = byId("lessonHwPick"), wrap = byId("lessonHwTitleWrap");
   if (!box) return;
@@ -12852,14 +12853,23 @@ function llsHwPickRender_(code, title, opts, preTick, locked) {
   box.innerHTML = `<p class="hw-pick-h">What should they do? <span class="muted">tick one or more</span></p>` +
     opts.map((o, i) => `<label class="hw-pick-o"><input type="checkbox" data-hw-pick="${i}"${preTick.includes(i) ? " checked" : ""}> <span>${escapeHtml(o.t)}</span></label>`).join("") +
     `<label class="hw-pick-o other"><input type="checkbox" data-hw-pick="other"> <span>✏️ Something else</span></label>
-     <input type="text" id="lessonHwOther" class="hw-pick-other" placeholder="Write it, e.g. Learn the 10 new words" hidden>`;
+     <div id="lessonHwOtherBox" class="hw-pick-otherbox" hidden>
+       <input type="text" id="lessonHwOther" class="hw-pick-other" placeholder="Write it, e.g. Do the exercise in the photo">
+       <input type="url" id="lessonHwLink" class="hw-pick-other" placeholder="🔗 Link (optional): YouTube, Wordwall, Google Doc…">
+       <div class="hw-pick-att"><button type="button" class="button button-secondary" id="lessonHwAttachBtn">📎 Add a photo or file</button> <small id="lessonHwPickFiles" class="muted">e.g. the screenshot you sent on WhatsApp – students see it in their app</small></div>
+     </div>`;
   if (wrap) wrap.hidden = true;
   const build = () => {
     const ticked = [...box.querySelectorAll("[data-hw-pick]:checked")].map((c) => c.dataset.hwPick);
-    const other = ticked.includes("other"), otherIn = byId("lessonHwOther");
-    if (otherIn) otherIn.hidden = !other;
+    const other = ticked.includes("other"), otherIn = byId("lessonHwOther"), linkIn = byId("lessonHwLink");
+    const ob = byId("lessonHwOtherBox"); if (ob) ob.hidden = !other;
     const picked = ticked.filter((x) => x !== "other").map((x) => opts[Number(x)]);
-    if (other && otherIn && otherIn.value.trim()) picked.push({ t: otherIn.value.trim() });
+    const link = other && linkIn ? linkIn.value.trim().replace(/^(?!https?:\/\/)(www\.)/i, "https://$1") : "";
+    const files = other ? [...(byId("lessonHwFiles")?.files || [])].length : 0;
+    if (other && otherIn && (otherIn.value.trim() || link || files)) {
+      const t0 = otherIn.value.trim() || (files ? "See the attached file" : "Open the link");
+      picked.push({ t: t0, x: t0 + (link ? " – " + link : "") + (files ? ` (📎 ${files} file${files > 1 ? "s" : ""} attached)` : "") });
+    }
     if (!picked.length) { setValue("lessonHwTitle", ""); setValue("lessonHwText", ""); llsHwAuto_ = ""; return; }
     const t = `${code} homework: ${picked[0].t}${picked.length > 1 ? ` + ${picked.length - 1} more` : ""}`;
     setValue("lessonHwTitle", t);
@@ -12869,6 +12879,18 @@ function llsHwPickRender_(code, title, opts, preTick, locked) {
   };
   box.querySelectorAll("[data-hw-pick]").forEach((c) => c.addEventListener("change", () => { build(); llsLesson.noteTouched = true; if (c.dataset.hwPick === "other" && c.checked) byId("lessonHwOther")?.focus(); }));
   byId("lessonHwOther")?.addEventListener("input", () => { build(); llsLesson.noteTouched = true; });
+  byId("lessonHwLink")?.addEventListener("input", () => { build(); llsLesson.noteTouched = true; });
+  byId("lessonHwAttachBtn")?.addEventListener("click", () => byId("lessonHwFiles")?.click());
+  llsHwPickBuild_ = build;
+  const fi = byId("lessonHwFiles");
+  if (fi && !fi.dataset.pickHook) {
+    fi.dataset.pickHook = "1";
+    fi.addEventListener("change", () => {
+      const f = [...(fi.files || [])], el = byId("lessonHwPickFiles");
+      if (el) el.textContent = f.length ? "📎 " + f.map((x) => x.name).join(", ") : "e.g. the screenshot you sent on WhatsApp – students see it in their app";
+      if (llsHwPickBuild_) { llsHwPickBuild_(); llsLesson.noteTouched = true; }
+    });
+  }
   if (!locked) build();
 }
 document.addEventListener("change", (e) => { if (e.target && e.target.id === "lessonHwSet") { llsHwSetApply_(); llsLesson.noteTouched = true; } });
