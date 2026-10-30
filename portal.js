@@ -9025,6 +9025,68 @@ function llsHwmManHtml_(cur) {
     ${preview ? `<div class="hwm-preview"><span class="hwm-muted">The student will see:</span><br>${escapeHtml(preview).replace(/\n/g, "<br>")}</div>` : ""}
   </div>`;
 }
+// 30 Oct (owner): "Try this game with this lesson" – 2–3 games from the Quick activities A–Z (activities.js)
+// that fit the lesson's grammar / topic. Tap one to see how to play.
+const LLS_GAME_RULES = [
+  [/reported|said|told/, ["Guess who said it", "Reported mingle", "Backshift or not?"]],
+  [/past continuous/, ["Alibi", "Excuses, excuses!"]],
+  [/past modal|must have|might have|can't have|should have|deduction|speculat/, ["Zoom in", "Agony aunt"]],
+  [/present perfect|have you ever|\bever\b|for \/ since/, ["Never have I ever", "Stand up if you've ever…", "Find someone who…"]],
+  [/past simple|past tense|narrative|story|stories|sequenc|connector/, ["Liar, liar!", "Chain story", "Two truths and a lie"]],
+  [/used to|be used to|get used to/, ["Two truths and a lie", "Unfinished sentences"]],
+  [/conditional|\bwould\b|wish/, ["Desert island", "Would you rather…?", "Unfinished sentences"]],
+  [/future|going to|\bwill\b|might|predict/, ["Fortune teller", "Find someone who…"]],
+  [/should|advice|problem/, ["Agony aunt"]],
+  [/present continuous|right now|at the moment/, ["Mime the adverb", "Find someone who…"]],
+  [/present simple|routine|habit|every day|adverbs of frequency/, ["eXpert minute", "Find someone who…", "Two truths and a lie"]],
+  [/\bcan\b|ability/, ["Find someone who…", "Two truths and a lie"]],
+  [/food|eat|cook|meal|restaurant|menu/, ["I went to the market…", "A to Z race"]],
+  [/family|friend|relationship|parents/, ["Hot seat", "Two truths and a lie"]],
+  [/travel|holiday|trip|city|place/, ["Chain story", "Would you rather…?"]],
+  [/superstition|luck|lucky|sport/, ["Two truths and a lie", "Opinion corners"]],
+  [/manners|rules|tidy|personality/, ["Opinion corners", "Odd one out"]],
+  [/education|school|subject|exam/, ["Opinion corners", "Find someone who…"]],
+  [/stereotype|men and women|men, women/, ["Debate ladder", "Opinion corners"]],
+  [/imperative|instruction|command/, ["Role-play on the spot", "Whisper challenge"]],
+  [/comparative|superlative/, ["Line-up", "Would you rather…?"]],
+  [/question|word order|interview/, ["Hot seat", "Question tennis", "Twenty questions"]],
+  [/adverb/, ["Mime the adverb"]],
+  [/preposition|there is|there are|house|room/, ["Kim's game", "Picture dictation"]],
+  [/gerund|infinitive|verb pattern|-ing/, ["Unfinished sentences", "Sentence auction"]],
+  [/opinion|argu|debate|agree|discuss/, ["Debate ladder", "Opinion corners"]],
+  [/restaurant|shop|hotel|coffee|caf|practical english|phone|order|complain/, ["Role-play on the spot"]],
+  [/describ|people|appearance|personality|job|work/, ["Taboo", "Hot seat"]],
+  [/revis|review|revise and check/, ["Sentence auction", "Back to the board", "Taboo"]]
+];
+const LLS_KID_RULES = [
+  [/animal/, ["Animal charades", "Draw and guess"]],
+  [/colou?r/, ["Colour touch", "I spy"]],
+  [/number|time|clock|birthday/, ["What's the time, Mr Wolf?", "Bingo", "Line up!"]],
+  [/body|action|imperative|verb|can\b/, ["Simon says", "Zombie freeze", "Animal charades"]],
+  [/preposition|where/, ["Under the cup"]],
+  [/toy|object|classroom|school/, ["Feely bag", "Kim's game (kids)"]],
+  [/food|fruit|clothes|family|weather/, ["Flashcard slap", "Memory pairs"]],
+  [/question|what's your|personal/, ["Ball questions", "Spin the pen"]],
+  [/letter|alphabet|spell/, ["Pass the ball and spell"]],
+  [/sound|phonic|rhyme/, ["Rhyme time", "Echo chant"]]
+];
+function llsGamesFor_(plan, cls) {
+  const A = window.LLS_ACTIVITIES; if (!A || !plan) return [];
+  const kids = /young/i.test(String(cls && cls.level || "")) || /^PU-/i.test(String(cls && cls.book || ""));
+  const list = kids ? A.KIDS : A.ADULTS, rules = kids ? LLS_KID_RULES : LLS_GAME_RULES;
+  const text = [plan.title, plan.focus, plan.id, ...Object.entries(plan.skills || {}).flat()].join(" ").toLowerCase();
+  const names = [];
+  rules.forEach(([re, ns]) => { if (re.test(text)) ns.forEach((n) => { if (!names.includes(n)) names.push(n); }); });
+  (kids ? ["Flashcard slap", "Run and touch", "What's missing? (board)"] : ["A to Z race", "Taboo", "Back to the board"]).forEach((n) => names.push(n));
+  const out = [];
+  names.forEach((n) => { const g = list.find((x) => x.n === n); if (g && !out.includes(g) && out.length < 3) out.push(g); });
+  return out;
+}
+function llsGamesHtml_(plan, cls) {
+  const games = llsGamesFor_(plan, cls); if (!games.length) return "";
+  return `<div class="start-games"><span class="start-k">🎲 Try a game with this lesson:</span>${games.map((g) => `<details class="sg-card"><summary>${escapeHtml(g.n)} <small>${escapeHtml(String(g.m || ""))} min · ${escapeHtml(g.s || "")}</small></summary>
+    <div class="sg-body"><div class="muted">Fits: ${escapeHtml(g.lang || "")} · prep: ${escapeHtml(g.p || "none")}</div><ol>${(g.how || []).map((h) => `<li>${escapeHtml(h)}</li>`).join("")}</ol>${g.eg ? `<div class="sg-eg">💬 ${escapeHtml(g.eg)}</div>` : ""}</div></details>`).join("")}</div>`;
+}
 function llsHwmRec_(sid) {
   const m = llsHwm;
   let rec = (llsLesson.status || []).find((r) => String(r["Homework ID"] || "") === m.hwId && String(r["Student ID"] || "").trim() === sid);
@@ -11597,6 +11659,7 @@ function llsRenderPlanPanel() {
       ${om.slides ? `<a class="button button-secondary" href="${escapeAttribute(om.slides)}" target="_blank" rel="noopener">⬇ Download PowerPoint</a>` : ""}
       ${!ovb && !om.slides ? `<span class="muted">No slides for this lesson yet – teach from the book (${escapeHtml(opPlan.pages || "Student's Book")}). At the end, write the <b>page</b> where you stopped.</span>` : ""}
     </div>
+    ${llsGamesHtml_(opPlan, cls)}
     ${part && after && opPlan.id === next.id ? `<div class="start-open start-then">
       <span class="start-k">Then (if you finish early): ${escapeHtml(after.id)} ${escapeHtml(after.title)}:</span>
       ${llsDeckBase_(after) ? `<button type="button" class="button button-secondary" data-view-deck="${escapeAttribute(llsDeckBase_(after))}" data-view-title="${escapeAttribute(after.id + " " + after.title)}">▶ Open the next slides</button>` : ""}

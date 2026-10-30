@@ -976,3 +976,13 @@ body.hwm-open { overflow: hidden; }
 .hw-pick-otherbox{display:grid;gap:8px;margin:6px 0 2px 30px}
 .hw-pick-otherbox .hw-pick-other{margin:0}
 .hw-pick-att{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* 30 Oct: games for this lesson */
+.start-games{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;margin-top:10px}
+.start-games .start-k{width:100%}
+.sg-card{background:#fff8d6;border:1px solid #f2d675;border-radius:12px;padding:6px 10px;max-width:420px}
+.sg-card summary{cursor:pointer;font-weight:800;color:#16275c;list-style:none}
+.sg-card summary::-webkit-details-marker{display:none}
+.sg-card summary small{font-weight:600;opacity:.7}
+.sg-card[open]{flex:1 1 300px}
+.sg-body{font-size:14px;margin-top:6px}.sg-body ol{margin:6px 0 4px 18px;padding:0}.sg-eg{font-style:italic;margin-top:4px}
