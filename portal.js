@@ -12911,7 +12911,7 @@ async function llsOpenSlides_(o) {
       llsDeckPics_.set(o.deck, pics);
     } catch (error) {
       pics = [];
-      if (!/aren't ready/i.test(error.message || "")) showToast(error.message || "Couldn't load the slides.", "error");
+      if (!/aren't ready|Unknown action/i.test(error.message || "")) showToast(error.message || "Couldn't load the slides.", "error");
     }
     if (gone) return;
   }
@@ -12995,7 +12995,7 @@ async function llsDownloadDeck_(deck, fallback) {
     setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
     showToast(`${name} downloaded – open it in PowerPoint (audio and click-reveals work there).`, "success");
   } catch (error) {
-    if (/NO_DECK_FILE/.test(error.message || "") && /^https?:/i.test(fallback || "")) window.open(fallback, "_blank", "noopener");
+    if (/NO_DECK_FILE|Unknown action/.test(error.message || "") && /^https?:/i.test(fallback || "")) window.open(fallback, "_blank", "noopener");
     else showToast(/NO_DECK_FILE/.test(error.message || "") ? "This PowerPoint isn't in the school Drive yet. Tell the office." : (error.message || "The download didn't work. Try again."), "error");
   } finally {
     llsDeckBusy_ = false;
