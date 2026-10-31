@@ -8908,6 +8908,10 @@ function llsHwmDraw_() {
     const [pi, v] = b.dataset.hwmPart.split(":"); const st = llsHwmMan_(cur.sid);
     st.parts[pi] = st.parts[pi] === v ? "" : v; st.extraKeep = byId("hwmCm")?.value; llsHwmDraw_();
   }));
+  const addPart = () => { const i = byId("hwmAddPart"); const v = (i && i.value.trim()) || ""; if (!v || !cur) return; const st = llsHwmMan_(cur.sid);
+    v.split(/[,;]+/).map((x) => x.trim()).filter(Boolean).forEach((p) => { st.extra = (st.extra || []).concat(p); }); st.extraKeep = byId("hwmCm")?.value; m.partsExtra = st.extra; llsHwmDraw_(); };
+  byId("hwmAddPartBtn")?.addEventListener("click", addPart);
+  byId("hwmAddPart")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addPart(); } });
   el.querySelectorAll("[data-hwm-chip]").forEach((b) => b.addEventListener("click", () => {
     const st = llsHwmMan_(cur.sid), c = b.dataset.hwmChip;
     st.chips = st.chips.includes(c) ? st.chips.filter((x) => x !== c) : st.chips.concat(c); st.extraKeep = byId("hwmCm")?.value; llsHwmDraw_();
@@ -8996,7 +9000,7 @@ function llsHwmParts_() {
   const plain = lines.filter((x) => !/:\s*$/.test(x));
   return bul.length ? bul : plain.length ? plain.slice(0, 8) : [String(m.h["Title"] || "The homework").replace(/^[^:]*homework:\s*/i, "") || "The homework"];
 }
-function llsHwmMan_(sid) { const m = llsHwm; m.man = m.man || {}; return (m.man[sid] = m.man[sid] || { parts: {}, chips: [] }); }
+function llsHwmMan_(sid) { const m = llsHwm; m.man = m.man || {}; return (m.man[sid] = m.man[sid] || { parts: {}, chips: [], extra: (m.partsExtra || []).slice() }); }
 function llsHwmManScore_(sid) {
   const st = llsHwm && llsHwm.man && llsHwm.man[sid]; if (!st) return null;
   const v = Object.values(st.parts).filter(Boolean); return v.length ? { got: v.filter((x) => x === "ok").length, total: v.length } : null;
@@ -9007,20 +9011,21 @@ function llsHwmManSug_(sid) {
 }
 function llsHwmManText_(sid) {
   const st = llsHwm && llsHwm.man && llsHwm.man[sid]; if (!st) return "";
-  const parts = llsHwmParts_(), say = { ok: "✅ all right", some: "⚠️ some mistakes – check them", no: "❌ please do it again" };
+  const parts = llsHwmParts_().concat((st.extra || [])), say = { ok: "✅ all right", some: "⚠️ some mistakes – check them", no: "❌ please do it again" };
   const lines = parts.map((p, i) => st.parts[i] ? `${p}: ${say[st.parts[i]]}` : "").filter(Boolean);
   return lines.concat(st.chips).join("\n");
 }
 function llsHwmManHtml_(cur) {
   const m = llsHwm; if (!cur) return "";
   const a = m.ai[cur.sid]; if (a && (a.res || a.loading)) return "";
-  const st = (m.man && m.man[cur.sid]) || { parts: {}, chips: [] };
-  const parts = llsHwmParts_();
+  const st = (m.man && m.man[cur.sid]) || { parts: {}, chips: [], extra: (m.partsExtra || []).slice() };
+  const parts = llsHwmParts_().concat(st.extra || []);
   const btn = (i, v, label, cls) => `<button type="button" class="hwm-pb ${cls}${st.parts[i] === v ? " on" : ""}" data-hwm-part="${i}:${v}">${label}</button>`;
   const preview = llsHwmManText_(cur.sid);
   return `<div class="hwm-man">
     <div class="hwm-man-h">✍️ <b>Mark it</b> <span class="hwm-muted">tap for each part – the student sees it</span></div>
     ${parts.map((p, i) => `<div class="hwm-part"><span class="hwm-pt">${escapeHtml(p)}</span><span class="hwm-pbs">${btn(i, "ok", "✓ Right", "ok")}${btn(i, "some", "~ Some mistakes", "some")}${btn(i, "no", "✗ Wrong", "no")}</span></div>`).join("")}
+    <div class="hwm-addpart"><input type="text" id="hwmAddPart" placeholder="+ Add a part to mark, e.g. 1a, 1b, 1c" maxlength="60"><button type="button" class="hwm-link" id="hwmAddPartBtn">Add</button></div>
     <div class="hwm-qcs">${LLS_HWM_CHIPS.map((c) => `<button type="button" class="hwm-qc${st.chips.includes(c) ? " on" : ""}" data-hwm-chip="${escapeAttribute(c)}">${escapeHtml(c)}</button>`).join("")}</div>
     ${preview ? `<div class="hwm-preview"><span class="hwm-muted">The student will see:</span><br>${escapeHtml(preview).replace(/\n/g, "<br>")}</div>` : ""}
   </div>`;
@@ -11041,6 +11046,34 @@ function llsFileError_(error) {
 
 // Opens the file in a new tab (the tab is opened straight away so the
 // browser doesn't block it, then filled when Google sends the file).
+// 31 Oct (owner): "I can't zoom in on her homework" – images open in a zoom viewer (buttons, wheel, pinch, drag).
+function llsZoomView_(src, title) {
+  let el = byId("llsZoom");
+  if (!el) { el = document.createElement("div"); el.id = "llsZoom"; el.className = "lls-zoom"; document.body.appendChild(el); }
+  el.innerHTML = `<div class="lz-bar"><b>${escapeHtml(title)}</b><span><button type="button" data-z="-">−</button><button type="button" data-z="fit">Fit</button><button type="button" data-z="+">+</button><button type="button" data-z="r">⟳</button><button type="button" data-z="x">✕ Close</button></span></div><div class="lz-stage"><img alt="" draggable="false"></div>`;
+  el.hidden = false;
+  const img = el.querySelector("img"), stage = el.querySelector(".lz-stage");
+  let z = 1, rot = 0, x = 0, y = 0;
+  const apply = () => { img.style.transform = `translate(${x}px,${y}px) scale(${z}) rotate(${rot}deg)`; };
+  img.onload = apply; img.src = src;
+  el.querySelectorAll("[data-z]").forEach((b) => b.addEventListener("click", () => {
+    const k = b.dataset.z;
+    if (k === "x") { el.hidden = true; el.innerHTML = ""; return; }
+    if (k === "+") z = Math.min(8, z * 1.4); else if (k === "-") z = Math.max(0.3, z / 1.4); else if (k === "r") rot = (rot + 90) % 360; else { z = 1; x = 0; y = 0; }
+    apply();
+  }));
+  stage.addEventListener("wheel", (e) => { e.preventDefault(); z = Math.min(8, Math.max(0.3, z * (e.deltaY < 0 ? 1.15 : 1 / 1.15))); apply(); }, { passive: false });
+  const pts = new Map(); let last = null, pinch = 0;
+  stage.addEventListener("pointerdown", (e) => { stage.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); last = [e.clientX, e.clientY]; });
+  stage.addEventListener("pointermove", (e) => {
+    if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) { z = Math.min(8, Math.max(0.3, z * d / pinch)); apply(); } pinch = d; return; }
+    if (last) { x += e.clientX - last[0]; y += e.clientY - last[1]; last = [e.clientX, e.clientY]; apply(); }
+  });
+  const up = (e) => { pts.delete(e.pointerId); if (pts.size < 2) pinch = 0; if (!pts.size) last = null; };
+  stage.addEventListener("pointerup", up); stage.addEventListener("pointercancel", up);
+  stage.addEventListener("dblclick", () => { z = z > 1.5 ? 1 : 2.5; if (z === 1) { x = 0; y = 0; } apply(); });
+}
 async function llsOpenFile_(fileId, meta) {
   const win = window.open("", "_blank");
   if (win) { try { win.document.title = "Opening…"; win.document.body.innerHTML = '<p style="font:16px system-ui;padding:24px;color:#16275c">Opening the file…</p>'; } catch (_) {} }
@@ -11057,6 +11090,7 @@ async function llsOpenFile_(fileId, meta) {
     const bytes = Uint8Array.from(atob(data.data), (c) => c.charCodeAt(0));
     const blobUrl = URL.createObjectURL(new Blob([bytes], { type: file.type || "application/octet-stream" }));
     const viewable = /^(image\/|audio\/|application\/pdf|text\/plain)/.test(file.type || "");
+    if (/^image\//.test(file.type || "")) { if (win) win.close(); llsZoomView_(blobUrl, file.name || "Image"); return; }
     if (win && viewable) { win.location.href = blobUrl; }
     else {
       if (win) win.close();
