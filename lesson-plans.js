@@ -13,7 +13,7 @@ window.LLS_PLANS = {
   "B1Y/B1Y_Y1_Weekend_plans.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1Y/B1Y_Y1_Weekend_plans.pptx?v=20261021b",
   "Red_Elementary/EFE_2A_Tidy_or_untidy.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2A_Tidy_or_untidy.pptx?v=20261021b",
   "Red_Elementary/EFE_R1-2_Revise_and_Check_1-2.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_R1-2_Revise_and_Check_1-2.pptx?v=20261023e",
-  "Red_Elementary/EFE_3A_Britain_good_and_bad.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_3A_Britain_good_and_bad.pptx?v=20261023f",
+  "Red_Elementary/EFE_3A_Britain_good_and_bad.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_3A_Britain_good_and_bad.pptx?v=20261031a",
   "Red_Elementary/EFE_3B_9_to_5.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_3B_9_to_5.pptx?v=20261023f",
   "Red_Elementary/EFE_3C_Love_me_love_my_dog.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_3C_Love_me_love_my_dog.pptx?v=20261023g",
   "Red_Elementary/EFE_PE2_Coffee_to_take_away.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_PE2_Coffee_to_take_away.pptx?v=20261023h",
@@ -479,7 +479,7 @@ window.LLS_PLANS = {
   "title": "Britain: the good and the bad",
   "focus": "present simple (+) and (−) · verb phrases · third person -s",
   "file": "Red_Elementary/EFE_3A_Britain_good_and_bad.pptx",
-    "slides": 19,
+    "slides": 21,
     "pages": "SB pp.22–23",
   "skills": {}
  },
