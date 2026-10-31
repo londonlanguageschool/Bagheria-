@@ -12847,21 +12847,77 @@ document.addEventListener("DOMContentLoaded", () => {
    tools/make-previews.sh into materials/view/<deck>/NN.jpg), jump to where the class stopped, tap the slide
    where they stopped (step 2), or continue last lesson today. No downloading, no Google Slides.
 ========================================================= */
-let llsViewIndex_ = null;
-fetch("materials/view/index.json?v=" + Date.now().toString().slice(0, 7)).then((r) => r.ok ? r.json() : {}).then((j) => { llsViewIndex_ = j || {}; }).catch(() => { llsViewIndex_ = {}; });
-function llsDeckBase_(p) {
-  const url = p ? llsPlanUrl_(p, "file") : "";
-  // 27 Oct: decks kept in Drive (Movers…) have previews too – use the deck's file name.
-  const m = String(url).match(/\/materials\/[^/]+\/([^/?#]+)\.pptx/i) || String((p && p.file) || "").match(/([^/]+)\.pptx$/i);
-  if (!m) return "";
-  return llsViewIndex_ && Object.keys(llsViewIndex_).length && !llsViewIndex_[m[1]] ? "" : m[1];
+/* 31 Oct 2026 (owner): "No slides on the website at all." The pictures and the PowerPoints are in the school's
+   private Google Drive (Apps Script V40). Teachers get them through the API with their login: 👀 View slides
+   loads the pictures of one deck, and every "Slides (PowerPoint)" / "Download" link of a deck downloads the
+   file through the portal (in 6 MB parts, big decks with audio are 30 MB+). */
+let llsViewIndex_ = null, llsViewIndexAsked_ = false;
+const llsDeckPics_ = new Map();
+async function llsSlidesGet_(action, params) {
+  const url = new URL(LLS_API_URL);
+  url.searchParams.set("action", action);
+  Object.entries(params || {}).forEach(([k, v]) => url.searchParams.set(k, String(v)));
+  url.searchParams.set("token", sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY) || "");
+  let problem = "";
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, attempt * 1500));
+    url.searchParams.set("t", Date.now());
+    try {
+      const response = await llsFetch_(url.toString(), { method: "GET", cache: "no-store", redirect: "follow" }, { timeoutMs: 90000 });
+      if (!response.ok) { problem = "HTTP " + response.status; continue; }
+      const data = JSON.parse(await response.text());
+      if (data.success !== true) {
+        if (data.error === "UNAUTHORIZED" && typeof llsHandleSessionExpired === "function") llsHandleSessionExpired();
+        throw Object.assign(new Error(data.error || "Something went wrong."), { fromServer: true });
+      }
+      return data;
+    } catch (error) {
+      if (error.fromServer) throw error;
+      problem = error && error.timeout ? "no reply" : "no connection";
+    }
+  }
+  throw new Error(`Google didn't answer (${problem}). Try again.`);
 }
-function llsOpenSlides_(o) {
-  const n = (llsViewIndex_ || {})[o.deck] || 0;
-  let cur = Math.min(Math.max(1, Number(o.stop) || 1), n || 1);
+function llsLoadViewIndex_() {
+  if (llsViewIndexAsked_ || !sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY)) return;
+  llsViewIndexAsked_ = true;
+  llsSlidesGet_("getSlideIndex", {}).then((d) => { llsViewIndex_ = d.index || {}; }).catch(() => { llsViewIndexAsked_ = false; });
+}
+// The deck name of a plan: from a "deck:" link, an old website link, or the file name (decks kept in Drive).
+function llsDeckName_(url) {
+  const m = String(url || "").match(/^deck:(?:[^/]+\/)?([^/?#]+?)(?:\.pptx)?$/i) || String(url || "").match(/\/materials\/[^/]+\/([^/?#]+)\.pptx/i);
+  return m ? m[1] : "";
+}
+function llsDeckBase_(p) {
+  llsLoadViewIndex_();
+  const url = p ? llsPlanUrl_(p, "file") : "";
+  const name = llsDeckName_(url) || ((String((p && p.file) || "").match(/([^/]+)\.pptx$/i) || [])[1] || "");
+  if (!name) return "";
+  return llsViewIndex_ && Object.keys(llsViewIndex_).length && !llsViewIndex_[name] ? "" : name;
+}
+async function llsOpenSlides_(o) {
   let box = byId("slideViewer");
   if (!box) { box = document.createElement("div"); box.id = "slideViewer"; box.className = "sv"; document.body.appendChild(box); }
-  const src = (i) => `materials/view/${encodeURIComponent(o.deck)}/${String(i).padStart(2, "0")}.jpg`;
+  let pics = llsDeckPics_.get(o.deck);
+  if (!pics) {
+    box.innerHTML = `<div class="sv-box" role="dialog" aria-modal="true" aria-label="Slides"><div class="sv-head"><strong>${escapeHtml(o.title || "")}</strong><button type="button" class="sv-x" aria-label="Close">✕</button></div><p style="padding:20px;">Loading the slides… <span class="muted">(a few seconds)</span></p></div>`;
+    box.classList.add("open");
+    let gone = false;
+    box.querySelector(".sv-x").addEventListener("click", () => { gone = true; box.classList.remove("open"); box.innerHTML = ""; });
+    try {
+      const d = await llsSlidesGet_("getSlideDeck", { deck: o.deck });
+      pics = (d.pics || []).map((b) => b ? "data:image/jpeg;base64," + b : "");
+      if (llsDeckPics_.size > 6) llsDeckPics_.delete(llsDeckPics_.keys().next().value);
+      llsDeckPics_.set(o.deck, pics);
+    } catch (error) {
+      pics = [];
+      if (!/aren't ready/i.test(error.message || "")) showToast(error.message || "Couldn't load the slides.", "error");
+    }
+    if (gone) return;
+  }
+  const n = pics.length;
+  let cur = Math.min(Math.max(1, Number(o.stop) || 1), n || 1);
+  const src = (i) => pics[i - 1] || "";
   const close = () => { box.classList.remove("open"); box.innerHTML = ""; document.removeEventListener("keydown", key); document.body.style.overflow = ""; };
   const key = (e) => { if (e.key === "Escape") close(); else if (e.key === "ArrowRight") go(cur + 1); else if (e.key === "ArrowLeft") go(cur - 1); };
   const go = (i) => { if (!n) return; cur = Math.min(Math.max(1, i), n); draw(); };
@@ -12918,6 +12974,42 @@ document.addEventListener("click", (e) => {
   e.preventDefault();
   llsOpenSlides_({ deck: b.dataset.viewDeck, title: b.dataset.viewTitle, stop: b.dataset.viewStop, pick: b.dataset.viewPick === "1", plan: b.dataset.viewPlan || "" });
 });
+// 31 Oct 2026: a link to a deck ("deck:…" or an old website link) downloads the PowerPoint from the private Drive.
+let llsDeckBusy_ = false;
+async function llsDownloadDeck_(deck, fallback) {
+  if (llsDeckBusy_) { showToast("A download is already on its way…", "info"); return; }
+  llsDeckBusy_ = true;
+  try {
+    const parts = [];
+    let d = await llsSlidesGet_("getDeckFile", { deck, part: 0 });
+    const total = d.parts || 1, name = d.name || deck + ".pptx", type = d.type || "application/octet-stream";
+    showToast(total > 1 ? `Downloading ${name} (part 1 of ${total})…` : `Downloading ${name}…`, "info");
+    for (let p = 0; ; p++) {
+      if (p) { showToast(`Downloading ${name} (part ${p + 1} of ${total})…`, "info"); d = await llsSlidesGet_("getDeckFile", { deck, part: p }); }
+      parts.push(Uint8Array.from(atob(d.data), (c) => c.charCodeAt(0)));
+      if (p + 1 >= total) break;
+    }
+    const blobUrl = URL.createObjectURL(new Blob(parts, { type }));
+    const a = document.createElement("a");
+    a.href = blobUrl; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
+    showToast(`${name} downloaded – open it in PowerPoint (audio and click-reveals work there).`, "success");
+  } catch (error) {
+    if (/NO_DECK_FILE/.test(error.message || "") && /^https?:/i.test(fallback || "")) window.open(fallback, "_blank", "noopener");
+    else showToast(/NO_DECK_FILE/.test(error.message || "") ? "This PowerPoint isn't in the school Drive yet. Tell the office." : (error.message || "The download didn't work. Try again."), "error");
+  } finally {
+    llsDeckBusy_ = false;
+  }
+}
+document.addEventListener("click", (e) => {
+  const a = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+  if (!a) return;
+  const href = a.getAttribute("href") || "";
+  const deck = llsDeckName_(href);
+  if (!deck) return;
+  e.preventDefault();
+  llsDownloadDeck_(deck, /^https?:/i.test(href) ? href : "");
+}, true);
 
 // 15 Oct (owner): "Not me / cancelled" in the class header opens the four choices (another teacher, nobody came, cancelled).
 document.addEventListener("click", (e) => {

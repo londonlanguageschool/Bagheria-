@@ -1718,54 +1718,25 @@
 
     /* ---------- 19 Oct 2026 (owner): "Want to see the slides from today's lesson?" ----------
        Students LOOK at the slides of their last lesson (pictures only, no download), up to the slide where the
-       teacher pressed "We stopped here". The slide number comes from Apps Script V37 (lessons[].stopSlide); before
-       V37 is live the whole deck is shown. Deck pictures: materials/view/<deck>/NN.jpg (same as the teacher viewer). */
-    let slidePlans = null, slideIndex = null;
-    function loadSlideData() {
-      if (slidePlans !== null) return;
-      slidePlans = false;
-      const again = () => { if (tab === "homework" && slidePlans && slideIndex) { try { renderHomework(); } catch (_) {} } };
-      const sc = document.createElement("script");
-      sc.src = "lesson-plans.js?v=20261019a";
-      sc.onload = () => { slidePlans = window.LLS_PLANS || {}; again(); };
-      sc.onerror = () => { slidePlans = {}; };
-      document.head.appendChild(sc);
-      fetch("materials/view/index.json?v=" + Date.now().toString().slice(0, 7)).then((r) => r.ok ? r.json() : {})
-        .then((j) => { slideIndex = j || {}; again(); }).catch(() => { slideIndex = {}; });
-    }
-    function lessonDeck(l) {
-      const P = slidePlans;
-      if (!P || !P.courses || !slideIndex) return null;
-      const cls = (data.classes || []).find((c) => String(c["Class ID"]) === String(l.classId));
-      if (!cls) return null;
-      const plans = P.courses[String(cls["Book"] || "").trim()] || [];
-      const u = String(l.unit || "").split("·")[0].trim().toLowerCase();
-      if (!u || /^(cancelled|special|teacher)/.test(u)) return null;
-      const p = plans.find((x) => String(x.id).toLowerCase() === u) || plans.find((x) => String(x.id).toLowerCase().startsWith(u + "-"));
-      if (!p || !p.file) return null;
-      const url = (P.links && P.links[p.file]) || "";
-      const m = String(url).match(/\/materials\/[^/]+\/([^/?#]+)\.pptx/i);
-      if (!m || !slideIndex[m[1]]) return null;
-      const n = Number(slideIndex[m[1]]) || 0, stop = Number(l.stopSlide) || 0;
-      return { deck: m[1], n, upto: stop ? Math.min(stop, n) : n, stop, title: p.title || u, date: isoDay(l.lessonDate) || String(l.lessonDate).slice(0, 10) };
-    }
+       teacher pressed "We stopped here".
+       31 Oct 2026 (owner): "No slides on the website at all." The server (Apps Script V40) decides which deck
+       (data.lastSlides: the class's last lesson that has slides) and sends only those pictures, from the school's
+       private Drive. Nothing about other lessons ever reaches the phone. */
     let lastSlides = null;
     function slidesCardHtml() {
-      loadSlideData();
-      lastSlides = null;
-      const todayIso = isoDay(new Date().toISOString().slice(0, 10));
-      const ls = (data.lessons || []).filter((l) => !isCancelled(l) && (isoDay(l.lessonDate) || String(l.lessonDate)) <= todayIso)
-        .sort((a, b) => String(isoDay(b.lessonDate) || b.lessonDate).localeCompare(String(isoDay(a.lessonDate) || a.lessonDate)));
-      for (const l of ls.slice(0, 3)) { const d = lessonDeck(l); if (d) { lastSlides = d; break; } }
+      const d = data.lastSlides;
+      lastSlides = d && d.deck && d.upto ? d : null;
       if (!lastSlides) return "";
-      const d = lastSlides, today = d.date === todayIso;
+      const todayIso = isoDay(new Date().toISOString().slice(0, 10));
+      const date = isoDay(d.date) || String(d.date || "").slice(0, 10), today = date === todayIso;
       return `<button type="button" class="slides-card" data-slides>
         <span class="sc-ico">📽️</span>
         <span><b>${today ? "Want to see the slides from today's lesson?" : "Want to see the slides from your last lesson?"}</b>
-        <small>${today ? "Vuoi rivedere le slide di oggi?" : "Vuoi rivedere le slide dell'ultima lezione?"} · ${esc(d.title)} · ${esc(shortDay(d.date))}</small></span>
+        <small>${today ? "Vuoi rivedere le slide di oggi?" : "Vuoi rivedere le slide dell'ultima lezione?"} · ${esc(d.title)} · ${esc(shortDay(date))}</small></span>
         <span class="sc-go">Look ›</span></button>`;
     }
-    function openStudentSlides() {
+    let slidePics = null;
+    async function openStudentSlides() {
       const d = lastSlides;
       if (!d) return;
       let cur = 1;
@@ -1773,9 +1744,28 @@
       box.className = "sv-stu";
       box.setAttribute("role", "dialog");
       box.setAttribute("aria-label", "Lesson slides");
-      const src = (i) => `materials/view/${encodeURIComponent(d.deck)}/${String(i).padStart(2, "0")}.jpg`;
+      const key = (e) => { if (e.key === "Escape") close(); else if (e.key === "ArrowRight" && cur < d.upto) { cur++; draw(); } else if (e.key === "ArrowLeft" && cur > 1) { cur--; draw(); } };
+      function close() { document.removeEventListener("keydown", key); box.remove(); }
+      document.addEventListener("keydown", key);
+      document.body.appendChild(box);
+      if (!slidePics || slidePics.deck !== d.deck || slidePics.upto !== d.upto) {
+        box.innerHTML = `<div class="sv-top"><b>📽️ ${esc(d.title)}</b><button type="button" class="sv-x" data-x aria-label="Close">✕</button></div><p class="sv-end">Loading the slides… · Carico le slide…</p>`;
+        box.querySelector("[data-x]").addEventListener("click", close);
+        try {
+          const r = await api({ action: "studentSlides", key: KEY });
+          slidePics = { deck: r.deck, upto: r.upto, pics: (r.pics || []).map((b) => b ? "data:image/jpeg;base64," + b : "") };
+          d.upto = Math.min(d.upto, slidePics.pics.length) || slidePics.pics.length;
+        } catch (error) {
+          if (box.isConnected) box.innerHTML = `<div class="sv-top"><b>📽️ ${esc(d.title)}</b><button type="button" class="sv-x" data-x aria-label="Close">✕</button></div><p class="sv-end">${esc(error.message || "The slides couldn't be loaded. Try again.")}</p>`;
+          box.querySelector("[data-x]")?.addEventListener("click", close);
+          return;
+        }
+        if (!box.isConnected) return;
+      }
+      const src = (i) => slidePics.pics[i - 1] || "";
+      const date = isoDay(d.date) || String(d.date || "").slice(0, 10);
       const draw = () => {
-        box.innerHTML = `<div class="sv-top"><b>📽️ ${esc(d.title)} · ${esc(shortDay(d.date))}</b><button type="button" class="sv-x" data-x aria-label="Close">✕</button></div>
+        box.innerHTML = `<div class="sv-top"><b>📽️ ${esc(d.title)} · ${esc(shortDay(date))}</b><button type="button" class="sv-x" data-x aria-label="Close">✕</button></div>
           <div class="sv-pic"><img src="${src(cur)}" alt="Slide ${cur}" draggable="false"></div>
           ${cur === d.upto && d.stop && d.stop < d.n ? `<p class="sv-end">⏸ We stopped here in class · Ci siamo fermati qui</p>` : ""}
           <div class="sv-nav"><button type="button" data-p ${cur <= 1 ? "disabled" : ""}>‹ Back</button>
@@ -1784,16 +1774,11 @@
         box.querySelector("[data-x]").addEventListener("click", close);
         box.querySelector("[data-p]").addEventListener("click", () => { if (cur > 1) { cur--; draw(); } });
         box.querySelector("[data-n]").addEventListener("click", () => { if (cur < d.upto) { cur++; draw(); } });
-        if (cur < d.upto) { const pre = new Image(); pre.src = src(cur + 1); }
       };
-      const key = (e) => { if (e.key === "Escape") close(); else if (e.key === "ArrowRight" && cur < d.upto) { cur++; draw(); } else if (e.key === "ArrowLeft" && cur > 1) { cur--; draw(); } };
       let sx = null;
       box.addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; }, { passive: true });
       box.addEventListener("touchend", (e) => { if (sx === null) return; const dx = e.changedTouches[0].clientX - sx; sx = null; if (dx < -50 && cur < d.upto) { cur++; draw(); } else if (dx > 50 && cur > 1) { cur--; draw(); } });
       box.addEventListener("contextmenu", (e) => e.preventDefault());
-      function close() { document.removeEventListener("keydown", key); box.remove(); }
-      document.addEventListener("keydown", key);
-      document.body.appendChild(box);
       draw();
     }
     /* 21 Oct (owner): "You have a lesson today at 16:00 – have you completed your homework?" */
