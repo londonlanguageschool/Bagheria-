@@ -2342,72 +2342,90 @@ window.LLS_PLANS = {
     "unit": 1,
     "title": "A day on the farm",
     "focus": "words for the countryside 🌲🏔️🚜",
-    "pages": "",
+    "pages": "SB pp.6–7",
     "slides": 15,
     "file": "Movers_PowerUp3/Movers_U1-L1_Countryside.pptx",
     "hw": "Movers_PowerUp3/Movers_U1-L1_Homework.pdf",
     "key": "Movers_PowerUp3/Movers_U1-L1_Answer_key.pdf",
-    "skills": {}
+    "skills": {
+     "Vocabulary": "the countryside – mountain, lake, forest, river, field, tractor, rock, leaves",
+     "Listening": "Grandpa, Jenny and Jim in the countryside + chant"
+    }
    },
    {
     "id": "U1-L2",
     "unit": 1,
     "title": "Kittens and puppies",
     "focus": "the Friendly Farm story and What are you doing? 🐱🐶",
-    "pages": "",
+    "pages": "SB pp.8–9",
     "slides": 17,
     "file": "Movers_PowerUp3/Movers_U1-L2_Friendly_Farm_story.pptx",
     "hw": "Movers_PowerUp3/Movers_U1-L2_Homework.pdf",
     "key": "Movers_PowerUp3/Movers_U1-L2_Answer_key.pdf",
-    "skills": {}
+    "skills": {
+     "Reading": "The Friendly Farm – the kittens and puppies",
+     "Grammar": "present continuous questions – Are you reading…? No, I'm doing…"
+    }
    },
    {
     "id": "U1-L3",
     "unit": 1,
     "title": "Time for us to run!",
     "focus": "morning routines and What time…? ⏰🪥🚿",
-    "pages": "",
+    "pages": "SB pp.10–11",
     "slides": 15,
     "file": "Movers_PowerUp3/Movers_U1-L3_Daily_routines.pptx",
     "hw": "Movers_PowerUp3/Movers_U1-L3_Homework.pdf",
     "key": "Movers_PowerUp3/Movers_U1-L3_Answer_key.pdf",
-    "skills": {}
+    "skills": {
+     "Vocabulary": "daily routines – wake up, get dressed, have a shower, clean your teeth",
+     "Grammar": "What time do you get up? I get up at seven o'clock.",
+     "Games & songs": "Time for us to run! song · What am I doing?"
+    }
    },
    {
     "id": "U1-L4",
     "unit": 1,
     "title": "Look after our planet",
     "focus": "our planet Earth – how can we help? 🌍♻️",
-    "pages": "",
+    "pages": "SB pp.12–13",
     "slides": 15,
     "file": "Movers_PowerUp3/Movers_U1-L4_Look_after_our_planet.pptx",
     "hw": "Movers_PowerUp3/Movers_U1-L4_Homework.pdf",
     "key": "Movers_PowerUp3/Movers_U1-L4_Answer_key.pdf",
-    "skills": {}
+    "skills": {
+     "Reading": "Look after our planet – air and water on Earth",
+     "Speaking": "what do you do to look after the planet?"
+    }
    },
    {
     "id": "U1-L5",
     "unit": 1,
     "title": "The race",
     "focus": "a poem about two sisters – and being a good friend 🏃‍♀️🤝",
-    "pages": "",
+    "pages": "SB pp.14–15",
     "slides": 16,
     "file": "Movers_PowerUp3/Movers_U1-L5_The_race_poem.pptx",
     "hw": "Movers_PowerUp3/Movers_U1-L5_Homework.pdf",
     "key": "Movers_PowerUp3/Movers_U1-L5_Answer_key.pdf",
-    "skills": {}
+    "skills": {
+     "Reading": "The race – a poem",
+     "Speaking": "act out the poem · being supportive"
+    }
    },
    {
     "id": "U1-L6",
     "unit": 1,
     "title": "Mission in action!",
     "focus": "Movers Speaking practice + show your routine chart! 🗣️⭐",
-    "pages": "",
+    "pages": "SB pp.16–17",
     "slides": 14,
     "file": "Movers_PowerUp3/Movers_U1-L6_Movers_practice_and_Mission.pptx",
     "hw": "Movers_PowerUp3/Movers_U1-L6_Homework.pdf",
     "key": "Movers_PowerUp3/Movers_U1-L6_Answer_key.pdf",
-    "skills": {}
+    "skills": {
+     "Speaking": "Movers Speaking Part 1 – find the differences · show my daily routine chart"
+    }
    },
    {
     "id": "U2-L1",
