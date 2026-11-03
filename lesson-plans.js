@@ -224,7 +224,7 @@ window.LLS_PLANS = {
   "B1_Green_Course_6B-10B/B1_8B-1_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1qdU2dwWh-DoX_wwBfsqltNAq3vBS9aa_/view",
   "B1_Green_Course_6B-10B/B1_8B-1_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1IhTpnCMC4GujNabukf8RVYYlHH83txpU/view",
   "B1_Green_Course_6B-10B/B1_8B_Photocopiables.pdf": "https://drive.google.com/file/d/16rUxbhkQYpWX_948MuXGMzPaCi0blzQc/view",
-  "B1_Green_Course_6B-10B/B1_8B-2_Have_a_nice_day.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_8B-2_Have_a_nice_day.pptx?v=20261103d",
+  "B1_Green_Course_6B-10B/B1_8B-2_Have_a_nice_day.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_8B-2_Have_a_nice_day.pptx?v=202611031428",
   "B1_Green_Course_6B-10B/B1_8B-2_Homework_sheet.pdf": "https://drive.google.com/file/d/1nV3OjAbKZ5yu4bjbczxUYsBjMYavEAme/view",
   "B1_Green_Course_6B-10B/B1_8B-2_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1tIT_hLef8VjY6jMnUA7i6HxYQbizTq2h/view",
   "B1_Green_Course_6B-10B/B1_8B-2_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1Ds7T3Ycod746QATxAri9Kn4rb91E0uva/view",
@@ -1933,7 +1933,7 @@ window.LLS_PLANS = {
     "title": "Have a nice day!",
     "focus": "Going the extra mile • United Breaks Guitars",
     "pages": "SB pp.82–83",
-    "slides": 19,
+    "slides": 17,
     "skills": {
      "Grammar": "making nouns from verbs",
      "Vocabulary": "Customer service",
