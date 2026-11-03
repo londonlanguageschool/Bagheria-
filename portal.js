@@ -10715,7 +10715,7 @@ const LLS_GUIDE = {
       steps: [
         ["Log in", "Choose Teacher, then your Teacher ID (e.g. TCH0002) or email, and your PIN."],
         ["★ Lesson", "Today's lessons are buttons at the top. Tap yours. ✓ = saved, ⏳ = still sending."],
-        ["📋 My week", "At the top of the Lesson page: every lesson you had this week. ✅ filled in, ⚠ to complete. Tap \"✏️ Complete now\" (or the lesson itself) and it opens, ready to fill in; \"✏️ Edit\" changes one already saved. ‹ goes back a week. The office sees the same list."],
+        ["📋 My registers", "At the top of the Lesson page: only the classes with a register still to fill in (last 4 weeks). Tap a class to see the missing dates, tap a date and the lesson opens, ready to fill in. \"📅 See the whole week\" shows every lesson of the week (‹ goes back a week, ✏️ Edit changes one already saved). The office sees the same list for every teacher."],
         ["📚 Lesson plans", "Classes with a course (English File A2, B1 exam, Kitchen English) show the PowerPoint lessons in order. ✓ = this class has already had it (date and teacher), ➡ = next one. \"Teach today\" fills in Unit / page, What we did and the skills for you: check them and save as usual. A lesson already taught asks you to tap twice, so nobody repeats it by mistake."],
         ["🚫 Cancelled lessons and make-ups", "A cancelled lesson shows 🚫 and doesn't need filling in. If it took place after all, fill it in as usual. A make-up lesson: open the class on the day you teach it (Lesson page → date → All my classes) and save as usual; it counts as a make-up by itself."],
         ["1 · Who is teaching?", "Tap \"I'm teaching it\". If someone else is teaching, tap \"Another teacher\" and choose their name. \"Nobody came\" and \"Cancelled\" are there too."],
@@ -11891,75 +11891,96 @@ function llsWeekStatus_(x, info) {
   return info ? "todo" : "checking";
 }
 const LLS_WEEK_LABEL = { done: "✅ Filled in", sending: "⏳ Sending", reported: "🛠 Reported", upcoming: "🔜 Coming up", todo: "⚠ To complete", cancelled: "🚫 Cancelled", checking: "…" };
+/* 3 Nov 2026 (owner: "this list is quite long… just show classes that are missing registers and have a drop down").
+   The panel now shows ONLY the registers still to fill in (last 4 weeks), one line per class. Tap a class: its
+   missing dates drop down; tap a date: the lesson opens, ready to fill in. The full week (✅ / 🔜 / 🚫) is folded
+   away under "See the whole week". */
+const LLS_TODO_DAYS = 28;
+let llsWeekOpen_ = false;
+const llsTodoOpen_ = new Set();
+function llsLessonsBetween_(from, to, mine) {
+  const out = [];
+  const d = new Date(from + "T12:00:00");
+  while (isoDate(d) <= to) {
+    const iso = isoDate(d);
+    const dayName = d.toLocaleDateString("en-GB", { weekday: "long" });
+    if (d.getDay() !== 0 && !llsSchoolClosed_(iso)) {
+      llsLessonsOn(iso, mine).forEach(({ cls, time }) => {
+        if (/^demo/i.test(cls.name || "")) return;
+        out.push({ cls, time, date: iso, teacher: llsTeacherOnDay(cls, dayName) });
+      });
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
 async function llsRenderWeekPanel(boxId, mine) {
   const box = byId(boxId);
   if (!box) return;
+  const today = isoDate(new Date());
   const monday = llsMonday_(llsWeekOffset);
+  const back = new Date(today + "T12:00:00"); back.setDate(back.getDate() - LLS_TODO_DAYS);
+  const from = [isoDate(back), monday].sort()[0];
+  const recent = llsLessonsBetween_(isoDate(back), today, mine);
   const lessons = llsWeekLessons_(monday, mine);
-  const classIds = [...new Set(lessons.map((x) => x.cls.id))];
+  const classIds = [...new Set(recent.concat(lessons).map((x) => x.cls.id))];
+  const when = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
   const draw = (info) => {
+    const todo = recent.map((x) => ({ ...x, status: llsWeekStatus_(x, info) })).filter((r) => r.status === "todo");
     const rows = lessons.map((x) => ({ ...x, status: llsWeekStatus_(x, info) }));
     const count = (s) => rows.filter((r) => r.status === s).length;
     const sat = new Date(monday + "T12:00:00"); sat.setDate(sat.getDate() + 5);
     const range = `${new Date(monday + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${sat.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
-    const when = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric" });
-    // Office: one line per teacher, then only the lessons that need doing (unless "Show all").
-    const teachers = mine ? [] : [...new Set(rows.map((r) => r.teacher || "?"))].sort();
-    const list = mine || llsWeekShowAll ? rows : rows.filter((r) => r.status === "todo" || r.status === "reported");
+    // One group per class (office: per class and teacher), oldest missing date first.
+    const groups = [];
+    todo.sort((p, q) => (p.date + p.time).localeCompare(q.date + q.time)).forEach((r) => {
+      const k = r.cls.id;
+      let g = groups.find((x) => x.key === k);
+      if (!g) groups.push(g = { key: k, cls: r.cls, items: [] });
+      g.items.push(r);
+    });
     box.hidden = false;
     box.innerHTML = `
       <div class="week-head">
-        <p class="section-label" style="margin:0;">📋 ${mine ? "My week" : "This week's lessons"}</p>
-        <span class="week-nav">
+        <p class="section-label" style="margin:0;">📋 ${mine ? "My registers" : "Registers"}</p>
+        ${!info ? `<span class="muted" style="font-size:13px;">${lessons.length || recent.length ? "checking with Google…" : ""}</span>`
+          : info.failed ? `<span class="muted" style="font-size:13px;">Google didn't answer – try again later</span>`
+          : todo.length ? `<span class="todo-badge">⚠ ${todo.length} to fill in</span>` : `<span class="todo-badge ok">✅ All filled in</span>`}
+      </div>
+      ${info && groups.length ? `<div class="todo-list">${groups.map((g) => `
+        <details class="todo-class" data-todo-key="${escapeAttribute(g.key)}"${llsTodoOpen_.has(g.key) ? " open" : ""}>
+          <summary><span class="todo-name">${escapeHtml(g.cls.name)}</span>${mine ? "" : `<span class="muted todo-who">${escapeHtml([...new Set(g.items.map((i) => i.teacher || "?"))].join(", "))}</span>`}<span class="todo-count">${g.items.length} missing</span></summary>
+          <div class="todo-dates">${g.items.map((r) => `<button type="button" class="todo-date" data-week-open="${escapeAttribute(r.cls.id + "|" + r.date)}">✏️ ${escapeHtml(when(r.date))} · ${escapeHtml(r.time)}</button>`).join("")}</div>
+        </details>`).join("")}</div>`
+        : info && !info.failed && (recent.length || lessons.length) ? `<p class="muted todo-none">Nothing to fill in. Thank you! 🎉</p>`
+        : !(state.classes || []).length ? `<p style="margin:6px 0 0;">${!llsCoreSettled || llsCoreLoadPromise ? `<span class="muted">⏳ Loading your classes from Google…</span>` : llsCoreLoadProblemHtml_()}</p>` : ""}
+      <details class="week-all"${llsWeekOpen_ ? " open" : ""}>
+        <summary>📅 See the whole week <span class="muted">· ${escapeHtml(range)}${info ? ` · ✅ ${count("done")}${count("upcoming") ? ` · 🔜 ${count("upcoming")}` : ""}${count("cancelled") ? ` · 🚫 ${count("cancelled")}` : ""}` : ""}</span></summary>
+        <div class="week-nav" style="margin:8px 0;">
           <button type="button" class="row-action" data-week="-1" aria-label="Previous week">‹</button>
           <strong>${escapeHtml(range)}</strong>
           <button type="button" class="row-action" data-week="1" aria-label="Next week"${llsWeekOffset >= 0 ? " disabled" : ""}>›</button>
-        </span>
-      </div>
-      <div class="week-chips">
-        <span class="week-chip done">✅ ${count("done")} filled in</span>
-        <span class="week-chip todo">⚠ ${count("todo")} to complete</span>
-        ${count("reported") ? `<span class="week-chip">🛠 ${count("reported")} reported</span>` : ""}
-        ${count("upcoming") ? `<span class="week-chip">🔜 ${count("upcoming")} coming up</span>` : ""}
-        ${count("cancelled") ? `<span class="week-chip">🚫 ${count("cancelled")} cancelled</span>` : ""}
-        ${!info ? (lessons.length ? `<span class="muted">checking with Google…</span>` : "") : info.failed ? `<span class="muted">Google didn't answer: some lessons may show as "to complete" by mistake.</span>` : ""}
-      </div>
-      ${info && count("todo") ? `<p class="week-msg">${mine
-        ? `⚠ You have ${count("todo")} lesson${count("todo") === 1 ? "" : "s"} to complete. Tap "✏️ Complete now" and it opens the lesson, ready to fill in.`
-        : `⚠ ${count("todo")} lesson${count("todo") === 1 ? "" : "s"} still to complete. "✏️ Complete now" opens the lesson so you can fill it in or check it.`}</p>`
-        : info && mine && count("done") ? `<p class="week-msg ok">✅ All your lessons so far are filled in. Thank you!</p>` : ""}
-      ${teachers.length ? `<div class="week-teachers">${teachers.map((t) => {
-        const mineRows = rows.filter((r) => (r.teacher || "?") === t);
-        const todo = mineRows.filter((r) => r.status === "todo").length;
-        return `<span class="week-teacher${todo ? " has-todo" : ""}"><strong>${escapeHtml(t)}</strong> ${mineRows.filter((r) => r.status === "done").length}/${mineRows.filter((r) => r.status !== "upcoming").length} done${todo ? ` · ⚠ ${todo}` : ""}</span>`;
-      }).join("")}</div>` : ""}
-      <div class="week-list">${list.length ? list.map((r) => `
-        <div class="week-row ${r.status}"${r.status === "todo" ? ` data-week-open="${escapeAttribute(r.cls.id + "|" + r.date)}" role="button" tabindex="0" title="Open this lesson to fill it in"` : ""}>
-          <span class="week-when">${escapeHtml(when(r.date))} ${escapeHtml(r.time)}</span>
-          <span class="week-class">${escapeHtml(r.cls.name)}${mine ? "" : ` <span class="muted">· ${escapeHtml(r.teacher || "?")}</span>`}</span>
-          <span class="week-status">${LLS_WEEK_LABEL[r.status]}</span>
-          ${r.status === "todo" || r.status === "done" ? `<button type="button" class="row-action${r.status === "todo" ? " week-go" : ""}" data-week-open="${escapeAttribute(r.cls.id + "|" + r.date)}">${r.status === "todo" ? "✏️ Complete now" : "✏️ Edit"}</button>` : "<span></span>"}
-        </div>`).join("") : rows.length ? `<p class="muted" style="margin:6px 0 0;">Nothing to complete. 🎉</p>`
-          : !(state.classes || []).length ? `<p style="margin:6px 0 0;">${!llsCoreSettled || llsCoreLoadPromise ? `<span class="muted">⏳ Loading your classes from Google…</span>` : llsCoreLoadProblemHtml_()}</p>`
-          : `<p class="muted" style="margin:6px 0 0;">No lessons in the timetable this week.</p>`}</div>
-      ${!mine && rows.length ? `<button type="button" class="row-action" data-week-all style="margin-top:8px;">${llsWeekShowAll ? "Show only what needs doing" : `Show all ${rows.length} lessons`}</button>` : ""}`;
-    box.querySelectorAll("[data-week]").forEach((b) => b.addEventListener("click", () => { llsWeekOffset = Math.min(0, llsWeekOffset + Number(b.dataset.week)); llsRenderWeekPanel(boxId, mine); }));
-    box.querySelector("[data-week-all]")?.addEventListener("click", () => { llsWeekShowAll = !llsWeekShowAll; draw(info); });
+        </div>
+        <div class="week-list">${rows.length ? rows.map((r) => `
+          <div class="week-row ${r.status}">
+            <span class="week-when">${escapeHtml(when(r.date))} ${escapeHtml(r.time)}</span>
+            <span class="week-class">${escapeHtml(r.cls.name)}${mine ? "" : ` <span class="muted">· ${escapeHtml(r.teacher || "?")}</span>`}</span>
+            <span class="week-status">${LLS_WEEK_LABEL[r.status]}</span>
+            ${r.status === "todo" || r.status === "done" ? `<button type="button" class="row-action" data-week-open="${escapeAttribute(r.cls.id + "|" + r.date)}">${r.status === "todo" ? "✏️ Fill in" : "✏️ Edit"}</button>` : "<span></span>"}
+          </div>`).join("") : `<p class="muted" style="margin:6px 0 0;">No lessons in the timetable this week.</p>`}</div>
+      </details>`;
+    box.querySelectorAll("details.todo-class").forEach((d) => d.addEventListener("toggle", () => { if (d.open) llsTodoOpen_.add(d.dataset.todoKey); else llsTodoOpen_.delete(d.dataset.todoKey); }));
+    box.querySelector("details.week-all")?.addEventListener("toggle", (e) => { llsWeekOpen_ = e.target.open; });
+    box.querySelectorAll("[data-week]").forEach((b) => b.addEventListener("click", () => { llsWeekOffset = Math.min(0, llsWeekOffset + Number(b.dataset.week)); llsWeekOpen_ = true; llsRenderWeekPanel(boxId, mine); }));
     box.querySelectorAll("[data-week-open]").forEach((b) => b.addEventListener("click", (e) => {
       e.stopPropagation();
       const [classId, date] = b.dataset.weekOpen.split("|");
       llsGoToLesson(classId, date);
     }));
-    box.querySelectorAll(".week-row[data-week-open]").forEach((r) => r.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter" && e.key !== " ") return;
-      e.preventDefault();
-      const [classId, date] = r.dataset.weekOpen.split("|");
-      llsGoToLesson(classId, date);
-    }));
   };
   draw(null);
   if (!classIds.length) return;
-  const info = await llsLoadWeek_(monday, classIds, false);
+  const info = await llsLoadWeek_(from, classIds, false);
   if (llsMonday_(llsWeekOffset) === monday) draw(info);
 }
 // 3 Oct: open one lesson (class + date) ready to fill in or edit.

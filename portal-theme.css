@@ -995,3 +995,22 @@ body.hwm-open { overflow: hidden; }
 .lz-stage{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab}
 .lz-stage img{max-width:100%;max-height:100%;transform-origin:center center;user-select:none}
 .hwm-addpart{display:flex;gap:6px;margin:8px 0 2px}.hwm-addpart input{flex:1;border:1px solid #dfe9f5;border-radius:10px;padding:7px 10px;font:14px Nunito,Arial}
+
+/* 3 Nov 2026: compact "Registers" panel – only what's missing, grouped by class, dates in a drop-down */
+.todo-badge { border-radius: 999px; padding: 3px 10px; font-size: 13px; font-weight: 800; background: #fff1d6; color: #8a4b00; }
+.todo-badge.ok { background: #dff5e9; color: #146c3c; }
+.todo-list { display: grid; gap: 6px; margin-top: 10px; }
+.todo-class { border: 1px solid #f2d39a; background: #fffaf0; border-radius: 12px; }
+.todo-class summary { display: flex; align-items: center; gap: 10px; padding: 9px 12px; cursor: pointer; list-style: none; font-size: 15px; }
+.todo-class summary::-webkit-details-marker { display: none; }
+.todo-class summary::after { content: "▾"; margin-left: 4px; color: #8a4b00; transition: transform .15s; }
+.todo-class[open] summary::after { transform: rotate(180deg); }
+.todo-name { font-weight: 800; flex: 1; min-width: 0; }
+.todo-who { font-size: 13px; }
+.todo-count { font-size: 13px; font-weight: 800; color: #8a4b00; white-space: nowrap; }
+.todo-dates { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 10px; }
+.todo-date { border: 0; border-radius: 10px; padding: 7px 12px; background: #16275c; color: #fff; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.todo-date:hover, .todo-date:focus-visible { background: #24408f; }
+.todo-none { margin: 8px 0 0; }
+.week-all { margin-top: 10px; }
+.week-all > summary { cursor: pointer; font-weight: 700; font-size: 14px; color: #16275c; }
