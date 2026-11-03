@@ -373,7 +373,7 @@ window.LLS_PLANS = {
   "A2_Adults_Rebuilt/A2_1B_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1bGbru3k9UxD-c76Nufr27NIkZbVeGtd_/view",
   "A2_Adults_Rebuilt/A2_2A_Wheres_my_passport.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_2A_Wheres_my_passport_v3.pptx?v=20261021b",
   "A2_Blue_Part1_Units1-6/A2_1-2_Revise_and_Check.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_R1-2_Revise_and_Check_1-2.pptx?v=20261022e",
-  "A2_Blue_Part1_Units1-6/A2_3A_TripAside_going_to.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_3A_TripAside.pptx?v=20261103d",
+  "A2_Blue_Part1_Units1-6/A2_3A_TripAside_going_to.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_3A_TripAside.pptx?v=202611031430",
   "A2_Blue_Part1_Units1-6/A2_3B_Put_it_in_your_calendar.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_3B_Put_it_in_your_calendar.pptx?v=20261022e",
   "A2_Blue_Part1_Units1-6/A2_2C_One_dark_October_evening.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_2C_One_dark_October_evening.pptx?v=20261022e",
   "A2_Adults_Rebuilt/A2_2B_Thats_me_in_the_picture.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_2B_Thats_me_in_the_picture_v3.pptx?v=20261021b",
@@ -721,7 +721,7 @@ window.LLS_PLANS = {
     "title": "TripAside",
     "focus": "be going to (plans and predictions) • airports • the letter g • TripAside article",
     "pages": "SB pp.22–23 · WB pp.18–19",
-    "slides": 25,
+    "slides": 21,
     "file": "A2_Blue_Part1_Units1-6/A2_3A_TripAside_going_to.pptx",
     "skills": {
      "Grammar": "be going to",
