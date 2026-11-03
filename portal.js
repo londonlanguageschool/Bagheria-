@@ -11679,7 +11679,9 @@ function llsRenderPlanPanel() {
   const DAY = day.isToday ? "TODAY" : day.short.toUpperCase();
   const doneCount = plans.filter((p) => taught[p.id]).length;
   let lastIdx = -1;
-  plans.forEach((p, i) => { if (taught[p.id]) lastIdx = i; });
+  // 3 Nov (owner): a Revise & Check lesson done early (e.g. R7-8 before 8B-2) must not jump the class past the lessons
+  // it hasn't done yet – only real lessons move "the furthest lesson taught".
+  plans.forEach((p, i) => { if (taught[p.id] && !/^R\d/.test(p.id)) lastIdx = i; });
   let nextIdx = plans.findIndex((p, i) => i > lastIdx && !taught[p.id]);
   // 15 Oct (owner): if the class's LAST lesson wasn't finished, that lesson is the one to continue,
   // wherever it is in the course.
