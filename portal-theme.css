@@ -1019,3 +1019,7 @@ body.hwm-open { overflow: hidden; }
 .sk-text { width: 100%; box-sizing: border-box; border: 1.5px solid #cfe0f5; border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 15px; line-height: 1.5; resize: vertical; }
 .sk-text:focus { outline: none; border-color: #2f8fe0; box-shadow: 0 0 0 3px #e3f1fd; }
 .sk-text.needs { border-color: #dc2626; box-shadow: 0 0 0 3px #fde8e8; }
+/* 3 Nov 2026: Rosanna's to-do – allocate a date for make-up lessons */
+.makeup-row { background: #fff8e6; }
+.makeup-pick { display: flex !important; flex-direction: row !important; flex-wrap: wrap; gap: 6px; align-items: center; }
+.makeup-pick input { width: auto !important; flex: 0 1 auto; min-height: 40px; border: 1.5px solid #cfe0f5; border-radius: 10px; padding: 4px 8px; font: inherit; }

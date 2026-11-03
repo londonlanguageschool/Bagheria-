@@ -10735,7 +10735,7 @@ const LLS_GUIDE = {
       steps: [
         ["Log in", "Choose Teacher, then your Teacher ID (e.g. TCH0002) or email, and your PIN."],
         ["★ Lesson", "Today's lessons are buttons at the top. Tap yours. ✓ = saved, ⏳ = still sending."],
-        ["📋 My registers", "At the top of the Lesson page: only the classes with a register still to fill in (last 4 weeks). Tap a class to see the missing dates, tap a date and the lesson opens, ready to fill in. \"📅 See the whole week\" shows every lesson of the week (‹ goes back a week, ✏️ Edit changes one already saved). The office sees the same list for every teacher."],
+        ["📋 My registers", "At the top of the Lesson page: only the classes with a register still to fill in (since the course started). Tap a class to see the missing dates, tap a date and the lesson opens, ready to fill in. \"📅 See the whole week\" shows every lesson of the week (‹ goes back a week, ✏️ Edit changes one already saved). The office sees the same list for every teacher."],
         ["📚 Lesson plans", "Classes with a course (English File A2, B1 exam, Kitchen English) show the PowerPoint lessons in order. ✓ = this class has already had it (date and teacher), ➡ = next one. \"Teach today\" fills in Unit / page, What we did and the skills for you: check them and save as usual. A lesson already taught asks you to tap twice, so nobody repeats it by mistake."],
         ["🚫 Cancelled lessons and make-ups", "A cancelled lesson shows 🚫 and doesn't need filling in. If it took place after all, fill it in as usual. A make-up lesson: open the class on the day you teach it (Lesson page → date → All my classes) and save as usual; it counts as a make-up by itself."],
         ["1 · Who is teaching?", "Tap \"I'm teaching it\". If someone else is teaching, tap \"Another teacher\" and choose their name. \"Nobody came\" and \"Cancelled\" are there too."],
@@ -11256,16 +11256,42 @@ function llsRenderLessonIssues() {
   const box = byId("lessonIssuesPanel");
   if (!box) return;
   const open = llsIssues.open || [];
-  box.hidden = !open.length;
-  if (!open.length) { box.innerHTML = ""; return; }
+  // 3 Nov (owner): "a note for Rosanna that says allocate a date for these" – every class owed make-ups
+  // (cancelled lessons, including past ones) until a date is booked for each.
+  let owed = [];
+  try {
+    if (llsRole() === "admin") {
+      owed = llsOwedByClass_().filter((o) => o.owed > 0);
+      if (!llsOwedInfo) llsLoadOwed_();
+    }
+  } catch (_) { owed = []; }
+  box.hidden = !open.length && !owed.length;
+  if (!open.length && !owed.length) { box.innerHTML = ""; return; }
+  const sd = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  const owedHtml = owed.map((o) => {
+    const sug = llsSuggestMakeup_(o.cls, 0);
+    return `<div class="issue-row makeup-row">
+      <div>
+        <strong>📅 Allocate a date for ${o.owed} make-up lesson${o.owed === 1 ? "" : "s"}</strong> · ${escapeHtml(o.cls.name)}
+        <div class="muted" style="font-size:14px;margin-top:2px;">Cancelled: ${o.cancelled.map((c) => escapeHtml(sd(c.date))).join(", ")}${o.booked.length ? ` · already booked: ${o.booked.map((d) => escapeHtml(sd(d))).join(", ")}` : ""}${o.makeups.length ? ` · made up: ${o.makeups.length}` : ""}</div>
+        <div style="font-size:14px;margin-top:4px;">👉 Pick a date (suggested: the first free lesson day after the course ends), press Book, tell the families.</div>
+      </div>
+      <div class="issue-actions makeup-pick">
+        <input type="date" data-mk-date="${escapeAttribute(o.cls.id)}" value="${escapeAttribute(sug.date)}" aria-label="Make-up date">
+        <input type="time" data-mk-time="${escapeAttribute(o.cls.id)}" value="${escapeAttribute(sug.time)}" aria-label="Make-up time">
+        <button type="button" class="button button-primary" data-mk-book="${escapeAttribute(o.cls.id)}">📅 Book</button>
+      </div>
+    </div>`;
+  }).join("");
   const when = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
   const icon = { Covered: "👥", Cancelled: "🚫", "Not my class": "❓", "Add student": "➕", "Remove student": "➖" };
   const head = (i) => i.kind === "Covered" ? `Change the teacher: ${i.reportedBy || "the teacher"} → ${i.coveredBy || "another teacher"}`
     : i.kind === "Cancelled" ? "Lesson cancelled" : i.kind === "Add student" ? `Add ${i.studentName || "a student"} to the class`
     : i.kind === "Remove student" ? `Take ${i.studentName || "a student"} off the class` : "Not my class";
   box.innerHTML = `
-    <p class="section-label" style="margin-top:0;">📋 Rosanna's to-do (${open.length})</p>
-    <p class="muted" style="margin:4px 0 12px;">Teachers sent these. Do what it says, then press <strong>Sorted</strong>.</p>
+    <p class="section-label" style="margin-top:0;">📋 Rosanna's to-do (${open.length + owed.length})</p>
+    ${owedHtml}
+    ${open.length ? `<p class="muted" style="margin:${owed.length ? "14px" : "4px"} 0 12px;">Teachers sent these. Do what it says, then press <strong>Sorted</strong>.</p>` : ""}
     ${open.map((i) => `<div class="issue-row">
       <div>
         <strong>${icon[i.kind] || "•"} ${escapeHtml(head(i))}</strong>
@@ -11286,6 +11312,17 @@ function llsRenderLessonIssues() {
         <button type="button" class="button button-primary" data-issue-sorted="${escapeAttribute(i.issueId)}">Sorted ✓</button>
       </div>
     </div>`).join("")}`;
+  box.querySelectorAll("[data-mk-book]").forEach((b) => b.addEventListener("click", () => {
+    const id = b.dataset.mkBook;
+    const cls = llsLessonClasses().find((c) => c.id === id);
+    const date = box.querySelector(`[data-mk-date="${CSS.escape(id)}"]`)?.value || "";
+    const time = box.querySelector(`[data-mk-time="${CSS.escape(id)}"]`)?.value || "";
+    if (!cls) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { showToast("Choose the make-up date first.", "error"); return; }
+    if (llsSchoolClosed_(date)) { showToast("The school is closed that day. Choose another date.", "error"); return; }
+    llsBookMakeup_(cls, date, time);
+    showToast(`📅 ${cls.name}: make-up booked for ${sd(date)}${time ? " " + time : ""}. It shows on the teacher's lessons that day. Tell the families.`, "success");
+  }));
   box.querySelectorAll("[data-issue-addst]").forEach((b) => b.addEventListener("click", () => {
     const i = open.find((x) => x.issueId === b.dataset.issueAddst);
     if (!i) return;
@@ -11912,7 +11949,7 @@ function llsWeekStatus_(x, info) {
 }
 const LLS_WEEK_LABEL = { done: "✅ Filled in", sending: "⏳ Sending", reported: "🛠 Reported", upcoming: "🔜 Coming up", todo: "⚠ To complete", cancelled: "🚫 Cancelled", checking: "…" };
 /* 3 Nov 2026 (owner: "this list is quite long… just show classes that are missing registers and have a drop down").
-   The panel now shows ONLY the registers still to fill in (last 4 weeks), one line per class. Tap a class: its
+   The panel now shows ONLY the registers still to fill in (since the start of the course), one line per class. Tap a class: its
    missing dates drop down; tap a date: the lesson opens, ready to fill in. The full week (✅ / 🔜 / 🚫) is folded
    away under "See the whole week". */
 const LLS_TODO_DAYS = 28;
@@ -11939,9 +11976,9 @@ async function llsRenderWeekPanel(boxId, mine) {
   if (!box) return;
   const today = isoDate(new Date());
   const monday = llsMonday_(llsWeekOffset);
-  const back = new Date(today + "T12:00:00"); back.setDate(back.getDate() - LLS_TODO_DAYS);
-  const from = [isoDate(back), monday].sort()[0];
-  const recent = llsLessonsBetween_(isoDate(back), today, mine);
+  // 3 Nov (owner): "they all need to be completed at some point" – every register since the course started.
+  const from = [LLS_SCHOOL_START, monday].sort()[0];
+  const recent = llsLessonsBetween_(LLS_SCHOOL_START, today, mine);
   const lessons = llsWeekLessons_(monday, mine);
   const classIds = [...new Set(recent.concat(lessons).map((x) => x.cls.id))];
   const when = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
@@ -12415,6 +12452,7 @@ async function llsLoadOwed_(force) {
   } catch (_) { /* try again next time */ }
   llsOwedLoading = false;
   llsRenderCancelPanel();
+  try { llsRenderLessonIssues(); } catch (_) {}
 }
 function llsOwedByClass_() {
   const today = isoDate(new Date());
@@ -12431,12 +12469,47 @@ function llsOwedByClass_() {
     if (!o) return;
     [...new Set(dates)].forEach((d) => {
       if (llsIsCancelled(classId, d)) return;
-      const scheduled = !llsSchoolClosed_(d) && llsLessonsOn(d, false).some((x) => x.cls.id === classId);
+      // 3 Nov: only the class's normal days count as "scheduled" – a lesson on a booked make-up date IS a make-up.
+      const scheduled = !llsSchoolClosed_(d) && llsRegularDay_(o.cls, d);
       if (!scheduled) o.makeups.push(d);
     });
   });
-  Object.values(out).forEach((o) => { o.cancelled.sort((a, b) => a.date.localeCompare(b.date)); o.makeups.sort(); o.owed = Math.max(0, o.cancelled.length - o.makeups.length); });
+  // 3 Nov (owner): make-up dates the office has booked (class Notes "Make-up: 2027-06-03 16:00") count as allocated.
+  Object.values(out).forEach((o) => {
+    const logged = new Set(((llsOwedInfo && llsOwedInfo.dates) || {})[o.cls.id] || []);
+    o.booked = llsMakeups_(o.cls).filter((m) => m.date >= today && !logged.has(m.date)).map((m) => m.date).sort();
+  });
+  Object.values(out).forEach((o) => { o.cancelled.sort((a, b) => a.date.localeCompare(b.date)); o.makeups.sort(); o.owed = Math.max(0, o.cancelled.length - o.makeups.length - o.booked.length); });
   return Object.values(out).sort((a, b) => b.owed - a.owed || a.cls.name.localeCompare(b.cls.name));
+}
+function llsRegularDay_(cls, iso) {
+  const day = new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long" }).toLowerCase();
+  return [cls.day, cls.day2].some((d) => String(d || "").toLowerCase() === day);
+}
+// 3 Nov (owner): cancelled lessons are added at the END of the course. Suggest the class's next free lesson
+// days after the last day of the course (skipping closures and make-ups already booked).
+const LLS_COURSE_LAST_DAY = "2027-05-30";
+function llsSuggestMakeup_(cls, skip) {
+  const taken = new Set(llsMakeups_(cls).map((m) => m.date));
+  const d = new Date(LLS_COURSE_LAST_DAY + "T12:00:00");
+  let n = 0;
+  for (let i = 0; i < 60; i++) {
+    d.setDate(d.getDate() + 1);
+    const iso = isoDate(d);
+    if (d.getDay() === 0 || llsSchoolClosed_(iso) || taken.has(iso) || !llsRegularDay_(cls, iso)) continue;
+    if (n++ < (skip || 0)) continue;
+    const day = d.toLocaleDateString("en-GB", { weekday: "long" }).toLowerCase();
+    return { date: iso, time: String(day === String(cls.day2 || "").toLowerCase() && cls.time2 ? cls.time2 : cls.time || "").slice(0, 5) };
+  }
+  return { date: "", time: String(cls.time || "").slice(0, 5) };
+}
+function llsBookMakeup_(cls, date, time) {
+  cls.notes = [String(cls.notes || "").trim(), `Make-up: ${date}${time ? " " + time : ""}`].filter(Boolean).join(". ");
+  llsQueueSave(`${cls.name} make-up`, { action: "updateClass", classId: cls.id, fields: { "Notes": cls.notes } });
+  saveState();
+  try { llsRenderLessonIssues(); } catch (_) {}
+  try { llsRenderCancelPanel(); } catch (_) {}
+  try { llsScheduleWeekPanels_(); } catch (_) {}
 }
 function llsRenderCancelPanel() {
   const box = byId("cancelPanel");
@@ -12463,7 +12536,7 @@ function llsRenderCancelPanel() {
         <button type="button" class="row-action" data-cancel-undo="${escapeAttribute(c.cls.id + "|" + c.date)}">Undo</button>
       </div>`).join("")}</div>` : ""}
       <p class="muted" style="margin:12px 0 4px;font-weight:700;">Lessons owed (to add at the end of the course): ${owedTotal}</p>
-      <div class="week-teachers">${list.map((o) => `<span class="week-teacher${o.owed ? " has-todo" : ""}" title="${escapeAttribute("Cancelled: " + o.cancelled.map((c) => c.date).join(", ") + (o.makeups.length ? " · Made up: " + o.makeups.join(", ") : ""))}"><strong>${escapeHtml(o.cls.name)}</strong> ${o.owed} owed${o.makeups.length ? ` · ${o.makeups.length} made up` : ""}</span>`).join("")}</div>
+      <div class="week-teachers">${list.map((o) => `<span class="week-teacher${o.owed ? " has-todo" : ""}" title="${escapeAttribute("Cancelled: " + o.cancelled.map((c) => c.date).join(", ") + (o.makeups.length ? " · Made up: " + o.makeups.join(", ") : "") + (o.booked.length ? " · Booked: " + o.booked.join(", ") : ""))}"><strong>${escapeHtml(o.cls.name)}</strong> ${o.owed} owed${o.booked.length ? ` · 📅 ${o.booked.length} booked` : ""}${o.makeups.length ? ` · ${o.makeups.length} made up` : ""}</span>`).join("")}</div>
       <p class="muted" style="margin:8px 0 0;font-size:13px;">A make-up is any lesson a teacher fills in on a day the class isn't in the timetable.${(window.llsServerVersion || 0) >= 29 ? "" : "<br>Make-ups are counted once Apps Script V29 or later is installed."}</p>`
     : `<p class="muted" style="margin:8px 0 0;">No cancelled lessons. If a teacher can't come, press "🚫 Cancel lessons": their lessons come off the list and each class is owed a make-up.</p>`}`;
   box.querySelector("[data-cancel-open]").addEventListener("click", () => llsOpenCancelModal());
