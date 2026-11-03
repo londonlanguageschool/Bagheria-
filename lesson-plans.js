@@ -353,7 +353,7 @@ window.LLS_PLANS = {
   "B2_Violet_Course/B2_6B-1_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1vcqEK7rJPc3OPJXzsxC1oxfUNu21q8sJ/view",
   "B2_Violet_Course/B2_6B-1_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1ihhHCEFtKY1p7YUFW3WKYT63yLaxflbv/view",
   "B2_Violet_Course/B2_7A-1_Lets_not_argue.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B2/B2_7A-1_Lets_not_argue.pptx?v=20261023b",
-  "B2_Violet_Course/B2_7A-2_Lets_not_argue_2.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B2/B2_7A-2_Lets_not_argue_2.pptx?v=20261103a",
+  "B2_Violet_Course/B2_7A-2_Lets_not_argue_2.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B2/B2_7A-2_Lets_not_argue_2.pptx?v=20261103b",
   "B2_Violet_Course/B2_6B-2_Music_to_my_ears.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B2/B2_6B-2_Music_to_my_ears.pptx?v=20261021b",
   "B2_Violet_Course/B2_6B-2_Homework_sheet.pdf": "https://drive.google.com/file/d/1HMepsh1hOhsjv37dK0Ls_5SF0Pq5MPHK/view",
   "B2_Violet_Course/B2_6B-2_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1hyZ_-FazL6T4vofHNp7O1P5AjipiLzuB/view",
@@ -1804,7 +1804,7 @@ window.LLS_PLANS = {
     "title": "Is it worth going to uni?",
     "focus": "First conditional & future time clauses",
     "pages": "SB pp.68–69",
-    "slides": 16,
+    "slides": 23,
     "file": "B1_Green_Course_6B-10B/B1_7A-2_Live_and_learn.pptx",
     "skills": {
      "Grammar": "First conditional & future time clauses",
