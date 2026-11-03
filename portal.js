@@ -8569,7 +8569,7 @@ function llsFillLessonNote(entry, cls) {
 // 16 Oct (owner): notes and per-student notes stay folded unless there is something in them.
 function llsNotesWrapSync_() {
   const w = byId("lessonNotesWrap");
-  if (w && (value("lessonDone").trim() || value("lessonNotes").trim())) w.open = true;
+  if (w && value("lessonNotes").trim()) w.open = true; // 3 Nov: "anything else" now lives in Lesson details
   const reg = byId("lessonRegister");
   if (reg && [...reg.querySelectorAll(".reg-note")].some((i) => i.value.trim())) reg.classList.add("show-notes");
 }
@@ -9311,7 +9311,7 @@ async function llsSaveLesson() {
   const skillBox = byId("lessonSkills");
   const ticked = LLS_SKILLS.filter((s) => llsSkillState[s.k]?.on);
   const noTopic = ticked.filter((s) => !String(llsSkillState[s.k].topic || "").trim());
-  skillBox?.querySelectorAll(".sk-row").forEach((r) => r.classList.toggle("needs", noTopic.some((s) => s.k === r.dataset.skillRow)));
+  byId("lessonSkillText")?.classList.toggle("needs", noTopic.length > 0);
   const needSkill = !specialOn && !nobodyHere && !ticked.length;
   skillBox?.classList.toggle("needs", needSkill);
   const doneText = [...llsSkillLines(llsSkillState), choiceOn ? LLS_CHOICE_MARK + choiceTitle : "", value("lessonDone").trim()].filter(Boolean).join("\n") || (specialOn ? specialTitle + " lesson" : nobodyHere ? LLS_NOBODY_CAME : "");
@@ -9328,12 +9328,12 @@ async function llsSaveLesson() {
     const missing = [];
     if (unrated.length) missing.push(`<b>${document.querySelector("[data-step-reg]")?.textContent || 2} · Register</b>: choose "How did they do?" for ${unrated.map((r) => escapeHtml(r.querySelector(".reg-name")?.textContent || "")).join(", ")}.`);
     if (needSkill) missing.push(`<b>${document.querySelector("[data-step-teach]")?.textContent || 3} · What did you teach in the lesson?</b> Skills: tap at least one: Grammar, Vocabulary, Reading…`);
-    if (noTopic.length && !nobodyHere) missing.push(...noTopic.map((s) => `<b>${escapeHtml(s.k)}</b>: write the topic in its box (e.g. ${escapeHtml(s.k === "Games & songs" ? "animals bingo" : s.k === "Grammar" ? "past simple" : s.k === "Vocabulary" ? "clothes" : "the topic you covered")}) – or untick ${escapeHtml(s.k)}.`));
+    if (noTopic.length && !nobodyHere) missing.push(...noTopic.map((s) => `<b>${escapeHtml(s.k)}</b>: in Lesson details, write the topic after "${escapeHtml(s.k)}:" (e.g. ${escapeHtml(s.k === "Games & songs" ? "animals bingo" : s.k === "Grammar" ? "past simple" : s.k === "Vocabulary" ? "clothes" : "the topic you covered")}) – or untick ${escapeHtml(s.k)}.`));
     if (needDone) missing.push(`<b>What exactly did you do?</b> Write at least a couple of clear lines (activities in order).`);
     if (errBox) { errBox.innerHTML = `<strong>⚠ Not saved yet – please fix:</strong><ul>${missing.map((m) => `<li>${m}</li>`).join("")}</ul>`; errBox.hidden = false; }
     showToast(`Not saved yet: ${missing.length} thing${missing.length === 1 ? "" : "s"} to fix (see the red box above the Save button).`, "error");
     if (needSkill || (noTopic.length && !nobodyHere)) { const w = byId("lessonSkillsWrap"); if (w) w.open = true; }
-    const target = unrated[0]?.querySelector(".reg-rating") || (noTopic.length && !nobodyHere ? byId("lessonSkills")?.querySelector(".sk-row.needs input") : null) || (needSkill ? byId("lessonSkills")?.querySelector(".sk-toggle") : null) || (needDone ? byId("lessonDone") : null);
+    const target = unrated[0]?.querySelector(".reg-rating") || (noTopic.length && !nobodyHere ? byId("lessonSkillText") : null) || (needSkill ? byId("lessonSkills")?.querySelector(".sk-check input") : null) || (needDone ? byId("lessonDone") : null);
     target?.scrollIntoView({ behavior: "smooth", block: "center" });
     target?.focus({ preventScroll: true });
     return;
@@ -10408,38 +10408,58 @@ function llsRenderSkills() {
   if (!box) return;
   const cls = llsLessonClasses().find((c) => c.id === llsLesson.classId);
   const rows = LLS_SKILLS.filter((s) => llsSkillState[s.k]?.on);
-  // 14 Oct (owner): tick boxes (more than one) + one box per ticked skill. A book lesson ticks and fills
-  // them from the deck (llsApplyPlan_); the teacher can untick or change anything. Suggestions = a dropdown list on the box.
+  // 3 Nov 2026 (owner): tick boxes + ONE box for the lesson details (not one box per skill). Ticking a skill adds its
+  // line ("Grammar: past simple"), filled in from the book lesson when there is one; unticking removes it. The teacher
+  // can type anything in the box; lines that start with a skill tick it, other lines are kept as extra notes.
   const plan = typeof llsPickedPlan_ === "function" ? llsPickedPlan_() : null;
-  box.innerHTML = `
-    <p class="sk-q">What did you do ${escapeHtml(llsDayInfo_().on)}? <span class="muted" style="font-weight:600">${plan && plan.skills && Object.keys(plan.skills).length ? `Filled in from ${escapeHtml(plan.id)}: untick what you didn't do` : "Tick one or more"} · students see this on their road map</span></p>
-    <div class="sk-grid">${LLS_SKILLS.map((s) => `<label class="sk-check${llsSkillState[s.k]?.on ? " on" : ""}"><input type="checkbox" data-skill="${escapeHtml(s.k)}"${llsSkillState[s.k]?.on ? " checked" : ""}> ${escapeHtml(s.k)}</label>`).join("")}</div>
-    ${rows.length ? `<div class="sk-rows">${rows.map((s) => {
-      const st = llsSkillState[s.k];
-      const sug = llsSkillSuggestions(s.k, cls);
-      const id = "skSug" + LLS_SKILLS.indexOf(s);
-      return `<div class="sk-row" data-skill-row="${escapeHtml(s.k)}">
-        <label for="${id}In">${escapeHtml(s.k)}${s.k === "Grammar" ? ": which grammar point?" : s.k === "Vocabulary" ? ": which words?" : ": what topic?"}</label>
-        <input id="${id}In" type="text" maxlength="80" autocomplete="off" list="${sug.length ? id : ""}" data-skill-topic="${escapeHtml(s.k)}" placeholder="${escapeHtml(s.ph)}" value="${escapeHtml(st.topic || "")}">
-        ${sug.length ? `<datalist id="${id}">${sug.map((t) => `<option value="${escapeHtml(t)}"></option>`).join("")}</datalist>` : ""}
-      </div>`;
-    }).join("")}</div>` : ""}`;
+  const text = () => [...llsSkillLines(llsSkillState), value("lessonDone").trim()].filter(Boolean).join("\n");
+  const ta = byId("lessonSkillText");
+  const typing = ta && document.activeElement === ta;
+  if (!typing) {
+    box.innerHTML = `
+      <p class="sk-q">What did you do ${escapeHtml(llsDayInfo_().on)}? <span class="muted" style="font-weight:600">${plan && plan.skills && Object.keys(plan.skills).length ? `Filled in from ${escapeHtml(plan.id)}: untick or change what you didn't do` : "Tick what you did, then write the topic after each one"} · students see this on their road map</span></p>
+      <div class="sk-grid">${LLS_SKILLS.map((s) => `<label class="sk-check${llsSkillState[s.k]?.on ? " on" : ""}"><input type="checkbox" data-skill="${escapeHtml(s.k)}"${llsSkillState[s.k]?.on ? " checked" : ""}> ${escapeHtml(s.k)}</label>`).join("")}</div>
+      <label class="sk-text-label" for="lessonSkillText">Lesson details</label>
+      <textarea id="lessonSkillText" class="sk-text" rows="${Math.max(3, rows.length + 1)}" placeholder="Grammar: past simple – holidays&#10;Listening: I lost my passport&#10;Speaking: what was your worst holiday?">${escapeHtml(text())}</textarea>`;
+  }
+  const t = byId("lessonSkillText");
   box.querySelectorAll("[data-skill]").forEach((b) => b.addEventListener("change", () => {
     const k = b.dataset.skill;
     const st = llsSkillState[k] || { on: false, topic: "", focus: "" };
     st.on = b.checked;
+    if (st.on && !String(st.topic || "").trim()) st.topic = llsSkillSuggestions(k, cls)[0] || "";
     llsSkillState[k] = st;
     llsLesson.noteTouched = true;
     box.classList.remove("needs");
     llsRenderSkills();
-    if (st.on && !String(st.topic || "").trim()) box.querySelector(`[data-skill-topic="${CSS.escape(k)}"]`)?.focus();
+    if (st.on) {
+      // Put the cursor at the end of the skill's line so the teacher can type or change the topic.
+      const area = byId("lessonSkillText");
+      const lines = area.value.split("\n");
+      let pos = 0;
+      for (const line of lines) { pos += line.length; if (line.toLowerCase().startsWith(k.toLowerCase() + ":")) break; pos += 1; }
+      area.focus(); area.setSelectionRange(pos, pos);
+    }
   }));
-  box.querySelectorAll("[data-skill-topic]").forEach((i) => i.addEventListener("input", () => {
-    llsSkillState[i.dataset.skillTopic].topic = i.value;
+  t?.addEventListener("input", () => {
+    const parsed = llsParseSkills(t.value);
+    LLS_SKILLS.forEach((s) => {
+      const p = parsed.skills[s.k];
+      const st = llsSkillState[s.k] || { on: false, topic: "", focus: "" };
+      if (p) { st.on = true; st.topic = p.topic; st.focus = p.focus; } else st.on = false;
+      llsSkillState[s.k] = st;
+      const cb = box.querySelector(`[data-skill="${CSS.escape(s.k)}"]`);
+      if (cb) { cb.checked = st.on; cb.closest(".sk-check")?.classList.toggle("on", st.on); }
+    });
+    setValue("lessonDone", parsed.rest);
     llsLesson.noteTouched = true;
-    i.closest(".sk-row")?.classList.remove("needs");
+    t.classList.remove("needs");
+    t.rows = Math.max(3, t.value.split("\n").length + 1);
+    const sum = byId("lessonSkillsSum"), on = LLS_SKILLS.filter((s) => llsSkillState[s.k]?.on);
+    if (sum) sum.innerHTML = on.length ? `✓ Skills: <b>${on.map((r) => escapeHtml(r.k)).join(", ")}</b> <span class="muted">· tap to change</span>` : `Skills: tick what you did`;
     clearTimeout(llsHwIdeasTimer_); llsHwIdeasTimer_ = setTimeout(llsRenderHwIdeas, 400);
-  }));
+  });
+  t?.addEventListener("blur", () => { if (!t.value.trim() || LLS_SKILLS.some((s) => llsSkillState[s.k]?.on)) llsRenderSkills(); });
   // 15 Oct (owner): skills fold away once ticked (they fill in from the slides); open when nothing is ticked.
   const sum = byId("lessonSkillsSum"), wrap = byId("lessonSkillsWrap");
   if (sum) sum.innerHTML = rows.length ? `✓ Skills: <b>${rows.map((r) => escapeHtml(r.k)).join(", ")}</b> <span class="muted">· tap to change</span>` : `Skills: tick what you did`;
@@ -10720,7 +10740,7 @@ const LLS_GUIDE = {
         ["🚫 Cancelled lessons and make-ups", "A cancelled lesson shows 🚫 and doesn't need filling in. If it took place after all, fill it in as usual. A make-up lesson: open the class on the day you teach it (Lesson page → date → All my classes) and save as usual; it counts as a make-up by itself."],
         ["1 · Who is teaching?", "Tap \"I'm teaching it\". If someone else is teaching, tap \"Another teacher\" and choose their name. \"Nobody came\" and \"Cancelled\" are there too."],
         ["3 · Register", "Tap Here / Late / Absent / Excused (\"Everyone here\" does it in one go). Choose \"How did they do?\" for everyone who came: it counts towards their progress."],
-        ["4 · What did you do today?", "Tap the skills you covered (Grammar, Reading, Speaking…) and tap a suggested topic or type one. Students see this on their road map. For a ⭐ Special lesson (Halloween, Christmas…) tick the box instead."],
+        ["4 · What did you do today?", "Tick the skills you covered (Grammar, Reading, Speaking…). Each tick adds a line to the Lesson details box (from the book lesson when there is one), e.g. \"Grammar: past simple\". Change or add anything in that one box. Students see it on their road map. For a ⭐ Special lesson (Halloween, Christmas…) tick the box instead."],
         ["Notes for the next teacher", "Private: only staff see them. \"Anything else?\" is optional and students can see it."],
         ["5 · Homework (optional)", "Title + instructions. The due date is the next lesson. It goes straight to the students' app. \"📎 Attach files\" adds a worksheet, a photo of the page or audio."],
         ["📎 Files and 📥 work to mark", "Under \"Recent homework\": \"📎 Files\" adds or removes files. When students hand in photos of their work you see \"📥 Work · to mark\": open each photo, write a mark and a comment, press \"Save mark\". Students see it in their app."],
@@ -11750,7 +11770,7 @@ function llsRenderPlanPanel() {
       llsPlanAutoKey_ = "manual"; llsPlanPick = "";
       setValue("lessonProgress", ""); setValue("lessonStopSlide", "");
       llsApplyPlan_(after);
-      setValue("lessonDone", (`Finished ${next.id} first. ` + (value("lessonDone") || "")).trim());
+      setValue("lessonDone", (`Finished ${next.id} first. ` + (value("lessonDone") || "")).trim()); llsRenderSkills();
       llsLesson.noteTouched = true;
       llsRenderPlanPanel();
       showToast(`${next.id} saved as finished. Today's lesson is now ${after.id} – did you finish it?`, "success");

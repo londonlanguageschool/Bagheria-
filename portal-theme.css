@@ -1014,3 +1014,8 @@ body.hwm-open { overflow: hidden; }
 .todo-none { margin: 8px 0 0; }
 .week-all { margin-top: 10px; }
 .week-all > summary { cursor: pointer; font-weight: 700; font-size: 14px; color: #16275c; }
+/* 3 Nov 2026: one "Lesson details" box under the skill ticks */
+.sk-text-label { display: block; margin: 10px 0 4px; font-weight: 800; font-size: 14px; color: #16275c; }
+.sk-text { width: 100%; box-sizing: border-box; border: 1.5px solid #cfe0f5; border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 15px; line-height: 1.5; resize: vertical; }
+.sk-text:focus { outline: none; border-color: #2f8fe0; box-shadow: 0 0 0 3px #e3f1fd; }
+.sk-text.needs { border-color: #dc2626; box-shadow: 0 0 0 3px #fde8e8; }
