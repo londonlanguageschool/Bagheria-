@@ -616,5 +616,57 @@ window.LLS_WORKBOOK = {
           ["Grammar", "questions without auxiliaries (3a–e)"] ] }
       ] }
     }
+    },
+  /* 3 Nov 2026 (owner's scans): Power Up 3 Activity Book, Unit 1 – keys are the Movers lesson ids (U1-L1…). */
+  "PU-3": {
+    name: "Power Up 3 Activity Book",
+    word: "Activity Book", realPages: true, // a separate book: its own page numbers
+    lessons: {
+      "U1-L1": { title: "A day on the farm", pages: [
+        { p: 6, items: [
+          ["Writing", "My unit goals and My mission diary: read and tick at the end of the unit"] ] },
+        { p: 7, items: [
+          ["Vocabulary", "the countryside: read and match the sentences and pictures (1)"],
+          ["Pronunciation", "Sounds and spelling /r/: listen, circle the words and match (2)", true] ] }
+      ] },
+      "U1-L2": { title: "The Friendly Farm", pages: [
+        { p: 8, items: [
+          ["Listening", "The Friendly Farm: listen and circle the correct words (1)", true],
+          ["Grammar", "talk about the pictures: drinking, eating, looking, playing, sleeping (2)"] ] },
+        { p: 9, items: [
+          ["Grammar", "present continuous: read, match and colour (1)"],
+          ["Grammar", "answer the questions: Are the puppies sleeping? No, they aren't. (2)"] ] }
+      ] },
+      "U1-L3": { title: "Daily routines", pages: [
+        { p: 10, items: [
+          ["Vocabulary", "daily routines: write the words and find the secret word (1)"],
+          ["Listening", "listen and tick (2)", true] ] },
+        { p: 11, items: [
+          ["Grammar", "present simple: write the words in the correct order (1)"],
+          ["Grammar", "Vicky's day: read and write the words (2)"] ] }
+      ] },
+      "U1-L4": { title: "Look after our planet", pages: [
+        { p: 12, items: [
+          ["Reading", "tick the things that are good for the Earth (1)"],
+          ["Reading", "read and write yes or no (2)"] ] },
+        { p: 13, items: [
+          ["Reading", "which is better for the Earth? Look and tick (3)"],
+          ["Writing", "how can we look after the planet? Draw and write (4)"] ] }
+      ] },
+      "U1-L5": { title: "The race (poem)", pages: [
+        { p: 14, items: [
+          ["Reading", "The race: read and circle the correct answer (1)"],
+          ["Reading", "write yes or no and explain your answers (2)"],
+          ["Writing", "what do you enjoy doing with your family? Write (3)"] ] },
+        { p: 15, items: [
+          ["Listening", "Movers Listening Part 1: listen and draw lines (4)", true] ] }
+      ] },
+      "U1-L6": { title: "Movers practice and review", pages: [
+        { p: 16, items: [
+          ["Listening", "Movers Speaking Part 1: find four differences (1)", true] ] },
+        { p: 17, items: [
+          ["Vocabulary", "review board game: What's this? What are they doing? (1)"] ] }
+      ] }
+    }
   }
 };

@@ -12577,6 +12577,8 @@ const llsWbState = {}; // hostId -> { on, lesson, pages:Set, auto:{title,text}, 
 function llsWbBook_(cls) { return cls && cls.book && window.LLS_WORKBOOK && LLS_WORKBOOK[cls.book]; }
 function llsWbDefaultLesson_(wb, cls, hint) {
   const codes = Object.keys(wb.lessons);
+  const exact = String(hint || "").trim().split(/[\s·]+/)[0]; // 3 Nov: lesson ids like "U1-L2" (Power Up)
+  if (exact && wb.lessons[exact]) return exact;
   const m = String(hint || "").trim().match(/^(\d{1,2})([A-C])/i);
   if (m && wb.lessons[m[1] + m[2].toUpperCase()]) return m[1] + m[2].toUpperCase();
   const unit = m ? m[1] : String(Number(cls.currentUnit) || "");
@@ -12593,17 +12595,18 @@ function llsRenderWbPicker(hostId, cls, titleId, textId, hint) {
   if (!st || st.key !== key) st = llsWbState[hostId] = { key, on: false, lesson: "", pages: new Set(), auto: { title: "", text: "" }, touchedLesson: false };
   if (!st.touchedLesson || !wb.lessons[st.lesson]) st.lesson = llsWbDefaultLesson_(wb, cls, hint);
   const lesson = wb.lessons[st.lesson];
+  const word = wb.word || "Workbook", real = Boolean(wb.realPages); // 3 Nov: Power Up Activity Book has its own page numbers
   host.innerHTML = `
-    <label class="wb-toggle"><input type="checkbox" data-wb-on${st.on ? " checked" : ""}> 📗 Set Workbook pages as homework?</label>
+    <label class="wb-toggle"><input type="checkbox" data-wb-on${st.on ? " checked" : ""}> 📗 Set ${escapeHtml(word)} pages as homework?</label>
     ${st.on ? `<div class="wb-panel">
       <label class="wb-lesson">Lesson in the Student's Book
         <select data-wb-lesson>${Object.entries(wb.lessons).map(([c, l]) => `<option value="${escapeAttribute(c)}"${c === st.lesson ? " selected" : ""}>${escapeHtml(c)} · ${escapeHtml(l.title)}</option>`).join("")}</select>
       </label>
-      <p class="muted wb-note">Students' books have the Workbook at the back with different page numbers, so homework names the lesson and exercises, not pages.</p>
+      ${real ? "" : `<p class="muted wb-note">Students' books have the Workbook at the back with different page numbers, so homework names the lesson and exercises, not pages.</p>`}
       <div class="wb-pages">${lesson.pages.map((pg) => `
         <label class="wb-page${st.pages.has(pg.p) ? " on" : ""}">
           <input type="checkbox" data-wb-page="${pg.p}"${st.pages.has(pg.p) ? " checked" : ""}>
-          <span class="wb-p">Workbook ${escapeHtml(st.lesson)} · part ${lesson.pages.indexOf(pg) + 1}</span>
+          <span class="wb-p">${real ? `${escapeHtml(word)} p.${pg.p}` : `Workbook ${escapeHtml(st.lesson)} · part ${lesson.pages.indexOf(pg) + 1}`}</span>
           <span class="wb-items">${pg.items.map(([k, what, audio]) => `<span class="wb-item"><b>${LLS_WB_KIND_ICON[k] || "•"} ${escapeHtml(k)}:</b> ${escapeHtml(what)}${audio ? ' <span class="wb-audio" title="Needs the Workbook audio">🎧 audio</span>' : ""}</span>`).join("")}</span>
         </label>`).join("")}</div>
     </div>` : ""}`;
@@ -12620,9 +12623,9 @@ function llsRenderWbPicker(hostId, cls, titleId, textId, hint) {
     // 4 Oct: no page numbers — the students' combined book numbers the Workbook differently.
     const exOf = (what) => (String(what).match(/\(([^)]+)\)\s*$/) || [])[1] || "";
     const exs = chosen.flatMap((pg) => pg.items.map(([, what]) => exOf(what))).filter(Boolean);
-    const title = `Workbook ${st.lesson} ${lesson.title}${exs.length ? ": ex. " + exs.join(", ") : ""}`;
-    const text = `Workbook section, lesson ${st.lesson} (${lesson.title}):\n` + chosen.map((pg) => pg.items.map(([k, what]) => `• ${k} – ${what}`).join("\n")).join("\n") +
-      (chosen.some((pg) => pg.items.some((i) => i[2])) ? "\n🎧 Pronunciation exercises use the Workbook audio." : "");
+    const title = real ? `${word} p.${chosen.map((pg) => pg.p).join(" and ")}${exs.length ? ": ex. " + exs.join(", ") : ""}` : `Workbook ${st.lesson} ${lesson.title}${exs.length ? ": ex. " + exs.join(", ") : ""}`;
+    const text = (real ? `${word} p.${chosen.map((pg) => pg.p).join(" and ")} (${lesson.title}):\n` : `Workbook section, lesson ${st.lesson} (${lesson.title}):\n`) + chosen.map((pg) => pg.items.map(([k, what]) => `• ${k} – ${what}`).join("\n")).join("\n") +
+      (chosen.some((pg) => pg.items.some((i) => i[2])) ? "\n🎧 Some exercises use the audio." : "");
     if (!curTitle || curTitle === st.auto.title) setValue(titleId, title);
     if (!curText || curText === st.auto.text) setValue(textId, text);
     st.auto = { title, text };
