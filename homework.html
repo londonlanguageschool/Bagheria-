@@ -1761,7 +1761,7 @@
     }
     let lastSlides = null;
     function slidesCardHtml() {
-      const d = data.lastSlides === undefined ? legacyLastSlides() : data.lastSlides;
+      const d = data.lastSlides || legacyLastSlides();
       lastSlides = d && d.deck && d.upto ? d : null;
       if (!lastSlides) return "";
       const todayIso = isoDay(new Date().toISOString().slice(0, 10));
