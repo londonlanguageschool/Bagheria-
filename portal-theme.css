@@ -1023,3 +1023,18 @@ body.hwm-open { overflow: hidden; }
 .makeup-row { background: #fff8e6; }
 .makeup-pick { display: flex !important; flex-direction: row !important; flex-wrap: wrap; gap: 6px; align-items: center; }
 .makeup-pick input { width: auto !important; flex: 0 1 auto; min-height: 40px; border: 1.5px solid #cfe0f5; border-radius: 10px; padding: 4px 8px; font: inherit; }
+/* 3 Nov 2026: compact register – name + 4 one-tap ratings on one line, attendance underneath (small) */
+#lessonRegister .reg-row { grid-template-columns: 1fr auto !important; gap: 6px 10px; padding: 8px 10px; }
+#lessonRegister .reg-name { grid-column: 1; grid-row: 1; align-self: center; }
+#lessonRegister .reg-stars { grid-column: 2; grid-row: 1; display: flex; gap: 4px; }
+#lessonRegister .reg-btns { grid-column: 1 / -1; grid-row: 2; display: flex !important; gap: 4px; flex-wrap: wrap; }
+#lessonRegister .reg-btn { min-height: 32px; padding: 3px 12px; font-size: 13px; }
+#lessonRegister .reg-how { grid-column: 1 / -1; grid-row: 3; }
+#lessonRegister .reg-how .reg-rating { display: none !important; }
+#lessonRegister:not(.show-notes) .reg-how { display: none; }
+.reg-star { width: 40px; height: 40px; border-radius: 12px; border: 2px solid #dbe7f6; background: #fff; font-size: 20px; line-height: 1; cursor: pointer; opacity: .55; filter: grayscale(.6); padding: 0; }
+.reg-star.on { opacity: 1; filter: none; border-color: #16275c; background: #fff7d1; transform: scale(1.06); }
+.reg-star:disabled { opacity: .2; cursor: default; }
+.reg-row.reg-off .reg-name { color: #94a3b8; }
+.reg-row.needs .reg-stars { outline: 2px solid #dc2626; outline-offset: 2px; border-radius: 12px; }
+.reg-legend { margin: 4px 0 6px; font-size: 13px; color: #56617a; font-weight: 600; }

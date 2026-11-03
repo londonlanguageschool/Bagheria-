@@ -8601,6 +8601,16 @@ function llsSetRegisterRow(row, status, notes) {
   const parts = llsSplitRating(notes);
   const sel = row.querySelector(".reg-rating"); if (sel) sel.value = parts.rating;
   const note = row.querySelector(".reg-note"); if (note) note.value = parts.note;
+  llsSyncStars_(row);
+}
+// 3 Nov 2026 (owner: "the whole system is a bit chunky"): "How did they do?" is 4 one-tap buttons next to the name
+// (the hidden select still holds the value, so saving works as before). Absent / excused: no rating.
+const LLS_RATES = [["Excellent", "⭐", "Excellent"], ["Good", "👍", "Good"], ["OK", "🙂", "OK"], ["Needs support", "🤝", "Needs support"]];
+function llsSyncStars_(row) {
+  const v = row.querySelector(".reg-rating")?.value || "";
+  const off = !["Present", "Late"].includes(row.dataset.status || "Present");
+  row.classList.toggle("reg-off", off);
+  row.querySelectorAll("[data-rate]").forEach((b) => { const on = b.dataset.rate === v; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); b.disabled = off; });
 }
 
 function llsDrawRegister(regBody, students, saved) {
@@ -8611,6 +8621,7 @@ function llsDrawRegister(regBody, students, saved) {
     const btn = (s, label) => `<button type="button" class="reg-btn reg-${s.toLowerCase()}${status === s ? " on" : ""}" data-status="${s}" aria-pressed="${status === s}">${label}</button>`;
     return `<div class="reg-row" data-student="${escapeHtml(id)}" data-status="${escapeHtml(status)}">
       <div class="reg-name">${escapeHtml(llsStudentName(st))}</div>
+      <div class="reg-stars" role="group" aria-label="How did they do?">${LLS_RATES.map(([v, e, t]) => `<button type="button" class="reg-star" data-rate="${v}" title="${t}" aria-label="${t}">${e}</button>`).join("")}</div>
       <div class="reg-btns">${btn("Present", "✓ Here")}${btn("Late", "Late")}${btn("Absent", "Absent")}${btn("Excused", "Excused")}</div>
       <div class="reg-how">
         <select class="reg-rating" aria-label="How did they do?">
@@ -8632,8 +8643,14 @@ function llsDrawRegister(regBody, students, saved) {
       llsSetRegisterRow(row, b.dataset.status, llsJoinRating(row.querySelector(".reg-rating").value, row.querySelector(".reg-note").value));
       llsLessonCount();
     }));
-    row.querySelector(".reg-rating").addEventListener("change", touch);
+    row.querySelector(".reg-rating").addEventListener("change", () => { touch(); llsSyncStars_(row); });
     row.querySelector(".reg-note").addEventListener("input", touch);
+    row.querySelectorAll("[data-rate]").forEach((b) => b.addEventListener("click", () => {
+      const sel = row.querySelector(".reg-rating");
+      sel.value = sel.value === b.dataset.rate ? "" : b.dataset.rate;
+      touch(); llsSyncStars_(row);
+    }));
+    llsSyncStars_(row);
   });
   llsLessonCount();
   byId("lessonAllHere").hidden = !students.length;
@@ -9333,7 +9350,7 @@ async function llsSaveLesson() {
     if (errBox) { errBox.innerHTML = `<strong>⚠ Not saved yet – please fix:</strong><ul>${missing.map((m) => `<li>${m}</li>`).join("")}</ul>`; errBox.hidden = false; }
     showToast(`Not saved yet: ${missing.length} thing${missing.length === 1 ? "" : "s"} to fix (see the red box above the Save button).`, "error");
     if (needSkill || (noTopic.length && !nobodyHere)) { const w = byId("lessonSkillsWrap"); if (w) w.open = true; }
-    const target = unrated[0]?.querySelector(".reg-rating") || (noTopic.length && !nobodyHere ? byId("lessonSkillText") : null) || (needSkill ? byId("lessonSkills")?.querySelector(".sk-check input") : null) || (needDone ? byId("lessonDone") : null);
+    const target = unrated[0]?.querySelector(".reg-star") || (noTopic.length && !nobodyHere ? byId("lessonSkillText") : null) || (needSkill ? byId("lessonSkills")?.querySelector(".sk-check input") : null) || (needDone ? byId("lessonDone") : null);
     target?.scrollIntoView({ behavior: "smooth", block: "center" });
     target?.focus({ preventScroll: true });
     return;
