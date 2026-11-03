@@ -13015,7 +13015,18 @@ async function llsSlidesGet_(action, params) {
 function llsLoadViewIndex_() {
   if (llsViewIndexAsked_ || !sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY)) return;
   llsViewIndexAsked_ = true;
-  llsSlidesGet_("getSlideIndex", {}).then((d) => { llsViewIndex_ = d.index || {}; }).catch(() => { llsViewIndexAsked_ = false; });
+  llsSlidesGet_("getSlideIndex", {}).then((d) => { llsViewIndex_ = d.index || {}; })
+    .catch(() => llsLegacyIndex_().then((j) => { llsViewIndex_ = j; }).catch(() => { llsViewIndexAsked_ = false; }));
+}
+// 3 Nov: until Apps Script V40 has copied the slides to Drive, the pictures still come from the website copy.
+let llsLegacyIndexP_ = null;
+function llsLegacyIndex_() {
+  if (!llsLegacyIndexP_) llsLegacyIndexP_ = fetch("materials/view/index.json?v=" + Date.now().toString().slice(0, 7)).then((r) => r.ok ? r.json() : {}).catch(() => ({}));
+  return llsLegacyIndexP_;
+}
+async function llsLegacyPics_(deck) {
+  const n = Number((await llsLegacyIndex_())[deck]) || 0;
+  return Array.from({ length: n }, (_, i) => `materials/view/${encodeURIComponent(deck)}/${String(i + 1).padStart(2, "0")}.jpg`);
 }
 // The deck name of a plan: from a "deck:" link, an old website link, or the file name (decks kept in Drive).
 function llsDeckName_(url) {
@@ -13044,8 +13055,8 @@ async function llsOpenSlides_(o) {
       if (llsDeckPics_.size > 6) llsDeckPics_.delete(llsDeckPics_.keys().next().value);
       llsDeckPics_.set(o.deck, pics);
     } catch (error) {
-      pics = [];
-      if (!/aren't ready|Unknown action/i.test(error.message || "")) showToast(error.message || "Couldn't load the slides.", "error");
+      pics = await llsLegacyPics_(o.deck);
+      if (!pics.length && !/aren't ready|Unknown action/i.test(error.message || "")) showToast(error.message || "Couldn't load the slides.", "error");
     }
     if (gone) return;
   }

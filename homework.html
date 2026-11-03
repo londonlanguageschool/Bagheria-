@@ -1722,9 +1722,46 @@
        31 Oct 2026 (owner): "No slides on the website at all." The server (Apps Script V40) decides which deck
        (data.lastSlides: the class's last lesson that has slides) and sends only those pictures, from the school's
        private Drive. Nothing about other lessons ever reaches the phone. */
+    // 3 Nov: until Apps Script V40 is live (data.lastSlides missing), the old way: deck from lesson-plans.js, pictures from the website.
+    let slidePlans = null, slideIndex = null;
+    function loadSlideData() {
+      if (slidePlans !== null) return;
+      slidePlans = false;
+      const again = () => { if (tab === "homework" && slidePlans && slideIndex) { try { renderHomework(); } catch (_) {} } };
+      const sc = document.createElement("script");
+      sc.src = "lesson-plans.js?v=20261103a";
+      sc.onload = () => { slidePlans = window.LLS_PLANS || {}; again(); };
+      sc.onerror = () => { slidePlans = {}; };
+      document.head.appendChild(sc);
+      fetch("materials/view/index.json?v=" + Date.now().toString().slice(0, 7)).then((r) => r.ok ? r.json() : {})
+        .then((j) => { slideIndex = j || {}; again(); }).catch(() => { slideIndex = {}; });
+    }
+    function legacyLastSlides() {
+      loadSlideData();
+      const P = slidePlans;
+      if (!P || !P.courses || !slideIndex) return null;
+      const todayIso = isoDay(new Date().toISOString().slice(0, 10));
+      const ls = (data.lessons || []).filter((l) => !isCancelled(l) && (isoDay(l.lessonDate) || String(l.lessonDate)) <= todayIso)
+        .sort((a, b) => String(isoDay(b.lessonDate) || b.lessonDate).localeCompare(String(isoDay(a.lessonDate) || a.lessonDate)));
+      for (const l of ls.slice(0, 3)) {
+        const cls = (data.classes || []).find((c) => String(c["Class ID"]) === String(l.classId));
+        if (!cls) continue;
+        const plans = P.courses[String(cls["Book"] || "").trim()] || [];
+        const u = String(l.unit || "").split("·")[0].trim().toLowerCase();
+        if (!u || /^(cancelled|special|teacher)/.test(u)) continue;
+        const p = plans.find((x) => String(x.id).toLowerCase() === u) || plans.find((x) => String(x.id).toLowerCase().startsWith(u + "-"));
+        if (!p || !p.file) continue;
+        const url = (P.links && P.links[p.file]) || "";
+        const m = String(url).match(/\/materials\/[^/]+\/([^/?#]+)\.pptx/i) || String(p.file).match(/([^/]+)\.pptx$/i);
+        if (!m || !slideIndex[m[1]]) continue;
+        const n = Number(slideIndex[m[1]]) || 0, stop = Number(l.stopSlide) || 0;
+        return { deck: m[1], n, upto: stop ? Math.min(stop, n) : n, stop, title: p.title || u, date: isoDay(l.lessonDate) || String(l.lessonDate).slice(0, 10), legacy: true };
+      }
+      return null;
+    }
     let lastSlides = null;
     function slidesCardHtml() {
-      const d = data.lastSlides;
+      const d = data.lastSlides === undefined ? legacyLastSlides() : data.lastSlides;
       lastSlides = d && d.deck && d.upto ? d : null;
       if (!lastSlides) return "";
       const todayIso = isoDay(new Date().toISOString().slice(0, 10));
@@ -1752,13 +1789,20 @@
         box.innerHTML = `<div class="sv-top"><b>📽️ ${esc(d.title)}</b><button type="button" class="sv-x" data-x aria-label="Close">✕</button></div><p class="sv-end">Loading the slides… · Carico le slide…</p>`;
         box.querySelector("[data-x]").addEventListener("click", close);
         try {
+          if (d.legacy) {
+            const n = Math.min(d.upto, d.n);
+            slidePics = { deck: d.deck, upto: d.upto, pics: Array.from({ length: n }, (_, i) => `materials/view/${encodeURIComponent(d.deck)}/${String(i + 1).padStart(2, "0")}.jpg`) };
+            throw { skip: true };
+          }
           const r = await api({ action: "studentSlides", key: KEY });
           slidePics = { deck: r.deck, upto: r.upto, pics: (r.pics || []).map((b) => b ? "data:image/jpeg;base64," + b : "") };
           d.upto = Math.min(d.upto, slidePics.pics.length) || slidePics.pics.length;
         } catch (error) {
+          if (error && error.skip) { /* old way: pictures from the website */ } else {
           if (box.isConnected) box.innerHTML = `<div class="sv-top"><b>📽️ ${esc(d.title)}</b><button type="button" class="sv-x" data-x aria-label="Close">✕</button></div><p class="sv-end">${esc(error.message || "The slides couldn't be loaded. Try again.")}</p>`;
           box.querySelector("[data-x]")?.addEventListener("click", close);
           return;
+          }
         }
         if (!box.isConnected) return;
       }
