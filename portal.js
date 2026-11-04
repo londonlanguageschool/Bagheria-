@@ -11445,7 +11445,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ---------- 1. Lesson plans ----------
 function llsPlanCode_(unit) {
-  const m = String(unit || "").trim().replace(/^(unit|lesson)\s+/i, "").match(/^(R\d{1,2}-\d{1,2}|\d{1,2}[A-C](?:-\d)?|L\d{1,2}|U\d{1,2}-L\d|[SR]-L\d|PE\d{1,2})(?![\w])/i);
+  const m = String(unit || "").trim().replace(/^(unit|lesson)\s+/i, "").match(/^(R\d{1,2}-\d{1,2}|\d{1,2}[A-C]-\d{1,2}[A-C]|\d{1,2}[A-C](?:-\d)?|L\d{1,2}|U\d{1,2}-L\d|[SR]-L\d|PE\d{1,2})(?![\w])/i);
   return m ? m[1].toUpperCase() : "";
 }
 function llsPlansFor_(cls) {
@@ -11667,6 +11667,8 @@ function llsRenderPlanPanel() {
   // and don't count as done in the new one (B1.1 Young: green book 1A ≠ Prepare 1A).
   const bookFrom = ((cls && String(cls.notes || "").match(/book from:?\s*(\d{4}-\d{2}-\d{2})/i)) || [])[1] || "";
   const taught = llsPlanTaught_((llsLesson.entries || []).filter((e) => String(e.lessonDate || "").slice(0, 10) !== date && String(e.lessonDate || "").slice(0, 10) >= bookFrom));
+  // 4 Nov (owner): a combined deck (e.g. Prepare 2A-2B) finishes the first lesson too.
+  Object.keys(taught).forEach((c) => { const m = c.match(/^(\d{1,2}[A-C])-\d{1,2}[A-C]$/); if (m) taught[m[1]] = (taught[m[1]] || []).concat(taught[c].map((x) => Object.assign({}, x, { stop: 0 }))); });
   const marks = llsPlansDoneMap_(cls);
   Object.entries(marks).forEach(([code, m]) => { if (!taught[code]) taught[code] = [{ date: m.date || "", teacher: m.who || "", earlier: true, skip: m.kind === "skip", reason: m.reason || "" }]; });
   const partial = llsPlanPartial_(taught);
