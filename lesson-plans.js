@@ -375,7 +375,7 @@ window.LLS_PLANS = {
   "A2_Adults_Rebuilt/A2_2A_Wheres_my_passport.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_2A_Wheres_my_passport_v3.pptx?v=20261021b",
   "A2_Blue_Part1_Units1-6/A2_1-2_Revise_and_Check.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_R1-2_Revise_and_Check_1-2.pptx?v=20261022e",
   "A2_Blue_Part1_Units1-6/A2_3A_TripAside_going_to.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_3A_TripAside.pptx?v=202611031430",
-  "A2_Blue_Part1_Units1-6/A2_3B_Put_it_in_your_calendar.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_3B_Put_it_in_your_calendar.pptx?v=20261022e",
+  "A2_Blue_Part1_Units1-6/A2_3B_Put_it_in_your_calendar.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_3B_Put_it_in_your_calendar.pptx?v=202611050743",
   "A2_Blue_Part1_Units1-6/A2_2C_One_dark_October_evening.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_2C_One_dark_October_evening.pptx?v=20261022e",
   "A2_Adults_Rebuilt/A2_2B_Thats_me_in_the_picture.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_2B_Thats_me_in_the_picture_v3.pptx?v=20261021b",
   "A2_Adults_Rebuilt/A2_1C_The_Remake_Project.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_1C_The_Remake_Project_v3.pptx?v=20261021b",
@@ -737,7 +737,7 @@ window.LLS_PLANS = {
     "title": "Put it in your calendar!",
     "focus": "present continuous (future arrangements) • verbs + prepositions • linking • Jake and Sarah",
     "pages": "SB pp.24–25 · WB pp.20–21",
-    "slides": 18,
+    "slides": 15,
     "file": "A2_Blue_Part1_Units1-6/A2_3B_Put_it_in_your_calendar.pptx",
     "skills": {
      "Grammar": "Present continuous (future arrangements)",
