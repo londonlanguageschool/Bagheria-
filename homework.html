@@ -3290,16 +3290,62 @@
           shownFromCache = true;
         }
       } catch (_) {}
+      // 8 Nov 2026 (owner: B2 Teens Exam homework not showing): when Google didn't answer, the app
+      // kept showing the copy saved on the phone WITHOUT saying so, so new homework was missing.
+      // Now: a yellow bar says it's an old copy (and from when), and the app keeps trying.
+      // It also fetches again whenever the app is reopened from the background (the installed
+      // app often isn't reloaded, so it could show homework from days ago).
+      let savedAt = 0;
+      try { const c = JSON.parse(localStorage.getItem(CACHE) || "null"); savedAt = (c && c.key === KEY && Number(c.at)) || 0; } catch (_) {}
+      await refreshFresh(prep, CACHE, shownFromCache, savedAt);
+    }
+
+    let lastFreshAt = 0, refreshing = false, staleTimer = null;
+    function staleBar(show, savedAt) {
+      let bar = document.getElementById("staleBar");
+      if (!show) { if (bar) bar.remove(); return; }
+      if (!bar) {
+        bar = document.createElement("button");
+        bar.type = "button";
+        bar.id = "staleBar";
+        bar.style.cssText = "position:sticky;top:0;z-index:50;display:block;width:100%;margin:0;padding:10px 14px;border:0;border-bottom:2px solid #ffe07a;background:#fff6cc;color:#7a4a00;font:inherit;font-size:13px;font-weight:700;text-align:left;cursor:pointer";
+        bar.addEventListener("click", () => { bar.textContent = "⏳ Aggiorno… · Updating…"; refreshFresh(); });
+        document.body.insertBefore(bar, document.body.firstChild);
+      }
+      let when = "";
+      if (savedAt) {
+        const d = new Date(savedAt);
+        when = " (" + d.toLocaleDateString("it-IT", { day: "numeric", month: "short" }) + " " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) + ")";
+      }
+      bar.textContent = "⚠ Non riesco a collegarmi alla scuola: questi compiti potrebbero non essere aggiornati" + when + ". Tocca per riprovare · Can't reach the school: this may not be your latest homework. Tap to try again.";
+    }
+
+    async function refreshFresh(prepArg, cacheArg, shownFromCacheArg, savedAtArg) {
+      const CACHE = cacheArg || "lls_student_cache";
+      const prep = prepArg || ((d) => { d.practice = Array.isArray(d.practice) ? d.practice : []; d.tests = Array.isArray(d.tests) ? d.tests : []; d.testResults = Array.isArray(d.testResults) ? d.testResults : []; return d; });
+      const shownFromCache = shownFromCacheArg === undefined ? Boolean(data) : shownFromCacheArg;
+      if (refreshing || KEY.length < 20) return;
+      refreshing = true;
       try {
         const fresh = await api({ action: "getStudentHomework", key: KEY });
         try { localStorage.setItem(CACHE, JSON.stringify({ key: KEY, data: fresh, at: Date.now() })); } catch (_) {}
+        lastFreshAt = Date.now();
+        staleBar(false);
+        if (staleTimer) { clearInterval(staleTimer); staleTimer = null; }
         const openQuiz = typeof quiz !== "undefined" && quiz && !quiz.finished;
         data = prep(fresh);
         applyQueued();
         if (!openQuiz) render(); // don't jump out of an exercise the student is doing
         document.getElementById("switchWrap").hidden = false;
       } catch (error) {
-        if (shownFromCache && !/not valid/i.test(error.message || "")) return; // keep showing the saved copy
+        if (shownFromCache && !/not valid/i.test(error.message || "")) {
+          // keep showing the saved copy, but say so, and keep trying every minute
+          let at = savedAtArg || 0;
+          if (!at) { try { at = Number((JSON.parse(localStorage.getItem(CACHE) || "null") || {}).at) || 0; } catch (_) {} }
+          staleBar(true, at);
+          if (!staleTimer) staleTimer = setInterval(() => { if (document.visibilityState === "visible") refreshFresh(); }, 60000);
+          return;
+        }
         if (/not valid/i.test(error.message || "")) {
           try { if (localStorage.getItem(STORE) === KEY) localStorage.removeItem(STORE); localStorage.removeItem("lls_student_cache"); } catch (_) {}
           KEY = "";
@@ -3307,8 +3353,21 @@
           return;
         }
         showError(error.message || "Could not load your homework. Please try again later.");
+      } finally {
+        refreshing = false;
       }
     }
+
+    // Reopened from the background, or back online: get the latest homework
+    // (at most once a minute, and never in the middle of an exercise).
+    function refreshIfOld() {
+      if (document.visibilityState !== "visible" || KEY.length < 20 || !data) return;
+      if (Date.now() - lastFreshAt < 60000 && !document.getElementById("staleBar")) return;
+      refreshFresh();
+    }
+    document.addEventListener("visibilitychange", refreshIfOld);
+    window.addEventListener("online", refreshIfOld);
+    window.addEventListener("pageshow", (e) => { if (e.persisted) refreshIfOld(); });
 
     load();
   </script>
