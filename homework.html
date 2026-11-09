@@ -475,6 +475,13 @@
     @media (min-width: 720px) { .bottom-tabs { left: 50%; right: auto; transform: translateX(-50%); width: 560px; border-radius: 20px 20px 0 0; } }
     .done-fold { margin-top: 18px; }
     .done-fold > summary { cursor: pointer; font-family: var(--display); font-weight: 800; font-size: 16px; color: var(--navy-800, #16275c); padding: 6px 2px; }
+    .hw-how { margin: 10px 0 6px; font-size: 14px; font-weight: 700; color: #33415c; line-height: 1.45; }
+    .hw-how small { font-weight: 600; color: #5b6880; }
+    .hw-nobook { margin: 8px 0 10px; padding: 12px 14px; border-radius: 16px; background: #e3f6ec; display: grid; gap: 6px; }
+    .hw-nobook strong { font-size: 15px; }
+    .hw-nobook span { font-size: 13px; color: #33415c; font-weight: 600; }
+    .hw-nobook-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .hw-nobook-btns button { border: 0; border-radius: 12px; background: #18a86b; color: #fff; font-weight: 800; font-size: 14px; padding: 9px 16px; cursor: pointer; }
     .extra-practice { display: flex; align-items: center; gap: 12px; margin: 18px 0 6px; padding: 14px 16px; border-radius: 18px; background: #e3f6ec; }
     .extra-practice div { flex: 1; }
     .extra-practice strong { display: block; font-size: 15px; }
@@ -1956,6 +1963,29 @@
        work and the teacher's mark + comment. Files are private: they are
        fetched through Apps Script with this student's key. */
     const FILE_ICON = (t) => /^image\//.test(t) ? "🖼️" : /pdf/.test(t) ? "📄" : /^audio\//.test(t) ? "🎧" : "📎";
+    /* 9 Nov (owner): many students don't have their books yet. Every homework card for a book course
+       explains how to hand in, and – where the app has practice for that lesson – offers it as the
+       no-book option (original LLS exercises, marked automatically; the score reaches the teacher). */
+    function hwNoBookHtml(i) {
+      const desc = String(i["Description"] || "") + " " + String(i["Title"] || "");
+      if (/No book needed/i.test(desc)) return "";
+      const usesBook = /workbook|\bWB\b|student'?s book|\bSB\b|grammar bank|vocabulary bank|activity book|pag(e|\.)|\bp\.\s?\d/i.test(desc);
+      const cls = (data.classes || []).find((c) => String(c["Class ID"]) === String(i["Class ID"]));
+      const course = cls && COURSES[String(cls["Book"] || "").trim()];
+      const m = String(i["Title"] || "").match(/^(\d{1,2}[A-C])(?:-\d)?\b/);
+      const les = course && course.practice !== false && m && course.lessons.find((l) => l.code === m[1]);
+      if (!usesBook && !les) return "";
+      const how = `<p class="hw-how">✏️ Do it in your book or notebook → 📷 take a photo → 📤 tap <b>Consegna</b>.<br><small>Fai il compito sul libro o sul quaderno → fai una foto → tocca «Consegna».</small></p>`;
+      const prac = les ? `<div class="hw-nobook"><strong>📱 No book yet? · Non hai ancora il libro?</strong>
+          <span>Do the ${esc(les.code)} practice here instead – it marks itself and your score goes to your teacher. · Fai gli esercizi ${esc(les.code)} qui: si correggono da soli e il punteggio arriva all'insegnante.</span>
+          <div class="hw-nobook-btns">${["g", "v"].map((t) => `<button type="button" data-hw-practice="1" data-course="${esc(cls["Book"])}" data-lesson="${esc(les.code)}" data-type="${t}">${TYPE_NAMES[t]}</button>`).join("")}</div></div>`
+        : `<p class="hw-how"><small>📕 No book yet? Tell your teacher – they'll give you a version without the book. · Non hai il libro? Dillo all'insegnante.</small></p>`;
+      return how + prac;
+    }
+    document.addEventListener("click", (e) => {
+      const b = e.target.closest && e.target.closest("[data-hw-practice]");
+      if (b) { e.preventDefault(); startSet(b.dataset.course, b.dataset.lesson, b.dataset.type); window.scrollTo(0, 0); }
+    });
     function hwExtraHtml(i) {
       const id = String(i["Homework ID"]);
       const files = (data.files || []).filter((f) => f.homeworkId === id);
@@ -1965,6 +1995,7 @@
       const marked = String(st["Mark"] || "").trim() || String(st["Feedback"] || "").trim();
       const chip = (f, removable) => `<span class="hw-file"><button type="button" data-open-file="${esc(f.fileId)}">${FILE_ICON(f.type)} ${esc(f.name)}</button>${removable ? `<button type="button" class="rm" data-remove-work="${esc(f.fileId)}" aria-label="Remove · Togli ${esc(f.name)}">✕</button>` : ""}</span>`;
       return `<div class="hw-extra">
+        ${mine.length || marked ? "" : hwNoBookHtml(i)}
         ${teacherFiles.length ? `<p class="hw-label">📎 From your teacher · Dall'insegnante</p><div class="hw-files">${teacherFiles.map((f) => chip(f, false)).join("")}</div>` : ""}
         ${marked ? `<div class="feedback"><strong>⭐ ${st["Mark"] ? esc(st["Mark"]) : "Teacher's comment · Commento"}</strong>${st["Feedback"] ? `<p>${esc(st["Feedback"])}</p>` : ""}${st["Marked By"] ? `<p class="meta">— ${esc(st["Marked By"])}</p>` : ""}</div>` : ""}
         ${mine.length ? `<p class="hw-label">📤 Your work · Il tuo lavoro</p><div class="hw-files">${mine.map((f) => chip(f, !marked)).join("")}</div>` : ""}
