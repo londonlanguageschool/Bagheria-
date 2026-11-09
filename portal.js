@@ -10400,8 +10400,18 @@ function llsSkillSuggestions(skill, cls) {
   const out = [];
   const add = (t) => { t = String(t || "").trim(); if (t && !out.some((x) => x.toLowerCase() === t.toLowerCase())) out.push(t); };
   const course = cls && cls.book && window.LLS_COURSES && LLS_COURSES[cls.book];
-  const unit = Number(cls && cls.currentUnit) || 0;
-  if (course && unit && !byId("lessonSpecialOn")?.checked && !llsChoiceOn()) {
+  // 9 Nov (owner): suggestions must match TODAY'S lesson (the picked / continued plan), not the class's saved unit.
+  const plan = typeof llsPickedPlan_ === "function" ? llsPickedPlan_() : null;
+  const special = byId("lessonSpecialOn")?.checked || llsChoiceOn();
+  if (plan && !special) {
+    if (plan.skills && plan.skills[skill]) add(plan.skills[skill]);
+    const f = String(plan.focus || "").split(" · ");
+    if (skill === "Grammar") add(f[0]);
+    else if (skill === "Vocabulary" && f[1]) add(f[1]);
+    else if (skill !== "Games & songs") add(`${plan.id} ${plan.title}`);
+  }
+  const unit = (plan && parseInt(plan.id, 10)) || Number(cls && cls.currentUnit) || 0;
+  if (course && unit && !special) {
     const lessons = course.lessons.filter((l) => parseInt(l.code, 10) === unit);
     lessons.forEach((l) => {
       if (skill === "Grammar") l.grammar.split(/,\s*(?![^()]*\))/).forEach(add);
