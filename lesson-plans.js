@@ -189,7 +189,7 @@ window.LLS_PLANS = {
   "B1_Green_Course_6B-10B/B1_R5-6_Homework_sheet.pdf": "https://drive.google.com/file/d/18g0ihq8uLFq0AoqYxY7RGEqo5dj89Pu6/view",
   "B1_Green_Course_6B-10B/B1_R5-6_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/162Nq381erYZ8H4V_oeYWaET0SUi636hs/view",
   "B1_Green_Course_6B-10B/B1_R5-6_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1QJ49fPlSPSZgzsRxTUaqvF_XLjsaL3ck/view",
-  "B1_Green_Course_6B-10B/B1_7A-1_Live_and_learn.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_7A-1_Live_and_learn.pptx?v=20261023d",
+  "B1_Green_Course_6B-10B/B1_7A-1_Live_and_learn.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_7A-1_Live_and_learn.pptx?v=202611091134",
   "B1_Green_Course_6B-10B/B1_7A-1_Homework_sheet.pdf": "https://drive.google.com/file/d/1ATh8VBeERrkrztQTZfWEn6Fg8Y_y0aO7/view",
   "B1_Green_Course_6B-10B/B1_7A-1_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1t9x9LFxIzvHE5tY7W72MjKPKTZ69-LAY/view",
   "B1_Green_Course_6B-10B/B1_7A-1_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1pzFs7MFOMnvYyQZ4Rzq_jYwk74UnIIZl/view",
@@ -1787,7 +1787,7 @@ window.LLS_PLANS = {
     "title": "Live and learn",
     "focus": "Education • school subjects",
     "pages": "SB pp.66–67",
-    "slides": 19,
+    "slides": 17,
     "file": "B1_Green_Course_6B-10B/B1_7A-1_Live_and_learn.pptx",
     "skills": {
      "Vocabulary": "Education, school subjects",
