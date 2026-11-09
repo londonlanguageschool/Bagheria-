@@ -13281,3 +13281,61 @@ document.addEventListener("DOMContentLoaded", () => {
   const slot = byId("lessonTestsSlot"), q = document.querySelector("#lessonWork .quiz-wrap"), sec = byId("lessonEndTests");
   if (slot && q && sec) { slot.appendChild(q); sec.hidden = false; const old = slot.closest("#lessonWork")?.querySelector(".lesson-extras .extras-sec:empty"); if (old) old.remove(); }
 });
+
+
+/* 9 Nov 2026 (owner): Workbook pages for students who don't have the book yet.
+   The owner's scans are in tools/book-pages, ENCRYPTED (the repo is public). This tool asks for the passphrase,
+   decrypts each page in the browser and attaches it to the matching homework with the normal private upload
+   (Apps Script Files: only students of that class can open it, inside their app). Pages already attached are skipped.
+   Which pages: tools/book-pages/pages.json "explicit" (homework ID → pages) or the Workbook page numbers written in
+   the homework (e.g. "Workbook 7A pp.46–47"), for the classes listed in "classes". */
+function llsWbPagesIn_(text) {
+  const out = new Set();
+  String(text || "").split(/\n|•|\+ /).forEach((seg) => {
+    if (!/workbook|\bWB\b/i.test(seg)) return;
+    for (const m of seg.matchAll(/\bpp?\.\s?(\d{1,3})(?:\s?[–-]\s?(\d{1,3}))?/g)) {
+      const a = +m[1], b = m[2] ? +m[2] : a;
+      for (let p = a; p <= Math.min(b, a + 4); p++) out.add(p);
+    }
+  });
+  return [...out];
+}
+async function llsAttachBookPages() {
+  const pass = prompt("Passphrase for the Workbook pages (Claude gave it to you):");
+  if (!pass) return;
+  try {
+    showToast("Loading the Workbook pages…", "info");
+    const base = "tools/book-pages/";
+    const man = await (await fetch(base + "pages.json?v=" + Date.now())).json();
+    const salt = Uint8Array.from(atob(man.salt), (c) => c.charCodeAt(0));
+    const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass.trim()), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: man.iter, hash: "SHA-256" }, km, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    const page = async (book, n) => {
+      const name = man.pages[`${book}-p${n}`];
+      if (!name) return null;
+      const buf = new Uint8Array(await (await fetch(base + "p/" + name)).arrayBuffer());
+      const raw = await crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, key, buf.slice(12));
+      return new File([raw], `Workbook p.${n}.jpg`, { type: "image/jpeg" });
+    };
+    let added = 0, skipped = 0, missing = [];
+    for (const [classId, book] of Object.entries(man.classes)) {
+      const data = await llsApiGet("getHomeworkForClass", { classId });
+      const files = data.files || [];
+      for (const hw of data.homework || []) {
+        const id = String(hw["Homework ID"] || "");
+        const pages = man.explicit[id] || llsWbPagesIn_(`${hw["Title"] || ""}\n${hw["Description"] || ""}`);
+        for (const n of pages) {
+          if (files.some((f) => f.homeworkId === id && f.name === `Workbook p.${n}.jpg`)) { skipped++; continue; }
+          const file = await page(book, n);
+          if (!file) { missing.push(`${id} p.${n}`); continue; }
+          llsHomeworkCache = { classId, homework: data.homework || [], status: data.status || [], files };
+          added += await llsUploadHwFiles_(id, [file]);
+        }
+      }
+    }
+    showToast(`📖 Workbook pages attached: ${added} new, ${skipped} already there${missing.length ? ` · not in the scans: ${missing.join(", ")}` : ""}`, "success");
+  } catch (e) {
+    showToast(/decrypt|OperationError/i.test(String(e && e.name || e)) ? "Wrong passphrase." : "Couldn't attach the pages: " + (e.message || e), "error");
+  }
+}
+document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("#settingsBookPages")) llsAttachBookPages(); });

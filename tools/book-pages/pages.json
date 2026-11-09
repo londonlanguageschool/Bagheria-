@@ -1,0 +1,54 @@
+{
+ "salt": "vAdc1z7lSTwepOLxMd6+Iw==",
+ "iter": 150000,
+ "pages": {
+  "PREP4-p4": "bfae76b11c4d854fe2b3.bin",
+  "PREP4-p5": "6735fcf2ce2d189794b7.bin",
+  "PREP4-p6": "60a08cca8eabff31413c.bin",
+  "PREP4-p7": "2e80009cff1d2a054052.bin",
+  "PREP4-p8": "a1f3987f7a19e3186131.bin",
+  "PREP4-p9": "538c9db18ea1a0e5e6b8.bin",
+  "PREP4-p10": "51b2b0e5fb12d4fc4fb3.bin",
+  "PREP4-p11": "7e6dac12e7f6589b46ff.bin",
+  "PREP4-p12": "c57791b9687836e63c22.bin",
+  "PREP4-p13": "70f8817001abeb103502.bin",
+  "PREP4-p14": "46a809583cef1b6b5aec.bin",
+  "PREP4-p15": "e798a9ebea5b7f7c729a.bin",
+  "PREP4-p16": "d6b4f8d9ee760cdfa64f.bin",
+  "PREP4-p17": "c3435d44760392d89d34.bin",
+  "PREP4-p18": "95ce233db3c2167aa9cc.bin",
+  "PREP4-p19": "75eccb53ad56862477a5.bin",
+  "EF-B2-p46": "28ff8e4db09b47d67d28.bin",
+  "EF-B2-p47": "798ade02afd89f8f3cde.bin",
+  "EF-B2-p48": "e05b1f9314d3ab090cf9.bin",
+  "EF-B2-p49": "a240d045a9903c0d9e33.bin"
+ },
+ "classes": {
+  "CLS0008": "PREP4",
+  "CLS0011": "EF-B2",
+  "CLS0016": "EF-B2"
+ },
+ "explicit": {
+  "HWK0022": [
+   4,
+   5
+  ],
+  "HWK0027": [
+   6,
+   7
+  ],
+  "HWK0032": [
+   6,
+   7
+  ],
+  "HWK0038": [
+   8,
+   9
+  ],
+  "HWK0058": [
+   8,
+   9
+  ]
+ },
+ "note": "Encrypted Workbook pages (owner's scans, 9 Nov 2026). Only the portal admin tool can decrypt them with the passphrase; it attaches them privately to the matching homework (class-only, view in the student app)."
+}

@@ -475,6 +475,11 @@
     @media (min-width: 720px) { .bottom-tabs { left: 50%; right: auto; transform: translateX(-50%); width: 560px; border-radius: 20px 20px 0 0; } }
     .done-fold { margin-top: 18px; }
     .done-fold > summary { cursor: pointer; font-family: var(--display); font-weight: 800; font-size: 16px; color: var(--navy-800, #16275c); padding: 6px 2px; }
+    .img-viewer { position: fixed; inset: 0; z-index: 9999; background: rgba(10,16,35,.94); display: flex; flex-direction: column; }
+    .img-viewer .iv-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; color: #fff; font-weight: 800; }
+    .img-viewer .iv-bar button { border: 0; background: #fff; color: #16275c; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; font-weight: 900; cursor: pointer; }
+    .img-viewer .iv-body { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; text-align: center; }
+    .img-viewer img { width: 100%; max-width: 900px; height: auto; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
     .hw-how { margin: 10px 0 6px; font-size: 14px; font-weight: 700; color: #33415c; line-height: 1.45; }
     .hw-how small { font-weight: 600; color: #5b6880; }
     .hw-nobook { margin: 8px 0 10px; padding: 12px 14px; border-radius: 16px; background: #e3f6ec; display: grid; gap: 6px; }
@@ -2097,7 +2102,32 @@
         : `✅ Sent to your teacher! · Inviato all'insegnante!`;
     }
 
+    /* 9 Nov (owner): Workbook pages and other pictures from the teacher open INSIDE the app (view only:
+       no download link, no long-press save menu). Pinch to zoom works. */
+    function showImageViewer(url, name) {
+      const ov = document.createElement("div");
+      ov.className = "img-viewer";
+      ov.innerHTML = `<div class="iv-bar"><span>${esc(name || "")}</span><button type="button" aria-label="Close · Chiudi">✕</button></div><div class="iv-body"><img alt="" draggable="false"></div>`;
+      const img = ov.querySelector("img");
+      img.src = url;
+      ov.addEventListener("contextmenu", (e) => e.preventDefault());
+      img.addEventListener("dragstart", (e) => e.preventDefault());
+      const close = () => { ov.remove(); URL.revokeObjectURL(url); document.removeEventListener("keydown", esc_); };
+      const esc_ = (e) => { if (e.key === "Escape") close(); };
+      ov.querySelector("button").addEventListener("click", close);
+      document.addEventListener("keydown", esc_);
+      document.body.appendChild(ov);
+    }
     async function openFile(fileId) {
+      const meta = (data.files || []).find((f) => f.fileId === fileId) || {};
+      if (meta.kind === "Homework" && /^image\//.test(meta.type || "")) {
+        try {
+          const res = await api({ action: "studentGetFile", key: KEY, fileId });
+          const bytes = Uint8Array.from(atob(res.data), (c) => c.charCodeAt(0));
+          showImageViewer(URL.createObjectURL(new Blob([bytes], { type: meta.type })), meta.name);
+        } catch (e) { alert(fileError(e)); }
+        return;
+      }
       const win = window.open("", "_blank");
       if (win) { try { win.document.title = "…"; win.document.body.innerHTML = '<p style="font:16px system-ui;padding:24px;color:#16275c">Opening… · Apertura…</p>'; } catch (_) {} }
       try {
