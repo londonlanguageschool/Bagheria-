@@ -1974,6 +1974,7 @@
     function hwNoBookHtml(i) {
       const desc = String(i["Description"] || "") + " " + String(i["Title"] || "");
       if (/No book needed/i.test(desc)) return "";
+      const hasPages = (data.files || []).some((f) => f.kind === "Homework" && f.homeworkId === String(i["Homework ID"]) && /^Workbook p\./.test(f.name || ""));
       const usesBook = /workbook|\bWB\b|student'?s book|\bSB\b|grammar bank|vocabulary bank|activity book|pag(e|\.)|\bp\.\s?\d/i.test(desc);
       const cls = (data.classes || []).find((c) => String(c["Class ID"]) === String(i["Class ID"]));
       const course = cls && COURSES[String(cls["Book"] || "").trim()];
@@ -1984,7 +1985,7 @@
       const prac = les ? `<div class="hw-nobook"><strong>📱 No book yet? · Non hai ancora il libro?</strong>
           <span>Do the ${esc(les.code)} practice here instead – it marks itself and your score goes to your teacher. · Fai gli esercizi ${esc(les.code)} qui: si correggono da soli e il punteggio arriva all'insegnante.</span>
           <div class="hw-nobook-btns">${["g", "v"].map((t) => `<button type="button" data-hw-practice="1" data-course="${esc(cls["Book"])}" data-lesson="${esc(les.code)}" data-type="${t}">${TYPE_NAMES[t]}</button>`).join("")}</div></div>`
-        : `<p class="hw-how"><small>📕 No book yet? Tell your teacher – they'll give you a version without the book. · Non hai il libro? Dillo all'insegnante.</small></p>`;
+        : (hasPages || /pages are below/i.test(desc) ? "" : `<p class="hw-how"><small>📕 No book yet? Tell your teacher – they'll give you a version without the book. · Non hai il libro? Dillo all'insegnante.</small></p>`);
       return how + prac;
     }
     document.addEventListener("click", (e) => {
