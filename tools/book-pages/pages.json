@@ -101,7 +101,35 @@
   "EF-A2B1-p18": "dd9f0f93af191269935a.bin",
   "EF-A2B1-p19": "5daab83e0e1946493362.bin",
   "EF-A2B1-p20": "09adaf90f78dfd2d87c2.bin",
-  "EF-A2B1-p21": "c1c2f2931ae1d8263b34.bin"
+  "EF-A2B1-p21": "c1c2f2931ae1d8263b34.bin",
+  "BLUE5-p220": "f071ae6df46e9ac16cd8.bin",
+  "BLUE5-p221": "6329cecf90f1e74292ba.bin",
+  "BLUE5-p222": "e475dd98a9b9324816ce.bin",
+  "BLUE5-p223": "6d21246bd32c360c5413.bin",
+  "BLUE5-p224": "02092358067ef521ad2c.bin",
+  "BLUE5-p225": "c23018c010fa54235d93.bin",
+  "BLUE5-p226": "6806259e514996859397.bin",
+  "BLUE5-p227": "4f00bf3eb6cb60f3042c.bin",
+  "BLUE5-p228": "374f3c62130cfe4dd221.bin",
+  "BLUE5-p229": "292285132015c1f44e51.bin",
+  "BLUE5-p230": "ab73a107e12bfc673bd2.bin",
+  "BLUE5-p231": "a458ed1c803996d32be1.bin",
+  "BLUE5-p232": "30e1887e3567b56b4240.bin",
+  "BLUE5-p233": "553de69611c3bb4761d4.bin",
+  "BLUE5-p234": "4959a9cfa16d350a3987.bin",
+  "BLUE5-p235": "905046c2b941a6d9fe23.bin",
+  "BLUE5-p236": "f502e38a3a2f4ec019b9.bin",
+  "BLUE5-p237": "bbe5c152167580048b93.bin",
+  "BLUE5-p238": "0b1afabba1ef1acf23d0.bin",
+  "BLUE5-p239": "ebb817554086878de0d7.bin",
+  "BLUE5-p240": "194bbc728e983e1485e4.bin",
+  "BLUE5-p241": "a14e18bd1850a594aabb.bin",
+  "BLUE5-p242": "7375392e67707c11420c.bin",
+  "BLUE5-p243": "9024db479edda1655d21.bin",
+  "BLUE5-p244": "7f217eb14b93778fe55c.bin",
+  "BLUE5-p245": "a5a583745c2031c9cc34.bin",
+  "BLUE5-p246": "1177d416c39357f02636.bin",
+  "BLUE5-p247": "b23ae97b72bbcb3eba35.bin"
  },
  "classes": {
   "CLS0008": "PREP4",
@@ -112,7 +140,7 @@
   "CLS0015": "EF-B1",
   "CLS0010": "EF-B1",
   "CLS0017": "EF-B1",
-  "CLS0013": "EF-A2B1"
+  "CLS0013": "BLUE5"
  },
  "explicit": {
   "HWK0022": [
@@ -136,7 +164,7 @@
    9
   ]
  },
- "note": "Encrypted Workbook pages (owner's scans, 9 Nov 2026). Only the portal admin tool can decrypt them with the passphrase; it attaches them privately to the matching homework (class-only, view in the student app). 10 Nov: EF Upper-int WB pp.46–73 and EF Elementary WB pp.16–33 added (the faint circles in the Elementary scans are the digital book's answer buttons, not answers). 10 Nov: EF Intermediate (green) WB pp.41–72 added (p.40 left out: answers already typed in); 'units' maps lesson codes to pages for homework that names only the lesson (e.g. 'Workbook 8A: 1a'). 10 Nov: EF Pre-intermediate (blue) WB pp.16–21 added, typed answers blanked out.",
+ "note": "Encrypted Workbook pages (owner's scans, 9 Nov 2026). Only the portal admin tool can decrypt them with the passphrase; it attaches them privately to the matching homework (class-only, view in the student app). 10 Nov: EF Upper-int WB pp.46–73 and EF Elementary WB pp.16–33 added (the faint circles in the Elementary scans are the digital book's answer buttons, not answers). 10 Nov: EF Intermediate (green) WB pp.41–72 added (p.40 left out: answers already typed in); 'units' maps lesson codes to pages for homework that names only the lesson (e.g. 'Workbook 8A: 1a'). 10 Nov: EF Pre-intermediate (blue) WB pp.16–21 added, typed answers blanked out. 10 Nov: A2/B1 Adults changed to the NEW blue book (WB pp.220–247 = units 1A–4B, key BLUE5); old 4th-ed blue pages (EF-A2B1) kept but no class uses them.",
  "units": {
   "EF-B1": {
    "6A": [
@@ -208,6 +236,64 @@
    "3B": [
     20,
     21
+   ]
+  },
+  "BLUE5": {
+   "1A": [
+    220,
+    221
+   ],
+   "1B": [
+    222,
+    223
+   ],
+   "1C": [
+    224,
+    225
+   ],
+   "PE1": [
+    226,
+    227
+   ],
+   "2A": [
+    228,
+    229
+   ],
+   "2B": [
+    230,
+    231
+   ],
+   "2C": [
+    232,
+    233
+   ],
+   "ES1": [
+    234,
+    235
+   ],
+   "3A": [
+    236,
+    237
+   ],
+   "3B": [
+    238,
+    239
+   ],
+   "3C": [
+    240,
+    241
+   ],
+   "PE2": [
+    242,
+    243
+   ],
+   "4A": [
+    244,
+    245
+   ],
+   "4B": [
+    246,
+    247
    ]
   }
  }
