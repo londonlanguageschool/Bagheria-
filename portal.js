@@ -9107,9 +9107,93 @@ function llsGamesFor_(plan, cls) {
 }
 function llsGamesHtml_(plan, cls) {
   const games = llsGamesFor_(plan, cls); if (!games.length) return "";
+  llsPlayPlan = plan;
   return `<div class="start-games"><span class="start-k">🎲 Try a game with this lesson:</span>${games.map((g) => `<details class="sg-card"><summary>${escapeHtml(g.n)} <small>${escapeHtml(String(g.m || ""))} min · ${escapeHtml(g.s || "")}</small></summary>
-    <div class="sg-body"><div class="muted">Fits: ${escapeHtml(g.lang || "")} · prep: ${escapeHtml(g.p || "none")}</div><ol>${(g.how || []).map((h) => `<li>${escapeHtml(h)}</li>`).join("")}</ol>${g.eg ? `<div class="sg-eg">💬 ${escapeHtml(g.eg)}</div>` : ""}</div></details>`).join("")}</div>`;
+    <div class="sg-body"><div class="muted">Fits: ${escapeHtml(g.lang || "")} · prep: ${escapeHtml(g.p || "none")}</div><ol>${(g.how || []).map((h) => `<li>${escapeHtml(h)}</li>`).join("")}</ol>${g.eg ? `<div class="sg-eg">💬 ${escapeHtml(g.eg)}</div>` : ""}
+    <button type="button" class="sg-play" data-sg-play="${escapeAttribute(g.n)}">▶ Play on the screen</button></div></details>`).join("")}</div>`;
 }
+// 10 Nov (owner): "make the games lesson ready" – ▶ Play opens the game full-screen for the class: big rules, timer,
+// team scores and TODAY'S words (plan.words in lesson-plans.js: "word" or "word|banned1,banned2,banned3").
+// No words in the plan yet → the teacher types a few (one line, commas) and they're remembered for that lesson on this computer.
+const LLS_PLAY_CARD = /taboo|back to the board|charades|mime|draw and guess|pictionary|twenty questions|flashcard|hot seat|one-word|run and touch|swat|slap|backwards/i;
+let llsPlayCtx = null, llsPlayPlan = null;
+// The timer uses the round time in the rules ("Team guesses in 1 minute", "2 minutes: …"), otherwise the game length.
+function llsPlaySecs_(g) { const m = (g.how || []).join(" ").match(/(\d+)\s*minutes?|(\d+)\s*seconds/i); return m ? (m[1] ? +m[1] * 60 : +m[2]) : (Number(g.m) || 5) * 60; }
+function llsPlayWords_(plan) {
+  const key = "llsPlayWords:" + (plan && plan.id || "") + ":" + (plan && plan.title || "");
+  let w = (plan && plan.words) || null;
+  if (!w || !w.length) { try { const v = localStorage.getItem(key); if (v) w = v.split(",").map((x) => x.trim()).filter(Boolean); } catch (_) {} }
+  return { key, words: (w || []).map((x) => { const [a, b] = String(x).split("|"); return { w: a.trim(), ban: b ? b.split(",").map((y) => y.trim()).filter(Boolean) : [] }; }) };
+}
+function llsPlayOpen_(name) {
+  const A = window.LLS_ACTIVITIES || {}; const g = [...(A.ADULTS || []), ...(A.KIDS || [])].find((x) => x.n === name); if (!g) return;
+  const plan = llsPlayPlan || null;
+  const W = llsPlayWords_(plan);
+  llsPlayCtx = { g, plan, W, i: -1, shown: false, sc: [0, 0], left: llsPlaySecs_(g), run: false, t: null };
+  let ov = document.getElementById("llsPlay");
+  if (!ov) { ov = document.createElement("div"); ov.id = "llsPlay"; document.body.appendChild(ov); }
+  llsPlayRender_();
+  ov.hidden = false;
+  try { if (ov.requestFullscreen) ov.requestFullscreen().catch(() => {}); } catch (_) {}
+}
+function llsPlayClose_() {
+  const c = llsPlayCtx; if (c && c.t) clearInterval(c.t);
+  const ov = document.getElementById("llsPlay"); if (ov) ov.hidden = true;
+  try { if (document.fullscreenElement) document.exitFullscreen(); } catch (_) {}
+  llsPlayCtx = null;
+}
+function llsPlayRender_() {
+  const c = llsPlayCtx, ov = document.getElementById("llsPlay"); if (!c || !ov) return;
+  const { g, plan, W } = c;
+  const mm = Math.floor(c.left / 60), ss = String(c.left % 60).padStart(2, "0");
+  const isCard = LLS_PLAY_CARD.test(g.n), isAZ = /a to z/i.test(g.n);
+  const topic = plan ? `${plan.id ? plan.id + " · " : ""}${plan.title || ""}` : "";
+  let mid = "";
+  if (isAZ) mid = `<div class="lp-topic">Topic: <b>${escapeHtml(plan && plan.title || "today's lesson")}</b></div><div class="lp-az">${"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((l) => `<span>${l}</span>`).join("")}</div>`;
+  else if (isCard) {
+    if (!W.words.length) mid = `<div class="lp-need">Type today's words (commas). For Taboo add banned words after |<br><input id="lpWords" placeholder="embarrassed|red,shy,face, astonished, scared stiff"><button type="button" data-lp="words">Save</button></div>`;
+    else if (c.i < 0) mid = `<div class="lp-card lp-start">${W.words.length} cards ready<br><small>Press ▶ Next card</small></div>`;
+    else { const w = W.words[c.i]; mid = c.shown ? `<div class="lp-card">${escapeHtml(w.w)}${w.ban.length ? `<div class="lp-ban">🚫 ${w.ban.map(escapeHtml).join(" · ")}</div>` : ""}<small>${c.i + 1} / ${W.words.length}</small></div>` : `<div class="lp-card lp-hidden">Card ${c.i + 1}<br><small>Tap 👁 Show when ready</small></div>`; }
+  } else if (W.words.length) mid = `<div class="lp-words">${W.words.map((w) => `<span>${escapeHtml(w.w)}</span>`).join("")}</div>`;
+  ov.innerHTML = `<div class="lp-wrap">
+    <div class="lp-top"><div><div class="lp-name">${escapeHtml(g.n)}</div><div class="lp-sub">${escapeHtml(topic)}</div></div><button type="button" class="lp-x" data-lp="close" aria-label="Close">✕</button></div>
+    <ol class="lp-how">${(g.how || []).map((h) => `<li>${escapeHtml(h)}</li>`).join("")}</ol>
+    ${g.eg && !isCard ? `<div class="lp-eg">💬 ${escapeHtml(g.eg)}</div>` : ""}
+    <div class="lp-mid">${mid}</div>
+    <div class="lp-bar">
+      <div class="lp-timer${c.left <= 10 ? " lp-low" : ""}">${mm}:${ss}</div>
+      <button type="button" data-lp="time">${c.run ? "⏸ Pause" : "⏱ Start"}</button><button type="button" data-lp="reset">↺</button>
+      ${isCard && W.words.length ? `<button type="button" data-lp="next">▶ Next card</button><button type="button" data-lp="show">👁 Show</button>` : ""}
+      <div class="lp-teams">${["A", "B"].map((t, k) => `<div class="lp-team lp-t${k}"><b>Team ${t}</b><span>${c.sc[k]}</span><button type="button" data-lp="sc:${k}:1">+1</button><button type="button" data-lp="sc:${k}:-1">−1</button></div>`).join("")}</div>
+    </div></div>`;
+}
+function llsPlayTick_() {
+  const c = llsPlayCtx; if (!c) return;
+  c.left = Math.max(0, c.left - 1);
+  if (!c.left) { c.run = false; clearInterval(c.t); c.t = null; llsPlayBeep_(); }
+  llsPlayRender_();
+}
+function llsPlayBeep_() { try { const a = new (window.AudioContext || window.webkitAudioContext)(), o = a.createOscillator(); o.frequency.value = 880; o.connect(a.destination); o.start(); o.stop(a.currentTime + 0.6); } catch (_) {} }
+document.addEventListener("click", (e) => {
+  const pb = e.target.closest && e.target.closest("[data-sg-play]");
+  if (pb) { e.preventDefault(); llsPlayOpen_(pb.getAttribute("data-sg-play")); return; }
+  const b = e.target.closest && e.target.closest("#llsPlay [data-lp]"); if (!b || !llsPlayCtx) return;
+  const c = llsPlayCtx, a = b.getAttribute("data-lp");
+  if (a === "close") return llsPlayClose_();
+  if (a === "time") { c.run = !c.run; if (c.run) { if (!c.left) c.left = llsPlaySecs_(c.g); c.t = setInterval(llsPlayTick_, 1000); } else { clearInterval(c.t); c.t = null; } }
+  if (a === "reset") { c.run = false; clearInterval(c.t); c.t = null; c.left = llsPlaySecs_(c.g); }
+  if (a === "next") { c.i = (c.i + 1) % c.W.words.length; c.shown = false; }
+  if (a === "show") { if (c.i < 0) c.i = 0; c.shown = !c.shown; }
+  if (a.startsWith("sc:")) { const [, k, d] = a.split(":"); c.sc[+k] = Math.max(0, c.sc[+k] + Number(d)); }
+  if (a === "words") { const v = (document.getElementById("lpWords") || {}).value || ""; if (v.trim()) { try { localStorage.setItem(c.W.key, v); } catch (_) {} c.W = llsPlayWords_(c.plan); c.i = -1; } }
+  llsPlayRender_();
+});
+document.addEventListener("keydown", (e) => {
+  if (!llsPlayCtx) return;
+  if (e.key === "Escape") llsPlayClose_();
+  else if (e.key === "ArrowRight" && llsPlayCtx.W.words.length) { llsPlayCtx.i = (llsPlayCtx.i + 1) % llsPlayCtx.W.words.length; llsPlayCtx.shown = false; llsPlayRender_(); }
+  else if (e.key === " " && document.activeElement && document.activeElement.id !== "lpWords") { e.preventDefault(); llsPlayCtx.shown = !llsPlayCtx.shown; if (llsPlayCtx.i < 0) llsPlayCtx.i = 0; llsPlayRender_(); }
+});
 function llsHwmRec_(sid) {
   const m = llsHwm;
   let rec = (llsLesson.status || []).find((r) => String(r["Homework ID"] || "") === m.hwId && String(r["Student ID"] || "").trim() === sid);

@@ -1038,3 +1038,37 @@ body.hwm-open { overflow: hidden; }
 .reg-row.reg-off .reg-name { color: #94a3b8; }
 .reg-row.needs .reg-stars { outline: 2px solid #dc2626; outline-offset: 2px; border-radius: 12px; }
 .reg-legend { margin: 4px 0 6px; font-size: 13px; color: #56617a; font-weight: 600; }
+
+/* 10 Nov: ▶ Play games full-screen */
+.sg-play{margin-top:8px;background:#16275c;color:#fff;border:0;border-radius:999px;padding:8px 14px;font-weight:800;cursor:pointer}
+#llsPlay{position:fixed;inset:0;z-index:9999;background:#1f0d63;color:#fff;overflow:auto;font-family:Fredoka,Poppins,system-ui,sans-serif}
+#llsPlay[hidden]{display:none}
+.lp-wrap{max-width:1200px;margin:0 auto;padding:24px 28px;display:flex;flex-direction:column;gap:14px;min-height:100vh;box-sizing:border-box}
+.lp-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.lp-name{font-size:clamp(30px,5vw,56px);font-weight:800;color:#ffd43b}
+.lp-sub{font-size:18px;color:#e5ddff}
+.lp-x{background:#fff;color:#1f0d63;border:0;border-radius:50%;width:48px;height:48px;font-size:22px;font-weight:800;cursor:pointer}
+.lp-how{font-size:clamp(18px,2.4vw,28px);line-height:1.35;margin:0;padding-left:1.3em}
+.lp-eg{font-size:20px;color:#e5ddff;font-style:italic}
+.lp-mid{flex:1;display:flex;align-items:center;justify-content:center}
+.lp-card{background:#ffd43b;color:#2a1270;border-radius:28px;box-shadow:0 10px 0 #c79b00;padding:36px 48px;font-size:clamp(40px,7vw,96px);font-weight:800;text-align:center;min-width:50%}
+.lp-card small{display:block;font-size:18px;font-weight:600;margin-top:10px}
+.lp-hidden,.lp-start{background:#fff;font-size:40px}
+.lp-ban{font-size:clamp(20px,2.6vw,32px);color:#c2185b;margin-top:10px}
+.lp-az{display:grid;grid-template-columns:repeat(13,1fr);gap:8px;width:100%}
+.lp-az span{background:#ffd43b;color:#2a1270;border-radius:12px;text-align:center;font-size:clamp(22px,3vw,40px);font-weight:800;padding:8px 0}
+.lp-topic{font-size:26px;margin-bottom:10px;width:100%}
+.lp-mid:has(.lp-az){flex-direction:column}
+.lp-words{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.lp-words span{background:#fff;color:#2a1270;border-radius:999px;padding:10px 18px;font-size:24px;font-weight:700}
+.lp-need{background:#fff;color:#2a1270;border-radius:18px;padding:20px;font-size:18px;text-align:center}
+.lp-need input{width:min(640px,80vw);font-size:18px;padding:10px;margin:10px 0;border:2px solid #c9bdf2;border-radius:10px;display:block}
+.lp-need button,.lp-bar button{background:#ffd43b;color:#2a1270;border:0;border-radius:999px;padding:10px 16px;font-size:18px;font-weight:800;cursor:pointer}
+.lp-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.lp-timer{font-size:48px;font-weight:800;background:#ff6b9e;border-radius:16px;padding:2px 18px;min-width:130px;text-align:center}
+.lp-low{background:#e11d48;animation:lpPulse 1s infinite}
+@keyframes lpPulse{50%{opacity:.6}}
+.lp-teams{margin-left:auto;display:flex;gap:10px}
+.lp-team{background:#fff;color:#2a1270;border-radius:14px;padding:6px 10px;display:flex;align-items:center;gap:8px}
+.lp-team span{font-size:34px;font-weight:800;min-width:40px;text-align:center}
+.lp-team button{padding:6px 10px;font-size:16px}

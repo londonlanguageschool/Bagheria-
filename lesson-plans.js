@@ -741,6 +741,7 @@ window.LLS_PLANS = {
     "pages": "SB pp.26–27 · WB pp.238–239",
     "slides": 10,
     "file": "A2_Blue_Part1_Units1-6/A2_3B_Can_we_meet.pptx",
+    "words": ["arrive at|get,station,airport", "wait for|bus,time,late", "depend on|maybe,weather,it", "agree with|yes,same,opinion", "belong to|mine,yours,own", "worried about|nervous,problem,exam", "calendar|date,day,phone", "breakfast meeting|morning,coffee,work", "get married|wedding,husband,wife", "conference|talk,people,work"],
     "skills": {
      "Grammar": "Present continuous (future arrangements)",
      "Listening": "Jake and Sarah",
@@ -2379,6 +2380,7 @@ window.LLS_PLANS = {
     "pages": "PB pp.10–11 · AB pp.10–11",
     "slides": 18,
     "file": "Movers_PowerUp3/Movers_U1-L3_Daily_routines.pptx",
+    "words": ["wake up", "get up", "have a shower", "towel", "get dressed", "toothbrush", "clean your teeth", "have breakfast", "have lunch", "go to bed"],
     "hw": "Movers_PowerUp3/Movers_U1-L3_Homework.pdf",
     "key": "Movers_PowerUp3/Movers_U1-L3_Answer_key.pdf",
     "skills": {
@@ -2658,7 +2660,7 @@ window.LLS_PLANS = {
    },
    {"id": "7A-1", "unit": 7, "title": "Let's not argue", "focus": "past modals: must have, might have, can't have, should have · weak form of have · classic student house arguments", "pages": "SB pp.66–67", "file": "B2_Violet_Course/B2_7A-1_Lets_not_argue.pptx", "slides": 21, "homework": "Workbook 7A pp.46–47: 1a–1d, 2a · Grammar Bank 7A b"},
    {"id": "7A-2", "unit": 7, "title": "Let's not argue", "focus": "how to argue better (psychologist) · would rather · verbs often confused · how to win an online argument", "pages": "SB pp.68–69", "file": "B2_Violet_Course/B2_7A-2_Lets_not_argue_2.pptx", "slides": 20, "homework": "Workbook 7A pp.47–48: 3, 4a–4b · write an online comment"},
-   {"id": "7B-1", "unit": 7, "title": "It's all an act", "focus": "verbs of the senses: look, look like, look as if · film stills · how to improve your acting skills", "pages": "SB pp.70–71", "file": "B2_Violet_Course/B2_7B-1_Its_all_an_act.pptx", "slides": 15, "homework": "Workbook 7B p.49: 1a, 1b, 1c · Grammar Bank 7B p.145 a, b"},
+   {"id": "7B-1", "unit": 7, "title": "It's all an act", "focus": "verbs of the senses: look, look like, look as if · film stills · how to improve your acting skills", "pages": "SB pp.70–71", "file": "B2_Violet_Course/B2_7B-1_Its_all_an_act.pptx", "slides": 15, "words": ["embarrassed|red,shy,face", "astonished|surprised,very,shock", "disappointed|sad,expect,happy", "miserable|sad,unhappy,cry", "scared stiff|afraid,frightened,horror", "shocked|surprise,bad,news", "body language|face,hands,move", "actor|film,play,act", "mime|hands,speak,silent", "historical drama|past,history,film", "horror film|scary,afraid,monster", "comedy|funny,laugh,joke"], "homework": "Workbook 7B p.49: 1a, 1b, 1c · Grammar Bank 7B p.145 a, b"},
    {"id": "7B-2", "unit": 7, "title": "It's all an act", "focus": "the body · silent consonants · the best way to spot a liar · describing a photo", "pages": "SB pp.72–73"},
    {"id": "CE6-7", "unit": 7, "title": "Colloquial English 6&7: performances", "focus": "interview with Simon Callow · modifiers · the conversation: live or recorded?", "pages": "SB pp.74–75"},
    {"id": "8A-1", "unit": 8, "title": "Cutting crime", "focus": "street crime advice (Stay safe) · crime and punishment · Beat the burglar · the letter u", "pages": "SB pp.76–77"},
