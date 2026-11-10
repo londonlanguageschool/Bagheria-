@@ -63,14 +63,49 @@
   "EF-A1A2-p30": "8d9fe51eb8f58cd9ac55.bin",
   "EF-A1A2-p31": "ff9169388ff25e3660f4.bin",
   "EF-A1A2-p32": "396a101e393714a44a4b.bin",
-  "EF-A1A2-p33": "b0c5b1e8b5a020386f7c.bin"
+  "EF-A1A2-p33": "b0c5b1e8b5a020386f7c.bin",
+  "EF-B1-p41": "27001e05364dd8d6a691.bin",
+  "EF-B1-p42": "b383f67f9f44bb00a8af.bin",
+  "EF-B1-p43": "c59124bd9ba099dba3bc.bin",
+  "EF-B1-p44": "971c1c1020ca0d97182d.bin",
+  "EF-B1-p45": "91d9772dfb203483d08e.bin",
+  "EF-B1-p46": "9a4b1a0c7ac29b476afd.bin",
+  "EF-B1-p47": "6ea1ea6c6d2da7188d63.bin",
+  "EF-B1-p48": "af01127b24f5e2d42d72.bin",
+  "EF-B1-p49": "985262637627703f5ddd.bin",
+  "EF-B1-p50": "465879b75a504f9c85d1.bin",
+  "EF-B1-p51": "8befbf464565753f1c10.bin",
+  "EF-B1-p52": "3e73d2c027063c8cae1b.bin",
+  "EF-B1-p53": "bd642d2d42b3f6f7c778.bin",
+  "EF-B1-p54": "9b108e2e6bef01e383d4.bin",
+  "EF-B1-p55": "2eab39d2bf090e956e69.bin",
+  "EF-B1-p56": "ce5b1504b3e4b1915ade.bin",
+  "EF-B1-p57": "2af6cd8cbe160e001be0.bin",
+  "EF-B1-p58": "b3a584e2889f7aaa4af7.bin",
+  "EF-B1-p59": "cf30575251f00d8859a9.bin",
+  "EF-B1-p60": "100b1b9a966816e378b7.bin",
+  "EF-B1-p61": "2eba2a33d28b0cdf50e7.bin",
+  "EF-B1-p62": "71986f70a3a8e39063d5.bin",
+  "EF-B1-p63": "f50d331a513578797a68.bin",
+  "EF-B1-p64": "0856ae2662f3f7a5585d.bin",
+  "EF-B1-p65": "fc76372e778619b262b8.bin",
+  "EF-B1-p66": "1c1972439a5503b1db7d.bin",
+  "EF-B1-p67": "54d46dd26a1a681aca03.bin",
+  "EF-B1-p68": "4cd8303d1f9c57fcad6a.bin",
+  "EF-B1-p69": "f0bd1db11150533b3b04.bin",
+  "EF-B1-p70": "54fc3684a0ff588cff31.bin",
+  "EF-B1-p71": "ece39f044fb6ab35e373.bin",
+  "EF-B1-p72": "f7c3a2dd9aa751431c5e.bin"
  },
  "classes": {
   "CLS0008": "PREP4",
   "CLS0011": "EF-B2",
   "CLS0016": "EF-B2",
   "CLS0014": "EF-A1A2",
-  "CLS0018": "EF-A1A2"
+  "CLS0018": "EF-A1A2",
+  "CLS0015": "EF-B1",
+  "CLS0010": "EF-B1",
+  "CLS0017": "EF-B1"
  },
  "explicit": {
   "HWK0022": [
@@ -94,5 +129,65 @@
    9
   ]
  },
- "note": "Encrypted Workbook pages (owner's scans, 9 Nov 2026). Only the portal admin tool can decrypt them with the passphrase; it attaches them privately to the matching homework (class-only, view in the student app). 10 Nov: EF Upper-int WB pp.46–73 and EF Elementary WB pp.16–33 added (the faint circles in the Elementary scans are the digital book's answer buttons, not answers)."
+ "note": "Encrypted Workbook pages (owner's scans, 9 Nov 2026). Only the portal admin tool can decrypt them with the passphrase; it attaches them privately to the matching homework (class-only, view in the student app). 10 Nov: EF Upper-int WB pp.46–73 and EF Elementary WB pp.16–33 added (the faint circles in the Elementary scans are the digital book's answer buttons, not answers). 10 Nov: EF Intermediate (green) WB pp.41–72 added (p.40 left out: answers already typed in); 'units' maps lesson codes to pages for homework that names only the lesson (e.g. 'Workbook 8A: 1a').",
+ "units": {
+  "EF-B1": {
+   "6A": [
+    41,
+    42
+   ],
+   "6B": [
+    43,
+    44,
+    45
+   ],
+   "7A": [
+    46,
+    47,
+    48
+   ],
+   "7B": [
+    49,
+    50,
+    51
+   ],
+   "PE4": [
+    52,
+    53
+   ],
+   "8A": [
+    54,
+    55,
+    56
+   ],
+   "8B": [
+    57,
+    58,
+    59
+   ],
+   "9A": [
+    60,
+    61,
+    62
+   ],
+   "9B": [
+    63,
+    64,
+    65
+   ],
+   "PE5": [
+    66,
+    67
+   ],
+   "10A": [
+    68,
+    69,
+    70
+   ],
+   "10B": [
+    71,
+    72
+   ]
+  }
+ }
 }

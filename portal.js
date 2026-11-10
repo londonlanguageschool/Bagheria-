@@ -13340,7 +13340,13 @@ async function llsAttachBookPages(opts) {
       const files = data.files || [];
       for (const hw of data.homework || []) {
         const id = String(hw["Homework ID"] || "");
-        const pages = man.explicit[id] || llsWbPagesIn_(`${hw["Title"] || ""}\n${hw["Description"] || ""}`);
+        const txt = `${hw["Title"] || ""}\n${hw["Description"] || ""}`;
+        let pages = man.explicit[id] || llsWbPagesIn_(txt);
+        // 10 Nov: homework that names only the lesson ("Workbook 8A: 1a–b") → that lesson's Workbook pages.
+        if (!pages.length && man.units && man.units[book]) {
+          const u = txt.match(/(?:workbook|\bWB\b)\s*(?:unit\s*|lesson\s*)?(\d{1,2}[A-C])\b/i);
+          if (u) pages = man.units[book][u[1].toUpperCase()] || [];
+        }
         for (const n of pages) {
           if (files.some((f) => f.homeworkId === id && f.name === `Workbook p.${n}.jpg`)) { skipped++; continue; }
           const file = await page(book, n);
