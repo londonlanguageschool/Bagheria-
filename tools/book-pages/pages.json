@@ -21,12 +21,56 @@
   "EF-B2-p46": "28ff8e4db09b47d67d28.bin",
   "EF-B2-p47": "798ade02afd89f8f3cde.bin",
   "EF-B2-p48": "e05b1f9314d3ab090cf9.bin",
-  "EF-B2-p49": "a240d045a9903c0d9e33.bin"
+  "EF-B2-p49": "a240d045a9903c0d9e33.bin",
+  "EF-B2-p50": "ad2c4af71b28831cfa0c.bin",
+  "EF-B2-p51": "0644003cd231e317daa5.bin",
+  "EF-B2-p52": "ae277c3eca7795cc2e00.bin",
+  "EF-B2-p53": "060b0bf8a41aab52e245.bin",
+  "EF-B2-p54": "70073674e2d55fd59e6b.bin",
+  "EF-B2-p55": "7fa7bf36b735c9e8fb25.bin",
+  "EF-B2-p56": "e28606c19c94d4787fb4.bin",
+  "EF-B2-p57": "b4d0a0d61af93123ae35.bin",
+  "EF-B2-p58": "8d0fd3e778f4882d5e21.bin",
+  "EF-B2-p59": "d510ef3923bd5cb51515.bin",
+  "EF-B2-p60": "00502283664710f84a52.bin",
+  "EF-B2-p61": "a70a620aae24a738c7a4.bin",
+  "EF-B2-p62": "1980523b9bd0db926c14.bin",
+  "EF-B2-p63": "d569ca5b8b977b845c6e.bin",
+  "EF-B2-p64": "269dddb101690f1f5531.bin",
+  "EF-B2-p65": "ec56e37e9d85bf8d1b74.bin",
+  "EF-B2-p66": "bd54448e44e4cc13cca8.bin",
+  "EF-B2-p67": "87590842039ba3a0f4eb.bin",
+  "EF-B2-p68": "f7b4834df02f4c3e1881.bin",
+  "EF-B2-p69": "76f1f31efc57863e6e3d.bin",
+  "EF-B2-p70": "55ede18e9300834436b0.bin",
+  "EF-B2-p71": "d34018b0e9c456233c86.bin",
+  "EF-B2-p72": "1002e8774ab42bf6a5cb.bin",
+  "EF-B2-p73": "4b9a67f8d8209e48003c.bin",
+  "EF-A1A2-p16": "430fb53bbf471b79339a.bin",
+  "EF-A1A2-p17": "f62bd9a5bc7beaa0ad1a.bin",
+  "EF-A1A2-p18": "6f52509ad95e5da4b869.bin",
+  "EF-A1A2-p19": "9676786681f143126e72.bin",
+  "EF-A1A2-p20": "e42e875649c7875514b6.bin",
+  "EF-A1A2-p21": "5547e3ef72385fba4778.bin",
+  "EF-A1A2-p22": "667dbf0d98c968d79987.bin",
+  "EF-A1A2-p23": "21c6a6f3f29960f2326d.bin",
+  "EF-A1A2-p24": "1e5ba7a9e59d3dfcb4c6.bin",
+  "EF-A1A2-p25": "27e775b201796ec7e6d5.bin",
+  "EF-A1A2-p26": "f25164d658f9a32eeff8.bin",
+  "EF-A1A2-p27": "d05ec12df80315f4bd76.bin",
+  "EF-A1A2-p28": "6546a21c767bfd09a3cd.bin",
+  "EF-A1A2-p29": "f0ea58939b9fb6627360.bin",
+  "EF-A1A2-p30": "8d9fe51eb8f58cd9ac55.bin",
+  "EF-A1A2-p31": "ff9169388ff25e3660f4.bin",
+  "EF-A1A2-p32": "396a101e393714a44a4b.bin",
+  "EF-A1A2-p33": "b0c5b1e8b5a020386f7c.bin"
  },
  "classes": {
   "CLS0008": "PREP4",
   "CLS0011": "EF-B2",
-  "CLS0016": "EF-B2"
+  "CLS0016": "EF-B2",
+  "CLS0014": "EF-A1A2",
+  "CLS0018": "EF-A1A2"
  },
  "explicit": {
   "HWK0022": [
@@ -50,5 +94,5 @@
    9
   ]
  },
- "note": "Encrypted Workbook pages (owner's scans, 9 Nov 2026). Only the portal admin tool can decrypt them with the passphrase; it attaches them privately to the matching homework (class-only, view in the student app)."
+ "note": "Encrypted Workbook pages (owner's scans, 9 Nov 2026). Only the portal admin tool can decrypt them with the passphrase; it attaches them privately to the matching homework (class-only, view in the student app). 10 Nov: EF Upper-int WB pp.46–73 and EF Elementary WB pp.16–33 added (the faint circles in the Elementary scans are the digital book's answer buttons, not answers)."
 }
