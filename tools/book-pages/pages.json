@@ -129,7 +129,9 @@
   "BLUE5-p244": "7f217eb14b93778fe55c.bin",
   "BLUE5-p245": "a5a583745c2031c9cc34.bin",
   "BLUE5-p246": "1177d416c39357f02636.bin",
-  "BLUE5-p247": "b23ae97b72bbcb3eba35.bin"
+  "BLUE5-p247": "b23ae97b72bbcb3eba35.bin",
+  "BLUE5-p248": "b697b1310fc205678fa2.bin",
+  "BLUE5-p249": "554ec3729002510b657b.bin"
  },
  "classes": {
   "CLS0008": "PREP4",
@@ -294,6 +296,10 @@
    "4B": [
     246,
     247
+   ],
+   "4C": [
+    248,
+    249
    ]
   }
  }
