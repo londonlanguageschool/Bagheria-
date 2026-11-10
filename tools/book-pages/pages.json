@@ -95,7 +95,13 @@
   "EF-B1-p69": "f0bd1db11150533b3b04.bin",
   "EF-B1-p70": "54fc3684a0ff588cff31.bin",
   "EF-B1-p71": "ece39f044fb6ab35e373.bin",
-  "EF-B1-p72": "f7c3a2dd9aa751431c5e.bin"
+  "EF-B1-p72": "f7c3a2dd9aa751431c5e.bin",
+  "EF-A2B1-p16": "143b3d9df40af564743a.bin",
+  "EF-A2B1-p17": "e2e0837e2abca4bb0d45.bin",
+  "EF-A2B1-p18": "dd9f0f93af191269935a.bin",
+  "EF-A2B1-p19": "5daab83e0e1946493362.bin",
+  "EF-A2B1-p20": "09adaf90f78dfd2d87c2.bin",
+  "EF-A2B1-p21": "c1c2f2931ae1d8263b34.bin"
  },
  "classes": {
   "CLS0008": "PREP4",
@@ -105,7 +111,8 @@
   "CLS0018": "EF-A1A2",
   "CLS0015": "EF-B1",
   "CLS0010": "EF-B1",
-  "CLS0017": "EF-B1"
+  "CLS0017": "EF-B1",
+  "CLS0013": "EF-A2B1"
  },
  "explicit": {
   "HWK0022": [
@@ -129,7 +136,7 @@
    9
   ]
  },
- "note": "Encrypted Workbook pages (owner's scans, 9 Nov 2026). Only the portal admin tool can decrypt them with the passphrase; it attaches them privately to the matching homework (class-only, view in the student app). 10 Nov: EF Upper-int WB pp.46–73 and EF Elementary WB pp.16–33 added (the faint circles in the Elementary scans are the digital book's answer buttons, not answers). 10 Nov: EF Intermediate (green) WB pp.41–72 added (p.40 left out: answers already typed in); 'units' maps lesson codes to pages for homework that names only the lesson (e.g. 'Workbook 8A: 1a').",
+ "note": "Encrypted Workbook pages (owner's scans, 9 Nov 2026). Only the portal admin tool can decrypt them with the passphrase; it attaches them privately to the matching homework (class-only, view in the student app). 10 Nov: EF Upper-int WB pp.46–73 and EF Elementary WB pp.16–33 added (the faint circles in the Elementary scans are the digital book's answer buttons, not answers). 10 Nov: EF Intermediate (green) WB pp.41–72 added (p.40 left out: answers already typed in); 'units' maps lesson codes to pages for homework that names only the lesson (e.g. 'Workbook 8A: 1a'). 10 Nov: EF Pre-intermediate (blue) WB pp.16–21 added, typed answers blanked out.",
  "units": {
   "EF-B1": {
    "6A": [
@@ -187,6 +194,20 @@
    "10B": [
     71,
     72
+   ]
+  },
+  "EF-A2B1": {
+   "2C": [
+    16,
+    17
+   ],
+   "3A": [
+    18,
+    19
+   ],
+   "3B": [
+    20,
+    21
    ]
   }
  }
