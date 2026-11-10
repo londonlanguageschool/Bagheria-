@@ -6541,6 +6541,7 @@ async function llsHomeworkAssign() {
     try {
       const made = await llsApiPost({ action: "createHomework", classId, teacherId: session.teacherId, title, description, assignedDate, dueDate });
       const sent = await llsUploadHwFiles_(made.homeworkId, picked);
+      if (/workbook|\bWB\b/i.test(`${title} ${description}`)) llsAutoBookPages_(classId, 3000);
       setValue("homeworkTitle", "");
       setValue("homeworkDescription", "");
       setValue("homeworkDueDate", "");
@@ -10190,6 +10191,7 @@ function llsQueueSave(label, bodies) {
   });
   llsSaveQStore(list);
   llsSaveQRun();
+  try { (Array.isArray(bodies) ? bodies : [bodies]).forEach(llsQueueHomeworkHook_); } catch (_) {}
 }
 
 async function llsSaveQRun(manual) {
@@ -13293,18 +13295,32 @@ function llsWbPagesIn_(text) {
   const out = new Set();
   String(text || "").split(/\n|•|\+ /).forEach((seg) => {
     if (!/workbook|\bWB\b/i.test(seg)) return;
-    for (const m of seg.matchAll(/\bpp?\.\s?(\d{1,3})(?:\s?[–-]\s?(\d{1,3}))?/g)) {
+    for (const m of seg.matchAll(/(?:\bpp?\.|\bpages?)\s?(\d{1,3})(?:\s?(?:[–-]|and|&)\s?(\d{1,3}))?/gi)) {
       const a = +m[1], b = m[2] ? +m[2] : a;
       for (let p = a; p <= Math.min(b, a + 4); p++) out.add(p);
     }
   });
   return [...out];
 }
-async function llsAttachBookPages() {
-  const pass = prompt("Passphrase for the Workbook pages (Claude gave it to you):");
+// 10 Nov (owner): automatic. After the passphrase has worked once on this computer it is remembered here,
+// and new homework that names Workbook pages gets them attached by itself (after Set homework, and quietly
+// each time the portal opens). Already-attached pages are skipped, so running again is harmless.
+const LLS_BOOK_PASS_KEY = "llsBookPagesPass";
+let llsBookPagesBusy = false;
+function llsBookPass_() { try { return localStorage.getItem(LLS_BOOK_PASS_KEY) || ""; } catch (_) { return ""; } }
+function llsAutoBookPages_(classId, delayMs) {
+  if (!llsBookPass_()) return;
+  setTimeout(() => llsAttachBookPages({ quiet: true, classId }), delayMs || 0);
+}
+async function llsAttachBookPages(opts) {
+  opts = opts || {};
+  if (llsBookPagesBusy) { if (opts.quiet) setTimeout(() => llsAttachBookPages(opts), 30000); return; }
+  const pass = opts.quiet ? llsBookPass_() : prompt("Passphrase for the Workbook pages (Claude gave it to you):", llsBookPass_());
   if (!pass) return;
+  llsBookPagesBusy = true;
+  const keepCache = llsHomeworkCache;
   try {
-    showToast("Loading the Workbook pages…", "info");
+    if (!opts.quiet) showToast("Loading the Workbook pages…", "info");
     const base = "tools/book-pages/";
     const man = await (await fetch(base + "pages.json?v=" + Date.now())).json();
     const salt = Uint8Array.from(atob(man.salt), (c) => c.charCodeAt(0));
@@ -13319,6 +13335,7 @@ async function llsAttachBookPages() {
     };
     let added = 0, skipped = 0, missing = [];
     for (const [classId, book] of Object.entries(man.classes)) {
+      if (opts.classId && opts.classId !== classId) continue;
       const data = await llsApiGet("getHomeworkForClass", { classId });
       const files = data.files || [];
       for (const hw of data.homework || []) {
@@ -13333,9 +13350,21 @@ async function llsAttachBookPages() {
         }
       }
     }
-    showToast(`📖 Workbook pages attached: ${added} new, ${skipped} already there${missing.length ? ` · not in the scans: ${missing.join(", ")}` : ""}`, "success");
+    try { localStorage.setItem(LLS_BOOK_PASS_KEY, pass.trim()); } catch (_) {}
+    if (!opts.quiet || added || missing.length) showToast(`📖 Workbook pages attached: ${added} new, ${skipped} already there${missing.length ? ` · not in the scans: ${missing.join(", ")}` : ""}${opts.quiet ? "" : " · From now on new homework gets its pages automatically on this computer."}`, missing.length ? "error" : "success");
   } catch (e) {
-    showToast(/decrypt|OperationError/i.test(String(e && e.name || e)) ? "Wrong passphrase." : "Couldn't attach the pages: " + (e.message || e), "error");
+    const wrong = /decrypt|OperationError/i.test(String(e && e.name || e));
+    if (wrong) { try { localStorage.removeItem(LLS_BOOK_PASS_KEY); } catch (_) {} }
+    if (!opts.quiet || wrong) showToast(wrong ? "Wrong passphrase for the Workbook pages." : "Couldn't attach the pages: " + (e.message || e), "error");
+  } finally {
+    llsHomeworkCache = keepCache;
+    llsBookPagesBusy = false;
   }
+}
+// Quietly on opening (after the data has loaded), so homework set from any page or by a teacher is covered.
+document.addEventListener("DOMContentLoaded", () => setTimeout(() => llsAutoBookPages_(), 15000));
+// After a homework is saved (it is queued, so wait for Google to give it its number).
+function llsQueueHomeworkHook_(body) {
+  if (body && body.action === "createHomework" && /workbook|\bWB\b/i.test(`${body.title || ""} ${body.description || ""}`)) llsAutoBookPages_(body.classId, 25000);
 }
 document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("#settingsBookPages")) llsAttachBookPages(); });
