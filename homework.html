@@ -1741,7 +1741,7 @@
       slidePlans = false;
       const again = () => { if (tab === "homework" && slidePlans && slideIndex) { try { renderHomework(); } catch (_) {} } };
       const sc = document.createElement("script");
-      sc.src = "lesson-plans.js?v=20261109a";
+      sc.src = "lesson-plans.js?v=20261110a";
       sc.onload = () => { slidePlans = window.LLS_PLANS || {}; again(); };
       sc.onerror = () => { slidePlans = {}; };
       document.head.appendChild(sc);
