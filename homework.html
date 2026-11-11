@@ -480,6 +480,16 @@
     .img-viewer .iv-bar button { border: 0; background: #fff; color: #16275c; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; font-weight: 900; cursor: pointer; }
     .img-viewer .iv-body { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; text-align: center; }
     .img-viewer img { width: 100%; max-width: 900px; height: auto; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+    /* 11 Nov: lesson quiz card */
+    .lesson-quiz { background: linear-gradient(135deg,#2a1270,#5b2bd6); color: #fff; border-radius: 20px; padding: 14px 16px; margin: 14px 0; box-shadow: 0 6px 0 #1c0b52; }
+    .lq-top { display: flex; align-items: center; gap: 12px; }
+    .lq-top strong { display: block; font-size: 18px; }
+    .lq-top small { color: #e5ddff; font-weight: 600; }
+    .lq-ico { font-size: 34px; }
+    .lq-n { margin-left: auto; background: #ffd43b; color: #2a1270; border-radius: 999px; padding: 4px 10px; font-weight: 800; }
+    .lq-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .lq-btns button { flex: 1; min-width: 100px; border: 0; border-radius: 14px; padding: 12px 10px; font: inherit; font-weight: 800; font-size: 16px; background: #ffd43b; color: #2a1270; cursor: pointer; box-shadow: 0 4px 0 #c79b00; }
+    .lq-btns button.ok { background: #18a86b; color: #fff; box-shadow: 0 4px 0 #0f6e45; }
     /* 11 Nov: minimal homework card */
     .hw2 { display: block; }
     .hw2-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -601,7 +611,7 @@
 
   <footer><a href="#" id="openGuide">❓ Come funziona · How it works</a> · Questions? Ask your teacher or the school office. · <a href="https://search.google.com/local/writereview?placeid=ChIJvZqGkpNZFxMRrs2OfCfIE30" target="_blank" rel="noopener">⭐ Recensiscici su Google · Review us</a> · <a href="#" data-report-problem="Student app">🐞 Segnala un problema · Report a problem</a> <span style="font-size:10px;font-weight:800;background:#ffd23f;color:#16275c;border-radius:999px;padding:1px 6px;">Beta</span> <span id="switchWrap" hidden>· <a href="#" id="switchStudent">Non sei tu? Cambia studente · Switch student</a></span></footer>
 
-  <script src="practice/courses.js"></script>
+  <script src="practice/courses.js?v=20261111a"></script>
   <script src="report.js"></script>
   <script>
     /* 1 Oct — "❓ Come funziona · How it works": a short guide for students
@@ -1406,7 +1416,9 @@
       const simple = [];
       const seen = {};
       data.classes.forEach((c) => { const id = String(c["Book"] || "").trim(); if (SIMPLE_ROADS[id] && !seen[id]) { seen[id] = 1; simple.push(roadSvg(roadStopsForSimple(id, c))); } });
-      if ((books.length && PRACTICE) || simple.length) return books.map((b) => roadSvg(roadStopsForBook(b))).join("") + simple.join("");
+      // 11 Nov: Prepare has practice sets now but keeps its own 12-unit road.
+      const bookRoads = books.filter((b) => !SIMPLE_ROADS[b.id]);
+      if ((bookRoads.length && PRACTICE) || simple.length) return bookRoads.map((b) => roadSvg(roadStopsForBook(b))).join("") + simple.join("");
       if (!data.classes.length) return "";
       return roadSvg(roadStopsForYear());
     }
@@ -1706,6 +1718,30 @@
       main.querySelectorAll("[data-journey-all]").forEach((b) => b.addEventListener("click", () => { journeyOpen = true; renderHomework(); }));
     }
 
+    // 11 Nov (owner): "no fun interactive quizzes – the teacher has to make them". After each lesson the student
+    // gets that lesson's quiz automatically (the LLS practice sets for the lesson just taught), on top of Homework.
+    function lessonQuizHtml() {
+      if (!PRACTICE) return "";
+      const res = resultsById();
+      for (const c of data.classes) {
+        const book = String(c["Book"] || "").trim(), course = COURSES[book];
+        if (!course || course.practice === false) continue;
+        const ls = (data.lessons || []).filter((l) => String(l.classId) === String(c["Class ID"]) && !isCancelled(l))
+          .sort((a, b) => String(b.lessonDate).localeCompare(String(a.lessonDate)));
+        for (const l of ls.slice(0, 3)) {
+          const m = String(l.unit || "").match(/^\s*(\d{1,2}[A-C])/);
+          const les = m && course.lessons.find((x) => x.code === m[1]);
+          if (!les) continue;
+          const types = PRACTICE.SET_TYPES.filter((t) => t !== "s" || true);
+          const done = types.filter((t) => passed(res[les.id + "-" + t])).length;
+          if (done >= types.length) continue;
+          return `<div class="lesson-quiz"><div class="lq-top"><span class="lq-ico">🎮</span><div><strong>Quiz: ${esc(les.code)} ${esc(les.title)}</strong>
+            <small>From your last lesson · earn ⭐ · Dalla tua ultima lezione</small></div><span class="lq-n">${done}/${types.length}</span></div>
+            <div class="lq-btns">${types.map((t) => `<button type="button" class="${passed(res[les.id + "-" + t]) ? "ok" : ""}" data-hw-practice="1" data-course="${esc(book)}" data-lesson="${esc(les.code)}" data-type="${t}">${passed(res[les.id + "-" + t]) ? "✓ " : ""}${esc(TYPE_NAMES[t] || t)}</button>`).join("")}</div></div>`;
+        }
+      }
+      return "";
+    }
     // 16 Oct (owner): one green box on the Homework tab: extra practice for the unit the class is on.
     function extraPracticeHtml() {
       const left = currentUnitPracticeLeft();
@@ -1903,7 +1939,7 @@
       const items = homeworkItems();
 
       if (!items.length) {
-        main.innerHTML = lessonTodayHtml() + slidesCardHtml() + testsHtml() + `<div class="empty" style="margin-top:18px">No homework yet. 🎉<br>Nessun compito per ora.</div>` + extraPracticeHtml();
+        main.innerHTML = lessonTodayHtml() + slidesCardHtml() + lessonQuizHtml() + testsHtml() + `<div class="empty" style="margin-top:18px">No homework yet. 🎉<br>Nessun compito per ora.</div>` + extraPracticeHtml();
         bindReview(main);
         main.querySelectorAll("[data-test]").forEach((b) => b.addEventListener("click", () => startTeacherTest(b.dataset.test)));
         bindJourney(main);
@@ -1929,7 +1965,7 @@
           ${hwExtraHtml(i)}
         </article>`;
 
-      main.innerHTML = lessonTodayHtml() + slidesCardHtml() + testsHtml() +
+      main.innerHTML = lessonTodayHtml() + slidesCardHtml() + lessonQuizHtml() + testsHtml() +
         `<h2>To do · Da fare (${todo.length})</h2>` +
         (todo.length ? todo.map(card_).join("") : `<div class="empty">All done! Well done. 🎉<br>Tutto fatto, bravo/a!</div>`) +
         extraPracticeHtml() +

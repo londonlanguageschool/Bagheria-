@@ -215,6 +215,20 @@
       ]
     },
 
+    /* 11 Nov 2026: Prepare B1 for Schools (Level 4), B1.1 Young. Lesson titles from the book's contents;
+       practice sets are ORIGINAL LLS material written to the lesson topics (no book content). */
+    "PREP": {
+      title: "Prepare B1 Preliminary",
+      level: "B1",
+      bank: "practice/PREP.json",
+      lessons: [
+        L("1A", "All about me", "present simple, adverbs of frequency", "personality and appearance"),
+        L("1B", "All about me (2)", "present simple and present continuous", "hobbies, online profiles"),
+        L("2A", "In fashion", "present tenses review", "clothes adjectives"),
+        L("2B", "In fashion: then and now", "past simple", "fashion, past time expressions")
+      ]
+    },
+
     /* 1 Oct 2026: Power Up 1 (Cambridge, Nixon & Tomlinson), used with
        Starters. Only unit titles and Pupil's Book pages (from the book's
        table of contents). No practice sets yet (practice: false): the

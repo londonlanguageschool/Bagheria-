@@ -1,0 +1,657 @@
+{
+"course": "PREP",
+"lessons": {
+"1A": {
+"v": [
+{
+"q": "Marco always says please and thank you. He's very ___.",
+"o": [
+"polite",
+"rude",
+"lazy"
+],
+"a": 0,
+"e": "Polite = good manners, e.g. saying please and thank you."
+},
+{
+"q": "Giulia doesn't like talking to new people. She's a bit ___.",
+"o": [
+"confident",
+"shy",
+"funny"
+],
+"a": 1,
+"e": "Shy = nervous with people you don't know."
+},
+{
+"q": "My uncle always makes us laugh. He's really ___.",
+"o": [
+"serious",
+"funny",
+"mean"
+],
+"a": 1,
+"e": "Funny = makes people laugh."
+},
+{
+"q": "Sara shares her snacks with everyone. She's ___.",
+"o": [
+"generous",
+"selfish",
+"bossy"
+],
+"a": 0,
+"e": "Generous = happy to give and share."
+},
+{
+"q": "He never smiles and he doesn't joke. He's very ___.",
+"o": [
+"cheerful",
+"serious",
+"friendly"
+],
+"a": 1,
+"e": "Serious = not joking, not laughing much."
+},
+{
+"q": "She answers every question in class without being nervous. She's ___.",
+"o": [
+"confident",
+"shy",
+"quiet"
+],
+"a": 0,
+"e": "Confident = sure of yourself."
+},
+{
+"q": "Which word is the OPPOSITE of polite?",
+"o": [
+"rude",
+"kind",
+"calm"
+],
+"a": 0,
+"e": "Rude = bad manners. It's the opposite of polite."
+},
+{
+"q": "Which word describes HAIR?",
+"o": [
+"curly",
+"tall",
+"slim"
+],
+"a": 0,
+"e": "Curly hair. Tall and slim describe your body."
+},
+{
+"q": "Someone who is always happy and smiling is ch_____ . (write the word)",
+"a": [
+"cheerful"
+],
+"e": "Cheerful = happy and positive."
+},
+{
+"q": "Someone who works very hard is hard-w______ . (write the word)",
+"a": [
+"hard-working",
+"hardworking"
+],
+"e": "Hard-working = puts a lot of effort into work."
+},
+{
+"q": "My grandad has no hair. He's ___.",
+"o": [
+"bald",
+"blonde",
+"curly"
+],
+"a": 0,
+"e": "Bald = with no hair on your head."
+},
+{
+"q": "Choose the correct order:",
+"o": [
+"She has long blonde hair.",
+"She has blonde long hair.",
+"She has hair long blonde."
+],
+"a": 0,
+"e": "Size/length comes before colour: long blonde hair."
+}
+],
+"g": [
+{
+"q": "My sister ___ in Palermo.",
+"o": [
+"live",
+"lives",
+"living"
+],
+"a": 1,
+"e": "Present simple with he/she/it: add -s. She lives."
+},
+{
+"q": "___ your brother like football?",
+"o": [
+"Do",
+"Does",
+"Is"
+],
+"a": 1,
+"e": "Questions with he/she/it: Does + base verb."
+},
+{
+"q": "I ___ like horror films.",
+"o": [
+"don't",
+"doesn't",
+"not"
+],
+"a": 0,
+"e": "Negative with I/you/we/they: don't + verb."
+},
+{
+"q": "Which sentence is correct?",
+"o": [
+"He never is late.",
+"He is never late.",
+"He is late never."
+],
+"a": 1,
+"e": "Frequency adverbs go AFTER the verb be: He is never late."
+},
+{
+"q": "Which sentence is correct?",
+"o": [
+"I often go to the cinema.",
+"I go often to the cinema.",
+"Often I go to cinema the."
+],
+"a": 0,
+"e": "With other verbs, frequency adverbs go BEFORE the verb: I often go."
+},
+{
+"q": "She ___ (watch) TV every evening.",
+"a": [
+"watches"
+],
+"e": "Verbs ending in -ch add -es: watches."
+},
+{
+"q": "My dad ___ (not / work) on Sundays.",
+"a": [
+"doesn't work",
+"does not work"
+],
+"e": "He/she/it negative: doesn't + base verb."
+},
+{
+"q": "What ___ you usually do at the weekend?",
+"o": [
+"do",
+"does",
+"are"
+],
+"a": 0,
+"e": "With you: do. What do you usually do…?"
+}
+],
+"s": [
+"My best friend is friendly and a bit shy.",
+"I usually go to bed at ten o'clock.",
+"She has long curly hair.",
+"My brother never gets up early."
+]
+},
+"1B": {
+"g": [
+{
+"q": "Look! It ___ outside.",
+"o": [
+"snows",
+"is snowing",
+"snowing"
+],
+"a": 1,
+"e": "Look! = happening now → present continuous: is snowing."
+},
+{
+"q": "I ___ to school every day.",
+"o": [
+"walk",
+"am walking",
+"walking"
+],
+"a": 0,
+"e": "Every day = a habit → present simple."
+},
+{
+"q": "This term I ___ guitar lessons.",
+"o": [
+"have",
+"am having",
+"has"
+],
+"a": 1,
+"e": "This term = a temporary situation → present continuous."
+},
+{
+"q": "What ___ you doing right now?",
+"o": [
+"do",
+"are",
+"does"
+],
+"a": 1,
+"e": "Right now → present continuous: are you doing?"
+},
+{
+"q": "She ___ Italian and English.",
+"o": [
+"speaks",
+"is speaking",
+"speak"
+],
+"a": 0,
+"e": "Facts and abilities → present simple: she speaks."
+},
+{
+"q": "Next Saturday we ___ my grandparents. (it's arranged)",
+"o": [
+"visit",
+"are visiting",
+"visits"
+],
+"a": 1,
+"e": "Fixed future plans → present continuous."
+},
+{
+"q": "Shh! The baby ___ (sleep).",
+"a": [
+"is sleeping",
+"'s sleeping"
+],
+"e": "Happening now → is sleeping."
+},
+{
+"q": "We ___ (not / go) out tonight – we're tired.",
+"a": [
+"aren't going",
+"are not going",
+"'re not going"
+],
+"e": "Present continuous negative: aren't + -ing."
+},
+{
+"q": "Which time word goes with the present simple?",
+"o": [
+"at the moment",
+"every weekend",
+"now"
+],
+"a": 1,
+"e": "Every weekend = routine → present simple."
+},
+{
+"q": "Which time word goes with the present continuous?",
+"o": [
+"usually",
+"on Saturdays",
+"at the moment"
+],
+"a": 2,
+"e": "At the moment = now → present continuous."
+}
+],
+"v": [
+{
+"q": "Your online ___ tells people about you.",
+"o": [
+"profile",
+"password",
+"screen"
+],
+"a": 0,
+"e": "An online profile = information about you on a website/app."
+},
+{
+"q": "I'm ___ in music and photography.",
+"o": [
+"interested",
+"interesting",
+"interest"
+],
+"a": 0,
+"e": "Interested in = you like it. Interesting = it makes you interested."
+},
+{
+"q": "In my free ___ I play video games.",
+"o": [
+"time",
+"hour",
+"day"
+],
+"a": 0,
+"e": "Free time = time when you aren't working or studying."
+},
+{
+"q": "I'm really ___ at drawing.",
+"o": [
+"good",
+"well",
+"fine"
+],
+"a": 0,
+"e": "Good at + something you do well."
+},
+{
+"q": "I'm keen ___ basketball. (preposition)",
+"a": [
+"on"
+],
+"e": "Keen on = you like it a lot."
+},
+{
+"q": "Which is a hobby?",
+"o": [
+"skateboarding",
+"homework",
+"breakfast"
+],
+"a": 0,
+"e": "A hobby = something you do for fun."
+}
+],
+"s": [
+"I'm learning to play the guitar this year.",
+"At the moment I'm reading a great book.",
+"I'm interested in photography.",
+"We're going to the beach on Saturday."
+]
+},
+"2A": {
+"v": [
+{
+"q": "These jeans are very ___ – they're too big for me!",
+"o": [
+"baggy",
+"tight",
+"smart"
+],
+"a": 0,
+"e": "Baggy = loose, big."
+},
+{
+"q": "You can't wear trainers to a wedding. You need something ___.",
+"o": [
+"casual",
+"smart",
+"sporty"
+],
+"a": 1,
+"e": "Smart = elegant, for special occasions."
+},
+{
+"q": "My grandma's clothes are very ___ – nobody wears that now.",
+"o": [
+"fashionable",
+"old-fashioned",
+"trendy"
+],
+"a": 1,
+"e": "Old-fashioned = not modern."
+},
+{
+"q": "Everyone wants those trainers. They're really ___.",
+"o": [
+"fashionable",
+"old-fashioned",
+"plain"
+],
+"a": 0,
+"e": "Fashionable = popular now."
+},
+{
+"q": "A T-shirt and jeans are ___ clothes.",
+"o": [
+"smart",
+"casual",
+"formal"
+],
+"a": 1,
+"e": "Casual = relaxed, everyday."
+},
+{
+"q": "This top is too ___ – I can't move my arms!",
+"o": [
+"baggy",
+"loose",
+"tight"
+],
+"a": 2,
+"e": "Tight = too small, close to your body."
+},
+{
+"q": "A shirt with no pattern is ___.",
+"o": [
+"plain",
+"striped",
+"spotted"
+],
+"a": 0,
+"e": "Plain = one colour, no pattern."
+},
+{
+"q": "A shirt with lines on it is ___.",
+"o": [
+"spotted",
+"striped",
+"checked"
+],
+"a": 1,
+"e": "Striped = with lines (stripes)."
+},
+{
+"q": "The opposite of 'tight' is l____ .",
+"a": [
+"loose"
+],
+"e": "Loose = not tight."
+},
+{
+"q": "Clothes for running or the gym are sp____ clothes.",
+"a": [
+"sporty"
+],
+"e": "Sporty = good for sport."
+}
+],
+"g": [
+{
+"q": "Which sentence is about a habit?",
+"o": [
+"I usually wear jeans.",
+"I'm wearing jeans today.",
+"I wore jeans yesterday."
+],
+"a": 0,
+"e": "Usually = habit → present simple."
+},
+{
+"q": "I ___ my school uniform at the moment.",
+"o": [
+"wear",
+"am wearing",
+"wears"
+],
+"a": 1,
+"e": "At the moment → present continuous."
+},
+{
+"q": "Does your school ___ a uniform?",
+"o": [
+"have",
+"has",
+"having"
+],
+"a": 0,
+"e": "After does: base verb → have."
+},
+{
+"q": "My brother ___ (never / wear) a hat.",
+"a": [
+"never wears"
+],
+"e": "Never goes before the verb; he → wears."
+}
+],
+"s": [
+"I prefer casual clothes at the weekend.",
+"These shoes are too tight for me.",
+"My dad wears smart clothes for work.",
+"Baggy jeans are fashionable again."
+]
+},
+"2B": {
+"g": [
+{
+"q": "Yesterday I ___ a new jacket.",
+"o": [
+"buy",
+"bought",
+"buyed"
+],
+"a": 1,
+"e": "Buy is irregular: bought."
+},
+{
+"q": "We ___ to London last summer.",
+"o": [
+"go",
+"went",
+"goed"
+],
+"a": 1,
+"e": "Go → went."
+},
+{
+"q": "She didn't ___ the film.",
+"o": [
+"liked",
+"like",
+"likes"
+],
+"a": 1,
+"e": "After didn't: base verb → like."
+},
+{
+"q": "___ you see Marco at the party?",
+"o": [
+"Did",
+"Do",
+"Were"
+],
+"a": 0,
+"e": "Past simple questions: Did + subject + base verb."
+},
+{
+"q": "Which is correct?",
+"o": [
+"I have bought it yesterday.",
+"I bought it yesterday.",
+"I buyed it yesterday."
+],
+"a": 1,
+"e": "With yesterday we use the past simple, not the present perfect."
+},
+{
+"q": "They ___ (enjoy) the concert.",
+"a": [
+"enjoyed"
+],
+"e": "Regular verb: enjoy → enjoyed."
+},
+{
+"q": "He ___ (stop) the car.",
+"a": [
+"stopped"
+],
+"e": "Short verbs ending consonant-vowel-consonant double the last letter: stopped."
+},
+{
+"q": "I ___ (not / understand) the question.",
+"a": [
+"didn't understand",
+"did not understand"
+],
+"e": "Negative: didn't + base verb."
+},
+{
+"q": "In the 1980s people ___ big shoulder pads.",
+"o": [
+"wear",
+"wore",
+"weared"
+],
+"a": 1,
+"e": "Wear → wore."
+},
+{
+"q": "What did you ___ last weekend?",
+"o": [
+"did",
+"do",
+"done"
+],
+"a": 1,
+"e": "Did + base verb: What did you do?"
+}
+],
+"v": [
+{
+"q": "Hip hop ___ popular in the 1980s.",
+"o": [
+"became",
+"become",
+"becomed"
+],
+"a": 0,
+"e": "Become → became."
+},
+{
+"q": "Which word means 'clothes of a particular time'?",
+"o": [
+"fashion",
+"weather",
+"history"
+],
+"a": 0,
+"e": "Fashion = the style of clothes popular at a time."
+},
+{
+"q": "Which is a time expression for the past?",
+"o": [
+"last year",
+"next week",
+"tomorrow"
+],
+"a": 0,
+"e": "Last year = past."
+},
+{
+"q": "I saw that film two weeks ___ . (word)",
+"a": [
+"ago"
+],
+"e": "Two weeks ago = two weeks before now."
+}
+],
+"s": [
+"Last weekend I went shopping with my friends.",
+"I didn't like the film.",
+"Did you watch the match yesterday?",
+"My mum wore baggy jeans in the 1990s."
+]
+}
+}
+}
