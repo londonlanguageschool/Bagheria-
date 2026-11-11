@@ -480,6 +480,23 @@
     .img-viewer .iv-bar button { border: 0; background: #fff; color: #16275c; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; font-weight: 900; cursor: pointer; }
     .img-viewer .iv-body { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; text-align: center; }
     .img-viewer img { width: 100%; max-width: 900px; height: auto; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+    /* 11 Nov: minimal homework card */
+    .hw2 { display: block; }
+    .hw2-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .hw2-head .title { flex: 1 1 100%; margin: 0 0 2px; font-size: 20px; }
+    .hw2-done { background: var(--green-700); color: #fff; border-radius: 999px; padding: 3px 10px; font-weight: 800; font-size: 13px; }
+    .hw2-tasks { margin: 10px 0 4px; padding-left: 1.2em; font-size: 17px; font-weight: 700; color: #16275c; line-height: 1.45; }
+    .hw2-pages { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 4px; }
+    .hw2-page { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 104px; padding: 12px 6px 8px; border: 2px solid #c9d6ef; border-radius: 14px; background: #fff; font: inherit; font-weight: 800; font-size: 16px; color: #16275c; cursor: pointer; box-shadow: 0 3px 0 #c9d6ef; }
+    .hw2-page small { font-size: 11px; font-weight: 600; color: #5b6880; }
+    .hw2-pg { font-size: 30px; }
+    .hw2-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+    .hw2-actions .handin { flex: 1; margin: 0; text-align: center; font-size: 17px; }
+    .hw2-help { position: relative; }
+    .hw2-help > summary { list-style: none; width: 40px; height: 40px; border-radius: 50%; border: 2px solid #c9d6ef; background: #fff; display: grid; place-items: center; font-weight: 800; font-size: 18px; color: #16275c; cursor: pointer; }
+    .hw2-help > summary::-webkit-details-marker { display: none; }
+    .hw2-help[open] { flex-basis: 100%; order: 3; }
+    .hw2-help[open] > summary { margin-left: auto; }
     .hw-how { margin: 10px 0 6px; font-size: 14px; font-weight: 700; color: #33415c; line-height: 1.45; }
     .hw-how small { font-weight: 600; color: #5b6880; }
     .hw-nobook { margin: 8px 0 10px; padding: 12px 14px; border-radius: 16px; background: #e3f6ec; display: grid; gap: 6px; }
@@ -919,7 +936,7 @@
         const k = id + "|" + units;
         if (seen[k]) return;
         seen[k] = true;
-        list.push({ id, units, current: String(c["Current Unit"] || "").trim(), className: c["Class Name"] });
+        list.push({ id, units, current: String(liveUnit(c) || "").trim(), className: c["Class Name"] });
       });
       return list;
     }
@@ -1325,9 +1342,34 @@
       return { title: (COURSES[book.id] || {}).title || book.id, sub: book.className || "", meta: [course.level || "", `${units} units`, checks ? `${checks} checkpoints` : ""], stops };
     }
 
+    // 11 Nov (owner): "you can't tell where the student is on the road map" – the class's unit comes from the
+    // lessons actually taught (latest lesson code: 2A → 2, U3-L2 → 3), not only the Current Unit typed in Classes.
+    function liveUnit(c) {
+      const id = String(c["Class ID"]);
+      const typed = Number(c["Current Unit"]) || 0;
+      const ls = (data.lessons || []).filter((l) => String(l.classId) === id && !isCancelled(l))
+        .sort((a, b) => String(b.lessonDate).localeCompare(String(a.lessonDate)));
+      for (const l of ls) {
+        const u = String(l.unit || "");
+        const m = u.match(/^\s*(\d{1,2})[A-C]\b/) || u.match(/^\s*U(\d{1,2})-L\d/i) || u.match(/^\s*(\d{1,2})[A-C]-\d{1,2}[A-C]/);
+        if (m) return Math.max(Number(m[1]), 0) || typed;
+      }
+      return typed;
+    }
+    function unitLine() {
+      for (const c of data.classes) {
+        const R = SIMPLE_ROADS[String(c["Book"] || "").trim()];
+        const u = liveUnit(c);
+        if (!u) continue;
+        const total = R ? R.sections.reduce((n, sct) => n + sct[1].length, 0) : 0;
+        const word = R && R.badge === "L" ? ["Lesson", "Lezione"] : ["Unit", "Unità"];
+        return total ? `${word[0]} ${u} of ${total} · ${word[1]} ${u} di ${total}` : `${word[0]} ${u} · ${word[1]} ${u}`;
+      }
+      return "";
+    }
     function roadStopsForSimple(id, c) {
       const R = SIMPLE_ROADS[id];
-      const cur = Number(c["Current Unit"]) || 0;
+      const cur = liveUnit(c);
       const stops = [];
       let n = 0;
       R.sections.forEach(([name, items], si) => {
@@ -1437,7 +1479,9 @@
           `<rect x="${x + 6}" y="${y - r - 7}" width="${Math.max(20, String(s.badge).length * 6.5 + 8)}" height="14" rx="7" fill="${tone.flag}" stroke="#fff" stroke-width="1.5"/>` +
           `<text x="${x + 6 + Math.max(20, String(s.badge).length * 6.5 + 8) / 2}" y="${y - r + 3.5}" text-anchor="middle" font-size="9" font-weight="800" fill="#16275c">${esc(s.badge)}</text>` +
           (done ? `<circle cx="${x - r + 3}" cy="${y + r - 3}" r="7" fill="#18a86b" stroke="#fff" stroke-width="1.5"/><text x="${x - r + 3}" y="${y + r}" text-anchor="middle" font-size="8.5" font-weight="800" fill="#fff">✓</text>` : "") +
-          (now ? `<text x="${x + r - 2}" y="${y + r + 2}" text-anchor="middle" font-size="14">🧑‍🎓</text>` : "") +
+          (now ? `<text x="${x + r - 2}" y="${y + r + 2}" text-anchor="middle" font-size="14">🧑‍🎓</text>` +
+            `<g><rect x="${Math.max(2, Math.min(W - 92, x - 45))}" y="${y + r + 20 + (lines.length - 1) * 12}" width="90" height="18" rx="9" fill="#e11d74"/>` +
+            `<text x="${Math.max(2, Math.min(W - 92, x - 45)) + 45}" y="${y + r + 33 + (lines.length - 1) * 12}" text-anchor="middle" font-size="10.5" font-weight="800" fill="#fff">📍 YOU ARE HERE</text></g>` : "") +
           `<text x="${x}" y="${y + r + 16}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${now ? "#16275c" : "#3d4a66"}">${lines.map((t, k) => `<tspan x="${x}" dy="${k ? 12 : 0}">${esc(t)}</tspan>`).join("")}</text></g>`);
       });
       const doneCount = st.filter((s) => s.state === "done" || s.state === "won").length;
@@ -1687,7 +1731,7 @@
         <section class="journey" aria-label="My progress">
           <div class="j-head"><h2>📈 My progress · I miei progressi</h2><span class="j-level">Level ${level}</span></div>
           <div class="j-stars"><span>⭐ ${stars} ${stars === 1 ? "star" : "stars"}</span><div class="j-bar"><i style="width:${inLevel * 10}%"></i></div><small>${10 - inLevel} to Level ${level + 1}</small></div>
-          ${cp.total ? `<p class="course-line">Lesson ${Math.max(1, cp.held)} of ${cp.total} this year · Lezione ${Math.max(1, cp.held)} di ${cp.total}</p>` : ""}
+          ${unitLine() ? `<p class="course-line">📍 You are here: ${esc(unitLine())}</p>` : ""}
           ${safeHtml(roadHtml)}
           <div class="prog-numbers">
             <div><b>${cp.held}</b><small>lessons · lezioni</small></div>
@@ -1871,20 +1915,17 @@
       const todo = items.filter((i) => !i.done).sort(byDue);
       const finished = items.filter((i) => i.done).sort(byDue).reverse();
 
+      // 11 Nov (owner): "too much writing, not student friendly" → minimal card: what to do, the page, the due date,
+      // ONE hand-in button. How-to and no-book help sit behind (?).
       const card_ = (i) => `
-        <article class="item ${i.done ? "done" : ""}">
-          <div>
-            <p class="title">${esc(i["Title"])}</p>
-            ${i.className || i["Assigned Date"] ? `<p class="meta">${[i.className, i["Assigned Date"] ? "Set · Assegnati: " + shortDay(String(i["Assigned Date"]).slice(0, 10)) : ""].filter(Boolean).map(esc).join(" · ")}</p>` : ""}
-            ${!i.done && i.reminder ? `<p class="remind-note">⏰ Your teacher reminds you: please finish it and hand it in! · Il tuo insegnante ti ricorda di finirlo e consegnarlo!</p>` : ""}
+        <article class="item hw2 ${i.done ? "done" : ""}">
+          <div class="hw2-head">
+            <p class="title">${esc(hwHeadline(i))}</p>
             ${dueBadge(i["Due Date"], i.done)}${!i.done && parseDate(i["Due Date"]) ? ` <button type="button" class="cal-one" data-cal-one="${esc(i["Homework ID"])}" title="Add to calendar · Aggiungi al calendario">📅</button>` : ""}
+            ${i.done ? `<span class="hw2-done">✓ Done</span>` : ""}
           </div>
-          <button class="tick ${i.done ? "is-done" : ""}" type="button"
-                  data-id="${esc(i["Homework ID"])}" data-next="${i.done ? "Not started" : "Done"}"
-                  aria-pressed="${i.done}">
-            ${i.done ? "Done ✓" : "📷 Hand in"}
-          </button>
-          ${i["Description"] ? `<p class="desc">${linkify(i["Description"])}</p>` : ""}
+          ${!i.done && i.reminder ? `<p class="remind-note">⏰ Please hand it in! · Consegnalo!</p>` : ""}
+          ${hwTasksHtml(i)}
           ${hwExtraHtml(i)}
         </article>`;
 
@@ -1971,6 +2012,24 @@
     /* 9 Nov (owner): many students don't have their books yet. Every homework card for a book course
        explains how to hand in, and – where the app has practice for that lesson – offers it as the
        no-book option (original LLS exercises, marked automatically; the score reaches the teacher). */
+    // 11 Nov: the task lines of a homework, without the boilerplate ("Homework for 1A…", "No book yet?…").
+    function hwTaskLines(i) {
+      const d = String(i["Description"] || "");
+      const lines = d.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+        .filter((l) => !/^homework for\b/i.test(l) && !/^📖\s*no book yet/i.test(l) && !/^🎧/.test(l) && !/^📱\s*no book needed/i.test(l));
+      const bullets = lines.filter((l) => /^[•\-–*]/.test(l)).map((l) => l.replace(/^[•\-–*]\s*/, ""));
+      return bullets.length ? bullets : lines;
+    }
+    function hwHeadline(i) {
+      const t = String(i["Title"] || "Homework");
+      const m = t.match(/^(\d{1,2}[A-C](?:-\d)?|R\d+-\d+|PE\d|U\d+-L\d+)\s+homework\b/i);
+      return m ? `Homework ${m[1]}` : t.replace(/\s*\+\s*\d+\s+more$/i, "");
+    }
+    function hwTasksHtml(i) {
+      const tasks = hwTaskLines(i);
+      if (!tasks.length) return "";
+      return `<ul class="hw2-tasks">${tasks.map((t) => `<li>${linkify(t)}</li>`).join("")}</ul>`;
+    }
     function hwNoBookHtml(i) {
       const desc = String(i["Description"] || "") + " " + String(i["Title"] || "");
       if (/No book needed/i.test(desc)) return "";
@@ -1981,11 +2040,10 @@
       const m = String(i["Title"] || "").match(/^(\d{1,2}[A-C])(?:-\d)?\b/);
       const les = course && course.practice !== false && m && course.lessons.find((l) => l.code === m[1]);
       if (!usesBook && !les) return "";
-      const how = `<p class="hw-how">✏️ Do it in your book or notebook → 📷 take a photo → 📤 tap <b>Consegna</b>.<br><small>Fai il compito sul libro o sul quaderno → fai una foto → tocca «Consegna».</small></p>`;
-      const prac = les ? `<div class="hw-nobook"><strong>📱 No book yet? · Non hai ancora il libro?</strong>
-          <span>Do the ${esc(les.code)} practice here instead – it marks itself and your score goes to your teacher. · Fai gli esercizi ${esc(les.code)} qui: si correggono da soli e il punteggio arriva all'insegnante.</span>
+      const how = `<p class="hw-how">✏️ Write in your book or notebook → 📷 photo → tap <b>Hand in</b>.<br><small>Scrivi sul libro o sul quaderno → foto → tocca «Consegna».</small></p>`;
+      const prac = les ? `<div class="hw-nobook"><strong>📱 No book? Practise here · Senza libro? Esercitati qui</strong>
           <div class="hw-nobook-btns">${["g", "v"].map((t) => `<button type="button" data-hw-practice="1" data-course="${esc(cls["Book"])}" data-lesson="${esc(les.code)}" data-type="${t}">${TYPE_NAMES[t]}</button>`).join("")}</div></div>`
-        : (hasPages || /pages are below/i.test(desc) ? "" : `<p class="hw-how"><small>📕 No book yet? Tell your teacher – they'll give you a version without the book. · Non hai il libro? Dillo all'insegnante.</small></p>`);
+        : (hasPages || /pages are below/i.test(desc) ? "" : `<p class="hw-how"><small>📕 No book? Tell your teacher. · Senza libro? Dillo all'insegnante.</small></p>`);
       return how + prac;
     }
     document.addEventListener("click", (e) => {
@@ -2000,12 +2058,17 @@
       const st = (data.status || []).find((x) => String(x["Homework ID"]) === id) || {};
       const marked = String(st["Mark"] || "").trim() || String(st["Feedback"] || "").trim();
       const chip = (f, removable) => `<span class="hw-file"><button type="button" data-open-file="${esc(f.fileId)}">${FILE_ICON(f.type)} ${esc(f.name)}</button>${removable ? `<button type="button" class="rm" data-remove-work="${esc(f.fileId)}" aria-label="Remove · Togli ${esc(f.name)}">✕</button>` : ""}</span>`;
+      const pages = teacherFiles.filter((f) => /^Workbook p\.\d+/.test(f.name || ""));
+      const others = teacherFiles.filter((f) => !pages.includes(f));
+      const pageBtn = (f) => `<button type="button" class="hw2-page" data-open-file="${esc(f.fileId)}"><span class="hw2-pg">📖</span>${esc(String(f.name).replace(/\.\w+$/, "").replace(/^Workbook p\./, "Page "))}<small>tap to open · apri</small></button>`;
+      const help = mine.length || marked ? "" : hwNoBookHtml(i);
       return `<div class="hw-extra">
-        ${mine.length || marked ? "" : hwNoBookHtml(i)}
-        ${teacherFiles.length ? `<p class="hw-label">📎 From your teacher · Dall'insegnante</p><div class="hw-files">${teacherFiles.map((f) => chip(f, false)).join("")}</div>` : ""}
+        ${pages.length ? `<div class="hw2-pages">${pages.map(pageBtn).join("")}</div>` : ""}
+        ${others.length ? `<div class="hw-files">${others.map((f) => chip(f, false)).join("")}</div>` : ""}
         ${marked ? `<div class="feedback"><strong>⭐ ${st["Mark"] ? esc(st["Mark"]) : "Teacher's comment · Commento"}</strong>${st["Feedback"] ? `<p>${esc(st["Feedback"])}</p>` : ""}${st["Marked By"] ? `<p class="meta">— ${esc(st["Marked By"])}</p>` : ""}</div>` : ""}
         ${mine.length ? `<p class="hw-label">📤 Your work · Il tuo lavoro</p><div class="hw-files">${mine.map((f) => chip(f, !marked)).join("")}</div>` : ""}
-        <label class="handin">📷 ${mine.length ? "Add more · Aggiungi" : "Hand in your work · Consegna"}<input type="file" multiple accept="image/*,application/pdf,audio/*" data-handin="${esc(id)}"></label>
+        <div class="hw2-actions"><label class="handin">📷 ${mine.length ? "Add more · Aggiungi" : "Hand in · Consegna"}<input type="file" multiple accept="image/*,application/pdf,audio/*" data-handin="${esc(id)}"></label>
+        ${help ? `<details class="hw2-help"><summary aria-label="Help · Aiuto">?</summary>${help}</details>` : ""}</div>
         <div class="handin-status" data-handin-status="${esc(id)}" aria-live="polite"></div>
       </div>`;
     }
