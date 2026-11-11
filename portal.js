@@ -13282,9 +13282,23 @@ let llsHwPickBuild_ = null;
 function llsHwPickRender_(code, title, opts, preTick, locked) {
   const box = byId("lessonHwPick"), wrap = byId("lessonHwTitleWrap");
   if (!box) return;
-  if (!opts.length) { box.hidden = true; box.innerHTML = ""; if (wrap) wrap.hidden = false; return; }
+  // 11 Nov (owner): "two Workbook pages is way too much – one page, and the teacher sets exactly which exercises".
+  // The lesson's Workbook pages become one-tap page buttons + exercise chips; other Workbook lines are dropped.
+  const plan = code ? llsPickedPlan_() : null;
+  const wbPages = [];
+  { const src = `${(plan && plan.pages) || ""} ${opts.map((o) => o.t + " " + (o.x || "")).join(" ")}`;
+    const m = src.match(/\bWB\s*pp?\.\s?(\d{1,3})(?:\s?[–-]\s?(\d{1,3}))?/i) || src.match(/Workbook[^.\n]*?\bpp?\.\s?(\d{1,3})(?:\s?[–-]\s?(\d{1,3}))?/i);
+    if (m) { const a = +m[1], b = m[2] ? +m[2] : a; for (let n = a; n <= b && n - a < 4; n++) wbPages.push(n); } }
+  if (wbPages.length) { const keep = []; opts.forEach((o, i) => { if (!/workbook|\bWB\b/i.test(o.t)) keep.push(o); }); opts = keep; preTick = []; }
+  if (!opts.length && !wbPages.length) { box.hidden = true; box.innerHTML = ""; if (wrap) wrap.hidden = false; return; }
   box.hidden = false;
-  box.innerHTML = `<p class="hw-pick-h">What should they do? <span class="muted">tick one or more</span></p>` +
+  const wbState = { page: wbPages.length ? wbPages[0] : 0, ex: [] };
+  const wbHtml = wbPages.length ? `<div class="hw-wb">
+      <p class="hw-pick-h">📖 Workbook – ONE page <span class="muted">tap the exercises (none = the whole page)</span></p>
+      <div class="hw-wb-row">${wbPages.map((n) => `<button type="button" class="hw-wb-p" data-wb-page="${n}">p.${n}</button>`).join("")}<button type="button" class="hw-wb-p" data-wb-page="0">No Workbook</button></div>
+      <div class="hw-wb-row" id="lessonHwWbEx">${[1, 2, 3, 4, 5, 6, 7, 8].map((n) => `<button type="button" class="hw-wb-x" data-wb-ex="${n}">${n}</button>`).join("")}<input type="text" id="lessonHwWbMore" class="hw-wb-more" placeholder="or type: 1a, 2b"></div>
+    </div>` : "";
+  box.innerHTML = wbHtml + (opts.length ? `<p class="hw-pick-h">${wbPages.length ? "Anything else? <span class=\"muted\">optional</span>" : "What should they do? <span class=\"muted\">tick one or more</span>"}</p>` : "") +
     opts.map((o, i) => `<label class="hw-pick-o"><input type="checkbox" data-hw-pick="${i}"${preTick.includes(i) ? " checked" : ""}> <span>${escapeHtml(o.t)}</span></label>`).join("") +
     `<label class="hw-pick-o other"><input type="checkbox" data-hw-pick="other"> <span>✏️ Something else</span></label>
      <div id="lessonHwOtherBox" class="hw-pick-otherbox" hidden>
@@ -13298,6 +13312,15 @@ function llsHwPickRender_(code, title, opts, preTick, locked) {
     const other = ticked.includes("other"), otherIn = byId("lessonHwOther"), linkIn = byId("lessonHwLink");
     const ob = byId("lessonHwOtherBox"); if (ob) ob.hidden = !other;
     const picked = ticked.filter((x) => x !== "other").map((x) => opts[Number(x)]);
+    if (wbState.page) {
+      const more = (byId("lessonHwWbMore")?.value || "").split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean);
+      const ex = [...wbState.ex.map(String), ...more];
+      const t = `Workbook p.${wbState.page}${ex.length ? `: ex. ${ex.join(", ")}` : ""}`;
+      picked.unshift({ t, x: ex.length ? `Workbook p.${wbState.page}: exercises ${ex.join(", ")}` : `Workbook p.${wbState.page}: all the exercises` });
+    }
+    box.querySelectorAll("[data-wb-page]").forEach((b) => b.classList.toggle("on", Number(b.dataset.wbPage) === wbState.page));
+    box.querySelectorAll("[data-wb-ex]").forEach((b) => b.classList.toggle("on", wbState.ex.includes(Number(b.dataset.wbEx))));
+    { const exRow = byId("lessonHwWbEx"); if (exRow) exRow.hidden = !wbState.page; }
     const link = other && linkIn ? linkIn.value.trim().replace(/^(?!https?:\/\/)(www\.)/i, "https://$1") : "";
     const files = other ? [...(byId("lessonHwFiles")?.files || [])].length : 0;
     if (other && otherIn && (otherIn.value.trim() || link || files)) {
@@ -13311,6 +13334,9 @@ function llsHwPickRender_(code, title, opts, preTick, locked) {
     llsHwAuto_ = t;
     byId("lessonHwTitle")?.classList.remove("needs");
   };
+  box.querySelectorAll("[data-wb-page]").forEach((b) => b.addEventListener("click", () => { wbState.page = Number(b.dataset.wbPage); wbState.ex = []; build(); llsLesson.noteTouched = true; }));
+  box.querySelectorAll("[data-wb-ex]").forEach((b) => b.addEventListener("click", () => { const n = Number(b.dataset.wbEx); wbState.ex = wbState.ex.includes(n) ? wbState.ex.filter((x) => x !== n) : [...wbState.ex, n].sort((a, c) => a - c); build(); llsLesson.noteTouched = true; }));
+  byId("lessonHwWbMore")?.addEventListener("input", () => { build(); llsLesson.noteTouched = true; });
   box.querySelectorAll("[data-hw-pick]").forEach((c) => c.addEventListener("change", () => { build(); llsLesson.noteTouched = true; if (c.dataset.hwPick === "other" && c.checked) byId("lessonHwOther")?.focus(); }));
   byId("lessonHwOther")?.addEventListener("input", () => { build(); llsLesson.noteTouched = true; });
   byId("lessonHwLink")?.addEventListener("input", () => { build(); llsLesson.noteTouched = true; });
