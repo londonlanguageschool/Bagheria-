@@ -13288,7 +13288,9 @@ function llsHwPickRender_(code, title, opts, preTick, locked) {
   const wbPages = [];
   { const src = `${(plan && plan.pages) || ""} ${opts.map((o) => o.t + " " + (o.x || "")).join(" ")}`;
     const m = src.match(/\bWB\s*pp?\.\s?(\d{1,3})(?:\s?[–-]\s?(\d{1,3}))?/i) || src.match(/Workbook[^.\n]*?\bpp?\.\s?(\d{1,3})(?:\s?[–-]\s?(\d{1,3}))?/i);
-    if (m) { const a = +m[1], b = m[2] ? +m[2] : a; for (let n = a; n <= b && n - a < 4; n++) wbPages.push(n); } }
+    if (m) { const a = +m[1], b = m[2] ? +m[2] : a; for (let n = a; n <= b && n - a < 4; n++) wbPages.push(n); }
+    // 12 Nov (owner): a lesson that names one page often goes on to the next – show that page too, the teacher decides.
+    if (wbPages.length === 1) wbPages.push(wbPages[0] + 1); }
   if (wbPages.length) { const keep = []; opts.forEach((o, i) => { if (!/workbook|\bWB\b/i.test(o.t)) keep.push(o); }); opts = keep; preTick = []; }
   if (!opts.length && !wbPages.length) { box.hidden = true; box.innerHTML = ""; if (wrap) wrap.hidden = false; return; }
   box.hidden = false;
@@ -13297,6 +13299,7 @@ function llsHwPickRender_(code, title, opts, preTick, locked) {
       <p class="hw-pick-h">📖 Workbook – ONE page <span class="muted">tap the exercises (none = the whole page)</span></p>
       <div class="hw-wb-row">${wbPages.map((n) => `<button type="button" class="hw-wb-p" data-wb-page="${n}">p.${n}</button>`).join("")}<button type="button" class="hw-wb-p" data-wb-page="0">No Workbook</button></div>
       <div class="hw-wb-row" id="lessonHwWbEx">${[1, 2, 3, 4, 5, 6, 7, 8].map((n) => `<button type="button" class="hw-wb-x" data-wb-ex="${n}">${n}</button>`).join("")}<input type="text" id="lessonHwWbMore" class="hw-wb-more" placeholder="or type: 1a, 2b"></div>
+      <div id="lessonHwWbView" class="hw-wb-view"></div>
     </div>` : "";
   box.innerHTML = wbHtml + (opts.length ? `<p class="hw-pick-h">${wbPages.length ? "Anything else? <span class=\"muted\">optional</span>" : "What should they do? <span class=\"muted\">tick one or more</span>"}</p>` : "") +
     opts.map((o, i) => `<label class="hw-pick-o"><input type="checkbox" data-hw-pick="${i}"${preTick.includes(i) ? " checked" : ""}> <span>${escapeHtml(o.t)}</span></label>`).join("") +
@@ -13321,6 +13324,7 @@ function llsHwPickRender_(code, title, opts, preTick, locked) {
     box.querySelectorAll("[data-wb-page]").forEach((b) => b.classList.toggle("on", Number(b.dataset.wbPage) === wbState.page));
     box.querySelectorAll("[data-wb-ex]").forEach((b) => b.classList.toggle("on", wbState.ex.includes(Number(b.dataset.wbEx))));
     { const exRow = byId("lessonHwWbEx"); if (exRow) exRow.hidden = !wbState.page; }
+    if (wbState.page !== wbState.shown) { wbState.shown = wbState.page; llsWbShowPage_(wbState.page, false, wbPages); }
     const link = other && linkIn ? linkIn.value.trim().replace(/^(?!https?:\/\/)(www\.)/i, "https://$1") : "";
     const files = other ? [...(byId("lessonHwFiles")?.files || [])].length : 0;
     if (other && otherIn && (otherIn.value.trim() || link || files)) {
@@ -13352,6 +13356,7 @@ function llsHwPickRender_(code, title, opts, preTick, locked) {
     });
   }
   if (!locked) build();
+  else if (wbState.page) { wbState.shown = wbState.page; llsWbShowPage_(wbState.page, false, wbPages); }
 }
 document.addEventListener("change", (e) => { if (e.target && e.target.id === "lessonHwSet") { llsHwSetApply_(); llsLesson.noteTouched = true; } });
 
@@ -13477,6 +13482,86 @@ async function llsAttachBookPages(opts) {
     llsBookPagesBusy = false;
   }
 }
+/* 12 Nov 2026 (owner): "attach the WB pages here for the teacher to see so they know what exercises to set".
+   Step 4 shows the chosen Workbook page under the page / exercise buttons (decrypted in the browser with the same
+   passphrase as above; asked once per computer, then remembered). Tap the picture to see it full size. */
+let llsWbKey_ = null, llsWbMan_ = null;
+const llsWbPics_ = new Map();
+async function llsWbPageUrl_(book, n, pass) {
+  const base = "tools/book-pages/";
+  if (!llsWbMan_) llsWbMan_ = await (await fetch(base + "pages.json?v=" + Date.now().toString().slice(0, 7))).json();
+  const name = llsWbMan_.pages[`${book}-p${n}`];
+  if (!name) return "";
+  if (llsWbPics_.has(name)) return llsWbPics_.get(name);
+  if (!llsWbKey_ || llsWbKey_.pass !== pass) {
+    const salt = Uint8Array.from(atob(llsWbMan_.salt), (c) => c.charCodeAt(0));
+    const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
+    llsWbKey_ = { pass, key: await crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: llsWbMan_.iter, hash: "SHA-256" }, km, { name: "AES-GCM", length: 256 }, false, ["decrypt"]) };
+  }
+  const buf = new Uint8Array(await (await fetch(base + "p/" + name)).arrayBuffer());
+  const raw = await crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, llsWbKey_.key, buf.slice(12));
+  const url = URL.createObjectURL(new Blob([raw], { type: "image/jpeg" }));
+  llsWbPics_.set(name, url);
+  return url;
+}
+// Shows ALL the lesson's Workbook pages side by side (owner 12 Nov: "the teacher should see both pages"),
+// the chosen one framed in blue. "Use p.N" under a page chooses it; tapping a picture enlarges it.
+let llsWbShowAll_ = [], llsWbSel_ = 0;
+async function llsWbShowPage_(sel, ask, pages) {
+  const box = byId("lessonHwWbView");
+  if (!box) return;
+  if (pages) llsWbShowAll_ = pages;
+  llsWbSel_ = sel;
+  const list = llsWbShowAll_.length ? llsWbShowAll_ : (sel ? [sel] : []);
+  if (!list.length) { box.innerHTML = ""; return; }
+  try {
+    if (!llsWbMan_) llsWbMan_ = await (await fetch("tools/book-pages/pages.json?v=" + Date.now().toString().slice(0, 7))).json();
+  } catch (_) { box.innerHTML = ""; return; }
+  const book = (llsWbMan_.classes || {})[llsLesson.classId];
+  const have = list.filter((n) => book && llsWbMan_.pages[`${book}-p${n}`]);
+  if (!have.length) { box.innerHTML = `<p class="muted hw-wb-note">No scan of Workbook ${list.map((n) => "p." + n).join(" / ")} for this class yet – check the book.</p>`; return; }
+  const frame = () => box.querySelectorAll("[data-wb-card]").forEach((c) => c.classList.toggle("on", Number(c.dataset.wbCard) === llsWbSel_));
+  if (box.dataset.shown === have.join(",") && box.querySelector("img")) { frame(); return; }
+  let pass = llsBookPass_();
+  if (!pass && ask) pass = (prompt("Passphrase for the Workbook pages (ask the office):") || "").trim();
+  if (!pass) { box.innerHTML = `<button type="button" class="hw-wb-p" data-wb-see="1">👀 See Workbook ${have.map((n) => "p." + n).join(" + ")}</button>`; return; }
+  box.innerHTML = `<p class="muted hw-wb-note">Loading the Workbook pages…</p>`;
+  try {
+    const urls = [];
+    for (const n of have) urls.push(await llsWbPageUrl_(book, n, pass));
+    try { localStorage.setItem(LLS_BOOK_PASS_KEY, pass); } catch (_) {}
+    if (byId("lessonHwWbView") !== box) return;
+    box.dataset.shown = have.join(",");
+    box.innerHTML = `<div class="hw-wb-pages">${have.map((n, i) => `<div class="hw-wb-card" data-wb-card="${n}">
+        <button type="button" class="hw-wb-img" data-wb-zoom aria-label="Workbook page ${n}, tap to enlarge"><img src="${urls[i]}" alt="Workbook p.${n}"></button>
+        <div class="hw-wb-cap"><strong>p.${n}</strong> <button type="button" class="hw-wb-use" data-wb-use="${n}">Use p.${n}</button></div>
+      </div>`).join("")}</div><p class="muted hw-wb-note">Tap a page to enlarge it · the blue one is the page you set</p>`;
+    frame();
+  } catch (e) {
+    const wrong = /decrypt|OperationError/i.test(String((e && e.name) || e));
+    if (wrong) { try { localStorage.removeItem(LLS_BOOK_PASS_KEY); } catch (_) {} llsWbKey_ = null; }
+    box.dataset.shown = "";
+    box.innerHTML = `<p class="muted hw-wb-note">${wrong ? "Wrong passphrase." : "Couldn't load the pages."}</p><button type="button" class="hw-wb-p" data-wb-see="1">👀 Try again</button>`;
+  }
+}
+document.addEventListener("click", (e) => {
+  const see = e.target && e.target.closest && e.target.closest("[data-wb-see]");
+  if (see) { llsWbShowPage_(llsWbSel_, true); return; }
+  const use = e.target && e.target.closest && e.target.closest("[data-wb-use]");
+  if (use) { document.querySelector(`#lessonHwPick [data-wb-page="${use.dataset.wbUse}"]`)?.click(); return; }
+  const z = e.target && e.target.closest && e.target.closest("[data-wb-zoom]");
+  if (!z) return;
+  const img = z.querySelector("img"); if (!img) return;
+  const ov = document.createElement("div");
+  ov.className = "hw-wb-zoom";
+  ov.innerHTML = `<img src="${img.src}" alt="${escapeAttribute(img.alt)}"><button type="button" aria-label="Close">✕</button>`;
+  const close = () => { ov.remove(); document.removeEventListener("keydown", key); };
+  const key = (ev) => { if (ev.key === "Escape") close(); };
+  ov.addEventListener("click", close);
+  document.addEventListener("keydown", key);
+  document.body.appendChild(ov);
+});
+
 // Quietly on opening (after the data has loaded), so homework set from any page or by a teacher is covered.
 document.addEventListener("DOMContentLoaded", () => setTimeout(() => llsAutoBookPages_(), 15000));
 // After a homework is saved (it is queued, so wait for Google to give it its number).
