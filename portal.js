@@ -13535,8 +13535,8 @@ async function llsWbShowPage_(sel, ask, pages) {
   let pass = llsBookPass_();
   // 12 Nov (owner): "teachers shouldn't type anything" – the school server gives the key to logged-in staff (Apps Script V41).
   if (!pass) pass = llsBookPassFromClasses_();
-  if (!pass && ask) pass = (prompt("Passphrase for the Workbook pages (only needed once – after that nobody types it):") || "").trim();
-  if (!pass) { box.innerHTML = `<button type="button" class="hw-wb-p" data-wb-see="1">👀 See Workbook ${have.map((n) => "p." + n).join(" + ")}</button>`; return; }
+  // 12 Nov (owner): no passphrase boxes. Without the key (Classes → Book Key) the preview simply stays off.
+  if (!pass) { box.innerHTML = ""; return; }
   box.innerHTML = `<p class="muted hw-wb-note">Loading the Workbook pages…</p>`;
   try {
     const urls = [];
