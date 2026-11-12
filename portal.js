@@ -5413,7 +5413,8 @@ function llsApplyCorePortalData(payload) {
     book: String(r["Book"] || ""),
     units: String(r["Units"] || ""),
     currentUnit: String(r["Current Unit"] || ""),
-    plansDone: String(r["Plans Done"] || "") // 6 Oct (V34): lessons marked "already done" in the plan panel
+    plansDone: String(r["Plans Done"] || ""), // 6 Oct (V34): lessons marked "already done" in the plan panel
+    bookKey: String(r["Book Key"] || "").trim() // 12 Nov: Workbook pages passphrase (staff only)
   })).filter((item) => item.id);
 
   // Authoritative membership: ACTIVE Enrolments only.
@@ -13422,9 +13423,9 @@ function llsWbPagesIn_(text) {
 // each time the portal opens). Already-attached pages are skipped, so running again is harmless.
 const LLS_BOOK_PASS_KEY = "llsBookPagesPass";
 let llsBookPagesBusy = false;
-function llsBookPass_() { try { return localStorage.getItem(LLS_BOOK_PASS_KEY) || ""; } catch (_) { return ""; } }
+function llsBookPass_() { let p = ""; try { p = localStorage.getItem(LLS_BOOK_PASS_KEY) || ""; } catch (_) {} return p || (typeof llsBookPassFromClasses_ === "function" ? llsBookPassFromClasses_() : ""); }
 function llsAutoBookPages_(classId, delayMs) {
-  if (!llsBookPass_()) return;
+  if (!llsBookPass_() && !llsBookPassFromClasses_()) return;
   setTimeout(() => llsAttachBookPages({ quiet: true, classId }), delayMs || 0);
 }
 async function llsAttachBookPages(opts) {
@@ -13507,6 +13508,15 @@ async function llsWbPageUrl_(book, n, pass) {
 // Shows ALL the lesson's Workbook pages side by side (owner 12 Nov: "the teacher should see both pages"),
 // the chosen one framed in blue. "Use p.N" under a page chooses it; tapping a picture enlarges it.
 let llsWbShowAll_ = [], llsWbSel_ = 0;
+// 12 Nov (owner): "teachers shouldn't type anything". The passphrase sits in the school sheet (Classes, column
+// "Book Key", any row), which reaches the portal only for logged-in staff (getPortalData). Students never get it.
+function llsBookPassFromClasses_() {
+  try {
+    const pass = (state.classes || []).map((c) => c.bookKey).find(Boolean) || "";
+    if (pass) { try { localStorage.setItem(LLS_BOOK_PASS_KEY, pass); } catch (_) {} }
+    return pass;
+  } catch (_) { return ""; }
+}
 async function llsWbShowPage_(sel, ask, pages) {
   const box = byId("lessonHwWbView");
   if (!box) return;
@@ -13523,7 +13533,9 @@ async function llsWbShowPage_(sel, ask, pages) {
   const frame = () => box.querySelectorAll("[data-wb-card]").forEach((c) => c.classList.toggle("on", Number(c.dataset.wbCard) === llsWbSel_));
   if (box.dataset.shown === have.join(",") && box.querySelector("img")) { frame(); return; }
   let pass = llsBookPass_();
-  if (!pass && ask) pass = (prompt("Passphrase for the Workbook pages (ask the office):") || "").trim();
+  // 12 Nov (owner): "teachers shouldn't type anything" – the school server gives the key to logged-in staff (Apps Script V41).
+  if (!pass) pass = llsBookPassFromClasses_();
+  if (!pass && ask) pass = (prompt("Passphrase for the Workbook pages (only needed once – after that nobody types it):") || "").trim();
   if (!pass) { box.innerHTML = `<button type="button" class="hw-wb-p" data-wb-see="1">👀 See Workbook ${have.map((n) => "p." + n).join(" + ")}</button>`; return; }
   box.innerHTML = `<p class="muted hw-wb-note">Loading the Workbook pages…</p>`;
   try {
