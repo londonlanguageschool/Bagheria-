@@ -13581,3 +13581,11 @@ function llsQueueHomeworkHook_(body) {
   if (body && body.action === "createHomework" && /workbook|\bWB\b/i.test(`${body.title || ""} ${body.description || ""}`)) llsAutoBookPages_(body.classId, 25000);
 }
 document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("#settingsBookPages")) llsAttachBookPages(); });
+// 12 Nov (owner lost the passphrase): copy the one this browser remembers, to paste into Classes → Book Key.
+document.addEventListener("click", async (e) => {
+  if (!(e.target.closest && e.target.closest("#settingsCopyBookKey"))) return;
+  let p = ""; try { p = localStorage.getItem(LLS_BOOK_PASS_KEY) || ""; } catch (_) {}
+  if (!p) { showToast("This browser doesn't remember the Workbook key. Try the computer or browser where Workbook pages were attached on 10 Nov.", "error"); return; }
+  try { await navigator.clipboard.writeText(p); showToast("✓ Key copied. Paste it into the Google Sheet: Classes tab, cell T2 (Book Key).", "success"); }
+  catch (_) { prompt("Copy this key (Ctrl+C), then paste it into the Classes tab, cell T2:", p); }
+});
