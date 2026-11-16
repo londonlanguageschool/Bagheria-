@@ -1,6 +1,7 @@
 /* 27 Oct 2026: school videos on Instagram, shown in the student app (#llsSocial).
    Add new posts at the TOP of the list. */
 window.LLS_SOCIAL = [
+  { url: "https://www.instagram.com/reel/DfuIULGtwDi/", img: "materials/social/ep3.jpg", title: "Book-uh? No, BOOK! 🔇", sub: "Pronuncia · Episodio 3: Schwa" },
   { url: "https://www.instagram.com/reel/De_8DCDJId7/", img: "materials/social/ep2.jpg", title: "THREE or TREE? 🌳", sub: "Pronuncia · Episodio 2: TH" },
   { url: "https://www.instagram.com/reel/DeeMvZRRcwF/", img: "materials/social/ep1.jpg", title: "Hungry or Angry? 😋😡", sub: "Pronuncia · Episodio 1: H" }
 ];
