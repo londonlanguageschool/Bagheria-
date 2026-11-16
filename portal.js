@@ -13279,6 +13279,13 @@ document.addEventListener("click", (e) => {
 });
 // 27 Oct 2026 (owner): tick boxes of what to set – this lesson's homework from the slides (several can be ticked)
 // + "Something else". The ticked items become the homework title and the list students (and the marking screen) see.
+// 16 Nov (owner): "the buttons and the page don't match" – show the page's real exercises (workbook-ex.js, from the scans).
+function llsWbExChips_(page) {
+  const cls = (state.classes || []).find((c) => c.id === llsLesson.classId || c.classId === llsLesson.classId) || null;
+  const list = page && cls && window.LLS_WB_EX && LLS_WB_EX[cls.book] && LLS_WB_EX[cls.book][page];
+  if (!list) return [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `<button type="button" class="hw-wb-x" data-wb-ex="${n}">${n}</button>`).join("");
+  return list.map(([code, what]) => `<button type="button" class="hw-wb-x hw-wb-xl" data-wb-ex="${escapeHtml(code)}" title="${escapeHtml(what)}"><b>${escapeHtml(code)}</b><small>${escapeHtml(what)}</small></button>`).join("");
+}
 let llsHwPickBuild_ = null;
 function llsHwPickRender_(code, title, opts, preTick, locked) {
   const box = byId("lessonHwPick"), wrap = byId("lessonHwTitleWrap");
@@ -13299,7 +13306,7 @@ function llsHwPickRender_(code, title, opts, preTick, locked) {
   const wbHtml = wbPages.length ? `<div class="hw-wb">
       <p class="hw-pick-h">📖 Workbook – ONE page <span class="muted">tap the exercises (none = the whole page)</span></p>
       <div class="hw-wb-row">${wbPages.map((n) => `<button type="button" class="hw-wb-p" data-wb-page="${n}">p.${n}</button>`).join("")}<button type="button" class="hw-wb-p" data-wb-page="0">No Workbook</button></div>
-      <div class="hw-wb-row" id="lessonHwWbEx">${[1, 2, 3, 4, 5, 6, 7, 8].map((n) => `<button type="button" class="hw-wb-x" data-wb-ex="${n}">${n}</button>`).join("")}<input type="text" id="lessonHwWbMore" class="hw-wb-more" placeholder="or type: 1a, 2b"></div>
+      <div class="hw-wb-row" id="lessonHwWbEx"><span id="lessonHwWbChips" class="hw-wb-chips">${llsWbExChips_(wbState.page)}</span><input type="text" id="lessonHwWbMore" class="hw-wb-more" placeholder="or type: 1a, 2b"></div>
       <div id="lessonHwWbView" class="hw-wb-view"></div>
     </div>` : "";
   box.innerHTML = wbHtml + (opts.length ? `<p class="hw-pick-h">${wbPages.length ? "Anything else? <span class=\"muted\">optional</span>" : "What should they do? <span class=\"muted\">tick one or more</span>"}</p>` : "") +
@@ -13323,7 +13330,7 @@ function llsHwPickRender_(code, title, opts, preTick, locked) {
       picked.unshift({ t, x: ex.length ? `Workbook p.${wbState.page}: exercises ${ex.join(", ")}` : `Workbook p.${wbState.page}: all the exercises` });
     }
     box.querySelectorAll("[data-wb-page]").forEach((b) => b.classList.toggle("on", Number(b.dataset.wbPage) === wbState.page));
-    box.querySelectorAll("[data-wb-ex]").forEach((b) => b.classList.toggle("on", wbState.ex.includes(Number(b.dataset.wbEx))));
+    box.querySelectorAll("[data-wb-ex]").forEach((b) => b.classList.toggle("on", wbState.ex.includes(b.dataset.wbEx)));
     { const exRow = byId("lessonHwWbEx"); if (exRow) exRow.hidden = !wbState.page; }
     if (wbState.page !== wbState.shown) { wbState.shown = wbState.page; llsWbShowPage_(wbState.page, false, wbPages); }
     const link = other && linkIn ? linkIn.value.trim().replace(/^(?!https?:\/\/)(www\.)/i, "https://$1") : "";
@@ -13339,8 +13346,9 @@ function llsHwPickRender_(code, title, opts, preTick, locked) {
     llsHwAuto_ = t;
     byId("lessonHwTitle")?.classList.remove("needs");
   };
-  box.querySelectorAll("[data-wb-page]").forEach((b) => b.addEventListener("click", () => { wbState.page = Number(b.dataset.wbPage); wbState.ex = []; build(); llsLesson.noteTouched = true; }));
-  box.querySelectorAll("[data-wb-ex]").forEach((b) => b.addEventListener("click", () => { const n = Number(b.dataset.wbEx); wbState.ex = wbState.ex.includes(n) ? wbState.ex.filter((x) => x !== n) : [...wbState.ex, n].sort((a, c) => a - c); build(); llsLesson.noteTouched = true; }));
+  box.querySelectorAll("[data-wb-page]").forEach((b) => b.addEventListener("click", () => { wbState.page = Number(b.dataset.wbPage); wbState.ex = []; const ch = byId("lessonHwWbChips"); if (ch) ch.innerHTML = llsWbExChips_(wbState.page); build(); llsLesson.noteTouched = true; }));
+  // 16 Nov (owner): the buttons show the page's REAL exercises (workbook-ex.js); chips are re-drawn per page, so listen on the box.
+  box.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("[data-wb-ex]"); if (!b || !box.contains(b)) return; const n = b.dataset.wbEx; wbState.ex = wbState.ex.includes(n) ? wbState.ex.filter((x) => x !== n) : [...wbState.ex, n].sort((a, c) => a.localeCompare(c, undefined, { numeric: true })); build(); llsLesson.noteTouched = true; });
   byId("lessonHwWbMore")?.addEventListener("input", () => { build(); llsLesson.noteTouched = true; });
   box.querySelectorAll("[data-hw-pick]").forEach((c) => c.addEventListener("change", () => { build(); llsLesson.noteTouched = true; if (c.dataset.hwPick === "other" && c.checked) byId("lessonHwOther")?.focus(); }));
   byId("lessonHwOther")?.addEventListener("input", () => { build(); llsLesson.noteTouched = true; });
@@ -13423,7 +13431,8 @@ function llsWbPagesIn_(text) {
 // each time the portal opens). Already-attached pages are skipped, so running again is harmless.
 const LLS_BOOK_PASS_KEY = "llsBookPagesPass";
 let llsBookPagesBusy = false;
-function llsBookPass_() { let p = ""; try { p = localStorage.getItem(LLS_BOOK_PASS_KEY) || ""; } catch (_) {} return p || (typeof llsBookPassFromClasses_ === "function" ? llsBookPassFromClasses_() : ""); }
+// 16 Nov: the key in the school sheet (Classes → Book Key) always wins over an old one remembered by this browser.
+function llsBookPass_() { const s = typeof llsBookPassFromClasses_ === "function" ? llsBookPassFromClasses_() : ""; if (s) return s; let p = ""; try { p = localStorage.getItem(LLS_BOOK_PASS_KEY) || ""; } catch (_) {} return p; }
 function llsAutoBookPages_(classId, delayMs) {
   if (!llsBookPass_() && !llsBookPassFromClasses_()) return;
   setTimeout(() => llsAttachBookPages({ quiet: true, classId }), delayMs || 0);

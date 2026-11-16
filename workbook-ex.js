@@ -1,0 +1,57 @@
+/* Workbook exercises on each page (16 Nov 2026, read from the owner's Workbook scans).
+   The homework screen shows these as tap buttons, so the teacher sees exactly what is on the page.
+   Format: book → page → [ [code, what it is], … ]. (audio) = needs the Workbook audio.
+   Books not listed here fall back to buttons 1–8. */
+window.LLS_WB_EX = {
+  "EF-A1A2": {
+    4: [["1a","Grammar: verb be chart"],["1b","Grammar: 'm, 's or 're"],["1c","Grammar: subject pronouns"],["2a","Pron: vowel sounds chart"],["2b","Pron: listen and check (audio)"],["2c","Pron: underline the stress"],["2d","Pron: listen and repeat (audio)"]],
+    5: [["3a","Vocab: days of the week"],["3b","Vocab: continue the numbers"],["3c","Vocab: days and numbers"],["3d","Vocab: a, e, i, o, u"]],
+    6: [["1a","Vocab: countries and nationalities"],["1b","Vocab: country or nationality"],["1c","Vocab: continents"],["1d","Vocab: numbers in words"],["2a","Pron: /ə/ (audio)"],["2b","Pron: listen and repeat (audio)"],["2c","Pron: different sound (audio)"],["2d","Pron: listen and repeat (audio)"]],
+    7: [["3a","Grammar: be – make questions"],["3b","Grammar: match the answers"],["3c","Grammar: complete B's sentences"],["3d","Grammar: write the questions"],["3e","Grammar: answer about you"]],
+    8: [["1a","Vocab: classroom wordsearch"],["1b","Vocab: classroom phrases – match"],["1c","Vocab: classroom language"],["2a","Pron: different vowel sound (audio)"],["2b","Pron: listen and repeat (audio)"],["2c","Pron: the alphabet (audio)"],["2d","Pron: listen and repeat (audio)"]],
+    9: [["3a","Grammar: possessive adjectives chart"],["3b","Grammar: possessive adjectives"],["3c","Grammar: write sentences"],["3d","Grammar: circle the word"],["3e","Grammar: answer about you"]],
+    10: [["1","Vocab: in a hotel"],["2a","Checking in: complete"],["2b","Checking in: conversation"],["3","Would you like…?"],["4","Social English"]],
+    11: [["1","Revision: grammar"],["2","Revision: vocabulary"],["3","Revision: pronunciation"],["4","Revision: reading – circle a, b, c"]],
+    12: [["1a","Vocab: things crossword"],["1b","Vocab: in, on, under"]],
+    13: [["2a","Grammar: it's a / an"],["2b","Grammar: plurals -s, -es, -ies"],["2c","Grammar: irregular plurals"],["2d","Grammar: complete with a plural"],["2e","Grammar: look at the picture"],["2f","Grammar: write about your bag"],["3a","Pron: final -s and -es (audio)"],["3b","Pron: listen and repeat (audio)"]],
+    14: [["1a","Vocab: colours"],["1b","Vocab: opposite adjectives"],["1c","Vocab: opposites with quite / really"],["2a","Grammar: adjectives – right or wrong?"],["2b","Grammar: word order"]],
+    15: [["2c","Grammar: adjective + noun"],["2d","Grammar: quite or very"],["2e","Grammar: write about your things"],["3a","Pron: long and short vowels"],["3b","Pron: listen and repeat (audio)"]],
+    16: [["1a","Vocab: feelings – missing vowels"],["1b","Vocab: feelings – pictures"],["1c","Vocab: be + feeling"]],
+    17: [["2a","Grammar: imperatives / let's – pictures"],["2b","Grammar: positive or negative imperatives"],["2c","Grammar: suggestion or imperative"],["3a","Pron: linking (audio)"],["3b","Pron: listen and repeat (audio)"]],
+    18: [["1a","Vocab: circle the verb"],["1b","Vocab: verb phrases – match"],["1c","Vocab: verb phrases – pictures"],["2a","Grammar: present simple – a or b"]],
+    19: [["2b","Grammar: present simple ± sentences"],["2c","Grammar: complete the text"],["2d","Grammar: you – chart and sentences"],["3a","Pron: third person -s (audio)"],["3b","Pron: listen and repeat (audio)"]],
+    20: [["1a","Grammar: questions – right or wrong?"],["1b","Grammar: does, do, is, are + match"],["1c","Grammar: make questions"],["2a","Vocab: jobs wordsearch"]],
+    21: [["2b","Vocab: jobs – missing vowels"],["2c","Vocab: job descriptions"],["2d","Vocab: match to a job"],["2e","Vocab: a, an, at, for…"],["2f","Vocab: answer about a job"],["2g","Writing: a paragraph about a job"],["3a","Pron: /ɜː/ and /ə/ chart"],["3b","Pron: listen and repeat (audio)"]],
+    22: [["1a","Grammar: word order in questions"],["1b","Grammar: Carl and Lily – questions"],["1c","Grammar: make questions"],["2a","Vocab: question words – match"]],
+    23: [["2b","Vocab: circle the question word"],["2c","Vocab: complete the questions"],["2d","Vocab: answer for you"],["3a","Pron: question words – sounds"],["3b","Pron: listen and check (audio)"],["3c","Pron: underline the stress"],["3d","Pron: listen and repeat (audio)"]],
+    24: [["1","Vocab: telling the time"],["2a","Buying a coffee: order the conversation"],["2b","Buying a coffee: complete"],["3a","Social English: order the words"],["3b","Social English: complete"]],
+    25: [["1","Revision: grammar"],["2","Revision: vocabulary"],["3","Revision: pronunciation"],["4","Revision: reading – circle a, b, c"]],
+    26: [["1a","Grammar: add the apostrophe"],["1b","Grammar: 's = is or possessive?"],["1c","Grammar: whose or who's"],["1d","Grammar: questions with whose"],["1e","Grammar: answer the questions"],["2a","Vocab: family chart"]],
+    27: [["2b","Vocab: family sentences"],["2c","Vocab: Mia's family tree"],["2d","Vocab: your family"],["3a","Pron: /ʌ/ – cross out"],["3b","Pron: listen and repeat (audio)"],["3c","Pron: the letter o – match"],["3d","Pron: listen and repeat (audio)"]],
+    28: [["1a","Vocab: daily routine – first"],["1b","Vocab: verbs from the list"],["1c","Vocab: have, go or get"]],
+    29: [["2a","Pron: linking – write sentences (audio)"],["2b","Pron: listen and repeat (audio)"],["3a","Grammar: in, on, at – chart"],["3b","Grammar: circle the preposition"],["3c","Grammar: complete the text"],["3d","Grammar: your daily routine"]],
+    30: [["1a","Vocab: months"],["1b","Vocab: the Time Quiz"],["1c","Vocab: adverbs of frequency"],["2a","Grammar: adverb position – right or wrong?"]],
+    31: [["2b","Grammar: write sentences"],["2c","Grammar: you – chart"],["3a","Pron: the letter h"],["3b","Pron: listen and check (audio)"],["3c","Pron: listen and repeat (audio)"]]
+  },
+  "EF-B1": {
+    54: [["1a","Vocab: work – complete the text"],["1b","Vocab: preposition + word"]],
+    55: [["1c","Vocab: noun forms"],["1d","Vocab: word in the right form"],["2a","Pron: word stress"],["2b","Pron: listen and repeat (audio)"],["3a","Grammar: gerund or infinitive – a, b, c"]],
+    56: [["3b","Grammar: correct the mistakes"],["3c","Grammar: verbs in brackets"]],
+    57: [["1a","Grammar: reported speech – circle"],["1b","Grammar: said or told"],["1c","Grammar: report the conversations"]],
+    58: [["2a","Vocab: shopping – a or b"],["2b","Vocab: noun forms of verbs"]],
+    59: [["2c","Vocab: noun forms – text"],["3a","Pron: the letters ai (audio)"],["3b","Pron: listen and repeat (audio)"]],
+    60: [["1a","Grammar: had or would have"],["1b","Grammar: third conditional – verbs"],["1c","Grammar: similar meaning"]],
+    61: [["2a","Pron: sentence rhythm (audio)"],["2b","Pron: listen and repeat (audio)"],["3a","Vocab: adjectives -able, -ate…"],["3b","Vocab: words in brackets"],["3c","Vocab: adjective / adverb charts"],["3d","Vocab: word from the charts"]],
+    62: [["3e","Vocab: adjective or adverb – text"]],
+    63: [["1a","Vocab: electronic devices"],["1b","Vocab: devices in sentences"]],
+    64: [["1c","Vocab: crossword"],["2a","Grammar: quantifiers – circle"]],
+    65: [["2b","Grammar: same meaning"],["2c","Grammar: quantifier + words"],["3a","Pron: linking – write (audio)"],["3b","Pron: listen and repeat (audio)"],["3c","Pron: ough and augh"],["3d","Pron: listen and check (audio)"]],
+    66: [["1a","Indirect questions: circle"],["1b","Indirect questions: make them indirect"],["1c","Indirect questions: conversation"],["3","Social English"]],
+    67: [["1","Revision: grammar"],["2","Revision: vocabulary"],["3","Revision: pronunciation"],["4","Revision: reading – circle a, b, c"]],
+    68: [["1a","Grammar: relative pronouns"],["1b","Grammar: leave out the pronoun"],["1c","Grammar: cross out the extra word"],["1d","Grammar: non-defining clauses"]],
+    69: [["2a","Vocab: compound nouns – pictures"],["2b","Vocab: compound nouns – A + B"]],
+    70: [["2c","Vocab: word puzzle"],["3a","Pron: compound nouns – match"],["3b","Pron: listen and check (audio)"]],
+    71: [["1a","Vocab: crime – order the letters"],["1b","Vocab: crime – complete the text"]],
+    72: [["2a","Grammar: question tags – circle"],["2b","Grammar: complete the tags"],["2c","Grammar: rewrite with tags"],["3","Pron: intonation in tags (audio)"]]
+  }
+};

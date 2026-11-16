@@ -1079,6 +1079,9 @@ body.hwm-open { overflow: hidden; }
 .hw-wb-row[hidden]{display:none}
 .hw-wb-p,.hw-wb-x{border:2px solid #c9d6ef;background:#fff;border-radius:999px;padding:8px 14px;font-weight:800;color:#16275c;cursor:pointer;font-size:15px}
 .hw-wb-x{width:44px;height:44px;padding:0;border-radius:12px}
+.hw-wb-chips{display:contents}
+.hw-wb-x.hw-wb-xl{width:auto;height:auto;min-height:44px;padding:6px 12px;display:inline-flex;flex-direction:column;align-items:flex-start;text-align:left;max-width:230px;line-height:1.2}
+.hw-wb-xl small{font-weight:600;font-size:12px;opacity:.8}
 .hw-wb-p.on,.hw-wb-x.on{background:#16275c;border-color:#16275c;color:#fff}
 .hw-wb-view{margin-top:10px}
 .hw-wb-img{display:block;border:2px solid #c9d6ef;border-radius:12px;padding:0;background:#fff;cursor:zoom-in;max-width:100%;overflow:hidden}
