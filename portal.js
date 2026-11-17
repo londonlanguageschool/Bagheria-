@@ -9110,13 +9110,13 @@ function llsGamesHtml_(plan, cls) {
   const games = llsGamesFor_(plan, cls); if (!games.length) return "";
   llsPlayPlan = plan;
   return `<div class="start-games"><span class="start-k">🎲 Try a game with this lesson:</span>${games.map((g) => `<details class="sg-card"><summary>${escapeHtml(g.n)} <small>${escapeHtml(String(g.m || ""))} min · ${escapeHtml(g.s || "")}</small></summary>
-    <div class="sg-body"><div class="muted">Fits: ${escapeHtml(g.lang || "")} · prep: ${escapeHtml(g.p || "none")}</div><ol>${(g.how || []).map((h) => `<li>${escapeHtml(h)}</li>`).join("")}</ol>${g.eg ? `<div class="sg-eg">💬 ${escapeHtml(g.eg)}</div>` : ""}
+    <div class="sg-body"><div class="muted">Fits: ${escapeHtml(g.lang || "")} · prep: ${escapeHtml(g.p || "none")}</div><ol>${(g.how || []).map((h) => `<li>${escapeHtml(h)}</li>`).join("")}</ol>${g.eg ? `<div class="sg-eg">💬 ${escapeHtml(g.eg)}</div>` : ""}${window.LLS_ACT_KITS ? LLS_ACT_KITS.kitHtml(g, escapeHtml) : ""}
     <button type="button" class="sg-play" data-sg-play="${escapeAttribute(g.n)}">▶ Play on the screen</button></div></details>`).join("")}</div>`;
 }
 // 10 Nov (owner): "make the games lesson ready" – ▶ Play opens the game full-screen for the class: big rules, timer,
 // team scores and TODAY'S words (plan.words in lesson-plans.js: "word" or "word|banned1,banned2,banned3").
 // No words in the plan yet → the teacher types a few (one line, commas) and they're remembered for that lesson on this computer.
-const LLS_PLAY_CARD = /taboo|back to the board|charades|mime|draw and guess|pictionary|twenty questions|flashcard|hot seat|one-word|run and touch|swat|slap|backwards/i;
+const LLS_PLAY_CARD = /password|taboo|back to the board|charades|mime|draw and guess|pictionary|twenty questions|flashcard|hot seat|one-word|run and touch|swat|slap|backwards/i;
 let llsPlayCtx = null, llsPlayPlan = null;
 // The timer uses the round time in the rules ("Team guesses in 1 minute", "2 minutes: …"), otherwise the game length.
 function llsPlaySecs_(g) { const m = (g.how || []).join(" ").match(/(\d+)\s*minutes?|(\d+)\s*seconds/i); return m ? (m[1] ? +m[1] * 60 : +m[2]) : (Number(g.m) || 5) * 60; }
@@ -9130,12 +9130,34 @@ function llsPlayOpen_(name) {
   const A = window.LLS_ACTIVITIES || {}; const g = [...(A.ADULTS || []), ...(A.KIDS || [])].find((x) => x.n === name); if (!g) return;
   const plan = llsPlayPlan || null;
   const W = llsPlayWords_(plan);
-  llsPlayCtx = { g, plan, W, i: -1, shown: false, sc: [0, 0], left: llsPlaySecs_(g), run: false, t: null };
+  llsPlayCtx = { g, plan, W, i: -1, shown: false, sc: [0, 0], left: llsPlaySecs_(g), run: false, t: null, set: 0, ans: false, done: {}, own: false };
+  llsPlayCtx.set = llsPlayDefaultSet_(llsPlayCtx);
   let ov = document.getElementById("llsPlay");
   if (!ov) { ov = document.createElement("div"); ov.id = "llsPlay"; document.body.appendChild(ov); }
   llsPlayRender_();
   ov.hidden = false;
   try { if (ov.requestFullscreen) ov.requestFullscreen().catch(() => {}); } catch (_) {}
+}
+// 17 Nov (owner): "these games are ready to go, so they need the sentences or whatever ready for the teacher".
+// Sets = today's words (if the teacher typed them) + the game's ready kit (activities-kits.js). The set that matches
+// the lesson topic opens first (e.g. "Animals" bingo for an animals lesson).
+function llsPlaySets_(c) {
+  const sets = [];
+  if (c.W.words.length) sets.push(["Today's words", c.W.words.map((w) => w.w + (w.ban.length ? "|" + w.ban.join(",") : ""))]);
+  (c.g.kit || []).forEach((k) => sets.push(k));
+  return sets;
+}
+function llsPlayDefaultSet_(c) {
+  if (c.W.words.length) return 0;
+  const sets = llsPlaySets_(c), p = c.plan || {};
+  const text = [p.title, p.focus, p.id, ...Object.entries(p.skills || {}).flat()].join(" ").toLowerCase();
+  const i = sets.findIndex(([t]) => String(t).toLowerCase().replace(/\(.*?\)/g, "").split(/[^a-z]+/).some((w) => w.length > 3 && text.includes(w.replace(/s$/, ""))));
+  return i > -1 ? i : 0;
+}
+function llsPlayItems_(c) {
+  const set = llsPlaySets_(c)[c.set];
+  const P = window.LLS_ACT_KITS;
+  return set ? set[1].map((x) => (P ? P.parseItem(x) : { t: String(x), a: "", ban: [] })) : [];
 }
 function llsPlayClose_() {
   const c = llsPlayCtx; if (c && c.t) clearInterval(c.t);
@@ -9149,22 +9171,27 @@ function llsPlayRender_() {
   const mm = Math.floor(c.left / 60), ss = String(c.left % 60).padStart(2, "0");
   const isCard = LLS_PLAY_CARD.test(g.n), isAZ = /a to z/i.test(g.n);
   const topic = plan ? `${plan.id ? plan.id + " · " : ""}${plan.title || ""}` : "";
+  const sets = llsPlaySets_(c), items = llsPlayItems_(c), hasAns = items.some((x) => x.a);
+  const setBar = `<div class="lp-sets">${sets.map(([t], k) => `<button type="button" data-lp="set:${k}" class="${k === c.set && !c.own ? "on" : ""}">${escapeHtml(t)}</button>`).join("")}<button type="button" data-lp="own" class="${c.own || !sets.length ? "on" : ""}">✏️ Your own words</button></div>`;
+  const ans = (x) => (x.a ? `<span class="lp-ans${c.ans ? "" : " lp-off"}">${escapeHtml(x.a)}</span>` : "");
   let mid = "";
-  if (isAZ) mid = `<div class="lp-topic">Topic: <b>${escapeHtml(plan && plan.title || "today's lesson")}</b></div><div class="lp-az">${"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((l) => `<span>${l}</span>`).join("")}</div>`;
+  if (c.own || !sets.length) mid = `<div class="lp-need">Type today's words (commas). For Taboo add banned words after |<br><input id="lpWords" placeholder="embarrassed|red,shy,face, astonished, scared stiff"><button type="button" data-lp="words">Save</button></div>`;
+  else if (isAZ) mid = `<div class="lp-topic">Topic: <b>${escapeHtml(plan && plan.title || "today's lesson")}</b></div><div class="lp-az">${"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((l) => `<span>${l}</span>`).join("")}</div><div class="lp-items lp-small">${items.map((x, k) => `<button type="button" data-lp="done:${k}" class="${c.done[c.set + ":" + k] ? "lp-done" : ""}">${escapeHtml(x.t)}</button>`).join("")}</div>`;
   else if (isCard) {
-    if (!W.words.length) mid = `<div class="lp-need">Type today's words (commas). For Taboo add banned words after |<br><input id="lpWords" placeholder="embarrassed|red,shy,face, astonished, scared stiff"><button type="button" data-lp="words">Save</button></div>`;
-    else if (c.i < 0) mid = `<div class="lp-card lp-start">${W.words.length} cards ready<br><small>Press ▶ Next card</small></div>`;
-    else { const w = W.words[c.i]; mid = c.shown ? `<div class="lp-card">${escapeHtml(w.w)}${w.ban.length ? `<div class="lp-ban">🚫 ${w.ban.map(escapeHtml).join(" · ")}</div>` : ""}<small>${c.i + 1} / ${W.words.length}</small></div>` : `<div class="lp-card lp-hidden">Card ${c.i + 1}<br><small>Tap 👁 Show when ready</small></div>`; }
-  } else if (W.words.length) mid = `<div class="lp-words">${W.words.map((w) => `<span>${escapeHtml(w.w)}</span>`).join("")}</div>`;
+    if (c.i < 0 || c.i >= items.length) mid = `<div class="lp-card lp-start">${items.length} cards ready<br><small>Press ▶ Next card</small></div>`;
+    else { const w = items[c.i]; mid = c.shown ? `<div class="lp-card${w.t.length > 24 ? " lp-long" : ""}">${escapeHtml(w.t)}${w.ban.length ? `<div class="lp-ban">🚫 ${w.ban.map(escapeHtml).join(" · ")}</div>` : ""}${w.a ? `<div class="lp-cans">${ans(w)}</div>` : ""}<small>${c.i + 1} / ${items.length}</small></div>` : `<div class="lp-card lp-hidden">Card ${c.i + 1}<br><small>Tap 👁 Show when ready</small></div>`; }
+  } else mid = `<div class="lp-items">${items.map((x, k) => `<button type="button" data-lp="done:${k}" class="${c.done[c.set + ":" + k] ? "lp-done" : ""}"><span>${escapeHtml(x.t)}</span>${x.ban.length ? `<small class="lp-ban">🚫 ${x.ban.map(escapeHtml).join(" · ")}</small>` : ""}${ans(x)}</button>`).join("")}</div>`;
   ov.innerHTML = `<div class="lp-wrap">
     <div class="lp-top"><div><div class="lp-name">${escapeHtml(g.n)}</div><div class="lp-sub">${escapeHtml(topic)}</div></div><button type="button" class="lp-x" data-lp="close" aria-label="Close">✕</button></div>
     <ol class="lp-how">${(g.how || []).map((h) => `<li>${escapeHtml(h)}</li>`).join("")}</ol>
     ${g.eg && !isCard ? `<div class="lp-eg">💬 ${escapeHtml(g.eg)}</div>` : ""}
+    ${setBar}
     <div class="lp-mid">${mid}</div>
     <div class="lp-bar">
       <div class="lp-timer${c.left <= 10 ? " lp-low" : ""}">${mm}:${ss}</div>
       <button type="button" data-lp="time">${c.run ? "⏸ Pause" : "⏱ Start"}</button><button type="button" data-lp="reset">↺</button>
-      ${isCard && W.words.length ? `<button type="button" data-lp="next">▶ Next card</button><button type="button" data-lp="show">👁 Show</button>` : ""}
+      ${isCard && items.length && !c.own ? `<button type="button" data-lp="next">▶ Next card</button><button type="button" data-lp="show">👁 Show</button>` : ""}
+      ${hasAns && !c.own ? `<button type="button" data-lp="ans">${c.ans ? "🙈 Hide answers" : "✅ Answers"}</button>` : ""}
       <div class="lp-teams">${["A", "B"].map((t, k) => `<div class="lp-team lp-t${k}"><b>Team ${t}</b><span>${c.sc[k]}</span><button type="button" data-lp="sc:${k}:1">+1</button><button type="button" data-lp="sc:${k}:-1">−1</button></div>`).join("")}</div>
     </div></div>`;
 }
@@ -9183,16 +9210,20 @@ document.addEventListener("click", (e) => {
   if (a === "close") return llsPlayClose_();
   if (a === "time") { c.run = !c.run; if (c.run) { if (!c.left) c.left = llsPlaySecs_(c.g); c.t = setInterval(llsPlayTick_, 1000); } else { clearInterval(c.t); c.t = null; } }
   if (a === "reset") { c.run = false; clearInterval(c.t); c.t = null; c.left = llsPlaySecs_(c.g); }
-  if (a === "next") { c.i = (c.i + 1) % c.W.words.length; c.shown = false; }
+  if (a === "next") { const n = llsPlayItems_(c).length; if (n) { c.i = (c.i + 1) % n; c.shown = false; c.ans = false; } }
   if (a === "show") { if (c.i < 0) c.i = 0; c.shown = !c.shown; }
+  if (a === "ans") c.ans = !c.ans;
+  if (a === "own") c.own = true;
+  if (a.startsWith("set:")) { c.set = +a.slice(4); c.own = false; c.i = -1; c.shown = false; c.ans = false; }
+  if (a.startsWith("done:")) { const k = c.set + ":" + a.slice(5); c.done[k] = !c.done[k]; }
   if (a.startsWith("sc:")) { const [, k, d] = a.split(":"); c.sc[+k] = Math.max(0, c.sc[+k] + Number(d)); }
-  if (a === "words") { const v = (document.getElementById("lpWords") || {}).value || ""; if (v.trim()) { try { localStorage.setItem(c.W.key, v); } catch (_) {} c.W = llsPlayWords_(c.plan); c.i = -1; } }
+  if (a === "words") { const v = (document.getElementById("lpWords") || {}).value || ""; if (v.trim()) { try { localStorage.setItem(c.W.key, v); } catch (_) {} c.W = llsPlayWords_(c.plan); c.i = -1; c.set = 0; c.own = false; } }
   llsPlayRender_();
 });
 document.addEventListener("keydown", (e) => {
   if (!llsPlayCtx) return;
   if (e.key === "Escape") llsPlayClose_();
-  else if (e.key === "ArrowRight" && llsPlayCtx.W.words.length) { llsPlayCtx.i = (llsPlayCtx.i + 1) % llsPlayCtx.W.words.length; llsPlayCtx.shown = false; llsPlayRender_(); }
+  else if (e.key === "ArrowRight" && llsPlayItems_(llsPlayCtx).length) { llsPlayCtx.i = (llsPlayCtx.i + 1) % llsPlayItems_(llsPlayCtx).length; llsPlayCtx.shown = false; llsPlayCtx.ans = false; llsPlayRender_(); }
   else if (e.key === " " && document.activeElement && document.activeElement.id !== "lpWords") { e.preventDefault(); llsPlayCtx.shown = !llsPlayCtx.shown; if (llsPlayCtx.i < 0) llsPlayCtx.i = 0; llsPlayRender_(); }
 });
 function llsHwmRec_(sid) {

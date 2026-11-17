@@ -97,7 +97,7 @@
   const list = () => (state.who === "kids" ? KIDS : ADULTS);
   const card = (a, i) => `<details class="act-card" data-act="${i}"><summary><b>${esc(a.n)}</b><span class="act-meta">${esc(a.s)} · ${a.m} min · prep: ${esc(a.p)}</span></summary>
       <p class="act-lang">🎯 ${esc(a.lang)}</p><ol>${a.how.map((h) => `<li>${esc(h)}</li>`).join("")}</ol>
-      ${a.eg ? `<p class="act-eg">💬 e.g. ${esc(a.eg)}</p>` : ""}${a.src ? `<p class="act-src"><a href="${esc(a.src)}" target="_blank" rel="noopener">More versions of this idea ↗</a></p>` : ""}</details>`;
+      ${a.eg ? `<p class="act-eg">💬 e.g. ${esc(a.eg)}</p>` : ""}${window.LLS_ACT_KITS ? window.LLS_ACT_KITS.kitHtml(a, esc) : ""}${a.src ? `<p class="act-src"><a href="${esc(a.src)}" target="_blank" rel="noopener">More versions of this idea ↗</a></p>` : ""}</details>`;
   function render() {
     const el = host();
     if (!el) return;
