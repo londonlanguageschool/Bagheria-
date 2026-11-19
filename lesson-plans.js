@@ -381,6 +381,8 @@ window.LLS_PLANS = {
   "A2_Blue_Part1_Units1-6/A2_3A_TripAside_going_to.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_3A_TripAside.pptx?v=202611031430",
   "A2_Blue_Part1_Units1-6/A2_3B_Put_it_in_your_calendar.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_3B_Put_it_in_your_calendar.pptx?v=202611050743",
   "A2_Blue_Part1_Units1-6/A2_3B_Can_we_meet.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_3B_Can_we_meet.pptx?v=202611101055",
+  "A2_Blue_Part1_Units1-6/A2_4A_Who_does_what_housework.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_4A_Who_does_what.pptx?v=202611191010",
+  "A2_Blue_Part1_Units1-6/A2_4A_Photocopiables.pdf": "https://drive.google.com/file/d/11XVEZMvDQXbbOCZKX_n0OaTp0slZ325O/view",
   "A2_Blue_Part1_Units1-6/A2_3C_Word_games_relative_clauses.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_3C_Word_games.pptx?v=202611120933",
   "A2_Blue_Part1_Units1-6/A2_2C_One_dark_October_evening.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_2C_One_dark_October_evening.pptx?v=20261022e",
   "A2_Adults_Rebuilt/A2_2B_Thats_me_in_the_picture.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_2B_Thats_me_in_the_picture_v3.pptx?v=20261021b",
@@ -773,13 +775,16 @@ window.LLS_PLANS = {
     "title": "Who does what?",
     "focus": "Present perfect + yet, just, already",
     "pages": "SB pp.30–31",
-    "slides": 12,
+    "slides": 16,
     "file": "A2_Blue_Part1_Units1-6/A2_4A_Who_does_what_housework.pptx",
+    "pcm": "A2_Blue_Part1_Units1-6/A2_4A_Photocopiables.pdf",
     "skills": {
      "Grammar": "Present perfect + yet, just, already",
-     "Reading": "Housework headlines",
-     "Listening": "The Lazy Person's Guide",
-     "Speaking": "Your country / You"
+     "Vocabulary": "housework, make or do",
+     "Reading": "SB pp.30–31",
+     "Pronunciation": "/j/ yet and /dʒ/ just",
+     "Speaking": "Who does what in your home? · Find the response",
+     "Games & songs": "Find someone who…"
     }
    },
    {
