@@ -118,7 +118,41 @@
   "PREP4-p56": "3b362163626035bd01f9.bin",
   "PREP4-p57": "8e10e0e0d74c1db9d379.bin",
   "PREP4-p58": "c30670e4ae961f2e3622.bin",
-  "PREP4-p59": "0041d210989ed05d6c25.bin"
+  "PREP4-p59": "0041d210989ed05d6c25.bin",
+  "BLUE5-p220": "8921109197b7ed5f743d.bin",
+  "BLUE5-p221": "8fe4cc685a8c478c6c8b.bin",
+  "BLUE5-p222": "489465494862c87dadb6.bin",
+  "BLUE5-p223": "29d6adf3d2f24666c346.bin",
+  "BLUE5-p224": "787b1f2b5bc6c95c65c8.bin",
+  "BLUE5-p225": "e9276059f7afff440035.bin",
+  "BLUE5-p226": "66fb3438661aacfcff58.bin",
+  "BLUE5-p227": "55f50dbec50607bd535d.bin",
+  "BLUE5-p228": "97ebce959f47fe28f0b4.bin",
+  "BLUE5-p229": "22ffd10b8aefb24b3615.bin",
+  "BLUE5-p230": "c00e103477ec72f539b2.bin",
+  "BLUE5-p231": "58b6456b29f3a83e7359.bin",
+  "BLUE5-p232": "9b751c4bb785ea170035.bin",
+  "BLUE5-p233": "f0d338303135d770aece.bin",
+  "BLUE5-p234": "0228f8cfe6f30bf754bd.bin",
+  "BLUE5-p235": "41ccba5d3dac68e36fe2.bin",
+  "BLUE5-p236": "6bc196ad5a0be1667b39.bin",
+  "BLUE5-p237": "4df5d9036353c46aafb8.bin",
+  "BLUE5-p238": "cf2776d0bd48db4090dc.bin",
+  "BLUE5-p239": "00b80d40d3d5f9ce075e.bin",
+  "BLUE5-p240": "bd67d39c42de9e2f6a51.bin",
+  "BLUE5-p241": "b94d0ed4af2080b5b06d.bin",
+  "BLUE5-p242": "35eef0df8ebcda480b55.bin",
+  "BLUE5-p243": "7e0ff933ab42c811b099.bin",
+  "BLUE5-p244": "b5455eb2b56a1b265dc3.bin",
+  "BLUE5-p245": "fbf550f989458a91b200.bin",
+  "BLUE5-p246": "20c7f5e7e1ed4a2bd649.bin",
+  "BLUE5-p247": "fa901c20e5894c2256a5.bin",
+  "BLUE5-p248": "72af57081d4f3998333b.bin",
+  "BLUE5-p249": "e8b45154525c07000f72.bin",
+  "BLUE5-p250": "1039337d368e007a4b8f.bin",
+  "BLUE5-p251": "a0d4c2c4e61e2123c374.bin",
+  "BLUE5-p252": "cd30f0cd1f3ffa48ac6f.bin",
+  "BLUE5-p253": "7a30d8f07a8fc8cf6833.bin"
  },
  "classes": {
   "CLS0008": "PREP4",
@@ -289,6 +323,14 @@
    "4C": [
     248,
     249
+   ],
+   "ES2": [
+    250,
+    251
+   ],
+   "5A": [
+    252,
+    253
    ]
   },
   "PREP4": {
