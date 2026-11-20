@@ -62,7 +62,27 @@
   "EF-B1-p50": "5f2cebf969370b7087b1.bin",
   "EF-B1-p51": "a063e493e78702cc0dad.bin",
   "EF-B1-p52": "3a6cafe375ae31798bf2.bin",
-  "EF-B1-p53": "435bac92e116050b1f7d.bin"
+  "EF-B1-p53": "435bac92e116050b1f7d.bin",
+  "PREP4-p4": "b75d2596ad023acdebd6.bin",
+  "PREP4-p5": "3918a8d2674b21da56fe.bin",
+  "PREP4-p6": "122110b0f1bdda9faa48.bin",
+  "PREP4-p7": "d9b621dfdd3f6afced4a.bin",
+  "PREP4-p8": "ef98e0dd332df637c47d.bin",
+  "PREP4-p9": "7ebb0b080676a47315b0.bin",
+  "PREP4-p10": "8888ae54c88beab06944.bin",
+  "PREP4-p11": "7ee3f73b521cedcc9aee.bin",
+  "PREP4-p12": "e03d53ca0806eb781d1a.bin",
+  "PREP4-p13": "7a833fbaf22493babdb6.bin",
+  "PREP4-p14": "7a4d2c563c386bd91e3e.bin",
+  "PREP4-p15": "6ecf10d54e26e2595d79.bin",
+  "PREP4-p16": "22d4192bf11058934090.bin",
+  "PREP4-p17": "29846e294a1988fe7799.bin",
+  "PREP4-p18": "62e56721c7fa6fb199b0.bin",
+  "PREP4-p19": "95a0d150868cd1976132.bin",
+  "PREP4-p20": "ab5f4edde2ff7c3a781e.bin",
+  "PREP4-p21": "f7f9382dc94487fc87f6.bin",
+  "PREP4-p22": "ad0ba0b7830da668d59e.bin",
+  "PREP4-p23": "6b0b31fe102c1792b5c1.bin"
  },
  "classes": {
   "CLS0008": "PREP4",
@@ -101,6 +121,7 @@
  "units": {
   "EF-B1": {
    "6A": [
+    40,
     41,
     42
    ],
@@ -231,6 +252,48 @@
    "4C": [
     248,
     249
+   ]
+  },
+  "PREP4": {
+   "1A": [
+    4,
+    5
+   ],
+   "1B": [
+    6,
+    7
+   ],
+   "2A": [
+    8,
+    9
+   ],
+   "2B": [
+    10,
+    11
+   ],
+   "3A": [
+    12,
+    13
+   ],
+   "3B": [
+    14,
+    15
+   ],
+   "4A": [
+    16,
+    17
+   ],
+   "4B": [
+    18,
+    19
+   ],
+   "5A": [
+    20,
+    21
+   ],
+   "5B": [
+    22,
+    23
    ]
   }
  }
