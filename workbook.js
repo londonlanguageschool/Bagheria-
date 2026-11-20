@@ -200,6 +200,15 @@ window.LLS_WORKBOOK = {
         { p: 51, items: [
           ["Reading", "houses for sale: complete the adverts (3c)"] ] }
       ] },
+      "PE4": { title: "Practical English 4: Boys' night out", pages: [
+        { p: 52, items: [
+          ["Vocabulary", "making suggestions: re-order, complete the conversation (1a–b)"],
+          ["Grammar", "verb forms after suggestions (2)"],
+          ["Vocabulary", "Social English: complete the conversation (3)"] ] },
+        { p: 53, items: [
+          ["Grammar", "Can you remember…? 1–7: grammar, vocabulary, pronunciation (1–3)"],
+          ["Reading", "Alternative schooling: a, b or c (4)"] ] }
+      ] },
       "8A": { title: "The right job for you", pages: [
         { p: 54, items: [
           ["Vocabulary", "work: complete the text and sentences (1a–b)"] ] },
