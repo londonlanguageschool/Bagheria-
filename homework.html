@@ -606,6 +606,8 @@
   <main class="wrap" id="main">
     <div class="empty">Loading your homework… · Caricamento…</div>
   </main>
+  <div id="llsJoke" hidden></div>
+  <script src="jokes.js?v=20261120a"></script>
   <div id="llsSocial" hidden></div>
   <script src="social.js?v=20261116a"></script>
 
@@ -1109,6 +1111,7 @@
         let stars = 0; try { stars = journeyStars(); } catch (_) {}
         const cls = data.classes.map((c) => c["Class Name"]).join(", ");
         document.getElementById("subtitle").textContent = [cls, `Level ${Math.floor(stars / 10) + 1}`, `⭐ ${stars}`].filter(Boolean).join(" · ");
+        try { window.llsDrawJoke && window.llsDrawJoke(data.classes.map((c) => c["Class Name"])); } catch (_) {} // 20 Nov: joke of the week (not young learners)
       }
 
       const tabs = document.getElementById("tabs");
