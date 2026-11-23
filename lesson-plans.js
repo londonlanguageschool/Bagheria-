@@ -214,7 +214,8 @@ window.LLS_PLANS = {
   "B1_Green_Course_6B-10B/B1_PE4_Homework_sheet.pdf": "https://drive.google.com/file/d/1GLIxD0opLpVvJKbnGLDnZEIsAVrPvuf3/view",
   "B1_Green_Course_6B-10B/B1_PE4_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1EeTa8ZhrkRufzlkmX4JooD4P6e9WrxqE/view",
   "B1_Green_Course_6B-10B/B1_PE4_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1JdgXzCA3nv76zk_17_15uvvTYlwFGQ8p/view",
-  "B1_Green_Course_6B-10B/B1_8A-1_The_right_job_for_you.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_8A-1_The_right_job_for_you.pptx?v=20261022a",
+  "B1_Green_Course_6B-10B/B1_8A-1_The_right_job_for_you.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_8A-1_The_job_centre.pptx?v=202611231300",
+  "B1_Green_Course_6B-10B/B1_PE4-2_Boys_night_out_part2.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_PE4-2_Boys_night_out_part2.pptx?v=202611231300",
   "B1_Green_Course_6B-10B/B1_8A-1_Homework_sheet.pdf": "https://drive.google.com/file/d/1P8P0vRs4IsyuwQ3BwUzch_oU5wyEpVp5/view",
   "B1_Green_Course_6B-10B/B1_8A-1_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/12YmBZa8bywNQfxc0Mphy0XUEfzNARbf-/view",
   "B1_Green_Course_6B-10B/B1_8A-1_Teacher_answer_key.pdf": "https://drive.google.com/file/d/10iVT1viaBi6yyT1qU8pZhPvGy3nhn7xb/view",
@@ -1890,13 +1891,14 @@ window.LLS_PLANS = {
     "easy": "B1_Green_Course_6B-10B/B1_PE4_Homework_sheet_easier.pdf",
     "key": "B1_Green_Course_6B-10B/B1_PE4_Teacher_answer_key.pdf"
    },
+   {"id": "PE4-2", "unit": 7, "title": "Boys' night out (part 2)", "focus": "making suggestions • infinitive or -ing after suggestion phrases • Social English: apologies and excuses", "pages": "SB pp.74–75 (ex. 2–3)", "slides": 13, "file": "B1_Green_Course_6B-10B/B1_PE4-2_Boys_night_out_part2.pptx", "homework": "Workbook p.53", "skills": {"Listening": "PE4 video/audio 7.24–7.28", "Grammar": "Shall we… / Let's… / Why don't we… + infinitive · What about / How about + -ing", "Speaking": "Plan the end-of-term party · Social English role-plays"}},
    {
     "id": "8A-1",
     "unit": 8,
     "title": "The right job for you",
     "focus": "work • word stress",
     "pages": "SB pp.76–77",
-    "slides": 17,
+    "slides": 25,
     "skills": {
      "Grammar": "gerunds and infinitives",
      "Vocabulary": "Work",
