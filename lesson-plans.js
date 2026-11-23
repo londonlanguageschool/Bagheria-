@@ -215,7 +215,7 @@ window.LLS_PLANS = {
   "B1_Green_Course_6B-10B/B1_PE4_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1EeTa8ZhrkRufzlkmX4JooD4P6e9WrxqE/view",
   "B1_Green_Course_6B-10B/B1_PE4_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1JdgXzCA3nv76zk_17_15uvvTYlwFGQ8p/view",
   "B1_Green_Course_6B-10B/B1_8A-1_The_right_job_for_you.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_8A-1_The_job_centre.pptx?v=202611231300",
-  "B1_Green_Course_6B-10B/B1_PE4-2_Boys_night_out_part2.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_PE4-2_Boys_night_out_part2.pptx?v=202611231605",
+  "B1_Green_Course_6B-10B/B1_PE4-2_Boys_night_out_part2.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_PE4-2_Boys_night_out_part2.pptx?v=202611231715",
   "B1_Green_Course_6B-10B/B1_8A-1_Homework_sheet.pdf": "https://drive.google.com/file/d/1P8P0vRs4IsyuwQ3BwUzch_oU5wyEpVp5/view",
   "B1_Green_Course_6B-10B/B1_8A-1_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/12YmBZa8bywNQfxc0Mphy0XUEfzNARbf-/view",
   "B1_Green_Course_6B-10B/B1_8A-1_Teacher_answer_key.pdf": "https://drive.google.com/file/d/10iVT1viaBi6yyT1qU8pZhPvGy3nhn7xb/view",
