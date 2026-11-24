@@ -11775,6 +11775,7 @@ function llsApplyPlan_(p) {
   llsLesson.noteTouched = true;
   byId("lessonDone")?.classList.remove("needs");
 }
+let llsPlanRedraws_ = 0;
 function llsRenderPlanPanel() {
   const box = byId("lessonPlanPanel");
   if (!box) return;
@@ -12016,8 +12017,8 @@ function llsRenderPlanPanel() {
     const touched = llsLesson.noteTouched;
     llsApplyPlan_(next);
     llsLesson.noteTouched = touched;
-    // 24 Nov: redraw once only. If the lesson code can't be read back (e.g. a new book's codes), never loop – it froze the page.
-    if (llsPlanCode_(value("lessonUnitPage")) === next.id) llsRenderPlanPanel();
+    // 24 Nov: redraw – but never more than a few times in a row (an unreadable lesson code made this loop forever and froze the page).
+    if ((llsPlanRedraws_ = (llsPlanRedraws_ || 0) + 1) <= 3) { try { llsRenderPlanPanel(); } finally { llsPlanRedraws_--; } }
     return;
   }
   byId("planOther")?.addEventListener("change", (e) => {
