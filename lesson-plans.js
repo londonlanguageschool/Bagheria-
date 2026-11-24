@@ -10,6 +10,7 @@
 window.LLS_PLANS = {
  "folder": "https://drive.google.com/drive/folders/1_AyE9xHLZX-tR057npuZEDeoPWiVDOgB",
  "links": {
+  "KB3/KB3_U1-1_What_are_they_doing.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/KB3/KB3_U1-1_What_are_they_doing.pptx?v=202611241245",
   "B1Y/B1Y_Y1_Weekend_plans.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1Y/B1Y_Y1_Weekend_plans.pptx?v=20261021b",
   "Red_Elementary/EFE_2A_Tidy_or_untidy.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_2A_Tidy_or_untidy.pptx?v=20261021b",
   "Red_Elementary/EFE_R1-2_Revise_and_Check_1-2.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/EFE/EFE_R1-2_Revise_and_Check_1-2.pptx?v=20261023e",
@@ -403,6 +404,7 @@ window.LLS_PLANS = {
   "A2_Adults_Rebuilt/A2_PE1_Role_cards.pdf": "https://drive.google.com/file/d/1GznE6Yrffoz7IA9mdLZgncEtaHzjOf90/view"
  },
  "names": {
+  "KB3": "Kid's Box New Generation 3 (Movers) – from 24 Nov 2026",
   "LLS-B1Y": "LLS teens course – low B1 (until Prepare Level 4)",
   "EF-A2B1": "English File A2/B1 (blue) – full course",
   "EF-B1": "English File B1 (green) – full course, units 1–10",
@@ -413,6 +415,11 @@ window.LLS_PLANS = {
   "EF-A1A2": "English File Elementary (red) – A1/A2"
  },
  "courses": {
+  "KB3": [
+   {"id": "H", "unit": 0, "title": "Hello!", "focus": "characters · introductions · numbers, colours and toys · prepositions of place", "pages": "PB pp.4–5 · AB pp.4–5", "skills": {"Vocabulary": "characters, toys, numbers 10–20", "Speaking": "What's your name? How old are you?"}},
+   {"id": "U1-1", "unit": 1, "title": "What are they doing?", "focus": "present continuous · actions · toys", "pages": "PB pp.6–7 · AB pp.6–7", "slides": 24, "homework": "Activity Book p.6 ex 1, 2 · p.7 ex 1 (write the names and colour)", "file": "KB3/KB3_U1-1_What_are_they_doing.pptx", "skills": {"Grammar": "present continuous: What's he doing? He's running.", "Vocabulary": "actions", "Reading": "In the playground · In the park", "Listening": "Who is it? (tracks 4–5)", "Games & songs": "We've got toys! · What am I doing? mime game"}},
+   {"id": "U1-2", "unit": 1, "title": "Lock's sounds and spelling + Lock & Key", "focus": "sounds i-e, y, oy, ai, ei, a-e, ey · story", "pages": "PB pp.8–9 · AB pp.8–9", "skills": {"Phonics": "The spiders ride, fly and drive…", "Reading": "Lock & Key story"}}
+  ],
   "LLS-B1Y": [
    {"id": "Y1", "unit": 1, "title": "Weekend plans", "focus": "free time • be going to • present continuous for arrangements", "pages": "LLS original lesson · no book needed", "slides": 18, "file": "B1Y/B1Y_Y1_Weekend_plans.pptx", "skills": {"Grammar": "going to and present continuous (future)", "Vocabulary": "free time / weekend activities", "Reading": "Group chat: Saturday?", "Speaking": "Are you free on Saturday?", "Writing": "Reply to the group chat", "Games & songs": "Mime it! · Diary race!"}}
   ],
