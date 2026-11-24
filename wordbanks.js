@@ -15,6 +15,19 @@ window.LLS_WORDBANKS = {
   }
  }
 };
+/* 24 Nov (owner): cards on the student page open and close to save space. Closed by default; the phone remembers. */
+window.llsFold = function (box) {
+  var d = box && box.querySelector("details.lls-fold"); if (!d) return;
+  var k = "llsFold_" + d.getAttribute("data-fold");
+  try { if (localStorage.getItem(k) === "1") d.open = true; } catch (_) {}
+  d.addEventListener("toggle", function () { try { localStorage.setItem(k, d.open ? "1" : "0"); } catch (_) {} });
+};
+(function () {
+  var fc = document.createElement("style");
+  fc.textContent = "details.lls-fold>summary{list-style:none;cursor:pointer;position:relative;padding-right:44px!important}details.lls-fold>summary::-webkit-details-marker{display:none}" +
+    "details.lls-fold>summary::after{content:'▾';position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.8}details.lls-fold[open]>summary::after{content:'▴'}";
+  document.head.appendChild(fc);
+})();
 (function () {
   function today() { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
   function day(t) { t = String(t || "").replace(/^'/, "").trim(); var m = t.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return m[0];
@@ -66,14 +79,14 @@ window.LLS_WORDBANKS = {
     if (!list.length) { box.hidden = true; return; }
     var kn = known();
     var all = []; list.forEach(function (b) { b.bank.w.forEach(function (w) { all.push(w); }); });
-    box.innerHTML = '<div class="wb"><div class="wb-h"><span>🃏 My word banks · Le mie parole</span><span class="wb-n">' + all.length + ' words</span></div>' +
+    box.innerHTML = '<details class="wb lls-fold" data-fold="banks"><summary class="wb-h"><span>🃏 My word banks · Le mie parole</span><span class="wb-n">' + all.length + ' words</span></summary>' +
       '<p class="wb-p">Words from the lessons you have finished. Tap a bank to practise with flashcards. · Le parole delle lezioni che hai finito.</p><div class="wb-list">' +
       list.slice().reverse().map(function (b, n) {
         var k = b.bank.w.filter(function (w) { return kn[cardId(w)]; }).length;
         return '<button type="button" data-wb="' + (list.length - 1 - n) + '"><b>' + esc(b.key) + '</b><span>' + esc(b.bank.t) + '</span><small>' + k + ' / ' + b.bank.w.length + ' ✓</small></button>';
       }).join("") + (list.length > 1 ? '<button type="button" data-wb="all" class="wb-all"><b>All</b><span>Mix all my words · Tutte mescolate</span><small>' + all.length + ' words</small></button>' : '') +
-      '</div></div>';
-    box.hidden = false;
+      '</div></details>';
+    box.hidden = false; if (window.llsFold) window.llsFold(box);
     box.onclick = function (e) {
       var b = e.target.closest("button[data-wb]"); if (!b) return;
       var v = b.getAttribute("data-wb");
@@ -129,7 +142,7 @@ window.LLS_WORDBANKS = {
   css.textContent = "#llsBanks{max-width:760px;margin:10px auto;padding:0 12px}" +
     ".wb{background:#fff;border:1px solid #eadfb8;border-radius:14px;overflow:hidden;font:15px/1.45 Nunito,Arial,sans-serif;color:#111}" +
     ".wb-h{background:#16275c;color:#FFC93C;font-weight:800;padding:9px 12px;display:flex;justify-content:space-between;align-items:center}" +
-    ".wb-n{background:#FFC93C;color:#16275c;border-radius:10px;padding:1px 9px;font-size:12px}.wb-p{margin:8px 12px;opacity:.7;font-size:13px}" +
+    ".wb-n{white-space:nowrap;background:#FFC93C;color:#16275c;border-radius:10px;padding:1px 9px;font-size:12px}.wb-p{margin:8px 12px;opacity:.7;font-size:13px}" +
     ".wb-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:0 12px 12px}" +
     ".wb-list button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:1px solid #ddd;border-radius:12px;background:#fffbf2;padding:9px;cursor:pointer;font:inherit;color:#111;min-height:84px}" +
     ".wb-list b{font-size:20px;color:#E63946}.wb-list span{font-size:13px;font-weight:700;line-height:1.25}.wb-list small{margin-top:auto;opacity:.6;font-size:12px}.wb-list .wb-all{background:#eef3ff}" +

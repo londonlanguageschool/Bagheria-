@@ -20,13 +20,13 @@ window.LLS_WORDS = [
     var box = document.getElementById("llsWord"); if (!box) return;
     var t = today(), w = (window.LLS_WORDS || []).filter(function (x) { return x.date <= t; })[0];
     if (!w) { box.hidden = true; return; }
-    box.innerHTML = '<div class="lls-wd"><div class="lls-wd-h"><span>📖 Word of the day · Parola del giorno</span><span class="lls-wd-b">New</span></div>' +
+    box.innerHTML = '<details class="lls-wd lls-fold" data-fold="word"><summary class="lls-wd-h"><span>📖 Word of the day · Parola del giorno: <b class="lls-wd-peek">' + w.word + '</b></span><span class="lls-wd-b">New</span></summary>' +
       '<p class="lls-wd-w">' + w.word + ' <span>' + w.say + '</span></p><p class="lls-wd-it">🇮🇹 ' + w.it + '</p>' +
       w.senses.map(function (s, n) { return '<div class="lls-wd-s"><p><b>' + (n + 1) + '. ' + s.pos + '</b> – ' + s.def + '</p><ul>' + s.ex.map(function (e) { return '<li>' + e + '</li>'; }).join("") + '</ul></div>'; }).join("") +
       (w.tip ? '<p class="lls-wd-tip">💡 ' + w.tip + '</p>' : '') +
       '<div class="lls-wd-q"><p><b>Quick check:</b> ' + w.q + '</p>' + w.opts.map(function (o, n) { return '<button type="button" data-wo="' + n + '">' + "abc"[n] + ') ' + o + '</button>'; }).join("") +
-      '<p class="lls-wd-f"></p></div><small>Try to use it today! · Prova a usarla oggi!</small></div>';
-    box.hidden = false;
+      '<p class="lls-wd-f"></p></div><small>Try to use it today! · Prova a usarla oggi!</small></details>';
+    box.hidden = false; if (window.llsFold) window.llsFold(box);
     box.onclick = function (e) {
       var b = e.target.closest("button[data-wo]"); if (!b) return;
       var f = box.querySelector(".lls-wd-f");
@@ -38,7 +38,7 @@ window.LLS_WORDS = [
   css.textContent = "#llsWord{max-width:760px;margin:10px auto;padding:0 12px}" +
     ".lls-wd{background:#fff;border:1px solid #eadfb8;border-radius:14px;overflow:hidden;font:15px/1.45 Nunito,Arial,sans-serif;color:#111}" +
     ".lls-wd-h{background:#111;color:#FFC93C;font-weight:800;padding:9px 12px;display:flex;justify-content:space-between;align-items:center}" +
-    ".lls-wd-b{background:#E63946;color:#fff;border-radius:10px;padding:1px 9px;font-size:12px}" +
+    ".lls-wd-b{white-space:nowrap;background:#E63946;color:#fff;border-radius:10px;padding:1px 9px;font-size:12px}" +
     ".lls-wd-w{font-size:28px;font-weight:800;margin:10px 12px 0}.lls-wd-w span{font-size:15px;font-weight:600;opacity:.6}" +
     ".lls-wd-it{margin:2px 12px 8px;opacity:.75}.lls-wd-s{margin:0 12px 6px}.lls-wd-s p{margin:0}.lls-wd-s ul{margin:4px 0 6px;padding-left:20px}" +
     ".lls-wd-tip{margin:6px 12px;padding:9px;border-radius:10px;background:#FFF6CC;color:#4a3800}" +
