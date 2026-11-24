@@ -607,7 +607,7 @@
     <div class="empty">Loading your homework… · Caricamento…</div>
   </main>
   <div id="llsBanks" hidden></div>
-  <script src="wordbanks.js?v=20261124b"></script>
+  <script src="wordbanks.js?v=20261124c"></script>
   <div id="llsWord" hidden></div>
   <script src="words.js?v=20261124b"></script>
   <div id="llsJoke" hidden></div>
@@ -1132,6 +1132,9 @@
       else if (tab === "progress") renderProgressTab();
       else renderHomework();
       if (!quiz && !chat && window.llsInstallCard) window.llsInstallCard(); // 9 Oct: "put LLS on your phone" card
+      // 24 Nov (owner): on the Practice tab the word-bank flashcards come FIRST (open), elsewhere they stay below.
+      try { const wb = document.getElementById("llsBanks"), mainEl = document.getElementById("main");
+        if (wb && mainEl) { if (tab === "practice" && !quiz && !chat) { mainEl.parentNode.insertBefore(wb, mainEl); const d = wb.querySelector("details"); if (d) d.open = true; } else if (wb.previousElementSibling !== mainEl) mainEl.parentNode.insertBefore(wb, mainEl.nextSibling); } } catch (_) {}
     }
 
     function setTab(next) {
