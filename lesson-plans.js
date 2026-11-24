@@ -360,6 +360,7 @@ window.LLS_PLANS = {
   "B2_Violet_Course/B2_7A-1_Lets_not_argue.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B2/B2_7A-1_Lets_not_argue.pptx?v=20261023b",
   "B2_Violet_Course/B2_7A-2_Lets_not_argue_2.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B2/B2_7A-2_Lets_not_argue_2.pptx?v=202611031426",
   "B2_Violet_Course/B2_7B-2_Its_all_an_act.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B2/B2_7B-2_Its_all_an_act.pptx?v=202611201800",
+  "B2_Violet_Course/B2_8A-1_Cutting_crime.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B2/B2_8A-1_Cutting_crime.pptx?v=202611241225",
   "B2_Violet_Course/B2_7B-2_Photocopiables.pdf": "https://drive.google.com/file/d/1WD3wCBqbQthOszAIE5LyT8GDgGYgVlea/view",
   "B2_Violet_Course/B2_7B-1_Its_all_an_act.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B2/B2_7B-1_Its_all_an_act.pptx?v=202611171015",
   "B2_Violet_Course/B2_7B_Photocopiables.pdf": "https://drive.google.com/file/d/1xk9KkUn-11rthtXmPLPqRqH3eA0meBcs/view",
@@ -2685,7 +2686,23 @@ window.LLS_PLANS = {
    {"id": "7B-1", "unit": 7, "title": "It's all an act", "focus": "verbs of the senses: look, look like, look as if · film stills · how to improve your acting skills", "pages": "SB pp.70–71", "file": "B2_Violet_Course/B2_7B-1_Its_all_an_act.pptx", "pcm": "B2_Violet_Course/B2_7B_Photocopiables.pdf", "slides": 17, "words": ["embarrassed|red,shy,face", "astonished|surprised,very,shock", "disappointed|sad,expect,happy", "miserable|sad,unhappy,cry", "scared stiff|afraid,frightened,horror", "shocked|surprise,bad,news", "body language|face,hands,move", "actor|film,play,act", "mime|hands,speak,silent", "historical drama|past,history,film", "horror film|scary,afraid,monster", "comedy|funny,laugh,joke"], "homework": "Workbook 7B p.49: 1a, 1b, 1c · Grammar Bank 7B p.145 a, b"},
    {"id": "7B-2", "unit": 7, "title": "It's all an act", "focus": "the body · silent consonants · the best way to spot a liar · describing a photo", "pages": "SB pp.72–73", "file": "B2_Violet_Course/B2_7B-2_Its_all_an_act.pptx", "slides": 23, "skills": {"Vocabulary": "the body · body language verbs: wink, yawn, shrug, frown, stare…", "Pronunciation": "silent letters: knee, wrist, palm, thumb…", "Speaking": "Spot the liar · retell The audition", "Games & songs": "The director says… · Body quiz (on screen)"}, "homework": "Workbook 7B: vocabulary (the body) + pronunciation · Vocabulary Bank The body: test yourself · Write Marco's story (80–100 words)"},
    {"id": "CE6-7", "unit": 7, "title": "Colloquial English 6&7: performances", "focus": "interview with Simon Callow · modifiers · the conversation: live or recorded?", "pages": "SB pp.74–75"},
-   {"id": "8A-1", "unit": 8, "title": "Cutting crime", "focus": "street crime advice (Stay safe) · crime and punishment · Beat the burglar · the letter u", "pages": "SB pp.76–77"},
+   {
+    "id": "8A-1",
+    "unit": 8,
+    "title": "Cutting crime",
+    "focus": "crime and punishment • the letter u",
+    "pages": "SB pp.76–77 · VB p.160",
+    "slides": 42,
+    "homework": "Workbook 8A: vocabulary (crime and punishment) + pronunciation (the letter u) · Vocabulary Bank p.160: test yourself",
+    "file": "B2_Violet_Course/B2_8A-1_Cutting_crime.pptx",
+    "skills": {
+     "Listening": "Stay safe – police podcast (8.1)",
+     "Vocabulary": "crime and punishment (VB p.160)",
+     "Pronunciation": "the letter u",
+     "Speaking": "crime where you live",
+     "Games & songs": "TPRS: the worst burglar in Sicily · Taboo"
+    }
+   },
    {"id": "8A-2", "unit": 8, "title": "Cutting crime", "focus": "the passive (all forms), have something done, it is said that… · true crime stories · identity theft", "pages": "SB pp.78–79"},
    {"id": "8B-1", "unit": 8, "title": "Fake news", "focus": "news stories · reporting verbs (persuade, deny, agree…) · word stress", "pages": "SB pp.80–81"},
    {"id": "8B-2", "unit": 8, "title": "Fake news", "focus": "the media · 8 tips on how to spot fake news · video: the speed of news", "pages": "SB pp.82–83"},
