@@ -11573,7 +11573,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ---------- 1. Lesson plans ----------
 function llsPlanCode_(unit) {
-  const m = String(unit || "").trim().replace(/^(unit|lesson)\s+/i, "").match(/^(R\d{1,2}-\d{1,2}|\d{1,2}[A-C]-\d{1,2}[A-C]|\d{1,2}[A-C](?:-\d)?|L\d{1,2}|U\d{1,2}-L\d|[SR]-L\d|PE\d{1,2})(?![\w])/i);
+  const m = String(unit || "").trim().replace(/^(unit|lesson)\s+/i, "").match(/^(R\d{1,2}-\d{1,2}|\d{1,2}[A-C]-\d{1,2}[A-C]|\d{1,2}[A-C](?:-\d)?|L\d{1,2}|U\d{1,2}-L\d|U\d{1,2}-\d{1,2}|[SR]-L\d|PE\d{1,2}|H)(?![\w])/i);
   return m ? m[1].toUpperCase() : "";
 }
 function llsPlansFor_(cls) {
@@ -12016,7 +12016,8 @@ function llsRenderPlanPanel() {
     const touched = llsLesson.noteTouched;
     llsApplyPlan_(next);
     llsLesson.noteTouched = touched;
-    llsRenderPlanPanel();
+    // 24 Nov: redraw once only. If the lesson code can't be read back (e.g. a new book's codes), never loop – it froze the page.
+    if (llsPlanCode_(value("lessonUnitPage")) === next.id) llsRenderPlanPanel();
     return;
   }
   byId("planOther")?.addEventListener("change", (e) => {
