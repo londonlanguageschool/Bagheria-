@@ -385,7 +385,7 @@ window.LLS_PLANS = {
   "A2_Blue_Part1_Units1-6/A2_3A_TripAside_going_to.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_3A_TripAside.pptx?v=202611031430",
   "A2_Blue_Part1_Units1-6/A2_3B_Put_it_in_your_calendar.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_3B_Put_it_in_your_calendar.pptx?v=202611050743",
   "A2_Blue_Part1_Units1-6/A2_3B_Can_we_meet.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_3B_Can_we_meet.pptx?v=202611101055",
-  "A2_Blue_Part1_Units1-6/A2_4A_Who_does_what_housework.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_4A_Who_does_what.pptx?v=202611191010",
+  "A2_Blue_Part1_Units1-6/A2_4A_Who_does_what_housework.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_4A_Who_does_what.pptx?v=202611241300",
   "A2_Blue_Part1_Units1-6/A2_4A_Photocopiables.pdf": "https://drive.google.com/file/d/11XVEZMvDQXbbOCZKX_n0OaTp0slZ325O/view",
   "A2_Blue_Part1_Units1-6/A2_3C_Word_games_relative_clauses.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_3C_Word_games.pptx?v=202611120933",
   "A2_Blue_Part1_Units1-6/A2_2C_One_dark_October_evening.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/A2/A2_2C_One_dark_October_evening.pptx?v=20261022e",
@@ -780,10 +780,10 @@ window.LLS_PLANS = {
     "title": "Who does what?",
     "focus": "Present perfect + yet, just, already",
     "pages": "SB pp.30–31",
-    "slides": 16,
+    "slides": 17,
+    "homework": "Workbook 4A p.244: 1a, 1b, 1c, 2a · p.245: 2b, 2c, 2e",
     "file": "A2_Blue_Part1_Units1-6/A2_4A_Who_does_what_housework.pptx",
-    "pcm": "A2_Blue_Part1_Units1-6/A2_4A_Photocopiables.pdf",
-    "skills": {
+        "skills": {
      "Grammar": "Present perfect + yet, just, already",
      "Vocabulary": "housework, make or do",
      "Reading": "SB pp.30–31",
