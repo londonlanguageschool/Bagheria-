@@ -13149,7 +13149,7 @@ async function llsSlidesGet_(action, params) {
 function llsLoadViewIndex_() {
   if (llsViewIndexAsked_ || !sessionStorage.getItem(LLS_ADMIN_TOKEN_KEY)) return;
   llsViewIndexAsked_ = true;
-  llsSlidesGet_("getSlideIndex", {}).then((d) => { llsViewIndex_ = d.index || {}; })
+  llsSlidesGet_("getSlideIndex", {}).then((d) => llsLegacyIndex_().then((j) => { llsViewIndex_ = Object.assign({}, j || {}, d.index || {}); })) // 24 Nov: decks with pictures on the website count too
     .catch(() => llsLegacyIndex_().then((j) => { llsViewIndex_ = j; }).catch(() => { llsViewIndexAsked_ = false; }));
 }
 // 3 Nov: until Apps Script V40 has copied the slides to Drive, the pictures still come from the website copy.
