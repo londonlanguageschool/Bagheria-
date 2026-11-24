@@ -246,7 +246,7 @@ window.LLS_PLANS = {
   "B1_Green_Course_6B-10B/B1_9A-2_Homework_sheet.pdf": "https://drive.google.com/file/d/1F1Bm5Rj0_5ZAIrVp28uIBqqPAjYjSjxV/view",
   "B1_Green_Course_6B-10B/B1_9A-2_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/111KWy6VIyHsfPGVXfS-OoxhJZ0cOppxy/view",
   "B1_Green_Course_6B-10B/B1_9A-2_Teacher_answer_key.pdf": "https://drive.google.com/file/d/1WFWqeobCet2QUQhsiRNNCqHbfftCj8aT/view",
-  "B1_Green_Course_6B-10B/B1_9B-1_Digital_detox.pptx": "https://drive.google.com/file/d/1Tkv5y268auHhSKV4Rih_mxOXcRZp27u8/view",
+  "B1_Green_Course_6B-10B/B1_9B-1_Digital_detox.pptx": "https://londonlanguageschool.github.io/Bagheria-/materials/B1/B1_9B-1_Digital_detox.pptx?v=202611241200",
   "B1_Green_Course_6B-10B/B1_9B-1_Homework_sheet.pdf": "https://drive.google.com/file/d/1CYVpcWI1ImGSPrELQrLW41A573Z97_3Z/view",
   "B1_Green_Course_6B-10B/B1_9B-1_Homework_sheet_easier.pdf": "https://drive.google.com/file/d/1JEtLNImisULtZ8SUYw9BVMhgoBf8O7Ei/view",
   "B1_Green_Course_6B-10B/B1_9B-1_Teacher_answer_key.pdf": "https://drive.google.com/file/d/18dqAA546kA_nfEkVj409h6k4w65drC-f/view",
@@ -2031,7 +2031,7 @@ window.LLS_PLANS = {
     "title": "Digital detox",
     "focus": "electronic devices • switch it on, turn it up…",
     "pages": "SB pp.90–91",
-    "slides": 15,
+    "slides": 38,
     "skills": {
      "Vocabulary": "Electronic devices, phrasal verbs",
      "Reading": "Less time online",
