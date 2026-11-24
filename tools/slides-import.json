@@ -1,5 +1,5 @@
 {
- "sha": "3e9f4fd392f47d73087a0e7dfaf298bbb3cdbe72",
+ "sha": "58145de91126634764f892f50a381551c580d1da",
  "decks": {
   "A2_1C_The_Remake_Project_v3": {
    "n": 18,
@@ -205,9 +205,9 @@
    "n": 23,
    "v": "9e04bdb949"
   },
-  "B2_8A-1_Cutting_crime": {
-   "n": 42,
-   "v": "3299bbc930"
+  "B2_8A_Cutting_crime": {
+   "n": 68,
+   "v": "d20e3040c6"
   },
   "Chef_L01_Welcome_to_the_kitchen": {
    "n": 13,
@@ -688,9 +688,9 @@
    "v": "4b7cf8f0cf"
   },
   {
-   "path": "B2/B2_8A-1_Cutting_crime.pptx",
-   "name": "B2_8A-1_Cutting_crime.pptx",
-   "v": "15dbc0dd60"
+   "path": "B2/B2_8A_Cutting_crime.pptx",
+   "name": "B2_8A_Cutting_crime.pptx",
+   "v": "5b2f363b5d"
   },
   {
    "path": "CHEF/Chef_L01_Welcome_to_the_kitchen.pptx",
