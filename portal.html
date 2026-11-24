@@ -749,10 +749,12 @@
                 <button type="button" class="lesson-type-btn" role="radio" aria-checked="false" data-ltype="choice"><span>🧑‍🏫</span><strong>Teacher's choice</strong><small>your own lesson plan</small></button>
                 <button type="button" class="lesson-type-btn" role="radio" aria-checked="false" data-ltype="special"><span>⭐</span><strong>Special lesson</strong><small>Halloween, Christmas…</small></button>
               </div>
-              <div class="lesson-special lesson-choice on" id="lessonChoiceBox" hidden>
-                <p style="margin:0 0 4px;"><strong>🧑‍🏫 Teacher's choice</strong></p>
-                <p class="muted" style="margin:0;">Your own lesson instead of the book. It counts like any other lesson: just tick the skills below and write the topic. The book unit doesn't move.</p>
-                <div class="lesson-special-chips" id="lessonChoiceChips">
+              <!-- 24 Nov (owner): no more big blue "Teacher's choice" box – it repeated the skills and lesson details. Only the optional materials remain. -->
+              <details class="choice-materials" id="lessonChoiceBox" hidden style="margin:10px 0;border:1px solid #e3e8f0;border-radius:12px;padding:8px 12px;background:#fff">
+                <summary style="cursor:pointer;font-weight:700">📎 Materials you used <span class="muted">(optional: links, photos of the board or worksheet)</span></summary>
+                
+                
+                <div class="lesson-special-chips" id="lessonChoiceChips" hidden>
                   <button type="button" class="lesson-chip" data-choice="Exam practice">🎓 Exam practice</button>
                   <button type="button" class="lesson-chip" data-choice="Speaking practice">🗣️ Speaking practice</button>
                   <button type="button" class="lesson-chip" data-choice="Grammar review">🧩 Grammar review</button>
@@ -763,7 +765,7 @@
                   <button type="button" class="lesson-chip" data-choice="Revision games">🎲 Revision games</button>
                 </div>
                 <div class="form-grid" style="margin-top:10px;">
-                  <div class="form-field form-field-wide">
+                  <div class="form-field form-field-wide" hidden>
                     <label for="lessonChoiceTitle">Lesson title <span class="muted">(optional)</span></label>
                     <input id="lessonChoiceTitle" type="text" maxlength="60" placeholder="Optional, e.g. Cambridge B1 Listening Part 1">
                   </div>
@@ -777,7 +779,7 @@
                     <small id="lessonChoiceFilesPicked" class="muted"></small>
                   </div>
                 </div>
-              </div>
+              </details>
               <div class="lesson-special" id="lessonSpecialBox" hidden>
                 <label class="lesson-special-toggle" for="lessonSpecialOn" hidden>
                   <input id="lessonSpecialOn" type="checkbox">
@@ -2444,7 +2446,7 @@
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
   <script src="practice/courses.js?v=20261014a"></script>
-  <script src="lesson-plans.js?v=20261124g"></script>
+  <script src="lesson-plans.js?v=20261124h"></script>
   <script src="deck-homework.js?v=20261023n"></script>
   <script src="class-homework.js?v=20261015b"></script>
   <script src="workbook.js?v=20261120a"></script>
