@@ -2031,7 +2031,7 @@ window.LLS_PLANS = {
     "title": "Digital detox",
     "focus": "electronic devices • switch it on, turn it up…",
     "pages": "SB pp.90–91",
-    "slides": 38,
+    "slides": 38, "homework": "Workbook 9B p.63: 1a, 1b · p.64: 1c · p.65: 3a",
     "skills": {
      "Vocabulary": "Electronic devices, phrasal verbs",
      "Reading": "Less time online",
