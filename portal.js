@@ -8424,7 +8424,7 @@ async function llsRenderLesson() {
   const saveBtn = byId("lessonSaveButton");
   if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "💾 Save lesson"; }
   byId("lessonLast").hidden = true;
-  llsLesson.happen = ""; llsLesson.happenOpen = false; llsPlanPick = ""; llsPlanForm = ""; llsPlanAutoKey_ = ""; llsHwAuto_ = ""; llsLesson.changeOpen = false;
+  llsLesson.happen = ""; llsLesson.happenOpen = false; llsLesson.pagesDone = ""; setValue("lessonPagesDone", ""); llsPlanPick = ""; llsPlanForm = ""; llsPlanAutoKey_ = ""; llsHwAuto_ = ""; llsLesson.changeOpen = false;
   { const w = byId("lessonNotesWrap"); if (w) w.open = false; byId("lessonRegister")?.classList.remove("show-notes"); }
   { const tf = byId("lessonTrialForm"); if (tf) { tf.hidden = true; tf.innerHTML = ""; } const tb = byId("lessonTrialBtn"); if (tb) tb.hidden = llsRole() !== "teacher"; }
   setValue("lessonHwSet", "set"); llsHwSetApply_();
@@ -8583,7 +8583,8 @@ function llsFillLessonNote(entry, cls) {
   else if (choice) { llsSetChoice(true, ct.title, mat.links.join("\n")); setValue("lessonUnitPage", cls.currentUnit || ""); }
   else setValue("lessonUnitPage", entry.unit || "");
   llsSkillState = parsed.skills;
-  setValue("lessonDone", ct.rest);
+  { const pg = String(ct.rest || "").match(LLS_PAGES_RE); llsLesson.pagesDone = pg ? pg[1].trim() : "";
+    setValue("lessonDone", String(ct.rest || "").replace(LLS_PAGES_RE, "").replace(/^\n+|\n+$/g, "")); setValue("lessonPagesDone", llsLesson.pagesDone); }
   const stop = String(mat.notes || "").match(LLS_STOP_RE);
   setValue("lessonNotes", String(mat.notes || "").replace(LLS_STOP_STRIP, ""));
   llsSetProgress_(stop ? Number(stop[2]) : 0, stop ? stop[1] : "");
@@ -9470,7 +9471,9 @@ async function llsSaveLesson() {
   byId("lessonSkillText")?.classList.toggle("needs", noTopic.length > 0);
   const needSkill = !specialOn && !nobodyHere && !ticked.length;
   skillBox?.classList.toggle("needs", needSkill);
-  const doneText = [...llsSkillLines(llsSkillState), choiceOn ? LLS_CHOICE_MARK + choiceTitle : "", value("lessonDone").trim()].filter(Boolean).join("\n") || (specialOn ? specialTitle + " lesson" : nobodyHere ? LLS_NOBODY_CAME : "");
+  // 25 Nov (owner): teachers write the book pages they did (classes teaching from the book, no slides).
+  const pagesDone = String((llsHasPlans_() ? llsLesson.pagesDone : (byId("lessonUnitPageField")?.hidden ? "" : value("lessonPagesDone"))) || "").trim();
+  const doneText = [...llsSkillLines(llsSkillState), choiceOn ? LLS_CHOICE_MARK + choiceTitle : "", pagesDone ? LLS_PAGES_MARK + pagesDone : "", value("lessonDone").trim()].filter(Boolean).join("\n") || (specialOn ? specialTitle + " lesson" : nobodyHere ? LLS_NOBODY_CAME : "");
   const needDone = false; // 11 Oct (Helen): the skills + topics already say what was done; no extra description required
   if (value("lessonProgress") === "stop" && !(Number(value("lessonStopSlide")) > 0)) {
     showToast("Write the slide number where you stopped (What did you teach? · Did you finish it?).", "error");
@@ -11728,6 +11731,8 @@ document.addEventListener("DOMContentLoaded", () => {
 // 7 Oct (owner): a lesson that wasn't finished is saved with "⏸ Stopped at slide N" as the first line of the
 // notes for the next teacher. It doesn't count as taught: the plan panel says "Continue … from slide N".
 const LLS_STOP_RE = /^⏸ Stopped at (slide|page) (\d+)/;
+const LLS_PAGES_MARK = "📖 Book pages: ";
+const LLS_PAGES_RE = /^📖 Book pages: (.*)$\n?/m;
 // llsStopSlide_ = the number (slide OR page); llsStopKind_ = "slide" / "page". Slide viewers only use slide numbers.
 function llsStopSlide_(e) { const m = String((e && e.notes) || "").match(LLS_STOP_RE); return m ? Number(m[2]) : 0; }
 function llsStopKind_(e) { const m = String((e && e.notes) || "").match(LLS_STOP_RE); return m ? m[1] : "slide"; }
@@ -11940,6 +11945,7 @@ function llsRenderPlanPanel() {
   box.innerHTML = `
     <div class="teach-grid">
       <div class="form-field"><label>Lesson</label><div class="teach-what">${sel === "choice" ? "My own lesson" : sel === "special" ? "Special lesson" : picked ? escapeHtml(picked.id + " · " + picked.title) : "Choose it at the top (Start here)"}</div></div>
+      <div class="form-field"><label for="planPagesDone">📖 Book pages you did <span class="muted">(optional)</span></label><input id="planPagesDone" type="text" maxlength="80" placeholder="${escapeAttribute(picked && picked.pages ? "e.g. " + picked.pages : "e.g. PB pp.8–9, AB p.8")}" value="${escapeAttribute(llsLesson.pagesDone || "")}"></div>
       ${showFinish ? `<div class="form-field">
         <label for="planFinSel">Did you finish it?</label>
         <div class="teach-fin">
@@ -11970,6 +11976,7 @@ function llsRenderPlanPanel() {
       <p class="plan-report" style="margin-bottom:4px;">Need a lesson from another course (trial lesson, revision)? <a href="#" data-open-library>📚 Lesson library</a></p>
       <p class="plan-report">Mistake in a lesson? <a href="#" data-report-lesson="${escapeAttribute((feat ? feat.id + " " + feat.title : "") + " · " + name)}">⚠ Report a problem</a> (lesson, slide number, what's wrong).</p>
     </details>`;
+  byId("planPagesDone")?.addEventListener("input", (e) => { llsLesson.pagesDone = e.target.value; llsLesson.noteTouched = true; });
   byId("planFinSel")?.addEventListener("change", (e) => {
     if (e.target.value === "both" && part && after) {
       // finished the old lesson today → mark it done; today's lesson becomes the next one

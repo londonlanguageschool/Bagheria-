@@ -810,8 +810,11 @@
               </details>
               <div class="form-grid">
                 <div class="form-field" id="lessonUnitPageField">
-                  <label for="lessonUnitPage">Unit / page</label>
-                  <input id="lessonUnitPage" type="text" placeholder="e.g. 2B, p.18">
+                  <label for="lessonUnitPage">Unit</label>
+                  <input id="lessonUnitPage" type="text" placeholder="e.g. 2 or Welcome unit">
+                  <!-- 25 Nov (owner): classes without slides (Tiny Talkers, Pre-Starters, Starters…) write the book pages they did -->
+                  <label for="lessonPagesDone" style="margin-top:10px">📖 Book pages you did <span class="muted">(optional)</span></label>
+                  <input id="lessonPagesDone" type="text" maxlength="80" placeholder="e.g. PB pp.8–9, AB p.8">
                 </div>
                 <div class="form-field" id="lessonProgressField">
                   <label for="lessonProgress">How far did you get?</label>
@@ -2452,7 +2455,7 @@
   <script src="workbook.js?v=20261120a"></script>
   <script src="workbook-ex.js?v=20261120b"></script>
   <script src="closed-days.js?v=20261027b"></script>
-  <script src="portal.js?v=20261125a"></script>
+  <script src="portal.js?v=20261125c"></script>
   <script src="resources.js?v=20261014a"></script>
   <script src="activities.js?v=20261117a"></script>
   <script src="activities-kits.js?v=20261117a"></script>
