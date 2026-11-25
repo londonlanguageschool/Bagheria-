@@ -1,5 +1,5 @@
 {
- "sha": "5e67419b921f4712ecad22ef4a078a4a5e7cd58f",
+ "sha": "f7f43feff51cddb39d91d8e3655352c7d223137a",
  "decks": {
   "A2_1A_Are_you_Do_you": {
    "n": 13,
@@ -497,6 +497,10 @@
    "n": 15,
    "v": "591f2e8969"
   },
+  "PREP_3A_My_way_of_life": {
+   "n": 28,
+   "v": "41bd767376"
+  },
   "PREP_Culture_Traditional_clothes": {
    "n": 14,
    "v": "e6609a1d73"
@@ -927,6 +931,11 @@
    "path": "PREP/PREP_2C-3A_Life_stories.pptx",
    "name": "PREP_2C-3A_Life_stories.pptx",
    "v": "ef360c5487"
+  },
+  {
+   "path": "PREP/PREP_3A_My_way_of_life.pptx",
+   "name": "PREP_3A_My_way_of_life.pptx",
+   "v": "0bf4467759"
   },
   {
    "path": "PREP/PREP_Culture_Traditional_clothes.pptx",
