@@ -2023,6 +2023,7 @@ function openEditClass(id) {
   setValue("classRegisterSheet", item.registerSheet || "");
   setValue("classStatus", item.status || "Active");
   llsFillBookSelect();
+  llsEnsureBookOption_(item.book);
   setValue("classBook", item.book || "");
   setValue("classUnits", item.units || "");
   setValue("classCurrentUnit", item.currentUnit || "");
@@ -6997,7 +6998,28 @@ function llsFillBookSelect() {
     option.textContent = course.title;
     select.appendChild(option);
   });
+  // 25 Nov (owner): books with lesson decks but no student Practice bank. Without these, editing
+  // Movers / Flyers / Tiny Talkers / Pre-Starters showed "None" and saving wiped the class's book.
+  Object.entries(LLS_EXTRA_BOOKS_).forEach(([id, title]) => {
+    if (select.querySelector(`option[value="${id}"]`)) return;
+    const option = document.createElement("option");
+    option.value = id; option.textContent = title; select.appendChild(option);
+  });
   select.dataset.filled = "1";
+}
+const LLS_EXTRA_BOOKS_ = {
+  "GREENMAN-S": "Greenman and the Magic Forest Starter (Tiny Talkers)",
+  "GREENMAN-A": "Greenman and the Magic Forest A (Pre-Starters)",
+  "KB3": "Kid's Box 3 (Movers)",
+  "KIDSBOX-5": "Kid's Box 5 (Flyers)",
+  "PU-3": "Power Up 3"
+};
+// Keep any book code already saved on a class, even one not in the lists above.
+function llsEnsureBookOption_(code) {
+  const select = byId("classBook");
+  if (!select || !code || select.querySelector(`option[value="${String(code).replace(/"/g, "")}"]`)) return;
+  const option = document.createElement("option");
+  option.value = code; option.textContent = code; select.appendChild(option);
 }
 
 function llsPracticeSummary(studentId, results) {
